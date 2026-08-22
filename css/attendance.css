@@ -1,0 +1,539 @@
+/* ===== ATTENDANCE STATUS BUTTONS ===== */
+.att-status-cell {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.att-status-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.4rem 0.65rem;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: rgba(255,255,255,0.5);
+  font-size: 0.85rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
+  min-height: 34px;
+  min-width: 42px;
+  color: var(--text-muted);
+  position: relative;
+}
+
+.att-status-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow);
+}
+
+/* --- Present (Green) --- */
+.att-status-btn.present:hover {
+  border-color: var(--success);
+  color: var(--success);
+  background: var(--success-light);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+}
+.att-status-btn.present.active {
+  border-color: var(--success);
+  background: var(--success);
+  color: #fff;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.35), 0 4px 12px rgba(16, 185, 129, 0.25);
+}
+
+/* --- Absent (Red) --- */
+.att-status-btn.absent:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+  background: var(--danger-light);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+}
+.att-status-btn.absent.active {
+  border-color: var(--danger);
+  background: var(--danger);
+  color: #fff;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.35), 0 4px 12px rgba(239, 68, 68, 0.25);
+}
+
+/* --- Late (Amber) --- */
+.att-status-btn.late:hover {
+  border-color: var(--warning);
+  color: var(--warning);
+  background: var(--warning-light);
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15);
+}
+.att-status-btn.late.active {
+  border-color: var(--warning);
+  background: var(--warning);
+  color: #fff;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.35), 0 4px 12px rgba(245, 158, 11, 0.25);
+}
+
+/* --- Excused (Purple) --- */
+.att-status-btn.excused:hover {
+  border-color: var(--purple);
+  color: var(--purple);
+  background: var(--purple-light);
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
+}
+.att-status-btn.excused.active {
+  border-color: var(--purple);
+  background: var(--purple);
+  color: #fff;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.35), 0 4px 12px rgba(139, 92, 246, 0.25);
+}
+
+/* Mobile: bigger touch targets for attendance buttons */
+@media (max-width: 640px) {
+  .att-status-btn {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.9rem;
+    min-height: 40px;
+    min-width: 48px;
+  }
+  .att-status-cell {
+    gap: 0.3rem;
+  }
+}
+
+/* ===== ATTENDANCE STATS CARDS ===== */
+.attendance-summary-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+.att-stat-card {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  padding: 0.6rem 1rem;
+  text-align: center;
+  flex: 1;
+  min-width: 80px;
+  box-shadow: var(--shadow);
+  transition: var(--transition);
+}
+.att-stat-card:hover { transform: translateY(-1px); }
+.att-stat-number {
+  display: block;
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1.2;
+}
+.att-stat-card span:last-child {
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.att-stat-card.present { border-left: 3px solid var(--success); }
+.att-stat-card.absent { border-left: 3px solid var(--danger); }
+.att-stat-card.late { border-left: 3px solid var(--warning); }
+.att-stat-card.excused { border-left: 3px solid var(--purple); }
+.att-stat-card.total { border-left: 3px solid var(--primary); }
+
+/* Attendance Instructions */
+.attendance-instructions {
+  background: var(--primary-light);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+/* Attendance Toolbar */
+.attendance-toolbar {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 640px) {
+  .attendance-toolbar {
+    flex-direction: column;
+  }
+  .attendance-toolbar .btn {
+    width: 100%;
+  }
+}
+
+/* ===== ATTENDANCE MODE TOGGLE ===== */
+.att-mode-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+.att-mode-btn {
+  padding: 0.5rem 1.2rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+.att-mode-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+.att-mode-btn.active {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: #fff;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+}
+
+/* ===== 30-DAY CHECKBOX GRID ===== */
+.att-monthly-container {
+  margin-top: 1rem;
+}
+.att-monthly-toolbar {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.att-monthly-grid-wrapper {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  max-height: 70vh;
+  overflow-y: auto;
+}
+.att-monthly-grid {
+  border-collapse: collapse;
+  min-width: 100%;
+  font-size: 0.75rem;
+}
+.att-monthly-grid th,
+.att-monthly-grid td {
+  border: 1px solid var(--border);
+  padding: 0.25rem;
+  text-align: center;
+  white-space: nowrap;
+}
+.att-monthly-grid thead th {
+  background: var(--primary);
+  color: #fff;
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 0.35rem 0.2rem;
+  font-size: 0.65rem;
+}
+.att-monthly-grid thead th:first-child,
+.att-monthly-grid thead th:nth-child(2),
+.att-monthly-grid thead th:nth-child(3) {
+  position: sticky;
+  z-index: 3;
+  background: var(--primary);
+}
+.att-monthly-grid thead th:first-child {
+  left: 0;
+}
+.att-monthly-grid thead th:nth-child(2) {
+  left: 50px;
+}
+.att-monthly-grid thead th:nth-child(3) {
+  left: 190px;
+}
+.att-monthly-grid .save-cell-header {
+  min-width: 50px;
+  text-align: center;
+}
+.att-monthly-grid .save-cell {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--bg);
+  text-align: center;
+  padding: 0.25rem;
+  min-width: 50px;
+}
+.att-monthly-grid .btn-save-student {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--primary-light);
+  color: var(--primary);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  padding: 0;
+}
+.att-monthly-grid .btn-save-student:hover {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+  transform: scale(1.1);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+}
+.att-monthly-grid .btn-save-student:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+.att-monthly-grid tbody tr:hover .save-cell {
+  background: var(--primary-light);
+}
+.att-monthly-grid tbody tr:hover .save-cell .btn-save-student {
+  border-color: var(--primary);
+}
+.att-monthly-grid th.day-header {
+  min-width: 28px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.att-monthly-grid th.day-header:hover {
+  background: var(--primary-hover, #4f46e5);
+}
+.att-monthly-grid th.day-header.weekend {
+  background: var(--primary-light, #e0e7ff);
+  color: var(--text);
+}
+.att-monthly-grid .student-name-cell {
+  position: sticky;
+  left: 50px;
+  z-index: 1;
+  background: var(--bg);
+  text-align: left;
+  padding: 0.25rem 0.5rem;
+  font-weight: 600;
+  font-size: 0.75rem;
+  min-width: 120px;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.att-monthly-grid .student-id-cell {
+  position: sticky;
+  left: 190px;
+  z-index: 1;
+  background: var(--bg);
+  text-align: left;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  min-width: 70px;
+}
+.att-monthly-grid tbody tr:hover .student-name-cell,
+.att-monthly-grid tbody tr:hover .student-id-cell,
+.att-monthly-grid tbody tr:hover .save-cell {
+  background: var(--primary-light);
+}
+.att-monthly-grid .att-day-cell {
+  cursor: pointer;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  transition: all 0.15s;
+  user-select: none;
+}
+.att-monthly-grid .att-day-cell:hover {
+  transform: scale(1.15);
+  z-index: 1;
+  position: relative;
+}
+.att-monthly-grid .att-day-cell.present {
+  background: #d1fae5;
+  color: #065f46;
+}
+.att-monthly-grid .att-day-cell.absent {
+  background: #fee2e2;
+  color: #991b1b;
+}
+.att-monthly-grid .att-day-cell.unmarked {
+  background: transparent;
+  color: var(--text-muted);
+}
+.att-monthly-grid .att-day-cell.late {
+  background: #fef3c7;
+  color: #92400e;
+}
+.att-monthly-grid .att-day-cell.excused {
+  background: #ede9fe;
+  color: #5b21b6;
+}
+.att-monthly-grid .att-day-cell .day-status-icon {
+  font-size: 0.85rem;
+  line-height: 1;
+}
+.att-monthly-grid .att-day-cell input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--success);
+}
+.att-monthly-grid .present-count-cell {
+  font-weight: 700;
+  font-size: 0.8rem;
+  min-width: 40px;
+}
+.att-monthly-grid .att-day-cell.highlight-present {
+  box-shadow: inset 0 0 0 2px var(--success);
+}
+.att-monthly-grid .att-day-cell.highlight-absent {
+  box-shadow: inset 0 0 0 2px var(--danger);
+}
+
+/* 30-day grid row hover */
+.att-monthly-grid tbody tr:hover td {
+  background: rgba(99, 102, 241, 0.05);
+}
+
+/* Weekend column styling */
+.att-monthly-grid .att-day-cell.weekend {
+  opacity: 0.5;
+}
+
+/* ===== 30-DAY ATTENDANCE SUMMARY ===== */
+.att-monthly-summary {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+  padding: 0.75rem;
+  background: var(--glass-bg);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--glass-border);
+}
+.att-monthly-summary-item {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.att-monthly-summary-item .color-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  display: inline-block;
+}
+.att-monthly-summary-item .color-dot.present-dot { background: #d1fae5; border: 1px solid #065f46; }
+.att-monthly-summary-item .color-dot.absent-dot { background: #fee2e2; border: 1px solid #991b1b; }
+.att-monthly-summary-item .color-dot.late-dot { background: #fef3c7; border: 1px solid #92400e; }
+.att-monthly-summary-item .color-dot.excused-dot { background: #ede9fe; border: 1px solid #5b21b6; }
+
+@media (max-width: 640px) {
+  .att-monthly-toolbar {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: stretch;
+    width: 100%;
+    max-width: 100%;
+    overflow: visible;
+  }
+  .att-monthly-toolbar .search-input,
+  .att-monthly-toolbar .filter-select {
+    width: 100%;
+    max-width: 100% !important;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+  .att-monthly-toolbar .btn {
+    width: 100%;
+    margin: 0;
+    padding: 0.75rem 0.6rem;
+    font-size: 0.85rem;
+    white-space: normal;
+    word-wrap: break-word;
+    overflow: visible;
+    text-overflow: clip;
+    min-width: 0;
+    min-height: 44px;
+    box-sizing: border-box;
+    flex-shrink: 0;
+  }
+  .att-monthly-toolbar .btn .spinner {
+    vertical-align: middle;
+  }
+  /* Ensure the monthly grid wrapper doesn't push the toolbar off-screen */
+  .att-monthly-container,
+  .att-monthly-grid-wrapper {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .att-monthly-grid-wrapper {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+  }
+  /* Prevent the wide grid from expanding the page and hiding toolbar controls */
+  #adminAttModeMonthlyContent,
+  #teacherAttModeMonthlyContent {
+    max-width: 100%;
+    overflow: hidden;
+  }
+  #adminAttModeMonthlyContent .att-monthly-grid,
+  #teacherAttModeMonthlyContent .att-monthly-grid {
+    max-width: 100%;
+  }
+  /* Make search-input date fields focusable on mobile without overflow */
+  .att-monthly-toolbar input[type="date"],
+  .att-monthly-toolbar select {
+    min-height: 44px;
+    font-size: 0.9rem;
+  }
+  .att-monthly-grid {
+    font-size: 0.65rem;
+  }
+  .att-monthly-grid th.day-header {
+    min-width: 22px;
+    font-size: 0.55rem;
+  }
+  .att-monthly-grid .student-name-cell {
+    left: 40px;
+    min-width: 80px;
+    font-size: 0.65rem;
+  }
+  .att-monthly-grid .student-id-cell {
+    left: 120px;
+    min-width: 50px;
+    font-size: 0.6rem;
+  }
+  .att-monthly-grid .save-cell {
+    min-width: 40px;
+  }
+  .att-monthly-grid .btn-save-student {
+    width: 26px;
+    height: 26px;
+    font-size: 0.75rem;
+  }
+  .att-monthly-grid thead th:nth-child(2) {
+    left: 40px;
+  }
+  .att-monthly-grid thead th:nth-child(3) {
+    left: 120px;
+  }
+  .att-monthly-grid .att-day-cell {
+    width: 24px;
+    height: 24px;
+  }
+  .att-monthly-grid .att-day-cell .day-status-icon {
+    font-size: 0.7rem;
+  }
+}

@@ -1,0 +1,390 @@
+/* ============================================================
+   ANDROID WEBVIEW (APK) FIXES
+   Ensures the app renders identically inside an Android
+   WebView wrapper (APK) as it does in a mobile browser.
+   ============================================================ */
+
+/* ===== 1. VIEWPORT HEIGHT FIXES =====
+   Android WebView does not account for system bars / URL bar
+   with 100vh. Use dynamic viewport height (dvh) with fallback. */
+@supports (height: 100dvh) {
+  body {
+    min-height: 100dvh;
+  }
+  #page-login.active-page {
+    min-height: 100dvh;
+  }
+  .home-hero {
+    min-height: calc(100dvh - var(--nav-height) - 6rem);
+  }
+}
+
+/* ---------- 2. BACKGROUND-ATTACHMENT FIX ----------
+   `background-attachment: fixed` is broken/ignored in Android
+   WebView and causes the gradient background to render wrong.
+   Replace with a fixed pseudo-element approach. */
+@supports (-webkit-touch-callout: none) {
+  /* iOS keeps fixed attachment */
+}
+@supports not (-webkit-touch-callout: none) {
+  /* Android WebView / Chrome */
+  body {
+    background-attachment: scroll !important;
+  }
+  /* Simulate fixed background with a fixed layer */
+  body::before {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: -1;
+    background: var(--bg);
+    background-image: var(--bg-gradient);
+    background-size: cover;
+    background-repeat: no-repeat;
+    content: '';
+    pointer-events: none;
+  }
+}
+
+/* ---------- 3. FONT RENDERING FIXES ----------
+   WebView uses different font rendering than Chrome browser.
+   Force consistent font smoothing and text sizing. */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* Prevent Android WebView from auto-inflating font sizes */
+@media (max-width: 768px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* ---------- 4. BACKDROP-FILTER FALLBACKS ----------
+   Older Android WebView versions don't support backdrop-filter.
+   Provide solid fallback backgrounds so glassmorphism doesn't
+   break into invisible/transparent elements. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .navbar,
+  .nav-links,
+  .dash-sidebar,
+  .dash-welcome-card,
+  .dash-overview-card,
+  .dash-chart-card,
+  .dash-list-card,
+  .dash-realtime-header,
+  .admission-form,
+  .auth-form,
+  .status-card,
+  .stat-card,
+  .table-wrapper,
+  .modal-card,
+  .parent-ward-card,
+  .home-badge,
+  .home-glass-card,
+  .home-feature-card,
+  .btn-secondary,
+  .role-tab,
+  .admit-section,
+  .mobile-bottom-nav,
+  .bottom-nav-collapse-btn,
+  .sidebar-backdrop,
+  .login-glass-card,
+  .announcement-card,
+  .acc-stat-card,
+  .fee-terms-section,
+  .fee-receipts-section,
+  .att-card,
+  .exam-card,
+  .income-expense-card {
+    background: #ffffff !important;
+  }
+
+  /* Dark login page needs its own fallback */
+  .login-glass-card {
+    background: rgba(30, 41, 59, 0.95) !important;
+  }
+
+  .navbar {
+    background: rgba(255, 255, 255, 0.97) !important;
+  }
+
+  .mobile-bottom-nav {
+    background: rgba(255, 255, 255, 0.98) !important;
+  }
+
+  .dash-sidebar {
+    background: rgba(255, 255, 255, 0.98) !important;
+  }
+
+  .accountant-brand.dash-sidebar {
+    background: rgba(15, 23, 42, 0.98) !important;
+  }
+}
+
+/* ---------- 5. BLUR FILTER PERFORMANCE FIX ----------
+   Large blur() filters on blobs are expensive in WebView and
+   can cause rendering glitches. Reduce blur radius on Android. */
+@supports not (-webkit-touch-callout: none) {
+  .home-blob,
+  .login-blob {
+    filter: blur(40px);
+  }
+}
+
+/* ---------- 6. TRANSITION & ANIMATION FIXES ----------
+   Spring cubic-bezier curves can jank in WebView.
+   Use simpler easing on Android for consistent feel. */
+@supports not (-webkit-touch-callout: none) {
+  :root {
+    --spring: cubic-bezier(0.4, 0, 0.2, 1);
+    --ease-out-expo: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Reduce heavy filter animations on page transitions */
+  .page,
+  .page.active-page {
+    animation: pageEnterWebView 0.35s ease both;
+  }
+
+  @keyframes pageEnterWebView {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Disable will-change which can cause layer issues in WebView */
+  .card-hover, .stat-card, .dash-overview-card, .home-feature-card,
+  .announcement-card, .parent-ward-card, .acc-stat-card {
+    will-change: auto;
+  }
+}
+
+/* ---------- 7. SAFE-AREA INSETS FALLBACK ----------
+   Android WebView may not provide env(safe-area-inset-*).
+   Provide sensible defaults. */
+@supports not (padding: env(safe-area-inset-bottom)) {
+  :root {
+    --safe-top: 0px;
+    --safe-bottom: 0px;
+    --safe-left: 0px;
+    --safe-right: 0px;
+  }
+}
+
+/* ---------- 8. SCROLLBAR & OVERSCROLL FIXES ---------- */
+@supports not (-webkit-touch-callout: none) {
+  /* Android WebView: prevent white flash on overscroll */
+  html {
+    background: var(--bg);
+  }
+
+  /* Ensure smooth scrolling works in WebView */
+  html {
+    scroll-behavior: auto;
+  }
+
+  /* Fix overscroll behavior for Android */
+  body {
+    overscroll-behavior-y: contain;
+  }
+}
+
+/* ---------- 9. TOUCH & TAP FIXES ---------- */
+/* Ensure touch-action works across all WebView versions */
+* {
+  -ms-touch-action: manipulation;
+  touch-action: manipulation;
+}
+
+/* ---------- 10. FONT-SIZE CLAMP FALLBACKS ----------
+   Older Android WebView versions may not support clamp().
+   Provide fixed fallback sizes. */
+@supports not (font-size: clamp(1rem, 1vw, 2rem)) {
+  .home-title {
+    font-size: 2.2rem;
+  }
+  .home-subtitle {
+    font-size: 1rem;
+  }
+  .home-section-title {
+    font-size: 1.6rem;
+  }
+}
+
+/* ---------- 11. VIEWPORT WIDTH (vw) FIX ----------
+   In WebView, vw includes scrollbar width differently.
+   Use percentage-based sizing where possible. */
+@supports not (width: 1dvw) {
+  .dash-sidebar {
+    width: min(300px, 85vw);
+  }
+}
+
+/* ---------- 12. ANDROID WEBVIEW SPECIFIC ----------
+   Target Android WebView specifically using the WebView
+   user agent string via CSS. */
+@media (max-width: 768px) {
+  /* Ensure the app fills the entire WebView viewport */
+  html, body {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  /* Prevent horizontal scroll from tables */
+  .table-wrapper {
+    max-width: 100%;
+  }
+
+  /* Ensure images don't overflow */
+  img {
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* Fix 100vw elements causing horizontal scroll */
+  .nav-links,
+  .mobile-bottom-nav,
+  .modal-overlay,
+  .sidebar-backdrop {
+    width: 100%;
+    left: 0;
+    right: 0;
+  }
+}
+
+/* ---------- 13. FIXED POSITION ELEMENTS ----------
+   Android WebView can have issues with position: fixed
+   when the keyboard opens. Ensure proper behavior. */
+@media (max-width: 768px) {
+  .navbar {
+    position: sticky;
+  }
+  .mobile-bottom-nav {
+    position: fixed;
+  }
+}
+
+/* ---------- 14. INPUT FOCUS ZOOM PREVENTION ----------
+   Prevent Android WebView from zooming on input focus. */
+@media (max-width: 768px) {
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="tel"],
+  input[type="number"],
+  input[type="date"],
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* ---------- 15. TRANSITION PERFORMANCE ----------
+   Use transform/opacity only for transitions to avoid
+   layout thrashing in WebView. */
+@supports not (-webkit-touch-callout: none) {
+  .btn,
+  .action-btn,
+  .dash-nav-link,
+  .role-tab,
+  .att-status-btn,
+  .hamburger-btn,
+  .sidebar-toggle-btn,
+  .modal-close,
+  .refresh-btn {
+    transition: transform 0.15s ease, box-shadow 0.2s ease, background 0.2s ease, color 0.2s ease;
+  }
+}
+
+/* ---------- 16. WEBVIEW DETECTION CLASS ----------
+   JS adds `webview-mode` class to <html> when running
+   inside an Android WebView. These rules apply only then. */
+html.webview-mode {
+  /* Force consistent font rendering */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+html.webview-mode body {
+  background-attachment: scroll;
+}
+
+html.webview-mode .home-blob,
+html.webview-mode .login-blob {
+  filter: blur(40px);
+}
+
+html.webview-mode .page,
+html.webview-mode .page.active-page {
+  animation: pageEnterWebView 0.45s ease both;
+}
+
+html.webview-mode :root {
+  --spring: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out-expo: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+html.webview-mode .card-hover,
+html.webview-mode .stat-card,
+html.webview-mode .dash-overview-card,
+html.webview-mode .home-feature-card,
+html.webview-mode .announcement-card,
+html.webview-mode .parent-ward-card,
+html.webview-mode .acc-stat-card {
+  will-change: auto;
+}
+
+/* ---------- 17. HIGH-DPI SCALING ---------- */
+/* Ensure crisp rendering on high-DPI Android screens */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  body {
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+/* ---------- 18. KEYBOARD RESIZE ---------- */
+/* When the soft keyboard opens in WebView, ensure the
+   focused input is visible and the layout doesn't break. */
+@media (max-height: 500px) {
+  .login-container {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+  .login-glass-card {
+    padding: 1.25rem 1rem;
+  }
+  .login-brand {
+    margin-bottom: 0.75rem;
+  }
+  .login-logo-circle {
+    width: 48px;
+    height: 48px;
+    margin-bottom: 0.4rem;
+  }
+  .login-app-name {
+    font-size: 1.5rem;
+  }
+  .login-form {
+    gap: 0.75rem;
+  }
+}

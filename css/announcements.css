@@ -1,0 +1,331 @@
+/* ===== ANNOUNCEMENTS ===== */
+.announcement-list { display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 0.75rem; }
+.announcement-card {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  padding: 1.1rem;
+  box-shadow: var(--glass-shadow);
+  transition: var(--transition);
+}
+.announcement-card:hover { box-shadow: 0 12px 40px rgba(0,0,0,0.08); }
+.announcement-content { flex: 1; min-width: 0; }
+.announcement-title-row { display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.4rem; flex-wrap: wrap; }
+.announcement-title { font-size: 0.95rem; font-weight: 700; color: var(--text); }
+.announcement-text { color: var(--text-muted); font-size: 0.85rem; line-height: 1.5; margin-bottom: 0.4rem; }
+.announcement-meta { font-size: 0.75rem; color: var(--text-muted); display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+.announcement-actions { display: flex; gap: 0.4rem; margin-top: 0.5rem; }
+
+.priority-badge {
+  font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.4px; padding: 0.15rem 0.5rem; border-radius: 20px;
+}
+.priority-low { background: rgba(241, 245, 249, 0.7); color: var(--secondary); }
+.priority-normal { background: var(--primary-light); color: var(--primary); }
+.priority-high { background: var(--warning-light); color: var(--warning); }
+.priority-urgent { background: var(--danger-light); color: var(--danger); }
+.status-active { background: var(--success-light); color: var(--success); }
+.status-inactive { background: rgba(241, 245, 249, 0.7); color: var(--secondary); }
+
+/* ===== DASHBOARD ANNOUNCEMENT ITEMS ===== */
+.dash-announcement-item {
+  display: flex;
+  gap: 0.6rem;
+  padding: 0.65rem 0.5rem;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.3);
+  animation: fadeIn 0.4s ease forwards;
+  opacity: 0;
+  transition: background 0.2s ease;
+}
+
+.dash-announcement-item:last-child {
+  border-bottom: none;
+}
+
+.dash-announcement-item:hover {
+  background: rgba(255,255,255,0.4);
+  border-radius: var(--radius-sm);
+}
+
+.dash-ann-badge {
+  font-size: 0.55rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  white-space: nowrap;
+  height: fit-content;
+  margin-top: 2px;
+}
+
+.dash-ann-badge.priority-low { background: rgba(241, 245, 249, 0.7); color: var(--secondary); }
+.dash-ann-badge.priority-normal { background: var(--primary-light); color: var(--primary); }
+.dash-ann-badge.priority-high { background: var(--warning-light); color: var(--warning); }
+.dash-ann-badge.priority-urgent { background: var(--danger-light); color: var(--danger); }
+
+.dash-ann-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.dash-ann-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 0.15rem;
+}
+
+.dash-ann-text {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+  margin-bottom: 0.15rem;
+}
+
+.dash-ann-meta {
+  font-size: 0.65rem;
+  color: #94a3b8;
+}
+
+/* ===== SUPER ADMIN ANNOUNCEMENT ITEMS ===== */
+.announcement-item {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  padding: 1rem 1.15rem;
+  margin-bottom: 0.75rem;
+  box-shadow: var(--glass-shadow);
+  transition: var(--transition);
+}
+
+.announcement-item:hover {
+  box-shadow: 0 8px 28px rgba(0,0,0,0.08);
+}
+
+.announcement-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.announcement-item p {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  margin-bottom: 0.5rem;
+}
+
+.announcement-priority {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 20px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: #fff;
+  white-space: nowrap;
+}
+
+/* ================================================================
+   Announcement Popup - Modern Animated Reminder
+   ================================================================ */
+
+#dashAnnouncementPopup {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: 2rem;
+  pointer-events: none;
+}
+
+#dashAnnouncementPopup .announcement-popup-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.25);
+  opacity: 0;
+  pointer-events: auto;
+}
+
+#dashAnnouncementPopup .announcement-popup-card {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  background: #fff;
+  border-radius: var(--radius);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  opacity: 0;
+  transform: translateX(100px) scale(0.9);
+  pointer-events: auto;
+  animation: announceSlideIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes announceSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(100px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes announceSlideOut {
+  from {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(100px) scale(0.9);
+  }
+}
+
+#dashAnnouncementPopup .announcement-popup-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+#dashAnnouncementPopup .announcement-popup-icon {
+  font-size: 1.2rem;
+}
+
+#dashAnnouncementPopup .announcement-popup-badge {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.65rem;
+}
+
+#dashAnnouncementPopup .announcement-popup-close {
+  margin-left: auto;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: #fff;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  font-size: 0.85rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+#dashAnnouncementPopup .announcement-popup-close:hover {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+#dashAnnouncementPopup .announcement-popup-body {
+  padding: 1.25rem 1rem;
+}
+
+#dashAnnouncementPopup .announcement-popup-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 0.5rem;
+  line-height: 1.3;
+}
+
+#dashAnnouncementPopup .announcement-popup-text {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin-bottom: 1rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 6;
+  line-clamp: 6;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+#dashAnnouncementPopup .announcement-popup-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+#dashAnnouncementPopup .announcement-popup-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+#dashAnnouncementPopup .announcement-popup-date {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+#dashAnnouncementPopup .announcement-popup-dismiss {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  padding: 0.4rem 1rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+#dashAnnouncementPopup .announcement-popup-dismiss:hover {
+  background: var(--primary-dark);
+}
+
+#dashAnnouncementPopup .announcement-popup-remind {
+  background: rgba(245, 158, 11, 0.12);
+  color: #d97706;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  padding: 0.4rem 1rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+#dashAnnouncementPopup .announcement-popup-remind:hover {
+  background: #d97706;
+  color: #fff;
+  border-color: #d97706;
+}
+
+@media (max-width: 600px) {
+  #dashAnnouncementPopup {
+    padding: 1rem;
+    align-items: flex-end;
+  }
+  #dashAnnouncementPopup .announcement-popup-card {
+    max-width: 100%;
+  }
+}

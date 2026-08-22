@@ -1,0 +1,240 @@
+/* ============================================================
+   MULTI-CHOICE ASSESSMENTS MODULE STYLES
+   ============================================================ */
+
+/* --- Shared dashboard tops --- */
+.assessment-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.assessment-instructions {
+  background: var(--primary-light);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  font-size: 0.85rem;
+  color: var(--text);
+  line-height: 1.6;
+}
+
+/* --- Question list cards --- */
+.qa-card {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  padding: 1rem 1.1rem;
+  margin-bottom: 0.85rem;
+  box-shadow: var(--glass-shadow);
+}
+
+.qa-card-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.qa-card-body {
+  margin-top: 0.6rem;
+}
+
+.qa-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+}
+
+@media (max-width: 480px) {
+  .qa-options { grid-template-columns: 1fr; }
+}
+
+.qa-option-pill {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.45rem 0.6rem;
+  font-size: 0.85rem;
+}
+
+.qa-meta {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.option-tag {
+  display: inline-block;
+  font-weight: 700;
+  margin-right: 0.35rem;
+}
+
+.correct-tag {
+  display: inline-block;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  background: rgba(16, 185, 129, 0.15);
+  color: #065f46;
+}
+
+/* --- Assessment list --- */
+.assessment-item {
+  border-left: 4px solid var(--primary);
+}
+
+.pub-badge {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+.pub-badge.published { background: rgba(16,185,129,0.15); color: #065f46; }
+.pub-badge.draft     { background: rgba(245,158,11,0.15); color: #92400e; }
+.pub-badge.disabled  { background: rgba(107,114,128,0.15); color: #4b5563; }
+
+/* --- Bulk import paste area --- */
+.bulk-import-textarea {
+  width: 100%;
+  min-height: 180px;
+  font-family: ui-monospace, SFMono-Regular, 'Cascadia Mono', Menlo, Consolas, monospace;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  resize: vertical;
+}
+
+.import-format-hint {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-top: 0.5rem;
+  line-height: 1.6;
+}
+
+/* --- Taking experience --- */
+.assessment-launch-hero {
+  text-align: center;
+  padding: 2rem 1rem;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+}
+
+.assessment-progress {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.assessment-timer {
+  font-weight: 700;
+  color: var(--primary);
+  padding: 0.35rem 0.9rem;
+  border: 1px solid var(--primary);
+  border-radius: 999px;
+  background: var(--primary-light);
+  font-variant-numeric: tabular-nums;
+}
+
+.assessment-timer.warning { color: var(--danger, #dc2626); border-color: var(--danger, #dc2626); background:#fee2e2; }
+
+.question-block {
+  background: var(--glass-bg-strong);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+  box-shadow: var(--glass-shadow);
+}
+
+.question-text {
+  font-size: 1.02rem;
+  font-weight: 600;
+  line-height: 1.6;
+  margin-bottom: 1rem;
+  color: var(--text);
+  white-space: pre-wrap;
+}
+
+.answer-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.7rem 0.85rem;
+  margin-bottom: 0.6rem;
+  cursor: pointer;
+  transition: border-color .15s ease, background .15s ease;
+  background: rgba(255,255,255,0.55);
+}
+
+.answer-option:hover { border-color: var(--primary); }
+.answer-option.selected {
+  border-color: var(--primary);
+  background: var(--primary-light);
+}
+.answer-option .option-letter {
+  flex: 0 0 auto;
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.8rem;
+  background: #eef2ff;
+  color: var(--primary);
+}
+.answer-option.selected .option-letter { background: var(--primary); color: #fff; }
+
+/* Review (after submit) */
+.review-option { pointer-events: none; }
+.review-option.correct-answer { border-color: var(--success); background: rgba(16,185,129,0.12); }
+.review-option.wrong-choice  { border-color: var(--danger, #dc2626); background: rgba(220,38,38,0.10); }
+.review-option .verdict { margin-left: auto; font-size: 0.8rem; font-weight: 700; }
+
+/* Student attempt list cards */
+.attempt-row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; justify-content: space-between; }
+
+.score-chip {
+  display: inline-block;
+  padding: 0.2rem 0.75rem;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+.score-chip.passed { background: rgba(16,185,129,0.15); color: #065f46; }
+.score-chip.failed { background: rgba(239,68,68,0.15); color: #b91c1c; }
+.score-chip.untaken { background: rgba(107,114,128,0.15); color: #4b5563; }
+
+/* Navigation pills inside assessment views */
+.assess-nav-pills { display:flex; gap:0.5rem; flex-wrap:wrap; margin: 0.75rem 0; }
+.assess-nav-pills button {
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.6);
+  border-radius: 999px;
+  padding: 0.3rem 0.8rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+  color: var(--text);
+}
+.assess-nav-pills button.active { background: var(--primary); color:#fff; border-color: var(--primary); font-weight:700; }

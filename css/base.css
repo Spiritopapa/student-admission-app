@@ -1,0 +1,544 @@
+/* ===== RESET & BASE ===== */
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --primary: #6366f1;
+  --primary-dark: #4f46e5;
+  --primary-light: rgba(99, 102, 241, 0.12);
+  --primary-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  --secondary: #64748b;
+  --secondary-light: rgba(100, 116, 139, 0.12);
+  --success: #10b981;
+  --success-dark: #059669;
+  --success-light: rgba(16, 185, 129, 0.12);
+  --success-gradient: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+  --danger: #ef4444;
+  --danger-light: rgba(239, 68, 68, 0.12);
+  --warning: #f59e0b;
+  --warning-light: rgba(245, 158, 11, 0.12);
+  --purple: #8b5cf6;
+  --purple-dark: #7c3aed;
+  --purple-light: rgba(139, 92, 246, 0.12);
+  --purple-gradient: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+
+  /* Glassmorphism & Transparency */
+  --glass-bg: rgba(255, 255, 255, 0.72);
+  --glass-bg-strong: rgba(255, 255, 255, 0.85);
+  --glass-border: rgba(255, 255, 255, 0.30);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  --glass-blur: blur(16px);
+
+  --bg: #f0eff9;
+  --bg-gradient: linear-gradient(135deg, #f0eff9 0%, #fdf2f8 50%, #ede9fe 100%);
+  --card-bg: #ffffff;
+  --text: #1e293b;
+  --text-muted: #64748b;
+  --border: rgba(226, 232, 240, 0.60);
+  --radius: 16px;
+  --radius-sm: 10px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03);
+  --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.06), 0 2px 4px -1px rgba(0,0,0,0.03);
+  --shadow-lg: 0 10px 40px -4px rgba(0,0,0,0.10);
+  --transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+  --transition-fast: all 0.15s cubic-bezier(0.4,0,0.2,1);
+  --transition-slow: all 0.5s cubic-bezier(0.4,0,0.2,1);
+  --font: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --sidebar-width: 260px;
+  --nav-height: 60px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --bottom-nav-height: 64px;
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  background-image: var(--bg-gradient);
+  background-attachment: fixed;
+  color: var(--text);
+  line-height: 1.6;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Subtle animated background pattern */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background:
+    radial-gradient(ellipse at 10% 20%, rgba(99, 102, 241, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 90% 80%, rgba(139, 92, 246, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 50%, rgba(236, 72, 153, 0.04) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+a { color: var(--primary); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ===== CONTAINER ===== */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1.25rem;
+  position: relative;
+  z-index: 1;
+}
+@media (max-width: 480px) {
+  .container { padding: 0 1rem; }
+}
+
+/* ===== PAGES ===== */
+.page { display: none; animation: fadeIn 0.35s ease; }
+.page.active-page { display: block; }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-24px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(24px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+main {
+  flex: 1;
+  padding: 1.5rem 0;
+  position: relative;
+  z-index: 1;
+}
+@media (max-width: 480px) { main { padding: 1rem 0; } }
+
+/* ===== SUBTITLE / HEADINGS ===== */
+.subtitle { color: var(--text-muted); margin-bottom: 1rem; font-size: 0.9rem; }
+h2 { font-size: 1.3rem; font-weight: 700; }
+@media (max-width: 480px) { h2 { font-size: 1.15rem; } }
+h3 { font-size: 1.05rem; font-weight: 600; }
+
+/* ===== SMOOTH SCROLLING ===== */
+html {
+  scroll-behavior: smooth;
+}
+
+/* ===== REDUCED MOTION ===== */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ============================================================
+   MOBILE APP SCALING — Android & iOS (WebView / APK / PWA)
+   ============================================================ */
+
+/* Dynamic viewport height for mobile browsers & WebView */
+@supports (height: 100dvh) {
+  body {
+    min-height: 100dvh;
+  }
+  #page-login.active-page {
+    min-height: 100dvh;
+  }
+  .home-hero {
+    min-height: calc(100dvh - var(--nav-height) - 6rem);
+  }
+}
+
+/* Prevent iOS zoom on focus */
+@media (max-width: 768px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Safe-area insets for notched devices (iPhone X+, Android gesture nav) */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .navbar {
+    padding-top: var(--safe-top);
+    height: calc(var(--nav-height) + var(--safe-top));
+  }
+  .nav-container {
+    height: calc(100% - var(--safe-top));
+  }
+  .footer {
+    padding-bottom: calc(1.25rem + var(--safe-bottom));
+  }
+  .dash-sidebar {
+    padding-bottom: var(--safe-bottom);
+  }
+  .modal-card {
+    padding-bottom: var(--safe-bottom);
+  }
+  .nav-links {
+    top: calc(var(--nav-height) + var(--safe-top));
+  }
+}
+
+/* Prevent overscroll bounce / rubber-banding in WebView */
+html, body {
+  height: 100%;
+  /* overflow-x: hidden turns html/body into a scroll container, which breaks
+     position: sticky on the dashboard sidebar. clip keeps horizontal overflow
+     contained WITHOUT creating a scroll container, so sticky keeps working. */
+  overflow-x: hidden;
+  overflow-x: clip;
+  -webkit-overflow-scrolling: touch;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Allow text selection in inputs and textareas */
+input, textarea, select, [contenteditable="true"] {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* Disable double-tap zoom on mobile */
+* {
+  touch-action: manipulation;
+}
+
+/* ============================================================
+   MODERN MOBILE TRANSITIONS & EFFECTS
+   ============================================================ */
+
+/* Page transition - smoother with spring */
+.page {
+  animation: pageEnter 0.45s var(--ease-out-expo) both;
+}
+.page.active-page {
+  animation: pageEnter 0.45s var(--ease-out-expo) both;
+}
+
+@keyframes pageEnter {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.99);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+/* Card hover lift with spring */
+.card-hover, .stat-card, .dash-overview-card, .home-feature-card,
+.announcement-card, .parent-ward-card, .acc-stat-card {
+  transition: transform 0.3s var(--spring), box-shadow 0.3s var(--spring), background 0.3s ease;
+  will-change: transform;
+}
+
+/* Press feedback for touch */
+.btn, .action-btn, .dash-nav-link, .role-tab, .att-status-btn,
+.hamburger-btn, .sidebar-toggle-btn, .modal-close, .refresh-btn {
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.15s var(--spring), box-shadow 0.2s ease, background 0.2s ease, color 0.2s ease;
+}
+.btn:active, .action-btn:active, .dash-nav-link:active, .role-tab:active,
+.att-status-btn:active, .hamburger-btn:active, .sidebar-toggle-btn:active {
+  transform: scale(0.94);
+}
+
+/* Ripple effect for buttons */
+.btn-primary, .btn-success, .btn-danger, .login-btn-submit {
+  position: relative;
+  overflow: hidden;
+}
+.btn-primary::before, .btn-success::before, .btn-danger::before, .login-btn-submit::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.25);
+  transform: translate(-50%, -50%);
+  transition: width 0.5s ease-out, height 0.5s ease-out, opacity 0.5s ease-out;
+  opacity: 0;
+  pointer-events: none;
+}
+.btn-primary:active::before, .btn-success:active::before, .btn-danger:active::before, .login-btn-submit:active::before {
+  width: 300px;
+  height: 300px;
+  opacity: 1;
+}
+
+/* Shimmer loading effect */
+.shimmer {
+  position: relative;
+  overflow: hidden;
+  background: rgba(226, 232, 240, 0.4);
+}
+.shimmer::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  animation: shimmer 1.5s infinite;
+}
+@keyframes shimmer {
+  100% { left: 100%; }
+}
+
+/* Floating animation for decorative elements */
+.float-anim {
+  animation: floatY 3s ease-in-out infinite;
+}
+@keyframes floatY {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+/* Pulse glow for active elements */
+.glow-pulse {
+  animation: glowPulse 2s ease-in-out infinite;
+}
+@keyframes glowPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.3); }
+  50% { box-shadow: 0 0 0 8px rgba(99, 102, 241, 0); }
+}
+
+/* ============================================================
+   BOTTOM NAVIGATION BAR — Mobile App Style (collapsible, auth-aware)
+   ============================================================ */
+
+/* Mobile bottom nav for app-like feel (hidden on desktop) */
+.mobile-bottom-nav {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  /* Add bottom padding to main so content isn't hidden behind bottom nav */
+  body.has-bottom-nav main {
+    padding-bottom: calc(var(--bottom-nav-height) + var(--safe-bottom) + 1rem);
+  }
+
+  .mobile-bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: calc(var(--bottom-nav-height) + var(--safe-bottom));
+    padding-bottom: var(--safe-bottom);
+    background: var(--glass-bg-strong);
+    backdrop-filter: blur(24px) saturate(1.4);
+    -webkit-backdrop-filter: blur(24px) saturate(1.4);
+    border-top: 1px solid var(--glass-border);
+    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.06);
+    z-index: 1000;
+    justify-content: space-around;
+    align-items: center;
+    /* Hidden by default; shown only after login via .visible class */
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(100%);
+    transition: opacity 0.3s var(--ease-out-expo), transform 0.3s var(--ease-out-expo), visibility 0.3s;
+    pointer-events: none;
+  }
+
+  /* Visible state - shown after login */
+  .mobile-bottom-nav.visible {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+
+  /* Collapsed state - only the chevron toggle remains visible */
+  .mobile-bottom-nav.collapsed {
+    height: calc(36px + var(--safe-bottom));
+  }
+
+  /* Reduce main padding when bottom nav is collapsed */
+  body.has-bottom-nav.bottom-nav-collapsed main {
+    padding-bottom: calc(36px + var(--safe-bottom) + 0.75rem);
+  }
+
+  .mobile-bottom-nav.collapsed .mobile-bottom-nav-item {
+    opacity: 0;
+    visibility: hidden;
+    width: 0;
+    flex: 0;
+    pointer-events: none;
+    transform: scale(0.5);
+  }
+
+  /* Collapse toggle button (chevron) */
+  .bottom-nav-collapse-btn {
+    position: absolute;
+    top: -14px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 36px;
+    height: 20px;
+    border: none;
+    border-radius: 10px 10px 0 0;
+    background: var(--glass-bg-strong);
+    backdrop-filter: blur(24px) saturate(1.4);
+    -webkit-backdrop-filter: blur(24px) saturate(1.4);
+    border-top: 1px solid var(--glass-border);
+    border-left: 1px solid var(--glass-border);
+    border-right: 1px solid var(--glass-border);
+    color: var(--primary);
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1001;
+    transition: background 0.2s ease, color 0.2s ease, transform 0.2s var(--spring);
+    -webkit-tap-highlight-color: transparent;
+    line-height: 1;
+    padding: 0;
+  }
+
+  .bottom-nav-collapse-btn:active {
+    transform: translateX(-50%) scale(0.9);
+  }
+
+  .mobile-bottom-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    flex: 1;
+    height: 100%;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 0.6rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    padding: 0.25rem 0;
+    transition: color 0.2s ease, transform 0.2s var(--spring), opacity 0.25s ease, visibility 0.25s, width 0.25s var(--ease-out-expo), flex 0.25s var(--ease-out-expo);
+    -webkit-tap-highlight-color: transparent;
+    position: relative;
+  }
+
+  .mobile-bottom-nav-item .bottom-nav-icon {
+    font-size: 1.25rem;
+    line-height: 1;
+    transition: transform 0.3s var(--spring);
+  }
+
+  .mobile-bottom-nav-item.active {
+    color: var(--primary);
+  }
+
+  .mobile-bottom-nav-item.active .bottom-nav-icon {
+    transform: translateY(-2px) scale(1.1);
+  }
+
+  .mobile-bottom-nav-item.active::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 24px;
+    height: 3px;
+    border-radius: 0 0 4px 4px;
+    background: var(--primary-gradient);
+  }
+
+  .mobile-bottom-nav-item:active {
+    transform: scale(0.92);
+  }
+}
+
+/* ============================================================
+   ANDROID / iOS SPECIFIC ADJUSTMENTS
+   ============================================================ */
+
+/* Android WebView - prevent text size adjustment */
+@supports (-webkit-touch-callout: none) {
+  /* iOS Safari specific */
+  body {
+    -webkit-touch-callout: none;
+  }
+  input, textarea, select {
+    -webkit-appearance: none;
+    appearance: none;
+    border-radius: 0;
+  }
+  .dash-sidebar {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Android Chrome / WebView */
+@supports not (-webkit-touch-callout: none) {
+  /* Android specific */
+  .navbar {
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+  }
+}
+
+/* Small phones (iPhone SE, older Androids) */
+@media (max-width: 380px) {
+  .logo { font-size: 1rem; }
+  .nav-container { padding: 0 0.85rem; }
+  .hamburger-btn { padding: 0.4rem 0.55rem; font-size: 1.2rem; }
+  .home-title { font-size: 1.6rem; }
+  .home-stat-item { padding: 0 0.5rem; }
+  .home-stat-number { font-size: 1.1rem; }
+  .home-stat-label { font-size: 0.6rem; }
+  .btn { padding: 0.65rem 0.85rem; font-size: 0.85rem; }
+  .dash-welcome-card { padding: 0.75rem 0.85rem; }
+  .dash-welcome-icon { width: 36px; height: 36px; font-size: 1rem; }
+}
+
+/* Landscape orientation on phones */
+@media (max-height: 500px) and (orientation: landscape) {
+  .navbar { height: 50px; }
+  .nav-links {
+    top: 50px;
+    max-height: 70vh;
+  }
+  .mobile-bottom-nav {
+    height: calc(52px + var(--safe-bottom));
+  }
+  body.has-bottom-nav main {
+    padding-bottom: calc(52px + var(--safe-bottom) + 0.75rem);
+  }
+  .dash-sidebar {
+    width: min(280px, 80vw);
+  }
+}

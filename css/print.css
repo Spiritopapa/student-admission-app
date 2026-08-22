@@ -1,0 +1,33 @@
+/* ===== PRINT ===== */
+@media print {
+  .navbar, .footer, .dash-sidebar, .btn, .action-btn, .hamburger-btn,
+  .exam-tab, .exam-tab-content, .attendance-toolbar, .card-toolbar,
+  .search-filter-row, .admit-section, .modal-overlay {
+    display: none !important;
+  }
+  
+  body {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    background: #fff !important;
+  }
+  
+  .page {
+    display: block !important;
+    animation: none !important;
+  }
+  
+  .dash-main {
+    animation: none !important;
+  }
+}
+
+.print-header { text-align: center; margin-bottom: 1.5rem; }
+.print-header h2 { font-size: 1.3rem; margin-bottom: 0.25rem; color: var(--text); }
+.print-header p { color: var(--text-muted); font-size: 0.85rem; }
+.print-table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+.print-table th, .print-table td { border: 1px solid var(--border); padding: 0.5rem; text-align: left; font-size: 0.85rem; }
+.print-table th { background: var(--primary-light); color: var(--text); font-size: 0.75rem; text-transform: uppercase; font-weight: 600; }
+.print-photo { width: 48px; height: 48px; object-fit: cover; border-radius: 50%; border: 1px solid var(--border); }
+.print-no-photo { width: 48px; height: 48px; border-radius: 50%; background: rgba(255,255,255,0.5); border: 2px dashed var(--border); display: inline-flex; align-items: center; justify-content: center; font-size: 1rem; }
+.print-footer { margin-top: 1.5rem; text-align: center; font-size: 0.75rem; color: var(--text-muted); }

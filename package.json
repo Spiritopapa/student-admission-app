@@ -1,0 +1,12 @@
+{
+  "name": "student-admission-portal",
+  "version": "1.0.0",
+  "description": "A student admission web application powered by Supabase.",
+  "private": true,
+  "scripts": {
+    "dev": "npx serve .",
+    "start": "npx serve ."
+  },
+  "keywords": ["admission", "supabase", "student", "portal"],
+  "license": "MIT"
+}

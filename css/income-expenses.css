@@ -1,0 +1,165 @@
+/* ================================================================
+   INCOME & EXPENDITURE TRACKING MODULE STYLES
+   ================================================================ */
+
+/* Summary Stat Cards */
+.ie-summary-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.ie-stat-card {
+  background: var(--card-bg);
+  border-radius: 12px;
+  padding: 1.25rem;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+  transition: all 0.3s ease;
+}
+
+.ie-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+}
+
+.ie-stat-label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-bottom: 0.25rem;
+}
+
+.ie-stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.ie-stat-value.ie-income {
+  color: var(--success);
+}
+
+.ie-stat-value.ie-expense {
+  color: var(--danger);
+}
+
+/* Category Breakdown */
+.ie-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+}
+
+.ie-breakdown-item {
+  padding: 0.5rem 0;
+}
+
+.ie-breakdown-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  margin-bottom: 0.3rem;
+}
+
+.ie-breakdown-track {
+  height: 8px;
+  background: var(--bg);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.ie-breakdown-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 1s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Category List */
+.ie-category-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.ie-category-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.ie-category-item:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.ie-category-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.ie-category-icon {
+  font-size: 1.5rem;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  border-radius: 8px;
+}
+
+.ie-category-name {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.ie-category-desc {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.ie-category-actions {
+  display: flex;
+  gap: 0.25rem;
+}
+
+/* Tabs */
+.ie-tab.active {
+  background: var(--primary) !important;
+  color: #fff !important;
+}
+
+/* Report */
+.ie-report {
+  max-width: 100%;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .ie-summary-cards {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+  }
+
+  .ie-stat-card {
+    padding: 1rem;
+  }
+
+  .ie-stat-value {
+    font-size: 1.2rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .ie-summary-cards {
+    grid-template-columns: 1fr;
+  }
+}

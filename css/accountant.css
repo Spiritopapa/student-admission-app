@@ -1,0 +1,442 @@
+/* ================================================================
+   ACCOUNTANT DASHBOARD STYLES
+   ================================================================ */
+
+/* Accountant Sidebar Brand */
+.accountant-brand {
+  background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%) !important;
+}
+
+.accountant-brand .sidebar-logo-circle {
+  background: linear-gradient(135deg, #10b981, #34d399) !important;
+  color: #fff !important;
+}
+
+.accountant-brand .dash-avatar {
+  background: linear-gradient(135deg, #10b981, #34d399) !important;
+  color: #fff !important;
+}
+
+.accountant-brand .dash-sidebar-role-badge {
+  background: rgba(16, 185, 129, 0.2) !important;
+  color: #34d399 !important;
+}
+
+/* Accountant Main Area */
+.accountant-main {
+  background: linear-gradient(135deg, #f8fafc 0%, #ecfdf5 50%, #f0fdf4 100%) !important;
+}
+
+/* Stats Grid */
+.acc-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.acc-stat-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: var(--card-bg);
+  border-radius: 16px;
+  padding: 1.25rem;
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--border);
+  transition: all 0.3s ease;
+}
+
+.acc-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+}
+
+.acc-stat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.acc-stat-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.acc-stat-number {
+  display: block;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.3;
+}
+
+.acc-stat-label {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 0.1rem;
+}
+
+.acc-stat-trend {
+  font-size: 0.72rem;
+  margin-top: 0.2rem;
+  color: var(--text-muted);
+}
+
+/* Animated Stats (initial load animation) */
+.animated-stat {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+/* Cards */
+.acc-card {
+  background: var(--card-bg);
+  border-radius: 16px;
+  padding: 1.25rem;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+
+.acc-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.acc-card-header h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.acc-badge {
+  background: rgba(99, 102, 241, 0.1);
+  color: var(--primary);
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+/* Distribution Bars */
+.acc-distribution-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding: 0.5rem 0;
+}
+
+.acc-dist-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.acc-dist-label {
+  min-width: 70px;
+  font-size: 0.82rem;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.acc-dist-track {
+  flex: 1;
+  height: 10px;
+  background: var(--bg);
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.acc-dist-fill {
+  height: 100%;
+  border-radius: 5px;
+  transition: width 1.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  width: 0%;
+}
+
+.acc-dist-fill.paid {
+  background: linear-gradient(90deg, #10b981, #34d399);
+}
+
+.acc-dist-fill.partial {
+  background: linear-gradient(90deg, #f59e0b, #fbbf24);
+}
+
+.acc-dist-fill.unpaid {
+  background: linear-gradient(90deg, #ef4444, #f87171);
+}
+
+.acc-dist-value {
+  min-width: 80px;
+  text-align: right;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* Recent Payments List */
+.acc-recent-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.acc-recent-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.65rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.acc-recent-item:last-child {
+  border-bottom: none;
+}
+
+.acc-recent-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.acc-recent-id {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+.acc-recent-amount {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--success);
+}
+
+.acc-recent-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.2rem;
+}
+
+.acc-recent-status {
+  font-size: 0.72rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.acc-recent-status.paid {
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--success);
+}
+
+.acc-recent-status.partial {
+  background: rgba(245, 158, 11, 0.1);
+  color: var(--warning);
+}
+
+.acc-recent-status.unpaid {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--danger);
+}
+
+.acc-recent-date {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+/* Class Summary Table */
+.acc-pct-badge {
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+/* Responsive: Stack dashboard row on mobile */
+@media (max-width: 768px) {
+  .acc-dashboard-row {
+    grid-template-columns: 1fr !important;
+  }
+
+  .acc-stats-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+  }
+
+  .acc-stat-card {
+    padding: 1rem;
+  }
+
+  .acc-stat-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 1.2rem;
+  }
+
+  .acc-stat-number {
+    font-size: 1.1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .acc-stats-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ================================================================
+   FEES MANAGEMENT STYLES (shared between admin and accountant)
+   ================================================================ */
+
+/* Fee Record Cards */
+.fee-record-card {
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  margin-bottom: 0.5rem;
+  background: var(--card-bg);
+  transition: all 0.2s ease;
+}
+
+.fee-record-card.paid { border-left: 4px solid var(--success); }
+.fee-record-card.partial { border-left: 4px solid var(--warning); }
+.fee-record-card.unpaid { border-left: 4px solid var(--danger); }
+
+.fee-record-term {
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-bottom: 0.3rem;
+}
+
+.fee-record-details {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+/* Fee Status Badges */
+.fee-status-badge {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.fee-status-paid { background: #dcfce7; color: #166534; }
+.fee-status-partial { background: #fef3c7; color: #92400e; }
+.fee-status-unpaid { background: #fee2e2; color: #991b1b; }
+
+/* Fee Balance Colors */
+.fee-balance-paid { color: var(--success); font-weight: 600; }
+.fee-balance-partial { color: var(--warning); font-weight: 600; }
+.fee-balance-unpaid { color: var(--danger); font-weight: 700; }
+
+/* Fee Student Header */
+.fee-student-header {
+  background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  border: 1px solid #bae6fd;
+}
+
+.fee-student-header div:first-child {
+  font-size: 1.1rem;
+  margin-bottom: 0.25rem;
+}
+
+/* Term rows in student fees table */
+.fee-term-row {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  align-items: center;
+  font-size: 0.8rem;
+  padding: 0.25rem 0;
+  border-bottom: 1px dashed var(--border);
+}
+
+.fee-term-row:last-child { border-bottom: none; }
+
+.fee-term-label { font-weight: 600; min-width: 100px; }
+
+/* Receipt Styles */
+.receipt-container {
+  font-family: 'Courier New', monospace;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.receipt-header {
+  text-align: center;
+  border-bottom: 2px dashed #333;
+  padding-bottom: 10px;
+  margin-bottom: 10px;
+}
+
+.receipt-school-name { font-size: 16px; font-weight: bold; }
+.receipt-title { font-size: 13px; font-weight: bold; letter-spacing: 2px; margin: 5px 0; }
+.receipt-number { font-size: 11px; color: #666; }
+
+.receipt-body { padding: 10px 0; }
+.receipt-date { font-size: 11px; margin-bottom: 5px; }
+.receipt-divider { border-top: 1px dashed #999; margin: 8px 0; }
+.receipt-student-info { font-size: 11px; line-height: 1.6; }
+
+.receipt-table { width: 100%; border-collapse: collapse; font-size: 11px; margin: 10px 0; }
+.receipt-table th { border-bottom: 1px solid #333; padding: 4px; text-align: left; }
+.receipt-table td { padding: 4px; }
+.receipt-highlight-row { background: #f0fdf4; }
+
+.receipt-payment-method { font-size: 10px; margin: 5px 0; }
+.receipt-status { margin: 5px 0; }
+.receipt-notes { font-size: 10px; color: #666; margin-top: 5px; }
+
+.receipt-footer { text-align: center; border-top: 2px dashed #333; padding-top: 10px; margin-top: 10px; }
+.receipt-thankyou { font-size: 13px; font-weight: bold; }
+.receipt-generated { font-size: 9px; color: #999; margin-top: 5px; }
+
+/* Fee tabs */
+.fee-tab.active {
+  background: var(--primary) !important;
+  color: #fff !important;
+}
+
+/* Payment summary */
+.fee-payment-summary {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  padding: 1rem;
+  text-align: center;
+  font-size: 1.1rem;
+}
+
+/* Bulk carry forward section */
+#feeBulkMessage,
+#feeStructureMessage,
+#feePaymentMessage {
+  max-width: 600px;
+}
+
+/* Responsive fee term rows */
+@media (max-width: 600px) {
+  .fee-term-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+  .fee-term-label { min-width: auto; }
+  .fee-record-details { flex-direction: column; gap: 0.25rem; }
+}

@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Receipt Verification</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: 'Segoe UI', Arial, sans-serif; background: #eef2f7; color: #1f2937; }
+  .wrap { max-width: 580px; margin: 32px auto; padding: 0 16px; }
+  .verify-banner { background: #059669; color: #fff; text-align: center; padding: 12px; border-radius: 10px 10px 0 0; font-weight: 700; letter-spacing: 1px; font-size: 14px; }
+  .receipt { background: #fff; border: 1px solid #d1d5db; border-top: none; border-radius: 0 0 12px 12px; padding: 24px; }
+  .header { text-align: center; border-bottom: 2px dashed #9ca3af; padding-bottom: 14px; }
+  .logo { width: 72px; height: 72px; object-fit: contain; border-radius: 10px; background: #fff; padding: 4px; border: 1px solid #e5e7eb; }
+  .school-name { font-size: 20px; font-weight: 800; margin-top: 8px; }
+  .receipt-title { font-size: 14px; font-weight: 700; letter-spacing: 3px; margin: 6px 0 2px; color: #059669; }
+  .receipt-number { font-size: 12px; color: #6b7280; }
+  .status-pill { display: inline-block; padding: 3px 10px; border-radius: 999px; font-weight: 700; font-size: 11px; margin-top: 8px; }
+  .status-paid { background: #d1fae5; color: #065f46; }
+  .status-partial { background: #fef3c7; color: #92400e; }
+  .status-unpaid { background: #fee2e2; color: #991b1b; }
+  .meta { display: flex; justify-content: space-between; font-size: 12px; color: #6b7280; margin: 12px 0; }
+  .section { margin: 16px 0; }
+  .section h3 { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #9ca3af; margin: 0 0 8px; }
+  table.details { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.details td { padding: 6px 4px; border-bottom: 1px solid #f3f4f6; }
+  table.details td:first-child { color: #6b7280; width: 55%; }
+  table.details td:last-child { text-align: right; font-weight: 600; }
+  .amount-now { background: #d1fae5; font-weight: 800; }
+  .notice { padding: 10px; border-radius: 8px; font-size: 13px; margin: 10px 0; }
+  .notice-credit { background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; }
+  .notice-arr { background: #fef3c7; border: 1px solid #fcd34d; color: #92400e; }
+  .notice-prev { background: #fee2e2; border: 2px solid #f87171; color: #991b1b; text-align: center; }
+  .notes { background: #f9fafb; border-left: 3px solid #9ca3af; padding: 8px 10px; font-size: 12px; color: #4b5563; margin: 12px 0; }
+  .footer { text-align: center; border-top: 2px dashed #9ca3af; padding-top: 14px; margin-top: 18px; font-size: 12px; color: #6b7280; }
+  .verified-stamp { font-weight: 800; color: #059669; font-size: 14px; margin: 8px 0 2px; }
+  .actions { text-align: center; margin: 20px 0; }
+  .btn { background: #1e3a5f; color: #fff; border: none; padding: 11px 22px; border-radius: 8px; font-size: 14px; cursor: pointer; }
+  .btn:hover { background: #16304d; }
+  .error { text-align: center; padding: 60px 20px; color: #991b1b; }
+  @media print {
+    body { background: #fff; }
+    .actions, .verify-banner { display: none !important; }
+    .wrap { margin: 0 auto; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="verify-banner">✓ Digitally Verified Receipt</div>
+  <div class="receipt" id="receipt"></div>
+  <div class="actions">
+    <button class="btn" onclick="window.print()">🖨️ Print Receipt</button>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script type="module">
+import supabaseClient from './js/supabase-config.js';
+(function () {
+  function esc(v) {
+    return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function money(n) {
+    var num = Number(n || 0);
+    return isNaN(num) ? '0.00' : num.toFixed(2);
+  }
+  function render(data) {
+    var el = document.getElementById('receipt');
+    if (!data || !data.receipt_number) {
+      el.innerHTML = '<div class="error"><h2>⚠️ Receipt Not Found</h2><p>This receipt could not be found or verified.</p></div>';
+      return;
+    }
+    var status = (data.payment_status || 'paid').toUpperCase();
+    var statusKey = (data.payment_status ? String(data.payment_status).toLowerCase() : 'paid');
+    statusKey = (statusKey === 'partial' || statusKey === 'unpaid' || statusKey === 'paid') ? statusKey : 'paid';
+    var logo = data.school_logo_url
+      ? '<img class="logo" src="' + esc(data.school_logo_url) + '" alt="School logo" onerror="this.style.display=\'none\'" />'
+      : '';
+    var notices = '';
+    if (data.is_previous_term_payment) {
+      notices += '<div class="notice notice-prev"><strong>⏪ PREVIOUS TERM PAYMENT</strong><br/>' +
+        'This payment is for <strong>' + esc(data.term) + ' Term ' + esc(data.academic_year) + '</strong> — an earlier term balance.</div>';
+    } else if (Number(data.debt || 0) > 0 && Number(data.amount_now || 0) > 0) {
+      notices += '<div class="notice notice-arr">⏰ <strong>ARREARS PAYMENT</strong> — This payment includes GH₵ ' + money(data.debt) + ' towards an outstanding balance carried forward from a previous term.</div>';
+    }
+    var isOverpaid = Number(data.overpaid_amount || 0) > 0;
+    if (isOverpaid) {
+      notices += '<div class="notice notice-credit">💰 <strong>GH₵ ' + money(data.overpaid_amount) + '</strong> overpaid — this credit will be deducted from the next term\'s fees.</div>';
+    }
+    var balanceRow = isOverpaid
+      ? '<tr><td>Remaining Balance</td><td><span style="color:#166534">-GH₵ ' + money(data.overpaid_amount) + ' (Credit)</span></td></tr>'
+      : '<tr><td>Remaining Balance</td><td>GH₵ ' + money(data.remaining_balance) + '</td></tr>';
+    var issuerRow = data.issued_by
+      ? '<tr><td>Processed By</td><td>' + esc(data.issued_by_label || 'Staff') + ': ' + esc(data.issued_by) + '</td></tr>'
+      : '';
+    el.innerHTML =
+      '<div class="header">' + logo +
+        '<div class="school-name">' + esc(data.school_name || 'School') + '</div>' +
+        '<div class="receipt-title">OFFICIAL RECEIPT</div>' +
+        '<div class="receipt-number">#' + esc(data.receipt_number) + '</div>' +
+        '<span class="status-pill status-' + statusKey + '">' + esc(status) + '</span>' +
+      '</div>' +
+      '<div class="meta"><span>Date: ' + esc(data.receipt_date || '') + '</span><span>Verified online</span></div>' +
+      notices +
+      '<div class="section"><h3>Student Details</h3><table class="details">' +
+        '<tr><td>Student Name</td><td>' + esc(data.student_name || '-') + '</td></tr>' +
+        '<tr><td>Student ID</td><td>' + esc(data.student_id || '-') + '</td></tr>' +
+        '<tr><td>Class</td><td>' + esc(data.student_class || '-') + '</td></tr>' +
+        '<tr><td>Term / Year</td><td>' + esc(data.term || '-') + ' - ' + esc(data.academic_year || '-') + '</td></tr>' +
+      '</table></div>' +
+      '<div class="section"><h3>Fee Breakdown</h3><table class="details">' +
+        '<tr><td>Total Fees Due</td><td>GH₵ ' + money(data.total_due) + '</td></tr>' +
+        '<tr><td>Amount Paid Previously</td><td>GH₵ ' + money(data.amount_paid_before) + '</td></tr>' +
+        '<tr class="amount-now"><td><strong>Amount Paid Now</strong></td><td><strong>GH₵ ' + money(data.amount_now) + '</strong></td></tr>' +
+        '<tr><td>Total Paid</td><td>GH₵ ' + money(data.total_paid) + '</td></tr>' +
+        balanceRow +
+      '</table></div>' +
+      '<div class="section"><h3>Payment Info</h3><table class="details">' +
+        '<tr><td>Payment Method</td><td>' + esc(data.payment_method || 'Cash') + '</td></tr>' +
+        (data.reference_number ? '<tr><td>Reference Number</td><td>' + esc(data.reference_number) + '</td></tr>' : '') +
+        issuerRow +
+      '</table></div>' +
+      (data.notes ? '<div class="notes"><strong>Notes:</strong> ' + esc(data.notes) + '</div>' : '') +
+      '<div class="footer">' +
+        '<div class="verified-stamp">✔ VERIFIED RECEIPT</div>' +
+        '<div>Scanned &amp; verified via QR code — all details match the original fee receipt.</div>' +
+        '<div style="margin-top:6px;font-size:11px">Generated by Student Admission Portal</div>' +
+      '</div>';
+  }
+
+  var params = new URLSearchParams(window.location.search);
+  var tok = params.get('t');   // secure verification token from the new QR codes
+  var key = params.get('r');   // legacy receipt number from older QR codes
+  var d = params.get('d');     // legacy full payload from the oldest QR codes
+
+  if (tok || key) {
+    // Look the full receipt up in the database by its secure token (or, for
+    // receipts issued before the token upgrade, by the legacy receipt number).
+    // get_receipt_for_verification is SECURITY DEFINER and only ever returns
+    // the single matching receipt — the token keeps receipts unguessable.
+    supabaseClient.rpc('get_receipt_for_verification', { p_lookup: String(tok || key) })
+      .then(function (res) {
+        render((res && !res.error && res.data) ? res.data : null);
+      })
+      .catch(function () { render(null); });
+    return;
+  }
+
+  // Legacy full-payload QR (backward compatible with older receipts).
+  var data = {};
+  if (d) {
+    try { data = JSON.parse(decodeURIComponent(d)); } catch (e) { data = {}; }
+  }
+  render(data);
+})();
+</script>
+</body>
+</html>
+
