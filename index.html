@@ -1603,15 +1603,21 @@
           <button type="button" class="btn btn-secondary" id="feePreviewDebtors">👁 Preview</button>
           <button type="button" class="btn btn-primary" id="feePrintDebtors">🖨️ Print Debtors</button>
           <button type="button" class="btn btn-secondary" id="feeTodayReceipts">📋 Today's Receipts</button>
+          <span id="feeSmsSelectedCount" style="font-size:0.85rem;color:var(--text-muted);white-space:nowrap;">0 selected</span>
+          <button type="button" class="btn btn-primary" id="feeSendSmsBtn" style="white-space:nowrap;" title="Send a fee reminder SMS to the parents/guardians of the selected debtors (uses the Nalo SMS gateway)">
+            📨 Send Fee Reminder SMS
+          </button>
         </div>
         <div class="table-wrapper">
           <table class="app-table">
-            <thead><tr><th>Student ID</th><th>Name</th><th>Class</th><th>Outstanding Details</th><th>Total Balance</th><th>Last Payment Date</th><th>Action</th></tr></thead>
+            <thead><tr><th style="width:36px;text-align:center;" title="Select / deselect all debtors"><input type="checkbox" id="feeDebtorsSelectAll" aria-label="Select all debtors" /></th><th>Student ID</th><th>Name</th><th>Class</th><th>Outstanding Details</th><th>Total Balance</th><th>Last Payment Date</th><th>Action</th></tr></thead>
             <tbody id="feeDebtorsBody">
-              <tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--text-muted);">Loading debtors...</td></tr>
+              <tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--text-muted);">Loading debtors...</td></tr>
             </tbody>
           </table>
         </div>
+
+        <div id="feeDebtorsSmsMessage" class="message" style="display:none;margin-top:1rem;white-space:pre-line;"></div>
       </div>
 
       <!-- ===== TAB 5: HOLIDAY FEE STATEMENTS (BULK PRINT) ===== -->

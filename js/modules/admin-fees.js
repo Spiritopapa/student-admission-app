@@ -6,7 +6,7 @@
 
 import { getEl, showMessage, clearMessage, setLoading, getCurrentSchoolId, formatCurrency, formatDate, logSubAdminActivity, generateAcademicYearOptions, getDefaultAcademicYear, openPrintWindow, getNextTerm, getNextAcademicYear } from './utils.js';
 import { RECEIPT_VERIFY_BASE_URL } from '../supabase-config.js';
-import { sendFeePaymentSms } from './sms-gateway.js';
+import { sendFeePaymentSms, normalizeGhanaPhone } from './sms-gateway.js';
 
 let supabaseClient = null;
 
@@ -78,6 +78,13 @@ export function setupFeesListeners() {
   // Debtors preview and print
   getEl('feePreviewDebtors')?.addEventListener('click', previewDebtorsList);
   getEl('feePrintDebtors')?.addEventListener('click', printDebtorsListDirect);
+
+  // Debtors bulk SMS fee reminder (select all + manual selection)
+  getEl('feeSendSmsBtn')?.addEventListener('click', sendBulkFeeReminderSms);
+  getEl('feeDebtorsSelectAll')?.addEventListener('change', (e) => {
+    document.querySelectorAll('.debtor-sms-check').forEach(cb => { cb.checked = e.target.checked; });
+    updateSmsSelectionCount();
+  });
 
   // Today's receipts
   getEl('feeTodayReceipts')?.addEventListener('click', showTodayReceipts);
@@ -2055,7 +2062,10 @@ async function loadDebtorsList() {
   const tbody = getEl('feeDebtorsBody');
   if (!tbody) return;
 
-  tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--text-muted);">Loading...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--text-muted);">Loading...</td></tr>';
+  const selAll = getEl('feeDebtorsSelectAll');
+  if (selAll) selAll.checked = false;
+  updateSmsSelectionCount();
 
   // Get filter values
   const dateFrom = getEl('feeDebtorsDateFrom')?.value || '';
@@ -2078,7 +2088,7 @@ async function loadDebtorsList() {
 
   const { data: allFees } = await query;
   if (!allFees || allFees.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--text-muted);">🎉 No debtors! All fees are up to date.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--text-muted);">🎉 No debtors! All fees are up to date.</td></tr>';
     const countEl = getEl('feeDebtorsCount');
     if (countEl) countEl.textContent = '0 debtor(s)';
     return;
@@ -2091,7 +2101,7 @@ async function loadDebtorsList() {
   });
 
   if (debtors.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--text-muted);">🎉 No debtors! All fees are up to date.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--text-muted);">🎉 No debtors! All fees are up to date.</td></tr>';
     const countEl = getEl('feeDebtorsCount');
     if (countEl) countEl.textContent = '0 debtor(s)';
     return;
@@ -2164,7 +2174,7 @@ async function loadDebtorsList() {
   }
 
   if (sorted.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--text-muted);">No debtors found for the selected filters.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--text-muted);">No debtors found for the selected filters.</td></tr>';
     const countEl = getEl('feeDebtorsCount');
     if (countEl) countEl.textContent = '0 debtor(s)';
     return;
@@ -2179,6 +2189,9 @@ async function loadDebtorsList() {
     const lastPayDate = s.last_payment_date ? formatDate(s.last_payment_date) : '<span style="color:var(--text-muted);">Never</span>';
 
     return `<tr>
+      <td style="text-align:center;">
+        <input type="checkbox" class="debtor-sms-check" data-student-id="${escapeAttr(s.student_id)}" data-student-name="${escapeAttr(name)}" data-class="${escapeAttr(s.class)}" data-balance="${Number(s.total_balance) || 0}" onchange="updateSmsSelectionCount()" title="Select to send a fee reminder SMS" />
+      </td>
       <td><strong>${s.student_id}</strong></td>
       <td>${name}</td>
       <td>${s.class}</td>
@@ -2194,7 +2207,174 @@ async function loadDebtorsList() {
   // Update count
   const countEl = getEl('feeDebtorsCount');
   if (countEl) countEl.textContent = `${sorted.length} debtor(s)`;
+
+  // Keep the bulk-SMS selection counter in sync with the fresh rows.
+  updateSmsSelectionCount();
 }
+
+// ================================================================
+// DEBTORS BULK SMS — FEE REMINDERS
+// ================================================================
+
+/** Escape a value for safe injection inside an HTML attribute in templates. */
+function escapeAttr(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+/** Keep the "N selected" counter in the debtors toolbar in sync. */
+window.updateSmsSelectionCount = function () {
+  const count = document.querySelectorAll('.debtor-sms-check:checked').length;
+  const el = getEl('feeSmsSelectedCount');
+  if (el) el.textContent = `${count} selected`;
+};
+
+/** Best-effort school name lookup for SMS headers. */
+async function getSchoolNameForSms(schoolId) {
+  if (!schoolId) return 'School';
+  try {
+    const { data: settings } = await supabaseClient.from('school_settings')
+      .select('school_name')
+      .eq('school_id', schoolId)
+      .maybeSingle();
+    if (settings?.school_name) return settings.school_name;
+    const { data: school } = await supabaseClient.from('schools')
+      .select('name')
+      .eq('id', schoolId)
+      .single();
+    return school?.name || 'School';
+  } catch (err) {
+    return 'School';
+  }
+}
+
+/** Build a short one-SMS fee reminder for a debtor. */
+function buildDebtorReminderSms(schoolName, studentName, className, balance) {
+  const school = String(schoolName || 'School').trim().slice(0, 40);
+  const cls = className ? ` (${String(className).trim()})` : '';
+  const bal = formatCurrency(Number(balance) || 0);
+  return (
+    `${school}: Dear Parent/Guardian, this is a reminder that fees for ${studentName}${cls} ` +
+    `have an outstanding balance of GH\u20b5${bal}. Kindly settle the balance to keep your ward in school. Thank you.`
+  );
+}
+
+/**
+ * Send one reminder through the /api/send-sms (Nalo) gateway and audit it as
+ * a new row in sms_logs. Mirrors sms-gateway.js / admin-sms-monitor.js.
+ * Returns true on success, false otherwise (never throws).
+ */
+async function sendDebtorReminderSms(recipient, studentId, message, schoolId) {
+  try {
+    const res = await fetch('/api/send-sms', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone: recipient, message }),
+    });
+    const resp = await res.json().catch(() => null);
+    const success = Boolean(resp && resp.success);
+
+    const { data: { user } } = await supabaseClient.auth.getUser().catch(() => ({ data: { user: null } }));
+    await supabaseClient.from('sms_logs').insert({
+      school_id: schoolId || null,
+      student_id: studentId || null,
+      recipient: recipient || null,
+      message: message || null,
+      status: (resp && resp.status) || null,
+      success,
+      provider_response: (resp && resp.providerRaw) || null,
+      error: success ? null : ((resp && (resp.error || resp.message)) || 'Gateway error'),
+      created_by: user?.id || null,
+    });
+    return success;
+  } catch (err) {
+    console.warn('[Fees] SMS send error for ' + studentId + ': ' + err.message);
+    return false;
+  }
+}
+
+/** Bulk-send fee reminder SMS to the debtors selected in the list. */
+window.sendBulkFeeReminderSms = async function () {
+  clearMessage('feeDebtorsSmsMessage');
+
+  const boxes = Array.from(document.querySelectorAll('.debtor-sms-check:checked'));
+  if (boxes.length === 0) {
+    showMessage('feeDebtorsSmsMessage', '⚠️ Please select at least one debtor first — tick the checkboxes (or the Select All box) and try again.', 'error');
+    return;
+  }
+
+  // Capture the selection + any per-row data we need BEFORE the list refresh.
+  const selected = boxes.map(cb => ({
+    studentId: cb.dataset.studentId || '',
+    name: cb.dataset.studentName || cb.dataset.studentId || 'student',
+    className: cb.dataset.class || '',
+    balance: Number(cb.dataset.balance || 0),
+  }));
+
+  // Resolve a valid parent phone for each selected debtor.
+  const withPhone = [];
+  const noPhone = [];
+  for (const s of selected) {
+    const { data: app } = await supabaseClient.from('applications')
+      .select('parent_contact')
+      .eq('student_id', s.studentId)
+      .maybeSingle();
+    const phone = normalizeGhanaPhone(app?.parent_contact);
+    if (phone) withPhone.push({ ...s, phone });
+    else noPhone.push(s);
+  }
+
+  if (withPhone.length === 0) {
+    showMessage('feeDebtorsSmsMessage', `❌ None of the ${selected.length} selected debtor(s) have a valid parent/guardian phone number on record, so no SMS was sent.`, 'error');
+    return;
+  }
+
+  const total = withPhone.length;
+  const confirmText = `Send a fee reminder SMS to the parents/guardians of ${total} debtor(s)?\n\n` +
+    `This will send ${total} message(s) through the Nalo SMS gateway.` +
+    (noPhone.length ? `\n(${noPhone.length} already excluded — no valid phone on record.)` : '');
+  if (!confirm(confirmText)) return;
+
+  const schoolId = await getCurrentSchoolId();
+  const schoolName = await getSchoolNameForSms(schoolId);
+
+  const btn = getEl('feeSendSmsBtn');
+  const originalLabel = btn ? btn.textContent.trim() : '📨 Send Fee Reminder SMS';
+  setLoading(btn, true, 'Sending...');
+
+  let sent = 0;
+  let failed = 0;
+  try {
+    for (let i = 0; i < withPhone.length; i++) {
+      const s = withPhone[i];
+      if (btn) btn.innerHTML = `<span class="spinner"></span> Sending ${i + 1} of ${total}`;
+      const message = buildDebtorReminderSms(schoolName, s.name, s.className, s.balance);
+      const ok = await sendDebtorReminderSms(s.phone, s.studentId, message, schoolId);
+      if (ok) sent += 1;
+      else failed += 1;
+    }
+  } catch (err) {
+    console.error('[Fees] Bulk SMS error:', err.message);
+    failed = total - sent;
+  } finally {
+    setLoading(btn, false, originalLabel);
+  }
+
+  let summary = `✅ Bulk SMS complete!\nSent: ${sent}\nFailed: ${failed}`;
+  if (noPhone.length) summary += `\nSkipped (no valid phone): ${noPhone.length}`;
+  showMessage('feeDebtorsSmsMessage', summary, failed === 0 ? 'success' : 'error');
+
+  // Refresh the debtor list (clears the checkboxes) and nudge the SMS
+  // monitoring dashboard so the new sms_logs rows appear immediately.
+  await loadDebtorsList();
+  try {
+    const { refreshSmsMonitor } = await import('./admin-sms-monitor.js');
+    await refreshSmsMonitor();
+  } catch (e) { /* the realtime channel will pick up the new sms_logs rows */ }
+};
 
 // ================================================================
 // DEBTORS PREVIEW & PRINT
