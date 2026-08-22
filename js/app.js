@@ -159,6 +159,101 @@ function setupAllListeners() {
   setupAdminSearch();
   setupAdminAssessments();
   setupTeacherAssessments();
+  setupEmailButtonMobileBehavior();
+}
+
+// ================================================================
+// Mobile Email Buttons — Open the Gmail App (fallback: default email app)
+// ================================================================
+
+/**
+ * On the mobile view, tapping an email button tries to open the Gmail app
+ * straight into a compose window via the Gmail URI scheme. If Gmail is not
+ * installed, it falls back to the device's default email app using a mailto:
+ * link. On desktop the original Gmail-web compose link is kept as-is.
+ */
+function setupEmailButtonMobileBehavior() {
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('a.email-admin-btn');
+    if (!btn || !btn.href) return;
+
+    // Only intercept in the mobile view (small screen or touch device).
+    const isMobileView =
+      (window.matchMedia && window.matchMedia('(max-width: 820px)').matches) ||
+      /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+    if (!isMobileView) return; // Desktop: keep existing Gmail-web link behaviour
+
+    e.preventDefault();
+
+    let email = 'boahengeeman@gmail.com';
+    try {
+      email = new URL(btn.href).searchParams.get('to') || email;
+    } catch (err) { /* keep the default address */ }
+
+    openGmailAppWithMailtoFallback(email);
+  });
+}
+
+/**
+ * Attempts to launch the installed Gmail app (compose window) and, when the
+ * app is not available, opens the default email app instead via mailto:.
+ */
+function openGmailAppWithMailtoFallback(email) {
+  const mailtoUrl = 'mailto:' + email;
+  const encEmail = encodeURIComponent(email);
+  const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  // Gmail app URI schemes: gmail:// on Android, googlegmail:// on iOS.
+  const gmailUrl = isIOS
+    ? 'googlegmail:///co?to=' + encEmail
+    : 'gmail://co?to=' + encEmail;
+
+  let settled = false;
+  let timer = null;
+
+  const onVisibilityChange = () => {
+    if (document.hidden) onLaunchDetected();
+  };
+
+  const cleanup = () => {
+    clearTimeout(timer);
+    document.removeEventListener('visibilitychange', onVisibilityChange);
+    window.removeEventListener('blur', onLaunchDetected);
+  };
+
+  // If the Gmail app launches, this page is pushed into the background and we
+  // detect that here so the mailto fallback is never triggered afterwards.
+  const onLaunchDetected = () => {
+    if (settled) return;
+    settled = true;
+    cleanup();
+  };
+
+  const openDefaultEmailApp = () => {
+    if (settled) return;
+    settled = true;
+    cleanup();
+    // Gmail is not installed / could not launch → default email app.
+    window.location.href = mailtoUrl;
+  };
+
+  document.addEventListener('visibilitychange', onVisibilityChange);
+  window.addEventListener('blur', onLaunchDetected);
+  timer = setTimeout(openDefaultEmailApp, 700);
+
+  // Launch the Gmail app from a hidden anchor click so the page itself never
+  // navigates away if the scheme is unsupported or Gmail is not installed.
+  const launchLink = document.createElement('a');
+  launchLink.href = gmailUrl;
+  launchLink.setAttribute('style', 'display:none;');
+  launchLink.setAttribute('aria-hidden', 'true');
+  launchLink.tabIndex = -1;
+  document.body.appendChild(launchLink);
+  launchLink.click();
+  // Discard the helper element shortly after; the fallback timer above is the
+  // source of truth for retrying with the default email app.
+  setTimeout(() => {
+    if (launchLink.parentNode) launchLink.parentNode.removeChild(launchLink);
+  }, 3000);
 }
 
 // ================================================================
