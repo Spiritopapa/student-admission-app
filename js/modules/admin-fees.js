@@ -2265,18 +2265,35 @@ function buildDebtorReminderSms(schoolName, studentName, className, balance) {
 /**
  * Send one reminder through the /api/send-sms (Nalo) gateway and audit it as
  * a new row in sms_logs. Mirrors sms-gateway.js / admin-sms-monitor.js.
- * Returns true on success, false otherwise (never throws).
+ *
+ * The audit insert is best-effort and NEVER changes the outcome of a send
+ * (the payment-SMS module uses the same fire-and-forget rule). Returns
+ * { ok: true } on success, or { ok: false, error } with the exact reason
+ * returned by /api/send-sms (e.g. "Nalo SMS is not configured ...").
  */
 async function sendDebtorReminderSms(recipient, studentId, message, schoolId) {
+  // 1) Send
+  let res = null;
+  let resp = null;
   try {
-    const res = await fetch('/api/send-sms', {
+    res = await fetch('/api/send-sms', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ phone: recipient, message }),
     });
-    const resp = await res.json().catch(() => null);
-    const success = Boolean(resp && resp.success);
+    resp = await res.json().catch(() => null);
+  } catch (err) {
+    console.warn('[Fees] SMS send network error for ' + studentId + ':', err.message);
+    return { ok: false, error: 'Network error reaching SMS gateway: ' + err.message };
+  }
 
+  const success = Boolean(resp && resp.success);
+  const error = success
+    ? null
+    : ((resp && (resp.error || resp.message)) || ('Gateway returned HTTP ' + (res ? res.status : '?')));
+
+  // 2) Audit (best-effort, never flips the send outcome)
+  try {
     const { data: { user } } = await supabaseClient.auth.getUser().catch(() => ({ data: { user: null } }));
     await supabaseClient.from('sms_logs').insert({
       school_id: schoolId || null,
@@ -2286,14 +2303,15 @@ async function sendDebtorReminderSms(recipient, studentId, message, schoolId) {
       status: (resp && resp.status) || null,
       success,
       provider_response: (resp && resp.providerRaw) || null,
-      error: success ? null : ((resp && (resp.error || resp.message)) || 'Gateway error'),
+      error: error || (success ? null : 'Gateway error'),
       created_by: user?.id || null,
     });
-    return success;
   } catch (err) {
-    console.warn('[Fees] SMS send error for ' + studentId + ': ' + err.message);
-    return false;
+    console.warn('[Fees] Failed to write sms_logs row for ' + studentId + ':', err.message);
   }
+
+  if (!success) console.warn('[Fees] SMS rejected for ' + studentId + ':', error);
+  return success ? { ok: true, error: null } : { ok: false, error };
 }
 
 /** Bulk-send fee reminder SMS to the debtors selected in the list. */
@@ -2347,14 +2365,20 @@ window.sendBulkFeeReminderSms = async function () {
 
   let sent = 0;
   let failed = 0;
+  const reasons = {};
   try {
     for (let i = 0; i < withPhone.length; i++) {
       const s = withPhone[i];
       if (btn) btn.innerHTML = `<span class="spinner"></span> Sending ${i + 1} of ${total}`;
       const message = buildDebtorReminderSms(schoolName, s.name, s.className, s.balance);
-      const ok = await sendDebtorReminderSms(s.phone, s.studentId, message, schoolId);
-      if (ok) sent += 1;
-      else failed += 1;
+      const result = await sendDebtorReminderSms(s.phone, s.studentId, message, schoolId);
+      if (result.ok) {
+        sent += 1;
+      } else {
+        failed += 1;
+        const reason = String(result.error || 'Unknown error').trim();
+        reasons[reason] = (reasons[reason] || 0) + 1;
+      }
     }
   } catch (err) {
     console.error('[Fees] Bulk SMS error:', err.message);
@@ -2364,6 +2388,13 @@ window.sendBulkFeeReminderSms = async function () {
   }
 
   let summary = `✅ Bulk SMS complete!\nSent: ${sent}\nFailed: ${failed}`;
+  if (failed > 0) {
+    const topReasons = Object.entries(reasons)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([reason, count]) => `  • ${reason}${count > 1 ? ` (×${count})` : ''}`);
+    summary += `\n\n${topReasons.join('\n')}`;
+  }
   if (noPhone.length) summary += `\nSkipped (no valid phone): ${noPhone.length}`;
   showMessage('feeDebtorsSmsMessage', summary, failed === 0 ? 'success' : 'error');
 

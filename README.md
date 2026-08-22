@@ -176,6 +176,17 @@ School admins can monitor every SMS attempt from the **SMS Monitoring** module i
 
 To enable the module, run `sql/043-sms-monitoring-module.sql` (included in `sql/000-run-all.sql`). It only registers the `sms-monitoring` module for Super-Admin lock/unlock control — no new tables are created because the module reads the existing `sms_logs` audit table. The Super Admin can lock it per school via **Schools → Module Locks**.
 
+### 📨 Bulk Fee Reminder SMS (Admin → Fees → Debtors)
+
+School admins can send a single fee-reminder SMS to every debtor's parent/guardian straight from the **Fees Management → Debtors** tab:
+
+- Use the **class filter** (`All Classes` or a specific class) so the bulk SMS targets exactly the class you want.
+- Tick the **Select All** checkbox or pick individual debtors manually — a live **"N selected"** counter shows how many are queued.
+- Click **📨 Send Fee Reminder SMS**; each parent receives a short message with the school name, the student's name, class and their exact outstanding GH₵ balance.
+- Debtors with no valid Ghana phone number are skipped and reported; every attempt is audited as a new `sms_logs` row (visible in SMS Monitoring) so failed sends can be retried.
+
+> Requires the same Nalo gateway as above: set `NALO_SMS_AUTH_KEY` (or username/password) as a **Vercel environment variable** and deploy. Without it `/api/send-sms` returns `500 "Nalo SMS is not configured ..."` and the app now shows that exact reason in the result message.
+
 
 ## 🔑 Forgot Password (SMS OTP)
 
