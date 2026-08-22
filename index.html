@@ -21,6 +21,7 @@
   <link rel="stylesheet" href="css/income-expenses.css" />
   <link rel="stylesheet" href="css/announcements.css" />
   <link rel="stylesheet" href="css/assessments.css" />
+  <link rel="stylesheet" href="css/sms-monitor.css" />
   <link rel="stylesheet" href="css/print.css" />
   <link rel="stylesheet" href="css/webview.css" />
   <script>
@@ -461,6 +462,7 @@
             <button type="button" class="dash-nav-link" data-admin-page="grading"><span class="dash-nav-icon">📊</span> Grading System</button>
             <button type="button" class="dash-nav-link" data-admin-page="fees"><span class="dash-nav-icon">💰</span> Fees Management</button>
             <button type="button" class="dash-nav-link" data-admin-page="income-expenses"><span class="dash-nav-icon">📊</span> Income & Expenses</button>
+            <button type="button" class="dash-nav-link" data-admin-page="sms-monitoring"><span class="dash-nav-icon">📨</span> SMS Monitoring</button>
             <button type="button" class="dash-nav-link" data-admin-page="backup"><span class="dash-nav-icon">💾</span> Backup & Restore</button>
             <button type="button" class="dash-nav-link" data-admin-page="profile"><span class="dash-nav-icon">🔑</span> Change Password</button>
           </nav>
@@ -1710,6 +1712,13 @@
       <h2>📊 Income & Expenditure Tracking</h2>
       <p class="subtitle">Track school income, expenses, and generate financial reports.</p>
       <div id="ieContainer"></div>
+    </section>
+
+    <!-- ==================== ADMIN SMS MONITORING ==================== -->
+    <section id="page-admin-sms-monitoring" class="page">
+      <h2>📨 SMS Monitoring</h2>
+      <p class="subtitle">Monitor every SMS sent to parents/guardians — view sent messages and investigate unsent or failed deliveries.</p>
+      <div id="smsMonitorContainer"></div>
     </section>
 
     <!-- ==================== ADMIN BACKUP & RESTORE ==================== -->

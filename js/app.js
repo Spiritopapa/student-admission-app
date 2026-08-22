@@ -29,6 +29,7 @@ import { initTeacherDashboard, setupTeacherDashboard, loadTeacherDashboard } fro
 import { initBackupRestore, setupBackupRestore } from './modules/backup-restore.js';
 import { initAccountantDashboard, setupAccountantDashboard, loadAccountantDashboard } from './modules/accountant-dashboard.js';
 import { initIncomeExpenses, loadIncomeExpensesPage } from './modules/income-expenses.js';
+import { initSmsMonitor, loadSmsMonitorPage } from './modules/admin-sms-monitor.js';
 import { initAdminAssessments, setupAdminAssessments, loadAdminAssessmentsPage } from './modules/admin-assessments.js';
 import { initTeacherAssessments, setupTeacherAssessments } from './modules/teacher-assessments.js';
 import { initAssessmentTaking } from './modules/assessment-taking.js';
@@ -70,6 +71,7 @@ function initAllModules() {
   initIncomeExpenses(supabaseClient);
   initAdminFees(supabaseClient);
   initBackupRestore(supabaseClient);
+  initSmsMonitor(supabaseClient);
   initAdminAssessments(supabaseClient);
   initTeacherAssessments(supabaseClient);
   initAssessmentTaking(supabaseClient);
@@ -297,6 +299,7 @@ async function loadAdminSubPage(page) {
     grading: { id: 'page-admin-grading', title: '📊 Grading System' },
     fees: { id: 'page-admin-fees', title: '💰 Fees Management' },
     'income-expenses': { id: 'page-admin-income-expenses', title: '📊 Income & Expenses' },
+    'sms-monitoring': { id: 'page-admin-sms-monitoring', title: '📨 SMS Monitoring' },
     backup: { id: 'page-admin-backup', title: '💾 Backup & Restore' },
     profile: { id: 'page-admin-profile', title: '🔑 Change Password' },
   };
@@ -319,6 +322,10 @@ async function loadAdminSubPage(page) {
     case 'income-expenses': {
       const { loadIncomeExpensesPage } = await import('./modules/income-expenses.js');
       await loadIncomeExpensesPage();
+      break;
+    }
+    case 'sms-monitoring': {
+      await loadSmsMonitorPage();
       break;
     }
     case 'admit': await ensureAdmitClassDropdown(); break;

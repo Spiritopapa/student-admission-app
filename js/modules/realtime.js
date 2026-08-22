@@ -147,6 +147,12 @@ const TABLE_ACTIONS = {
       refresh: 'loadAdminDashboardHome',
     },
   ],
+  sms_logs: [
+    {
+      pages: ['page-admin-sms-monitoring'],
+      refresh: 'refreshSmsMonitor',
+    },
+  ],
 };
 
 // ================================================================

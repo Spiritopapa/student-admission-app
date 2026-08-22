@@ -277,6 +277,14 @@
 -- Used by: js/modules/forgot-password.js (sign-in page modal).
 \i 042-forgot-password.sql
 
+-- Step 38: SMS Monitoring Module
+-- Registers the 'sms-monitoring' module in the modules table so the
+-- Super Admin can lock/unlock it per school via the Module Locks UI.
+-- The module is read-only monitoring over the existing sms_logs table
+-- (created in step 36), so no new tables are required.
+-- Used by: js/modules/admin-sms-monitor.js (admin sidebar tab).
+\i 043-sms-monitoring-module.sql
+
 -- ============================================================
 --  SCHEMA DEPLOYMENT COMPLETE
 -- ============================================================

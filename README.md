@@ -164,6 +164,18 @@ Then run `sql/041-sms-gateway.sql` in the Supabase SQL Editor (or re-run `sql/00
 
 > The `sms_logs` table and the `/api/send-sms` function are protected by RLS / server-side secrets respectively. Messages are sent fire-and-forget, so an SMS failure never blocks the payment receipt from being generated.
 
+### 📨 SMS Monitoring (Admin)
+
+School admins can monitor every SMS attempt from the **SMS Monitoring** module in the sidebar:
+
+- Summary cards (total / sent / unsent-failed / sent today) plus tabs for **All**, **Sent** and **Unsent / Failed**.
+- Search by phone, student ID, receipt number or message text, and filter by date range.
+- A **View** modal shows the full message text, sender ID, provider response and the failure reason for unsent messages.
+- **Resend** button on any failed message re-sends it through `/api/send-sms` and logs the new attempt as a fresh `sms_logs` row.
+- The list refreshes automatically when new SMS rows are written (realtime subscription).
+
+To enable the module, run `sql/043-sms-monitoring-module.sql` (included in `sql/000-run-all.sql`). It only registers the `sms-monitoring` module for Super-Admin lock/unlock control — no new tables are created because the module reads the existing `sms_logs` audit table. The Super Admin can lock it per school via **Schools → Module Locks**.
+
 
 ## 🔑 Forgot Password (SMS OTP)
 

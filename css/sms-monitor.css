@@ -1,0 +1,188 @@
+/* ================================================================
+   SMS MONITORING MODULE STYLES
+   ================================================================ */
+
+/* Summary Stat Cards */
+.sms-stat-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.sms-stat-card {
+  background: var(--card-bg);
+  border-radius: 12px;
+  padding: 1.1rem 1.25rem;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--primary);
+  transition: all 0.3s ease;
+}
+
+.sms-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+.sms-stat-card.stat-sent { border-left-color: var(--success); }
+.sms-stat-card.stat-failed { border-left-color: var(--danger); }
+.sms-stat-card.stat-today { border-left-color: #8b5cf6; }
+
+.sms-stat-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-bottom: 0.25rem;
+}
+
+.sms-stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.1;
+}
+
+.sms-stat-value.stat-sent-value { color: var(--success); }
+.sms-stat-value.stat-failed-value { color: var(--danger); }
+
+/* Filter / tab toolbar */
+.sms-tab.active {
+  background: var(--primary) !important;
+  color: #fff !important;
+  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.3);
+}
+
+.sms-filter-row {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 0.85rem;
+}
+
+/* Status badges */
+.sms-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  padding: 0.2rem 0.55rem;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.sms-badge.sent {
+  background: rgba(16, 185, 129, 0.14);
+  color: #047857;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+.sms-badge.failed {
+  background: rgba(239, 68, 68, 0.12);
+  color: #b91c1c;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+}
+
+.sms-badge.pending {
+  background: rgba(245, 158, 11, 0.14);
+  color: #b45309;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+/* Message preview in the table */
+.sms-msg-preview {
+  max-width: 340px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  display: block;
+}
+
+/* Error text in failed row */
+.sms-error-note {
+  color: var(--danger);
+  font-size: 0.72rem;
+  margin-top: 0.15rem;
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Details modal content */
+.sms-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.sms-detail-item label {
+  display: block;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--text-muted);
+  font-weight: 700;
+  margin-bottom: 0.15rem;
+}
+
+.sms-detail-item div {
+  font-size: 0.88rem;
+  word-break: break-word;
+}
+
+.sms-detail-message {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.85rem 1rem;
+  font-size: 0.88rem;
+  line-height: 1.55;
+  margin-bottom: 0.9rem;
+  max-height: 200px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.sms-detail-error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 1rem;
+  font-size: 0.82rem;
+  color: #b91c1c;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+/* Small inline actions */
+.sms-row-actions {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .sms-stat-cards {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+  }
+  .sms-stat-card { padding: 0.9rem 1rem; }
+  .sms-stat-value { font-size: 1.2rem; }
+  .sms-detail-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 380px) {
+  .sms-stat-cards { grid-template-columns: 1fr; }
+}
