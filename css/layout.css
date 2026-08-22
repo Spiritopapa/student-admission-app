@@ -366,7 +366,9 @@
     transform: translateX(-100%);
     opacity: 0;
     transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
-    overflow-y: auto;
+    /* Only the .dash-nav tabs scroll; brand/profile/logout stay pinned.
+       The nav itself scrolls + the scrollbar is hidden (see .dash-nav rules). */
+    overflow: hidden;
     -webkit-overflow-scrolling: touch;
     display: flex;
     flex-direction: column;
@@ -455,11 +457,26 @@
 
   .dash-nav {
     flex-direction: column;
-    overflow-x: visible;
+    overflow-x: hidden;
+    overflow-y: auto;
+    min-height: 0;
     gap: 2px;
     padding: 0.4rem;
     scroll-snap-type: none;
     flex: 1;
+    -webkit-overflow-scrolling: touch;
+    /* Invisible scrollbar for the sidebar tabs on mobile */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .dash-sidebar > .dash-nav {
+    scrollbar-width: none;
+  }
+  .dash-sidebar > .dash-nav::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
   }
 
   .dash-nav-link {
@@ -507,6 +524,96 @@
   .accountant-brand .sidebar-close-btn:hover {
     background: rgba(255, 255, 255, 0.2);
     color: #fff;
+  }
+
+  /* ============================================================
+     Mobile Module Tap-Zoom
+     First tap zooms the module tab into a "selected preview"
+     state; tapping the same module again opens it.
+     ============================================================ */
+
+  .dash-nav-link {
+    position: relative;
+    transition: transform 0.25s var(--spring), box-shadow 0.25s ease, background 0.2s ease, color 0.25s ease;
+  }
+  .dash-nav-link .dash-nav-icon {
+    transition: transform 0.3s var(--spring);
+  }
+
+  /* Zoomed (first tap) — module scales up like it is being opened */
+  .dash-nav-link.tap-zoomed {
+    transform: scale(1.07);
+    z-index: 3;
+    box-shadow: 0 8px 22px rgba(99, 102, 241, 0.32);
+    background: var(--primary-light);
+    color: var(--primary);
+  }
+  .dash-nav-link.tap-zoomed .dash-nav-icon {
+    transform: scale(1.22);
+  }
+
+  /* Role-specific zoom colours match each portal's active state */
+  .student-brand .dash-nav-link.tap-zoomed {
+    background: var(--success-light);
+    color: var(--success);
+    box-shadow: 0 8px 22px rgba(16, 185, 129, 0.30);
+  }
+  .teacher-brand .dash-nav-link.tap-zoomed {
+    background: rgba(249, 115, 22, 0.14);
+    color: #ea580c;
+    box-shadow: 0 8px 22px rgba(249, 115, 22, 0.30);
+  }
+  .parent-brand .dash-nav-link.tap-zoomed {
+    background: var(--purple-light);
+    color: var(--purple);
+    box-shadow: 0 8px 22px rgba(139, 92, 246, 0.30);
+  }
+  .super-admin-brand .dash-nav-link.tap-zoomed {
+    background: rgba(245, 158, 11, 0.14);
+    color: #d97706;
+    box-shadow: 0 8px 22px rgba(245, 158, 11, 0.30);
+  }
+  .accountant-brand .dash-nav-link.tap-zoomed {
+    background: rgba(16, 185, 129, 0.25);
+    color: #34d399;
+    box-shadow: 0 8px 22px rgba(16, 185, 129, 0.30);
+  }
+
+  /* Small floating hint that tells the user to tap again to open */
+  .dash-nav-link.tap-zoomed::after {
+    content: 'Tap again to open';
+    position: absolute;
+    top: 50%;
+    right: 0.55rem;
+    transform: translateY(-50%) translateX(8px) scale(0.8);
+    transform-origin: right center;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: #fff;
+    font-size: 0.56rem;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+    white-space: nowrap;
+    padding: 0.14rem 0.5rem;
+    border-radius: 20px;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
+    opacity: 0;
+    animation: tapHintIn 0.35s var(--spring) forwards;
+    pointer-events: none;
+    z-index: 4;
+    max-width: calc(100% - 1.2rem);
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+@keyframes tapHintIn {
+  from {
+    opacity: 0;
+    transform: translateY(-50%) translateX(8px) scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0) scale(1);
   }
 }
 

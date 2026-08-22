@@ -26,6 +26,7 @@ export function initNavigation() {
   setupLogoutBtn();
   setupRoleTabs();
   setupSidebarDrawers();
+  setupMobileModuleTapZoom();
   setupNavbarScroll();
   setupMobileBottomNav();
 }
@@ -91,6 +92,47 @@ function setupSidebarDrawers() {
   }, { passive: true });
 }
 
+// ================================================================
+// Mobile Two-Tap Module Selector
+// Tap a sidebar module once to "zoom" it (preview highlight),
+// then tap the SAME module again to actually open it. This avoids
+// accidentally opening heavy modules with a single careless tap.
+// ================================================================
+
+const isMobileModuleTapZoom = window.matchMedia('(max-width: 768px)');
+
+function setupMobileModuleTapZoom() {
+  // Capture phase: for the FIRST tap we stop the event before it reaches the
+  // module button's navigation handlers, so only the zoom effect happens.
+  // The SECOND tap on the same module clears the zoom and lets the event
+  // propagate normally (module opens + drawer closes).
+  document.addEventListener('click', (e) => {
+    if (!isMobileModuleTapZoom.matches) return;
+
+    const link = e.target.closest('.dash-sidebar .dash-nav-link');
+    // Ignore taps outside module tabs (e.g. the Logout action)
+    if (!link || link.closest('.sidebar-logout')) return;
+
+    // Second tap on the already-zoomed module -> allow it to open.
+    if (link.classList.contains('tap-zoomed')) {
+      clearMobileModuleZoom();
+      return; // do NOT stop propagation: normal open flow continues
+    }
+
+    // First tap -> zoom preview instead of opening immediately.
+    e.stopPropagation();
+    e.preventDefault();
+    clearMobileModuleZoom();
+    link.classList.add('tap-zoomed');
+  }, true);
+}
+
+function clearMobileModuleZoom() {
+  document.querySelectorAll('.dash-sidebar .dash-nav-link.tap-zoomed').forEach((l) => {
+    l.classList.remove('tap-zoomed');
+  });
+}
+
 // Build the toggle button, close button, and backdrop for each dashboard
 function buildSidebarUI() {
   document.querySelectorAll('.dashboard-layout').forEach((dashboard) => {
@@ -134,6 +176,7 @@ function openSidebarDrawer(dashboard) {
   if (sidebar) sidebar.classList.add('mobile-sidebar-open');
   if (backdrop) backdrop.classList.add('active');
   document.body.style.overflow = 'hidden';
+  clearMobileModuleZoom();
 }
 
 function closeSidebarDrawer(dashboard) {
@@ -143,6 +186,7 @@ function closeSidebarDrawer(dashboard) {
   if (sidebar) sidebar.classList.remove('mobile-sidebar-open');
   if (backdrop) backdrop.classList.remove('active');
   document.body.style.overflow = '';
+  clearMobileModuleZoom();
 }
 
 function closeAllSidebarDrawers() {
@@ -153,6 +197,7 @@ function closeAllSidebarDrawers() {
     b.classList.remove('active');
   });
   document.body.style.overflow = '';
+  clearMobileModuleZoom();
 }
 
 // ================================================================
