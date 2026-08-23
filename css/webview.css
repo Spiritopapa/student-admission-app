@@ -388,3 +388,81 @@ html.webview-mode .acc-stat-card {
     gap: 0.75rem;
   }
 }
+/* ============================================================
+   19. AUTOMATIC SCREEN SCALING / HORIZONTAL OVERFLOW GUARD
+   Unlocked the viewport meta (see <head>) so the browser +
+   device can auto-scale and users can pinch-zoom to fit on any
+   screen. These rules keep the UI contained to the visible
+   width so auto-fit never leaves content cropped off-screen.
+   ============================================================ */
+
+/* Let every fluid block shrink down to the visible screen width
+   instead of forcing a minimum layout width. */
+html,
+body {
+  min-width: 0;
+}
+
+/* Never show a page-level horizontal scrollbar on mobile: any too-wide
+   panel should reflow or clip internally, never push the app off-screen. */
+@media (max-width: 768px) {
+  html {
+    overflow-x: clip;
+  }
+  body {
+    overflow-x: hidden;
+  }
+
+  /* Contain the main content panes to the usable screen width. */
+  .container,
+  main,
+  #appContent,
+  .page,
+  .page.active-page,
+  .dash-main {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  /* Cards, forms, modals and receipts must fit the viewport. */
+  .auth-form,
+  .admission-form,
+  .modal-card,
+  .receipt-container,
+  .fee-receipts-section,
+  .announcement-popup-card,
+  .income-expense-card,
+  .school-banner {
+    max-width: 100%;
+  }
+
+  /* Media shrinks rather than stretches the layout. */
+  img,
+  video,
+  canvas,
+  iframe,
+  pre {
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* Never let a long unbroken token (IDs, emails, URLs) force the page
+     wider than the screen – wrap it instead. */
+  h1,
+  h2,
+  h3,
+  p,
+  td,
+  th,
+  .subtitle {
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+}
+
+/* Force the app to fill the physical screen width for WebView / PWA
+   wrappers that otherwise letterbox or crop the edge on high-DPI
+   Android devices. */
+html, body {
+  width: 100%;
+}
