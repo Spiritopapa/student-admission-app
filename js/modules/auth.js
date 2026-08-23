@@ -192,7 +192,7 @@ window.schoolWizardGoNext2 = async function () {
   if (!Number.isFinite(population) || population < 0) { schoolWizardSetMsg('Student population must be a valid number.', 'error'); return; }
   schoolWizardSetMsg('Saving school information...');
   try {
-    const { data: ok } = await supabaseClient.rpc('save_school_onboarding_info', {
+    const { data: ok, error: saveErr } = await supabaseClient.rpc('save_school_onboarding_info', {
       p_registration_id: _schoolWizard.regId,
       p_admin_name: adminName,
       p_school_type: schoolType,
@@ -201,6 +201,14 @@ window.schoolWizardGoNext2 = async function () {
       p_phone: phone,
       p_student_population: population,
     });
+    if (saveErr) {
+      // Never advance silently if the onboarding data could not be persisted —
+      // otherwise the account may be created but the info never shows on the
+      // Super Admin dashboard for this school.
+      console.error('save_school_onboarding_info RPC error:', saveErr);
+      schoolWizardSetMsg('Could not save school info: ' + saveErr.message, 'error');
+      return;
+    }
     if (ok === false) {
       schoolWizardSetMsg('This School ID has already been claimed by another account. Please sign in instead.', 'error');
       return;
@@ -254,11 +262,47 @@ export function setupRegisterSchoolForm() {
     const password = getEl('regSchoolPassword').value;
     const phone = getEl('regSchoolPhone').value.trim();
     const adminName = getEl('regAdminName')?.value.trim() || _schoolWizard.schoolName;
+    const schoolType = getEl('regSchoolType')?.value || '';
+    const location = getEl('regSchoolLocation')?.value.trim() || '';
+    const populationRaw = getEl('regSchoolPopulation')?.value ?? '';
+    const schoolEmail = getEl('regSchoolEmail')?.value.trim() || '';
     if (password.length < 6) { showMessage('schoolRegisterMessage', 'Password must be at least 6 characters.', 'error'); return; }
     try {
       const { data: idExists } = await supabaseClient.rpc('check_school_id_exists', { target_id: regId });
       if (!idExists) {
         showMessage('schoolRegisterMessage', 'Invalid School Registration ID. Please check with your Super Administrator.', 'error');
+        return;
+      }
+
+      // === PERSIST THE ONBOARDING INFO BEFORE THE ACCOUNT IS CREATED ===
+      // The wizard may have reached this submit button without the earlier
+      // stage-3 save succeeding (or with edited fields), so re-save all the
+      // school/admin details right now. This guarantees the Super Admin
+      // dashboard shows the provided information once the account exists.
+      const population = Number(populationRaw);
+      if (!adminName || !schoolType || !location || populationRaw === '' || !phone) {
+        showMessage('schoolRegisterMessage', 'Please complete all required school information fields.', 'error');
+        return;
+      }
+      if (!Number.isFinite(population) || population < 0) {
+        showMessage('schoolRegisterMessage', 'Student population must be a valid number.', 'error');
+        return;
+      }
+      const { data: onboardSaved, error: onboardErr } = await supabaseClient.rpc('save_school_onboarding_info', {
+        p_registration_id: regId,
+        p_admin_name: adminName,
+        p_school_type: schoolType,
+        p_location: location,
+        p_email: schoolEmail || null,
+        p_phone: phone,
+        p_student_population: population,
+      });
+      if (onboardErr) {
+        showMessage('schoolRegisterMessage', 'Could not save school info: ' + onboardErr.message, 'error');
+        return;
+      }
+      if (onboardSaved === false) {
+        showMessage('schoolRegisterMessage', 'This School ID is no longer available for registration. Please contact your Super Administrator.', 'error');
         return;
       }
       // Use the anon-safe registration RPC (schools table is no longer

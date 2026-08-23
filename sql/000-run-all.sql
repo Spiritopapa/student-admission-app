@@ -331,6 +331,16 @@
 --          js/modules/admin-accountants.js (deleteAccountant).
 \i 048-delete-staff-completely.sql
 
+-- Step 44: School Onboarding Persistence Fix
+-- Re-defines save_school_onboarding_info() so the school's own linked admin
+-- can re-persist the stage-3 onboarding details (admin name, school type,
+-- location, population, email, mobile) even after the account exists, and
+-- idempotently ensures the onboarding columns exist on the live DB.
+-- Used by: js/modules/auth.js — the school registration wizard now re-saves
+--          the onboarding info at the final "Register as School" submit, so
+--          every school's provided info appears on the Super Admin dashboard.
+\i 049-school-onboarding-persistence-fix.sql
+
 -- ============================================================
 --  SCHEMA DEPLOYMENT COMPLETE
 -- ============================================================
