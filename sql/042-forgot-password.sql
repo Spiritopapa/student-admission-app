@@ -131,11 +131,11 @@ BEGIN
     v_email := v_id || '@student.local';
   ELSIF v_id ~ '^sa-[0-9]{4}$' THEN
     v_email := v_id || '@subadmin.local';
-  ELSIF v_id ~ '^tch-[0-9]{4}$' THEN
+  ELSIF v_id ~ '^tch-([a-z0-9]{1,3}-)?[0-9]{4}$' THEN
     v_email := v_id || '@teacher.local';
-  ELSIF v_id ~ '^acc-[0-9]{4}$' THEN
+  ELSIF v_id ~ '^acc-([a-z0-9]{1,3}-)?[0-9]{4}$' THEN
     v_email := v_id || '@accountant.local';
-  ELSIF v_id ~ '^sch-[0-9]{4}$' THEN
+  ELSIF v_id ~ '^sch-([a-z0-9]{1,3}-)?[0-9]{4}$' THEN
     v_email := v_id || '@school.local';
   ELSIF strpos(btrim(p_identifier), '@') > 0 THEN
     v_email := v_id;

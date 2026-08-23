@@ -651,6 +651,28 @@ export function setupRegisterParentForm() {
 // Login
 // ================================================================
 
+/**
+ * Map common Supabase Auth error codes to clear, actionable messages.
+ * A raw 400 from POST /auth/v1/token (the "Bad Request" seen in the
+ * browser console below) hides the real reason; this surfaces it.
+ */
+function friendlyLoginError(error) {
+  const code = String(error.code || '').toLowerCase();
+  const msg = String(error.message || '').toLowerCase();
+  if (code === 'invalid_credentials' || msg.includes('invalid login credentials')) {
+    return 'Invalid login credentials. Check that you entered the correct ID/email and password.';
+  }
+  if (code === 'email_not_confirmed' || msg.includes('email not confirmed')) {
+    return 'Your account has not been verified yet. Ask your administrator to confirm your account in the Supabase dashboard (Authentication → Users), then sign in again.';
+  }
+  if (code === 'user_banned' || msg.includes('user is banned')) {
+    return 'This account has been disabled. Please contact your administrator.';
+  }
+  if (code === 'over_email_send_rate_limit' || msg.includes('rate limit')) {
+    return 'Too many sign-in attempts. Please wait a few minutes and try again.';
+  }
+  return error.message;
+}
 export function setupLoginForm(loadDashboardCallbacks) {
   const form = getEl('loginForm');
   if (!form) return;
@@ -660,11 +682,21 @@ export function setupLoginForm(loadDashboardCallbacks) {
     const identifier = getEl('loginIdentifier').value.trim();
     const password = getEl('loginPassword').value;
     try {
+      // Role registration IDs come in two formats depending on when the account
+      // was onboarded, and BOTH must be accepted here:
+      //   old: SCH-0001 / TCH-0001 / ACC-0001          (plain 4-digit serial)
+      //   new: SCH-SIS-0001 / TCH-SIN-0001 / ACC-SIN-0001
+      //        (up to 3 school-name initials + 4-digit serial;
+      //         see sql/044-school-onboarding.sql & sql/046-per-school-staff-ids.sql)
+      // Before this relaxed pattern, an admin/teacher/accountant whose printed
+      // registration ID used the new initials format was not detected as a role
+      // ID here, so the raw ID string (e.g. "SCH-SIS-0001") was submitted as the
+      // "email" and Supabase rejected it with HTTP 400 invalid_credentials.
       const isStudentID = /^STU-[A-Z0-9]{5}$/i.test(identifier);
       const isSubAdminID = /^SA-\d{4}$/i.test(identifier);
-      const isTeacherID = /^TCH-\d{4}$/i.test(identifier);
-      const isAccountantID = /^ACC-\d{4}$/i.test(identifier);
-      const isSchoolID = /^SCH-\d{4}$/i.test(identifier);
+      const isTeacherID = /^TCH-([A-Z0-9]{1,3}-)?\d{4}$/i.test(identifier);
+      const isAccountantID = /^ACC-([A-Z0-9]{1,3}-)?\d{4}$/i.test(identifier);
+      const isSchoolID = /^SCH-([A-Z0-9]{1,3}-)?\d{4}$/i.test(identifier);
       let email;
       if (isStudentID) {
         email = identifier + '@student.local';
@@ -716,7 +748,7 @@ export function setupLoginForm(loadDashboardCallbacks) {
       clearSchoolIdCache();
 
       const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-      if (error) { showMessage('loginMessage', error.message, 'error'); return; }
+      if (error) { showMessage('loginMessage', friendlyLoginError(error), 'error'); return; }
       const { data: profile } = await supabaseClient.from('profiles').select('*').eq('id', data.user.id).single();
       const role = profile?.role || 'student';
 

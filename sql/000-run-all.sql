@@ -312,6 +312,16 @@
 -- while the registration_id column stays globally unique.
 \i 046-per-school-staff-ids.sql
 
+-- Step 42: Login / Forgot-Password ID format resolution
+-- The per-school initials ID formats (SCH-SIS-0001 / TCH-SIN-0001 /
+-- ACC-SIN-0001) were introduced in steps 39 & 41, but the sign-in and
+-- password-reset resolvers still only matched the old SCH-0001 patterns,
+-- so a brand-new-format admin/teacher/accountant ID returned HTTP 400
+-- "Invalid login credentials". Re-defines _fp_resolve_login_user() so
+-- the forgot-password flow accepts both formats. (js/modules/auth.js is
+-- updated separately with the matching browser-side rule.)
+\i 047-login-id-format-resolution.sql
+
 -- ============================================================
 --  SCHEMA DEPLOYMENT COMPLETE
 -- ============================================================
