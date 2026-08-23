@@ -7,6 +7,13 @@ import { getEl, showMessage, clearMessage, setLoading, logSubAdminActivity, getC
 
 let supabaseClient = null;
 
+// Per-class subject assignment state for the teacher form.
+// teacherSubjectMatch: { className: [subjectName, ...] } loaded from the junction table.
+// teacherLegacySubjects: fallback list (from teachers.subject) when no junction rows exist.
+let subjectOptionsCache = [];
+let teacherSubjectMatch = {};
+let teacherLegacySubjects = [];
+
 export function initAdminTeachers(supabase) {
   supabaseClient = supabase;
 }
@@ -20,8 +27,11 @@ export function setupTeacherForm() {
   getEl('addTeacherBtn')?.addEventListener('click', async () => {
     getEl('teacherEditId').value = '';
     getEl('teacherForm').reset();
-    getEl('teacherFormSection').open = true;
+    teacherSubjectMatch = {};
+    teacherLegacySubjects = [];
     await populateTeacherFormDropdowns();
+    renderTeacherClassSubjectBlocks();
+    getEl('teacherFormSection').open = true;
   });
 
   getEl('teacherForm')?.addEventListener('submit', async (e) => {
@@ -31,18 +41,24 @@ export function setupTeacherForm() {
     setLoading(btn, true, 'Saving...');
     const editId = getEl('teacherEditId').value;
     
-    // Get selected classes and subjects from multi-select
+    // Get selected classes and the subjects assigned per class
     const classSelect = getEl('teacherClass');
-    const subjectSelect = getEl('teacherSubject');
     const selectedClasses = Array.from(classSelect.selectedOptions).map(o => o.value);
-    const selectedSubjects = Array.from(subjectSelect.selectedOptions).map(o => o.value);
+    const subjectsByClass = {};
+    Array.from(getEl('teacherClassSubjects')?.querySelectorAll('.tcs-block') || []).forEach(block => {
+      const cls = block.getAttribute('data-class');
+      const sel = block.querySelector('select[data-class]');
+      if (!sel) return;
+      subjectsByClass[cls] = Array.from(sel.selectedOptions).map(o => o.value);
+    });
+    const allSubjects = Array.from(new Set(Object.values(subjectsByClass).flat()));
     
     const payload = {
       full_name: getEl('teacherFullName').value.trim(),
       email: getEl('teacherEmail').value.trim() || null,
       phone: getEl('teacherPhone').value.trim() || null,
       class_taught: selectedClasses.join(', ') || null,
-      subject: selectedSubjects.join(', ') || null,
+      subject: allSubjects.join(', ') || null,
       qualification: getEl('teacherQualification').value.trim() || null,
       is_active: getEl('teacherActive').value === 'true',
       first_name: getEl('teacherFirstName')?.value.trim() || null,
@@ -95,7 +111,7 @@ export function setupTeacherForm() {
         if (error) throw error;
         
         // Update class-subject assignments
-        await saveTeacherClassSubjects(editId, selectedClasses, selectedSubjects);
+        await saveTeacherClassSubjects(editId, subjectsByClass);
         
         showMessage('teacherMessage', '✅ Teacher updated successfully.', 'success');
         logSubAdminActivity(`Updated teacher "${payload.full_name}"`, 'teacher', payload.full_name);
@@ -105,7 +121,7 @@ export function setupTeacherForm() {
         
         if (data && data.length > 0) {
           // Save class-subject assignments
-          await saveTeacherClassSubjects(data[0].id, selectedClasses, selectedSubjects);
+          await saveTeacherClassSubjects(data[0].id, subjectsByClass);
         }
         
         showMessage('teacherMessage', '✅ Teacher added successfully.', 'success');
@@ -113,11 +129,15 @@ export function setupTeacherForm() {
       }
       getEl('teacherForm').reset();
       getEl('teacherEditId').value = '';
+      teacherSubjectMatch = {};
+      teacherLegacySubjects = [];
+      renderTeacherClassSubjectBlocks();
       await renderTeachersTable();
     } catch (err) { showMessage('teacherMessage', 'Error: ' + err.message, 'error'); }
     finally { setLoading(btn, false, 'Save Teacher'); }
   });
 
+  getEl('teacherClass')?.addEventListener('change', renderTeacherClassSubjectBlocks);
   getEl('adminTeachersSearch')?.addEventListener('input', renderTeachersTable);
   
   // CSV Export/Import
@@ -127,9 +147,11 @@ export function setupTeacherForm() {
 }
 
 /**
- * Save teacher class-subject assignments to the junction table
+ * Save teacher class-subject assignments to the junction table.
+ * @param {string} teacherId
+ * @param {Object<string, string[]>} subjectsByClass - { className: [subjectName, ...] }
  */
-async function saveTeacherClassSubjects(teacherId, classes, subjects) {
+async function saveTeacherClassSubjects(teacherId, subjectsByClass = {}) {
   if (!teacherId) return;
   
   try {
@@ -138,10 +160,10 @@ async function saveTeacherClassSubjects(teacherId, classes, subjects) {
     // Delete existing assignments
     await supabaseClient.from('teacher_classes_subjects').delete().eq('teacher_id', teacherId);
     
-    // Insert new assignments
+    // Insert new per-class assignments
     const assignments = [];
-    classes.forEach(cls => {
-      subjects.forEach(sub => {
+    Object.entries(subjectsByClass || {}).forEach(([cls, subs]) => {
+      (subs || []).forEach(sub => {
         assignments.push({
           teacher_id: teacherId,
           class_name: cls,
@@ -157,6 +179,66 @@ async function saveTeacherClassSubjects(teacherId, classes, subjects) {
     }
   } catch (err) {
     console.error('Failed to save teacher class-subject assignments:', err);
+  }
+}
+
+/**
+ * Dynamically render one subject multi-select per selected class near the bottom
+ * of the teacher form so the admin can pick subjects for each class separately.
+ * Only adds/removes blocks for the classes that changed, preserving existing picks.
+ */
+function renderTeacherClassSubjectBlocks() {
+  const classSelect = getEl('teacherClass');
+  const container = getEl('teacherClassSubjects');
+  if (!classSelect || !container) return;
+
+  const selectedClasses = Array.from(classSelect.selectedOptions).map(o => o.value);
+  const existingBlocks = Array.from(container.querySelectorAll('.tcs-block'));
+  const existingClasses = existingBlocks.map(b => b.getAttribute('data-class'));
+
+  // Remove blocks for classes that are no longer selected
+  existingBlocks.forEach(block => {
+    if (!selectedClasses.includes(block.getAttribute('data-class'))) block.remove();
+  });
+
+  // Add a subject selector for each newly selected class
+  const isLegacyMode = Object.keys(teacherSubjectMatch).length === 0;
+  selectedClasses.forEach(cls => {
+    if (existingClasses.includes(cls)) return;
+
+    const block = document.createElement('div');
+    block.className = 'form-group tcs-block';
+    block.setAttribute('data-class', cls);
+    block.style.cssText = 'margin-bottom:0.6rem;';
+
+    const label = document.createElement('label');
+    label.textContent = `Subjects for ${cls}`;
+
+    const sel = document.createElement('select');
+    sel.multiple = true;
+    sel.style.cssText = 'height:80px;width:100%;padding:0.3rem;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:0.85rem;font-family:inherit;';
+    sel.setAttribute('data-class', cls);
+
+    // Determine which subjects to preselect for this class
+    const preselected = teacherSubjectMatch[cls] !== undefined
+      ? teacherSubjectMatch[cls]
+      : (isLegacyMode ? teacherLegacySubjects : []);
+
+    (subjectOptionsCache || []).forEach(sub => {
+      const opt = document.createElement('option');
+      opt.value = sub;
+      opt.textContent = sub;
+      if (preselected.includes(sub)) opt.selected = true;
+      sel.appendChild(opt);
+    });
+
+    block.appendChild(label);
+    block.appendChild(sel);
+    container.appendChild(block);
+  });
+
+  if (container.querySelectorAll('.tcs-block').length === 0) {
+    container.innerHTML = '<p style="color:var(--text-muted);font-size:0.8rem;">No classes selected yet. Choose the classes above to assign subjects for each.</p>';
   }
 }
 
@@ -277,27 +359,37 @@ window.editTeacher = async function (id) {
     // Populate dropdowns
     await populateTeacherFormDropdowns();
     
-    // Select the assigned classes and subjects
+    // Clear any previously rendered per-class subject blocks before loading this teacher
+    const classSubjectsContainer = getEl('teacherClassSubjects');
+    if (classSubjectsContainer) classSubjectsContainer.innerHTML = '';
+    
+    // Load the teacher's existing per-class subject assignments from the junction table
+    teacherSubjectMatch = {};
+    teacherLegacySubjects = [];
+    const { data: assignments, error: assignErr } = await supabaseClient.from('teacher_classes_subjects')
+      .select('class_name, subject_name').eq('teacher_id', id);
     const classSelect = getEl('teacherClass');
-    const subjectSelect = getEl('teacherSubject');
+    let assignedClasses = [];
     
-    if (teacher.class_taught) {
-      const assignedClasses = teacher.class_taught.split(',').map(c => c.trim());
-      Array.from(classSelect.options).forEach(opt => {
-        if (assignedClasses.includes(opt.value)) {
-          opt.selected = true;
-        }
+    if (!assignErr && assignments && assignments.length > 0) {
+      assignments.forEach(a => {
+        if (!teacherSubjectMatch[a.class_name]) teacherSubjectMatch[a.class_name] = [];
+        if (!teacherSubjectMatch[a.class_name].includes(a.subject_name)) teacherSubjectMatch[a.class_name].push(a.subject_name);
       });
+      assignedClasses = Array.from(new Set(assignments.map(a => a.class_name)));
+    } else {
+      // Legacy fallback: distribute the single subject string across all classes
+      teacherLegacySubjects = (teacher.subject || '').split(',').map(s => s.trim()).filter(Boolean);
+      if (teacher.class_taught) assignedClasses = teacher.class_taught.split(',').map(c => c.trim());
     }
     
-    if (teacher.subject) {
-      const assignedSubjects = teacher.subject.split(',').map(s => s.trim());
-      Array.from(subjectSelect.options).forEach(opt => {
-        if (assignedSubjects.includes(opt.value)) {
-          opt.selected = true;
-        }
-      });
-    }
+    // Select the assigned classes
+    Array.from(classSelect.options).forEach(opt => {
+      if (assignedClasses.includes(opt.value)) opt.selected = true;
+    });
+    
+    // Render per-class subject selectors (pre-selected from the loaded assignments)
+    renderTeacherClassSubjectBlocks();
     
     getEl('teacherFormSection').open = true;
   } catch (err) {
@@ -417,8 +509,7 @@ window.unlinkTeacherUser = async function (teacherId) {
 
 async function populateTeacherFormDropdowns() {
   const classSelect = getEl('teacherClass');
-  const subjectSelect = getEl('teacherSubject');
-  if (!classSelect || !subjectSelect) return;
+  if (!classSelect) return;
   try {
     const schoolId = await getCurrentSchoolId();
     let classesQuery = supabaseClient.from('classes').select('name').order('name', { ascending: true });
@@ -434,9 +525,7 @@ async function populateTeacherFormDropdowns() {
     if (classesRes.data && classesRes.data.length > 0) {
       classSelect.innerHTML = classesRes.data.map((c) => `<option value="${c.name}">${c.name}</option>`).join('');
     }
-    if (subjectsRes.data && subjectsRes.data.length > 0) {
-      subjectSelect.innerHTML = subjectsRes.data.map((s) => `<option value="${s.name}">${s.name}</option>`).join('');
-    }
+    subjectOptionsCache = (subjectsRes.data || []).map((s) => s.name);
   } catch (err) { console.error('Failed to load class/subject lists:', err); }
 }
 

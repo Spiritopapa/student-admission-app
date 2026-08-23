@@ -496,6 +496,19 @@
     border: none;
   }
 
+  /* ---- Ten tabs visible at a time; the rest scroll ----
+     Cap the visible sidebar tab window to exactly 10 tabs on mobile.
+     Each tab is ~0.65rem padding top+bottom + a ~1.36rem line box
+     (0.85rem at 1.6 line-height) = ~2.66rem, plus 2px gaps and the
+     nav's own 0.4rem padding. The nav keeps only this height and the
+     remaining tabs scroll within it (its scrollbar is already hidden
+     above). Brand / profile / logout stay pinned via flex-shrink 0. */
+  .dash-sidebar > .dash-nav,
+  .dash-nav {
+    max-height: calc(2.66rem * 10 + 2px * 9 + 0.8rem);
+    overflow-y: auto;
+  }
+
   .dash-nav-link {
     white-space: nowrap;
     padding: 0.65rem 0.85rem;

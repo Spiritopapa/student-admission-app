@@ -886,11 +886,14 @@
               <label>Classes Assigned (hold Ctrl/Cmd to select multiple)</label>
               <select id="teacherClass" multiple style="height:100px;width:100%;padding:0.3rem;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:0.85rem;font-family:inherit;"></select>
             </div>
-            <div class="form-group">
-              <label>Subjects Assigned (hold Ctrl/Cmd to select multiple)</label>
-              <select id="teacherSubject" multiple style="height:100px;width:100%;padding:0.3rem;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:0.85rem;font-family:inherit;"></select>
-            </div>
             <div class="form-group"><label>Qualification</label><input type="text" id="teacherQualification" /></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="grid-column:1/-1;">
+              <label>Subjects for Each Class</label>
+              <div id="teacherClassSubjects"></div>
+              <p class="subtitle" style="color:var(--text-muted);font-size:0.8rem;margin-top:0.25rem;">Select the classes above, then choose which subjects this teacher teaches in each class.</p>
+            </div>
           </div>
           <h4 style="margin-top:1rem;color:var(--primary);">👤 Personal Information</h4>
           <div class="form-row">
