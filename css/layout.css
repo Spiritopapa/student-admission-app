@@ -952,3 +952,45 @@
     font-size: 1.1rem;
   }
 }
+/* ============================================================
+   FULL-BLEED DESKTOP DASHBOARD
+   On desktop (>= 901px), make the dashboard content area and
+   sidebar stretch edge-to-edge of the screen instead of being
+   capped inside the 1200px container. Gated via :has() on the
+   active dashboard shell so the home/login pages keep their
+   centered, capped layout. Browsers without :has() support fall
+   back gracefully to the original centered layout.
+   ============================================================ */
+@media (min-width: 901px) {
+  /* Expand the main content wrapper to the full viewport width
+     whenever any dashboard page is the active page. */
+  main:has(.page-dashboard.active-page) {
+    max-width: none;
+    width: 100%;
+    padding: 0;
+  }
+
+  /* Kill the gap so the sidebar touches the content area. */
+  main:has(.page-dashboard.active-page) .dashboard-layout {
+    gap: 0;
+    align-items: stretch;
+  }
+
+  /* Sidebar: flush against the left edge, full viewport height
+     directly below the sticky navbar, no rounded corners. */
+  main:has(.page-dashboard.active-page) .dash-sidebar {
+    position: sticky;
+    top: var(--nav-height);
+    max-height: calc(100vh - var(--nav-height));
+    height: calc(100vh - var(--nav-height));
+    border-radius: 0;
+    border: none;
+    border-right: 1px solid var(--glass-border);
+    animation: none;
+  }
+
+  /* Content area: keep a comfortable breathing room on either side. */
+  main:has(.page-dashboard.active-page) .dash-main {
+    padding: 1.25rem 1.5rem 2rem;
+  }
+}
