@@ -371,17 +371,25 @@ async function loadDashboardStats() {
     // School quick-access cards with lock indicators
     const container = getEl('superSchoolsQuickList');
     if (container && schools) {
+      // Per-school teacher & accountant counts
+      const { data: teachers } = await supabaseClient.from('teachers').select('school_id');
+      const { data: accountants } = await supabaseClient.from('accountants').select('school_id');
+      const teachersBySchool = (teachers || []).reduce((acc, t) => { acc[t.school_id] = (acc[t.school_id] || 0) + 1; return acc; }, {});
+      const accountantsBySchool = (accountants || []).reduce((acc, a) => { acc[a.school_id] = (acc[a.school_id] || 0) + 1; return acc; }, {});
       container.innerHTML = schools.map(s => {
         const lockedSet = lockedMap.get(s.id);
         const lockedCount = lockedSet ? lockedSet.size : 0;
         const lockBadge = lockedCount > 0
           ? `<span style="position:absolute;top:0.25rem;right:0.25rem;background:var(--danger);color:#fff;font-size:0.6rem;padding:0.1rem 0.4rem;border-radius:20px;">🔒 ${lockedCount}</span>`
           : '';
+        const tCount = teachersBySchool[s.id] || 0;
+        const aCount = accountantsBySchool[s.id] || 0;
         return `
           <div class="quick-school-card" style="position:relative;flex-direction:column;align-items:flex-start;gap:0.3rem;padding:0.8rem;cursor:pointer;onclick="openSchoolInfo('${s.id}')">
             <span style="font-size:0.85rem;font-weight:700;color:var(--text);line-height:1.3;">🏫 ${s.name}</span>
             <span style="font-size:0.7rem;color:var(--text-muted);">ID: <strong style="color:var(--primary);">${s.registration_id || '—'}</strong> · <strong>${s.school_type ? (s.school_type === 'private' ? 'Private' : 'Public') : '—'}</strong></span>
             <span style="font-size:0.7rem;color:var(--text-muted);">Admin: ${s.admin_name || 'Pending'} · Students: ${s.student_population != null ? Number(s.student_population).toLocaleString() : '—'}</span>
+            <span style="font-size:0.7rem;color:var(--text-muted);">👩‍🏫 ${tCount} teacher${tCount === 1 ? '' : 's'} · 🧾 ${aCount} accountant${aCount === 1 ? '' : 's'}</span>
             <span style="font-size:0.7rem;color:var(--text-muted);">${(s.location || s.address) || ''} ${s.email ? '· ' + s.email : ''}</span>
             ${lockBadge}
           </div>
@@ -419,10 +427,16 @@ async function loadSchoolsList() {
     if (search) items = items.filter(s => `${s.name} ${s.email || ''} ${s.registration_id}`.toLowerCase().includes(search));
     if (items.length === 0) { tbody.innerHTML = ''; if (noEl) noEl.style.display = 'block'; return; }
     if (noEl) noEl.style.display = 'none';
-    
+
     // Fetch locked modules to show lock indicators
     const lockedMap = await getAllLockedModules();
-    
+
+    // Per-school teacher & accountant counts
+    const { data: teachers } = await supabaseClient.from('teachers').select('school_id');
+    const { data: accountants } = await supabaseClient.from('accountants').select('school_id');
+    const teachersBySchool = (teachers || []).reduce((acc, t) => { acc[t.school_id] = (acc[t.school_id] || 0) + 1; return acc; }, {});
+    const accountantsBySchool = (accountants || []).reduce((acc, a) => { acc[a.school_id] = (acc[a.school_id] || 0) + 1; return acc; }, {});
+
     tbody.innerHTML = items.map(s => {
       const statusBadge = s.is_approved ? '<span class="badge-confirmed">Approved</span>' : '<span class="badge-unconfirmed">Pending</span>';
       const userInfo = s.user_id ? '<span style="color:var(--success);font-size:0.75rem;">✅ Linked</span>' : '<span style="color:var(--text-muted);font-size:0.75rem;">🔗 Not linked</span>';
@@ -439,6 +453,8 @@ async function loadSchoolsList() {
       const schoolType = s.school_type ? (s.school_type === 'private' ? '<span style="display:inline-block;padding:0.15rem 0.5rem;border-radius:99px;background:rgba(245,158,11,0.12);color:#d97706;font-size:0.72rem;font-weight:700;">Private</span>' : '<span style="display:inline-block;padding:0.15rem 0.5rem;border-radius:99px;background:rgba(16,185,129,0.12);color:#059669;font-size:0.72rem;font-weight:700;">Public</span>') : '-';
       const schoolLocation = s.location || s.address || '-';
       const population = s.student_population != null ? Number(s.student_population).toLocaleString() : '-';
+      const teacherCount = teachersBySchool[s.id] || 0;
+      const accountantCount = accountantsBySchool[s.id] || 0;
       return `<tr>
         <td><strong style="color:var(--primary);">${s.registration_id}</strong></td>
         <td>${s.name} ${lockBadge}</td>
@@ -446,12 +462,14 @@ async function loadSchoolsList() {
         <td>${schoolType}</td>
         <td>${schoolLocation}</td>
         <td>${population}</td>
+        <td>${teacherCount}</td>
+        <td>${accountantCount}</td>
         <td>${s.email || '-'}</td>
         <td>${s.phone || '-'}</td>
         <td>${statusBadge}</td>
         <td>${userInfo}</td>
         <td>${s.created_at ? formatDate(s.created_at) : '-'}</td>
-      <td><button class="action-btn" onclick="openSchoolInfo('${s.id}')" style="background:var(--purple);color:#fff;border:none;">👁️ Info</button> ${approveBtn} <button class="action-btn" data-manage-modules="${s.id}" data-school-name="${s.name.replace(/'/g, "\\'")}" style="background:var(--primary);color:#fff;border:none;">🔒 Modules</button> ${resetPwBtn} <button class="action-btn danger" onclick="deleteSchool('${s.id}')">Delete</button></td>
+      <td><button class="action-btn" onclick="openSchoolInfo('${s.id}')" style="background:var(--purple);color:#fff;border:none;">👁️ Info</button> <button class="action-btn" onclick="openEditSchoolInfo('${s.id}')" style="background:var(--success);color:#fff;border:none;">✏️ Edit</button> ${approveBtn} <button class="action-btn" data-manage-modules="${s.id}" data-school-name="${s.name.replace(/'/g, "\\'")}" style="background:var(--primary);color:#fff;border:none;">🔒 Modules</button> ${resetPwBtn} <button class="action-btn danger" onclick="deleteSchool('${s.id}')">Delete</button></td>
       </tr>`;
     }).join('');
   } catch (err) { console.error('Failed to load schools:', err); }
@@ -498,6 +516,11 @@ window.openSchoolInfo = async function (schoolId) {
     const popVal = s.student_population != null ? Number(s.student_population).toLocaleString() : '—';
     const linked = s.user_id ? '✅ Linked' : '🔗 Not linked';
     const approved = s.is_approved ? 'Approved' : 'Pending';
+    // Per-school teacher & accountant counts
+    const { data: teachers } = await supabaseClient.from('teachers').select('school_id').eq('school_id', schoolId);
+    const { data: accountants } = await supabaseClient.from('accountants').select('school_id').eq('school_id', schoolId);
+    const teacherCount = (teachers || []).length;
+    const accountantCount = (accountants || []).length;
     const rows = [
       ['School ID', s.registration_id],
       ['School Name', s.name],
@@ -505,6 +528,8 @@ window.openSchoolInfo = async function (schoolId) {
       ['School Type', typeVal],
       ['Location', s.location || s.address],
       ['Student Population', popVal],
+      ['Teachers', teacherCount],
+      ['Accountants', accountantCount],
       ['Email', s.email],
       ['Mobile (password change)', s.phone],
       ['Status', approved],
@@ -512,6 +537,8 @@ window.openSchoolInfo = async function (schoolId) {
       ['Created', s.created_at ? formatDate(s.created_at) : '—'],
     ].map(([k, v]) => `<div class="school-info-row"><span class="si-label">${k}</span><span class="si-value">${fmt(v)}</span></div>`).join('');
     content.innerHTML = rows;
+    const infoEditBtn = getEl('schoolInfoEditBtn');
+    if (infoEditBtn) infoEditBtn.setAttribute('onclick', `openEditSchoolInfo('${s.id}')`);
   } catch (err) {
     content.textContent = 'Error loading school details: ' + err.message;
   }
@@ -520,6 +547,95 @@ window.openSchoolInfo = async function (schoolId) {
 window.closeSchoolInfoModal = function () {
   const modal = getEl('schoolInfoModal');
   if (modal) modal.style.display = 'none';
+};
+
+// ================================================================
+// EDIT SCHOOL INFO MODAL (Super Admin can edit any school's info)
+// ================================================================
+window.openEditSchoolInfo = async function (schoolId) {
+  const modal = getEl('editSchoolInfoModal');
+  if (!modal) return;
+  clearMessage('editSchoolMessage');
+  modal.style.display = 'flex';
+  try {
+    const { data, error } = await supabaseClient.from('schools').select('*').eq('id', schoolId).maybeSingle();
+    if (error) { showMessage('editSchoolMessage', 'Error loading school: ' + error.message, 'error'); return; }
+    const s = data || {};
+    getEl('editSchoolId').value = s.id || '';
+    getEl('editSchoolName').value = s.name || '';
+    getEl('editSchoolRegId').value = s.registration_id || '';
+    getEl('editAdminName').value = s.admin_name || '';
+    getEl('editSchoolType').value = s.school_type || '';
+    getEl('editSchoolLocation').value = s.location || s.address || '';
+    getEl('editSchoolPopulation').value = (s.student_population != null ? s.student_population : '');
+    getEl('editSchoolEmail').value = s.email || '';
+    getEl('editSchoolPhone').value = s.phone || '';
+    // Sync the info-modal's Edit button so it opens this modal for the same school.
+    const infoEditBtn = getEl('schoolInfoEditBtn');
+    if (infoEditBtn) infoEditBtn.setAttribute('onclick', `openEditSchoolInfo('${s.id}')`);
+  } catch (err) {
+    showMessage('editSchoolMessage', 'Unexpected error loading school: ' + err.message, 'error');
+  }
+};
+
+window.closeEditSchoolInfoModal = function () {
+  const modal = getEl('editSchoolInfoModal');
+  if (modal) modal.style.display = 'none';
+  clearMessage('editSchoolMessage');
+};
+
+window.saveEditSchoolInfo = async function () {
+  const modal = getEl('editSchoolInfoModal');
+  if (!modal) return;
+  const btn = getEl('saveEditSchoolBtn');
+  const schoolId = getEl('editSchoolId').value.trim();
+  const name = getEl('editSchoolName').value.trim();
+  const adminName = getEl('editAdminName').value.trim() || null;
+  const schoolType = getEl('editSchoolType').value || null;
+  const location = getEl('editSchoolLocation').value.trim() || null;
+  const popRaw = getEl('editSchoolPopulation').value;
+  const email = getEl('editSchoolEmail').value.trim() || null;
+  const phone = getEl('editSchoolPhone').value.trim() || null;
+
+  if (!name) { showMessage('editSchoolMessage', 'School name is required.', 'error'); return; }
+  if (popRaw !== '' && (!Number.isFinite(Number(popRaw)) || Number(popRaw) < 0)) {
+    showMessage('editSchoolMessage', 'Student population must be a valid number.', 'error'); return;
+  }
+  const population = popRaw === '' ? null : Number(popRaw);
+
+  setLoading(btn, true, 'Saving...');
+  clearMessage('editSchoolMessage');
+  try {
+    const { error } = await supabaseClient.from('schools').update({
+      name,
+      admin_name: adminName,
+      school_type: schoolType,
+      location: location,
+      address: location, // keep legacy address in sync
+      email,
+      phone,
+      student_population: population,
+    }).eq('id', schoolId);
+    if (error) { showMessage('editSchoolMessage', 'Error saving: ' + error.message, 'error'); setLoading(btn, false, '💾 Save Changes'); return; }
+    // School name changes auto-propagate to school_settings via the
+    // trg_sync_school_settings trigger, but we also update school_settings
+    // directly to cover any case where that trigger is missing.
+    try {
+      await supabaseClient.from('school_settings').upsert({ school_id: schoolId, school_name: name });
+    } catch (e) { console.warn('Could not sync school_settings name:', e.message); }
+    recordSuperActivity(`School info edited: ${name}`, 'info');
+    showMessage('editSchoolMessage', '✅ School info updated successfully.', 'success');
+    setTimeout(() => {
+      modal.style.display = 'none';
+      clearMessage('editSchoolMessage');
+      loadSchoolsList();
+      loadDashboardStats().catch(() => {});
+    }, 1000);
+  } catch (err) {
+    showMessage('editSchoolMessage', 'Error saving: ' + err.message, 'error');
+  } finally {
+    setLoading(btn, false, '💾 Save Changes');
+  }
 };
 
 // ================================================================

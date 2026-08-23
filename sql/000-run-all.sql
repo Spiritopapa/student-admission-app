@@ -297,6 +297,21 @@
 --          js/modules/auth.js (multi-stage school registration wizard).
 \i 044-school-onboarding.sql
 
+-- Step 40: Per-School Receipt Numbers
+-- Rewrites generate_receipt_number() so each school's receipts use a
+-- unique series built from the school name initials
+-- (e.g. "Sunshine International School" -> RCP-SIN-000001).
+-- Also redefines process_fee_payment() to pass school_id so receipts
+-- are scoped per school while the receipt_number column stays globally unique.
+\i 045-per-school-receipts.sql
+
+-- Step 41: Per-School Teacher & Accountant IDs
+-- Rewrites generate_teacher_id() / generate_accountant_id() so each
+-- school's teacher/accountant IDs carry the school name initials
+-- (e.g. Sunshine International School -> TCH-SIN-0001 / ACC-SIN-0001)
+-- while the registration_id column stays globally unique.
+\i 046-per-school-staff-ids.sql
+
 -- ============================================================
 --  SCHEMA DEPLOYMENT COMPLETE
 -- ============================================================

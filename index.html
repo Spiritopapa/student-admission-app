@@ -2658,7 +2658,7 @@
             <!-- Schools Table -->
             <div class="table-wrapper" style="margin-top:1rem;">
               <table class="app-table">
-                <thead><tr><th>School ID</th><th>School Name</th><th>Admin</th><th>Type</th><th>Location</th><th>Students</th><th>Email</th><th>Mobile</th><th>Status</th><th>Linked</th><th>Created</th><th>Action</th></tr></thead>
+                <thead><tr><th>School ID</th><th>School Name</th><th>Admin</th><th>Type</th><th>Location</th><th>Students</th><th>Teachers</th><th>Accountants</th><th>Email</th><th>Mobile</th><th>Status</th><th>Linked</th><th>Created</th><th>Action</th></tr></thead>
                 <tbody id="schoolsBody"></tbody>
               </table>
             </div>
@@ -3257,6 +3257,46 @@
 
 
 
+  <!-- ==================== EDIT SCHOOL INFO MODAL (Super Admin) ==================== -->
+  <div id="editSchoolInfoModal" class="modal-overlay" style="display:none;">
+    <div class="modal-card" style="max-width:600px;">
+      <div class="modal-header">
+        <h3>✏️ Edit School Info</h3>
+        <button type="button" class="modal-close" onclick="closeEditSchoolInfoModal()" style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--text-muted);">&times;</button>
+      </div>
+      <div class="modal-body" style="padding:1.5rem;">
+        <div id="editSchoolMessage" class="message" style="display:none;margin-bottom:0.75rem;"></div>
+        <input type="hidden" id="editSchoolId" />
+        <div class="form-row">
+          <div class="form-group"><label for="editSchoolName">School Name *</label><input type="text" id="editSchoolName" required /></div>
+          <div class="form-group"><label>School ID (read-only)</label><input type="text" id="editSchoolRegId" readonly style="background:var(--bg);font-weight:700;letter-spacing:1px;color:var(--primary);" /></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label for="editAdminName">School Administrator</label><input type="text" id="editAdminName" /></div>
+          <div class="form-group"><label for="editSchoolType">School Type</label>
+            <select id="editSchoolType">
+              <option value="" disabled selected>Select type</option>
+              <option value="public">Public</option>
+              <option value="private">Private</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label for="editSchoolLocation">Location</label><input type="text" id="editSchoolLocation" /></div>
+          <div class="form-group"><label for="editSchoolPopulation">Student Population</label><input type="number" id="editSchoolPopulation" min="0" step="1" /></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label for="editSchoolEmail">School Email</label><input type="email" id="editSchoolEmail" /></div>
+          <div class="form-group"><label for="editSchoolPhone">Mobile Number (password change)</label><input type="tel" id="editSchoolPhone" /></div>
+        </div>
+        <div style="display:flex;gap:0.75rem;justify-content:flex-end;margin-top:0.75rem;">
+          <button type="button" class="btn btn-secondary" onclick="closeEditSchoolInfoModal()">Cancel</button>
+          <button type="button" class="btn btn-primary" id="saveEditSchoolBtn" onclick="saveEditSchoolInfo()">💾 Save Changes</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ==================== SCHOOL INFO MODAL (Super Admin) ==================== -->
   <div id="schoolInfoModal" class="modal-overlay" style="display:none;">
     <div class="modal-card" style="max-width:560px;">
@@ -3266,6 +3306,9 @@
       </div>
       <div class="modal-body" style="padding:1.5rem;">
         <div id="schoolInfoContent" style="line-height:1.7;">Loading school details...</div>
+        <div style="margin-top:1rem;display:flex;justify-content:flex-end;">
+          <button type="button" class="btn btn-primary" id="schoolInfoEditBtn" onclick="">✏️ Edit Info</button>
+        </div>
       </div>
     </div>
   </div>

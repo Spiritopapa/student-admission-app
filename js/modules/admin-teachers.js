@@ -166,7 +166,8 @@ async function saveTeacherClassSubjects(teacherId, classes, subjects) {
 
 async function generateTeacherId() {
   try {
-    const { data: regId, error } = await supabaseClient.rpc('generate_teacher_id');
+    const schoolId = await getCurrentSchoolId();
+    const { data: regId, error } = await supabaseClient.rpc('generate_teacher_id', { p_school_id: schoolId });
     if (error) { alert('Error generating ID: ' + error.message); return; }
     getEl('newTeacherRegId').value = regId || 'TCH-0001';
     getEl('newTeacherSection').style.display = 'block';
@@ -186,8 +187,9 @@ async function saveNewTeacher(e) {
   
   try {
     const { data: { user } } = await supabaseClient.auth.getUser();
+    const schoolId = await getCurrentSchoolId();
     const { data, error } = await supabaseClient.from('teachers').insert([{
-      registration_id: regId, full_name: fullName,
+      registration_id: regId, full_name: fullName, school_id: schoolId,
       created_by: user?.id || null, is_approved: true,
     }]).select();
     

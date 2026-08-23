@@ -12,7 +12,9 @@ A full-featured student admission web application built with vanilla JavaScript,
 - **Row-Level Security** — Each user sees only their own data
 - **Responsive Design** — Works on desktop, tablet, and mobile
 - **SPA Navigation** — No page reloads when switching between sections
-- **School Onboarding (Multi-Stage)** — The Super Admin enters a school name and clicks **Next** to generate an initials-based School ID (e.g. `SCH-SIS-0001`). School admins then complete a 4-stage registration wizard — (1) enter School ID, (2) school name shown automatically, (3) school info (admin name, type public/private, location, student population, email, mobile for password change), (4) password. All captured details are shown on the Super Admin dashboard per school.
+- **School Onboarding (Multi-Stage)** — The Super Admin enters a school name and clicks **Next** to generate an initials-based School ID (e.g. `SCH-SIS-0001`). School admins then complete a 4-stage registration wizard — (1) enter School ID, (2) school name shown automatically, (3) school info (admin name, type public/private, location, student population, email, mobile for password change), (4) password. All captured details are shown on the Super Admin dashboard per school, where the Super Admin can also **view** and **edit** any school's info (school name, admin name, type, location, population, email, mobile).
+- **Per-School Receipt Numbers & Staff Counts** — Every school's receipts use its own unique series built from the school name initials (e.g. `RCP-SIN-000001` for Sunshine International School) so a school's receipts are independently numbered yet globally unique. Each school also shows its own **teacher** and **accountant** counts on the Super Admin dashboard (schools table, quick-access cards, and the school-details modal).
+- **Per-School Teacher & Accountant IDs** — Teacher and accountant registration IDs also carry the school name initials (e.g. `TCH-SIN-0001` / `ACC-SIN-0001` for Sunshine International School) so every school has its own recognizable, unique series for its staff, while `registration_id` stays globally unique across the platform.
 
 ---
 
