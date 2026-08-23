@@ -285,6 +285,18 @@
 -- Used by: js/modules/admin-sms-monitor.js (admin sidebar tab).
 \i 043-sms-monitoring-module.sql
 
+-- Step 39: School Onboarding & Initials-Based School ID
+-- Adds: schools.admin_name / school_type / student_population /
+--       location columns. Rewrites generate_school_id(TEXT) so the
+--       school registration ID carries the school name initials
+--       (SCH-<INIT>-NNNN). Adds save_school_onboarding_info() anon-safe
+--       RPC used by the school-admin registration wizard to persist the
+--       admin name / school type / location / population / email / mobile
+--       (for password change) before the account is created.
+-- Used by: js/modules/super-admin.js (generate school ID with name) and
+--          js/modules/auth.js (multi-stage school registration wizard).
+\i 044-school-onboarding.sql
+
 -- ============================================================
 --  SCHEMA DEPLOYMENT COMPLETE
 -- ============================================================

@@ -15,6 +15,9 @@ import { getEl, showMessage, clearMessage, getRoleDisplay, clearSchoolIdCache } 
 
 let supabaseClient = null;
 
+// School registration wizard state
+let _schoolWizard = { regId: '', schoolName: '', schoolId: null, stage: 1 };
+
 export function initAuth(supabase) {
   supabaseClient = supabase;
 }
@@ -127,22 +130,135 @@ export function setupRegisterSuperAdminForm() {
 
 // ================================================================
 // Register - School (via Super Admin generated ID)
+// Multi-stage wizard:
+//   1) Enter School ID  2) Auto-show School Name  3) School Info
+//   4) Set Password
 // ================================================================
+
+function schoolWizardRenderSteps() {
+  [1, 2, 3, 4].forEach(n => {
+    const dot = document.querySelector(`.school-step-dot[data-wstep="${n}"]`);
+    if (!dot) return;
+    dot.classList.remove('active', 'done');
+    if (n < _schoolWizard.stage) dot.classList.add('done');
+    else if (n === _schoolWizard.stage) dot.classList.add('active');
+  });
+}
+
+function schoolWizardShow(stage) {
+  ['regSchoolStage1', 'regSchoolStage2', 'regSchoolStage3', 'regSchoolStage4'].forEach(id => {
+    const el = getEl(id);
+    if (el) el.style.display = 'none';
+  });
+  getEl('regSchoolStage' + stage).style.display = 'block';
+  _schoolWizard.stage = stage;
+  schoolWizardRenderSteps();
+}
+
+// Stage 1 -> validate ID + fetch & auto-show the school name (Stage 2)
+window.schoolWizardGoNext = async function () {
+  const regIdInput = getEl('regSchoolID');
+  const regId = (regIdInput?.value || '').trim().toUpperCase();
+  if (!regId) { schoolWizardSetMsg('Enter the School ID provided by your Super Administrator.', 'error'); regIdInput?.focus(); return; }
+  schoolWizardSetMsg('Checking School ID...');
+  try {
+    const { data: info, error } = await supabaseClient.rpc('get_school_registration_info', { p_registration_id: regId });
+    if (error) throw error;
+    const row = (info && info.length > 0) ? info[0] : null;
+    if (!row) { schoolWizardSetMsg('No school found with that ID. Please check with your Super Administrator.', 'error'); return; }
+    _schoolWizard = { regId, schoolName: row.name || regId, schoolId: row.id, stage: 2 };
+    const nameEl = getEl('regSchoolNameAuto');
+    if (nameEl) nameEl.textContent = row.name || regId;
+    schoolWizardSetMsg('');
+    schoolWizardShow(2);
+  } catch (err) {
+    schoolWizardSetMsg('Unable to verify School ID: ' + err.message, 'error');
+  }
+};
+
+// Stage 3 -> validate school info and persist via anon-safe RPC, then Stage 4
+window.schoolWizardGoNext2 = async function () {
+  const adminName = getEl('regAdminName')?.value.trim();
+  const schoolType = getEl('regSchoolType')?.value;
+  const location = getEl('regSchoolLocation')?.value.trim();
+  const populationRaw = getEl('regSchoolPopulation')?.value;
+  const email = getEl('regSchoolEmail')?.value.trim();
+  const phone = getEl('regSchoolPhone')?.value.trim();
+  if (!adminName || !schoolType || !location || populationRaw === '' || !phone) {
+    schoolWizardSetMsg('Please complete all required school information fields.', 'error');
+    return;
+  }
+  const population = Number(populationRaw);
+  if (!Number.isFinite(population) || population < 0) { schoolWizardSetMsg('Student population must be a valid number.', 'error'); return; }
+  schoolWizardSetMsg('Saving school information...');
+  try {
+    const { data: ok } = await supabaseClient.rpc('save_school_onboarding_info', {
+      p_registration_id: _schoolWizard.regId,
+      p_admin_name: adminName,
+      p_school_type: schoolType,
+      p_location: location,
+      p_email: email || null,
+      p_phone: phone,
+      p_student_population: population,
+    });
+    if (ok === false) {
+      schoolWizardSetMsg('This School ID has already been claimed by another account. Please sign in instead.', 'error');
+      return;
+    }
+    schoolWizardSetMsg('');
+    schoolWizardShow(4);
+  } catch (err) {
+    schoolWizardSetMsg('Could not save school info: ' + err.message, 'error');
+  }
+};
+
+// Straightforward stage navigation (Back buttons + stage-2 Next)
+window.schoolWizardGoTo = function (stage) {
+  schoolWizardSetMsg('');
+  if (stage === 1) {
+    schoolWizardShow(1);
+    return;
+  }
+  if (stage === 2) {
+    // Re-verify the ID already entered on stage 1.
+    if (!_schoolWizard.regId) { window.schoolWizardGoNext(); return; }
+    schoolWizardShow(2);
+    return;
+  }
+  if (stage === 3) {
+    if (!_schoolWizard.regId) { window.schoolWizardGoNext(); return; }
+    schoolWizardShow(3);
+    return;
+  }
+  if (stage === 4) {
+    window.schoolWizardGoNext2();
+  }
+};
+window.schoolWizardCreateNext = window.schoolWizardGoNext;
+
+function schoolWizardSetMsg(msg, cls) {
+  const el = getEl('schoolRegisterMessage');
+  if (!el) return;
+  el.style.display = msg ? 'block' : 'none';
+  el.textContent = msg || '';
+  el.className = cls === 'error' ? 'message error' : (msg ? 'message' : 'message');
+}
 
 export function setupRegisterSchoolForm() {
   const form = getEl('registerSchoolForm');
   if (!form) return;
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    clearMessage('registerMessage');
-    const regId = getEl('regSchoolID').value.trim();
+    clearMessage('schoolRegisterMessage');
+    const regId = getEl('regSchoolID').value.trim().toUpperCase();
     const password = getEl('regSchoolPassword').value;
     const phone = getEl('regSchoolPhone').value.trim();
-    if (password.length < 6) { showMessage('registerMessage', 'Password must be at least 6 characters.', 'error'); return; }
+    const adminName = getEl('regAdminName')?.value.trim() || _schoolWizard.schoolName;
+    if (password.length < 6) { showMessage('schoolRegisterMessage', 'Password must be at least 6 characters.', 'error'); return; }
     try {
       const { data: idExists } = await supabaseClient.rpc('check_school_id_exists', { target_id: regId });
       if (!idExists) {
-        showMessage('registerMessage', 'Invalid School Registration ID. Please check with your Super Administrator.', 'error');
+        showMessage('schoolRegisterMessage', 'Invalid School Registration ID. Please check with your Super Administrator.', 'error');
         return;
       }
       // Use the anon-safe registration RPC (schools table is no longer
@@ -155,14 +271,15 @@ export function setupRegisterSchoolForm() {
       } catch (rpcException) {
         console.warn('get_school_registration_info threw:', rpcException.message);
       }
-      const schoolName = school?.name || regId;
-      const schoolId = school?.id;
+      const schoolName = _schoolWizard.schoolName || school?.name || regId;
+      const schoolId = school?.id || _schoolWizard.schoolId;
+      const displayName = adminName || schoolName;
       const { data, error } = await supabaseClient.auth.signUp({
         email: regId.toLowerCase() + '@school.local',
         password,
-        options: { data: { full_name: schoolName, role: 'admin', registration_id: regId, school_id: schoolId, phone } },
+        options: { data: { full_name: displayName, role: 'admin', registration_id: regId, school_id: schoolId, phone } },
       });
-      if (error) { showMessage('registerMessage', error.message, 'error'); return; }
+      if (error) { showMessage('schoolRegisterMessage', error.message, 'error'); return; }
       if (data.user) {
         // Link the school record to the new auth user.
         // Self-claim should succeed; fall back to a direct self-claim update if needed.
@@ -181,19 +298,24 @@ export function setupRegisterSchoolForm() {
             .eq('registration_id', regId);
         }
         await supabaseClient.from('profiles').upsert({
-          id: data.user.id, full_name: schoolName, email: regId.toLowerCase() + '@school.local', role: 'admin', school_id: schoolId, phone,
+          id: data.user.id, full_name: displayName, email: regId.toLowerCase() + '@school.local', role: 'admin', school_id: schoolId, phone,
         });
         // Create default school_settings for this school
         // (The legacy `settings` table has a singleton PK and can only hold ONE global row,
         //  so we use the per-school `school_settings` table here.)
-        await supabaseClient.from('school_settings').upsert({
-          school_id: schoolId, school_name: schoolName, academic_year: '2025/2026', current_term: 'First',
-        });
+        if (schoolId) {
+          await supabaseClient.from('school_settings').upsert({
+            school_id: schoolId, school_name: schoolName, academic_year: '2025/2026', current_term: 'First',
+          });
+        }
       }
-      showMessage('registerMessage', 'School account created! You can now sign in with your School Registration ID.', 'success');
+      showMessage('schoolRegisterMessage', 'School account created! You can now sign in with your School Registration ID.', 'success');
       form.reset();
+      // Reset wizard to stage 1 for a fresh registration.
+      _schoolWizard = { regId: '', schoolName: '', schoolId: null, stage: 1 };
+      schoolWizardShow(1);
     } catch (err) {
-      showMessage('registerMessage', 'Unexpected error: ' + err.message, 'error');
+      showMessage('schoolRegisterMessage', 'Unexpected error: ' + err.message, 'error');
     }
   });
 }

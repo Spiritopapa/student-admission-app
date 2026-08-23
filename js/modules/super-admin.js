@@ -337,7 +337,7 @@ async function loadDashboardStats() {
       supabaseClient.from('classes').select('*', { count: 'exact', head: true }),
       supabaseClient.from('subjects').select('*', { count: 'exact', head: true }),
       supabaseClient.from('announcements').select('*', { count: 'exact', head: true }),
-      supabaseClient.from('schools').select('id, name').order('name')
+      supabaseClient.from('schools').select('id, name, registration_id, admin_name, school_type, student_population, location, address, email, phone').order('name')
     ]);
 
     // Fetch locked modules to filter counts
@@ -378,9 +378,11 @@ async function loadDashboardStats() {
           ? `<span style="position:absolute;top:0.25rem;right:0.25rem;background:var(--danger);color:#fff;font-size:0.6rem;padding:0.1rem 0.4rem;border-radius:20px;">🔒 ${lockedCount}</span>`
           : '';
         return `
-          <div class="quick-school-card" style="position:relative;" onclick="document.querySelector('[data-super-page=\"schools\"]').click()">
-            <div class="quick-school-icon">🏫</div>
-            <div class="quick-school-name">${s.name}</div>
+          <div class="quick-school-card" style="position:relative;flex-direction:column;align-items:flex-start;gap:0.3rem;padding:0.8rem;cursor:pointer;onclick="openSchoolInfo('${s.id}')">
+            <span style="font-size:0.85rem;font-weight:700;color:var(--text);line-height:1.3;">🏫 ${s.name}</span>
+            <span style="font-size:0.7rem;color:var(--text-muted);">ID: <strong style="color:var(--primary);">${s.registration_id || '—'}</strong> · <strong>${s.school_type ? (s.school_type === 'private' ? 'Private' : 'Public') : '—'}</strong></span>
+            <span style="font-size:0.7rem;color:var(--text-muted);">Admin: ${s.admin_name || 'Pending'} · Students: ${s.student_population != null ? Number(s.student_population).toLocaleString() : '—'}</span>
+            <span style="font-size:0.7rem;color:var(--text-muted);">${(s.location || s.address) || ''} ${s.email ? '· ' + s.email : ''}</span>
             ${lockBadge}
           </div>
         `;
@@ -433,15 +435,23 @@ async function loadSchoolsList() {
         ? `<span style="background:var(--danger);color:#fff;font-size:0.65rem;padding:0.15rem 0.5rem;border-radius:20px;margin-left:0.25rem;">🔒 ${lockedCount} locked</span>`
         : '';
       const resetPwBtn = `<button class="btn btn-sm" onclick="openResetSchoolPassword('${s.id}', '${s.name.replace(/'/g, "\\'")}')" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:none;cursor:pointer;box-shadow:0 2px 8px rgba(245,158,11,0.3);">🔑 Reset Password</button>`;
+      const adminName = s.admin_name || '-';
+      const schoolType = s.school_type ? (s.school_type === 'private' ? '<span style="display:inline-block;padding:0.15rem 0.5rem;border-radius:99px;background:rgba(245,158,11,0.12);color:#d97706;font-size:0.72rem;font-weight:700;">Private</span>' : '<span style="display:inline-block;padding:0.15rem 0.5rem;border-radius:99px;background:rgba(16,185,129,0.12);color:#059669;font-size:0.72rem;font-weight:700;">Public</span>') : '-';
+      const schoolLocation = s.location || s.address || '-';
+      const population = s.student_population != null ? Number(s.student_population).toLocaleString() : '-';
       return `<tr>
-        <td><strong>${s.registration_id}</strong></td>
+        <td><strong style="color:var(--primary);">${s.registration_id}</strong></td>
         <td>${s.name} ${lockBadge}</td>
+        <td>${adminName}</td>
+        <td>${schoolType}</td>
+        <td>${schoolLocation}</td>
+        <td>${population}</td>
         <td>${s.email || '-'}</td>
         <td>${s.phone || '-'}</td>
         <td>${statusBadge}</td>
         <td>${userInfo}</td>
         <td>${s.created_at ? formatDate(s.created_at) : '-'}</td>
-      <td>${approveBtn} <button class="action-btn" data-manage-modules="${s.id}" data-school-name="${s.name.replace(/'/g, "\\'")}" style="background:var(--primary);color:#fff;border:none;">🔒 Modules</button> ${resetPwBtn} <button class="action-btn danger" onclick="deleteSchool('${s.id}')">Delete</button></td>
+      <td><button class="action-btn" onclick="openSchoolInfo('${s.id}')" style="background:var(--purple);color:#fff;border:none;">👁️ Info</button> ${approveBtn} <button class="action-btn" data-manage-modules="${s.id}" data-school-name="${s.name.replace(/'/g, "\\'")}" style="background:var(--primary);color:#fff;border:none;">🔒 Modules</button> ${resetPwBtn} <button class="action-btn danger" onclick="deleteSchool('${s.id}')">Delete</button></td>
       </tr>`;
     }).join('');
   } catch (err) { console.error('Failed to load schools:', err); }
@@ -469,6 +479,47 @@ window.deleteSchool = async function (schoolId) {
     await loadSchoolsList();
     alert('✅ School and associated auth account permanently deleted.');
   } catch (err) { alert('Error: ' + err.message); }
+};
+// ================================================================
+// SCHOOL INFO MODAL (all onboarding details per school)
+// ================================================================
+window.openSchoolInfo = async function (schoolId) {
+  const modal = getEl('schoolInfoModal');
+  if (!modal) return;
+  modal.style.display = 'flex';
+  const content = getEl('schoolInfoContent');
+  content.textContent = 'Loading school details...';
+  try {
+    const { data, error } = await supabaseClient.from('schools').select('*').eq('id', schoolId).maybeSingle();
+    if (error) { content.textContent = 'Error loading details: ' + error.message; return; }
+    const s = data || {};
+    const fmt = v => (v === null || v === undefined || v === '') ? '—' : v;
+    const typeVal = s.school_type ? (s.school_type === 'private' ? 'Private' : 'Public') : '—';
+    const popVal = s.student_population != null ? Number(s.student_population).toLocaleString() : '—';
+    const linked = s.user_id ? '✅ Linked' : '🔗 Not linked';
+    const approved = s.is_approved ? 'Approved' : 'Pending';
+    const rows = [
+      ['School ID', s.registration_id],
+      ['School Name', s.name],
+      ['School Administrator', s.admin_name],
+      ['School Type', typeVal],
+      ['Location', s.location || s.address],
+      ['Student Population', popVal],
+      ['Email', s.email],
+      ['Mobile (password change)', s.phone],
+      ['Status', approved],
+      ['Linked Account', linked],
+      ['Created', s.created_at ? formatDate(s.created_at) : '—'],
+    ].map(([k, v]) => `<div class="school-info-row"><span class="si-label">${k}</span><span class="si-value">${fmt(v)}</span></div>`).join('');
+    content.innerHTML = rows;
+  } catch (err) {
+    content.textContent = 'Error loading school details: ' + err.message;
+  }
+};
+
+window.closeSchoolInfoModal = function () {
+  const modal = getEl('schoolInfoModal');
+  if (modal) modal.style.display = 'none';
 };
 
 // ================================================================
@@ -562,14 +613,46 @@ window.resetSchoolPassword = async function () {
 };
 
 async function generateSchoolId() {
-  try {
-    const { data: regId, error } = await supabaseClient.rpc('generate_school_id');
-    if (error) { alert('Error generating ID: ' + error.message); return; }
-    getEl('newSchoolRegId').value = regId || 'SCH-0001';
-    getEl('newSchoolSection').style.display = 'block';
-    getEl('newSchoolSection').open = true;
-  } catch (err) { alert('Error: ' + err.message); }
+  // Opens the systematic Create-School wizard at Step 1 (enter school name first).
+  const section = getEl('newSchoolSection');
+  if (section) { section.style.display = 'block'; section.open = true; }
+  const step1 = getEl('superSchoolStep1');
+  if (step1) step1.style.display = 'block';
+  const form = getEl('newSchoolForm');
+  if (form) form.style.display = 'none';
+  const nameInput = getEl('newSchoolName');
+  if (nameInput) setTimeout(() => nameInput.focus(), 50);
 }
+
+window.superSchoolGenerateNext = async function () {
+  clearMessage('newSchoolMessage');
+  const nameInput = getEl('newSchoolName');
+  const name = (nameInput?.value || '').trim();
+  if (!name) { showMessage('newSchoolMessage', 'Enter the school name first to generate its School ID.', 'error'); nameInput?.focus(); return; }
+  setLoading(getEl('btnSchoolGenNext'), true, 'Generating...');
+  try {
+    const { data: regId, error } = await supabaseClient.rpc('generate_school_id', { p_school_name: name });
+    if (error) { throw new Error(error.message); }
+    getEl('newSchoolRegId').value = regId || '';
+    getEl('newSchoolNameDisplay').value = name;
+    const step1 = getEl('superSchoolStep1');
+    const form = getEl('newSchoolForm');
+    if (step1) step1.style.display = 'none';
+    if (form) form.style.display = 'block';
+    showMessage('newSchoolMessage', `School ID generated from "${name}" initials.`, 'success');
+  } catch (err) {
+    showMessage('newSchoolMessage', 'Error generating ID: ' + err.message, 'error');
+  } finally {
+    setLoading(getEl('btnSchoolGenNext'), false, 'Next → Generate School ID');
+  }
+};
+
+window.superSchoolBackToStep1 = function () {
+  const step1 = getEl('superSchoolStep1');
+  const form = getEl('newSchoolForm');
+  if (step1) step1.style.display = 'block';
+  if (form) form.style.display = 'none';
+};
 
 async function saveNewSchool(e) {
   e.preventDefault();
@@ -582,13 +665,13 @@ async function saveNewSchool(e) {
   const address = getEl('newSchoolAddress').value.trim() || null;
   const regId = getEl('newSchoolRegId').value.trim();
   const logoFile = getEl('newSchoolLogoInput')?.files?.[0] || null;
-  if (!name || !regId) { showMessage('newSchoolMessage', 'School name and Registration ID are required.', 'error'); setLoading(btn, false, '✅ Create School & Generate ID'); return; }
+  if (!name || !regId) { showMessage('newSchoolMessage', 'School name and generated School ID are required.', 'error'); setLoading(btn, false, '✅ Create School'); return; }
   try {
     const { data: { user } } = await supabaseClient.auth.getUser();
     const { data: newSchool, error } = await supabaseClient.from('schools').insert([{
-      registration_id: regId, name, email, phone, address, created_by: user?.id || null, is_approved: true,
+      registration_id: regId, name, email, phone, address, location: address, created_by: user?.id || null, is_approved: true,
     }]).select('id').single();
-    if (error) { showMessage('newSchoolMessage', 'Error: ' + error.message, 'error'); setLoading(btn, false, '✅ Create School & Generate ID'); return; }
+    if (error) { showMessage('newSchoolMessage', 'Error: ' + error.message, 'error'); setLoading(btn, false, '✅ Create School'); return; }
     
     // Upload school logo if provided
     let logoUrl = null;
@@ -636,7 +719,7 @@ async function saveNewSchool(e) {
     await loadSchoolsList();
     await loadDashboardStats();
   } catch (err) { showMessage('newSchoolMessage', 'Error: ' + err.message, 'error'); }
-  finally { setLoading(btn, false, '✅ Create School & Generate ID'); }
+  finally { setLoading(btn, false, '✅ Create School'); }
 }
 
 // Clear the new school logo preview

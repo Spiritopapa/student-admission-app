@@ -267,13 +267,64 @@
         <button type="submit" class="btn btn-primary btn-full">Register as Super Admin</button>
         <p class="auth-alt">Already have an account? <a href="#" data-page="login">Sign in</a></p>
       </form>
-      <form id="registerSchoolForm" class="auth-form register-form">
-        <div class="form-group"><label for="regSchoolID">School Registration ID * (provided by Super Admin)</label><input type="text" id="regSchoolID" required placeholder="e.g. SCH-0001" /></div>
-        <div class="form-group"><label for="regSchoolPhone">Mobile Number * (for password reset)</label><input type="tel" id="regSchoolPhone" required placeholder="e.g. 0244 000 000" /></div>
-        <div class="form-group"><label for="regSchoolPassword">Password * (min 6 chars)</label><input type="password" id="regSchoolPassword" required minlength="6" /></div>
-        <button type="submit" class="btn btn-primary btn-full">Register as School</button>
-        <p class="auth-alt">Don't have an ID? Ask your Super Administrator.</p>
-        <p class="auth-alt">Already registered? <a href="#" data-page="login">Sign in</a></p>
+      <form id="registerSchoolForm" class="auth-form register-form" style="max-width:560px;">
+        <div class="school-wizard-steps">
+          <span class="school-step-dot" data-wstep="1" style="font-weight:700;">1 · School ID</span>
+          <span class="school-step-dot" data-wstep="2">2 · School Name</span>
+          <span class="school-step-dot" data-wstep="3">3 · School Info</span>
+          <span class="school-step-dot" data-wstep="4">4 · Password</span>
+        </div>
+
+        <!-- Stage 1 : Enter School ID -->
+        <div id="regSchoolStage1">
+          <p class="subtitle" style="color:var(--text-muted);font-size:0.8rem;margin-bottom:0.5rem;">Step 1 of 4 — enter the School ID provided by your Super Administrator.</p>
+          <div class="form-group"><label for="regSchoolID">School ID *</label><input type="text" id="regSchoolID" required placeholder="e.g. SCH-SIS-0001" autocomplete="off" /></div>
+          <button type="button" class="btn btn-primary btn-full" onclick="schoolWizardCreateNext()">Next →</button>
+        </div>
+
+        <!-- Stage 2 — Auto School Name -->
+        <div id="regSchoolStage2" style="display:none;">
+          <p class="subtitle" style="color:var(--text-muted);font-size:0.8rem;margin-bottom:4px;">Step 2 of 4 — we found your school:</p>
+          <div class="form-group"><label>School Name</label><div style="padding:0.65rem 0.85rem;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);font-weight:700;" id="regSchoolNameAuto">—</div></div>
+          <div style="display:flex;gap:0.75rem;align-items:center;">
+            <button type="button" class="btn btn-secondary" onclick="schoolWizardGoTo(1)">← Back</button>
+            <button type="button" class="btn btn-primary" onclick="schoolWizardGoTo(3)">Next →</button>
+          </div>
+        </div>
+
+        <!-- Stage 3 — School & Admin Info -->
+        <div id="regSchoolStage3" style="display:none;">
+          <p class="subtitle" style="color:var(--text-muted);font-size:0.8rem;margin-bottom:4px;">Step 3 of 4 — complete the school and administrator details.</p>
+          <div class="form-group"><label for="regAdminName">School Administrator Name *</label><input type="text" id="regAdminName" required placeholder="e.g. John Doe" /></div>
+          <div class="form-group"><label for="regSchoolType">School Type *</label>
+            <select id="regSchoolType" required>
+              <option value="" disabled selected>Select school type</option>
+              <option value="public">Public</option>
+              <option value="private">Private</option>
+            </select>
+          </div>
+          <div class="form-group"><label for="regSchoolLocation">Location *</label><input type="text" id="regSchoolLocation" required placeholder="e.g. Accra, Ghana" /></div>
+          <div class="form-group"><label for="regSchoolPopulation">Student Population *</label><input type="number" id="regSchoolPopulation" required min="0" step="1" placeholder="e.g. 1200" /></div>
+          <div class="form-group"><label for="regSchoolEmail">School Email (for login)</label><input type="email" id="regSchoolEmail" required placeholder="admin@school.com" /></div>
+          <div class="form-group"><label for="regSchoolPhone">Mobile Number * (for password change)</label><input type="tel" id="regSchoolPhone" required placeholder="e.g. 0244 000 000" /></div>
+          <div style="display:flex;gap:0.75rem;align-items:center;">
+            <button type="button" class="btn btn-secondary" onclick="schoolWizardGoTo(2)">← Back</button>
+            <button type="button" class="btn btn-primary" onclick="schoolWizardGoTo(4)">Next →</button>
+          </div>
+        </div>
+
+        <!-- Stage 4 — Password -->
+        <div id="regSchoolStage4" style="display:none;">
+          <p class="subtitle" style="color:var(--text-muted);font-size:0.8rem;margin-bottom:4px;">Step 4 of 4 — choose your sign-in password (min 6 characters).</p>
+          <div class="form-group"><label for="regSchoolPassword">Password *</label><input type="password" id="regSchoolPassword" required minlength="6" autocomplete="new-password" /></div>
+          <div style="display:flex;gap:0.75rem;align-items:center;">
+            <button type="button" class="btn btn-secondary" onclick="schoolWizardGoTo(3)">← Back</button>
+            <button type="submit" class="btn btn-primary btn-full">Register as School</button>
+          </div>
+          <p class="auth-alt">Don't have an ID? Ask your Super Administrator.</p>
+          <p class="auth-alt">Already registered? <a href="#" data-page="login">Sign in</a></p>
+        </div>
+        <div id="schoolRegisterMessage" class="message" style="display:none;"></div>
       </form>
       <form id="registerSubAdminForm" class="auth-form register-form">
         <div class="form-group"><label for="regSubAdminID">Registration ID * (provided by School Administrator)</label><input type="text" id="regSubAdminID" required placeholder="e.g. SA-0001" /></div>
@@ -2549,20 +2600,35 @@
             
             <div class="card-toolbar">
               <input type="text" id="superSchoolsSearch" placeholder="Search schools..." class="search-input" style="max-width:250px;" />
-              <button type="button" class="btn btn-primary" id="btnGenerateSchoolId">🔑 Generate New School ID</button>
+              <button type="button" class="btn btn-primary" id="btnGenerateSchoolId">➕ Create New School</button>
             </div>
             
-            <!-- New School Form -->
+            <!-- New School Form (Systematic: enter name first -> Next generates ID) -->
             <details class="admit-section" id="newSchoolSection" style="margin-top:1rem;display:none;">
               <summary class="btn btn-secondary" style="cursor:pointer;">➕ Create New School</summary>
-              <form id="newSchoolForm" class="admission-form" style="margin-top:1rem;max-width:100%;">
+
+              <!-- Step 1 : Enter school name -->
+              <div id="superSchoolStep1" style="margin-top:0.75rem;">
+                <p class="subtitle" style="color:var(--text-muted);font-size:0.85rem;">Step 1 of 2 — enter the school name. The School ID will be generated from its initials.</p>
+                <div class="form-group" style="max-width:460px;">
+                  <label for="newSchoolName">School Name *</label>
+                  <input type="text" id="newSchoolName" required placeholder="e.g. Sunshine International School" style="text-transform:capitalize;" />
+                </div>
+                <button type="button" class="btn btn-primary" id="btnSchoolGenNext" onclick="superSchoolGenerateNext()">Next → Generate School ID</button>
+              </div>
+
+              <!-- Step 2 : Generated ID + remaining details -->
+              <form id="newSchoolForm" class="admission-form" style="display:none;margin-top:1rem;max-width:100%;">
                 <div class="form-row">
-                  <div class="form-group"><label>School Name *</label><input type="text" id="newSchoolName" required placeholder="e.g. Sunshine International School" /></div>
-                  <div class="form-group"><label>Email (optional)</label><input type="email" id="newSchoolEmail" placeholder="admin@school.com" /></div>
+                  <div class="form-group"><label for="newSchoolNameDisplay">School Name</label><input type="text" id="newSchoolNameDisplay" readonly style="background:var(--bg);" /></div>
+                  <div class="form-group"><label for="newSchoolRegId">Generated School ID (includes school initials)</label><input type="text" id="newSchoolRegId" readonly style="background:var(--bg);font-weight:700;font-size:1.1rem;letter-spacing:1px;text-align:center;color:var(--primary);" /></div>
                 </div>
                 <div class="form-row">
-                  <div class="form-group"><label>Phone (optional)</label><input type="tel" id="newSchoolPhone" placeholder="+233 XX XXX XXXX" /></div>
-                  <div class="form-group"><label>Address (optional)</label><input type="text" id="newSchoolAddress" placeholder="School location" /></div>
+                  <div class="form-group"><label for="newSchoolEmail">Email (optional)</label><input type="email" id="newSchoolEmail" placeholder="admin@school.com" /></div>
+                  <div class="form-group"><label for="newSchoolPhone">Phone (optional)</label><input type="tel" id="newSchoolPhone" placeholder="+233 XX XXX XXXX" /></div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group"><label for="newSchoolAddress">Location / Address (optional)</label><input type="text" id="newSchoolAddress" placeholder="School location" /></div>
                 </div>
                 <div class="form-row">
                   <div class="form-group"><label>School Logo (PNG/JPG, optional)</label>
@@ -2576,10 +2642,15 @@
                       <button type="button" class="btn btn-sm btn-danger" id="newSchoolLogoClear" style="display:none;margin-top:0.5rem;margin-left:0.25rem;" onclick="clearNewSchoolLogo()">✖ Remove</button>
                     </div>
                   </div>
-                  <div class="form-group"><label>Generated Registration ID</label><input type="text" id="newSchoolRegId" readonly style="background:var(--bg);font-weight:700;font-size:1.1rem;letter-spacing:1px;text-align:center;" /></div>
+                  <div class="form-group">
+                    <label>Expected Next Steps</label>
+                    <p class="subtitle" style="color:var(--text-muted);font-size:0.8rem;line-height:1.5;">Provide the generated School ID to the school administrator. They will complete their own registration wizard (school info + password) to activate the school.</p>
+                  </div>
                 </div>
-                <p class="subtitle" style="color:var(--text-muted);font-size:0.8rem;">Provide this Registration ID to the school admin so they can register. They will set their own password.</p>
-                <button type="submit" class="btn btn-primary btn-full" id="saveSchoolBtn">✅ Create School & Generate ID</button>
+                <div style="display:flex;gap:0.75rem;align-items:center;">
+                  <button type="button" class="btn btn-secondary" onclick="superSchoolBackToStep1()">← Back</button>
+                  <button type="submit" class="btn btn-primary btn-full" id="saveSchoolBtn">✅ Create School</button>
+                </div>
               </form>
               <div id="newSchoolMessage" class="message" style="display:none;"></div>
             </details>
@@ -2587,7 +2658,7 @@
             <!-- Schools Table -->
             <div class="table-wrapper" style="margin-top:1rem;">
               <table class="app-table">
-                <thead><tr><th>Registration ID</th><th>School Name</th><th>Email</th><th>Phone</th><th>Status</th><th>Linked User</th><th>Created</th><th>Action</th></tr></thead>
+                <thead><tr><th>School ID</th><th>School Name</th><th>Admin</th><th>Type</th><th>Location</th><th>Students</th><th>Email</th><th>Mobile</th><th>Status</th><th>Linked</th><th>Created</th><th>Action</th></tr></thead>
                 <tbody id="schoolsBody"></tbody>
               </table>
             </div>
@@ -2631,8 +2702,6 @@
               </div>
             </div>
           </div>
-
-          <!-- ===== SUB ADMINS MANAGEMENT ===== -->
           <div id="superPage-sub-admins" class="super-subpage">
             <h3>👥 Manage Sub Admins</h3>
             <p class="subtitle">Generate registration IDs for sub admins, approve them, and manage their access across all schools.</p>
@@ -3187,6 +3256,19 @@
   </footer>
 
 
+
+  <!-- ==================== SCHOOL INFO MODAL (Super Admin) ==================== -->
+  <div id="schoolInfoModal" class="modal-overlay" style="display:none;">
+    <div class="modal-card" style="max-width:560px;">
+      <div class="modal-header">
+        <h3>🏫 School Details</h3>
+        <button type="button" class="modal-close" onclick="closeSchoolInfoModal()" style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--text-muted);">&times;</button>
+      </div>
+      <div class="modal-body" style="padding:1.5rem;">
+        <div id="schoolInfoContent" style="line-height:1.7;">Loading school details...</div>
+      </div>
+    </div>
+  </div>
 
   <div id="studentDetailModal" class="modal-overlay" style="display:none;">
     <div class="modal-card" style="max-width:720px;">

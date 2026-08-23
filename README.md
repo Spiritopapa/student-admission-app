@@ -12,6 +12,7 @@ A full-featured student admission web application built with vanilla JavaScript,
 - **Row-Level Security** — Each user sees only their own data
 - **Responsive Design** — Works on desktop, tablet, and mobile
 - **SPA Navigation** — No page reloads when switching between sections
+- **School Onboarding (Multi-Stage)** — The Super Admin enters a school name and clicks **Next** to generate an initials-based School ID (e.g. `SCH-SIS-0001`). School admins then complete a 4-stage registration wizard — (1) enter School ID, (2) school name shown automatically, (3) school info (admin name, type public/private, location, student population, email, mobile for password change), (4) password. All captured details are shown on the Super Admin dashboard per school.
 
 ---
 
