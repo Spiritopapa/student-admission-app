@@ -1165,6 +1165,36 @@
   vertical-align: middle;
 }
 
+/* ============================================================
+   STUDENT PHOTO HOVER EXPAND — Fees Management tables
+   Both the admin (#feeTab-students) and accountant
+   (#accFeeTab-students) Student Fees tables enlarge the photo
+   into a broader preview on hover. transform-origin: left keeps
+   the photo anchored at its column edge so it expands over the
+   table content instead of being clipped by the left wrapper edge.
+   ============================================================ */
+#feeTab-students .student-photo-thumb,
+#accFeeTab-students .student-photo-thumb {
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+  cursor: zoom-in;
+}
+#feeTab-students .student-photo-thumb:hover,
+#accFeeTab-students .student-photo-thumb:hover {
+  position: relative;
+  z-index: 50;
+  transform: scale(3);
+  transform-origin: left center;
+  box-shadow: var(--shadow-lg);
+}
+@media (hover: none) {
+  /* Touch devices have no hover preview — skip the pop effect. */
+  #feeTab-students .student-photo-thumb,
+  #accFeeTab-students .student-photo-thumb {
+    transition: none;
+    cursor: default;
+  }
+}
+
 /* Super admin sidebar role badge */
 .super-admin-brand .dash-sidebar-role-badge {
   background: rgba(245, 158, 11, 0.12);
