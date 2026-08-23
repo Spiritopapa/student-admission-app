@@ -631,7 +631,7 @@ async function loadStudentFeesTab() {
   const statusFilter = getEl('feeSearchStatus')?.value || '';
 
   // Get all students with their fee records
-  let appQuery = supabaseClient.from('applications').select('student_id, first_name, middle_name, last_name, class_applying');
+  let appQuery = supabaseClient.from('applications').select('student_id, first_name, middle_name, last_name, class_applying, student_photo_url');
   if (schoolId) appQuery = appQuery.eq('school_id', schoolId);
   const { data: students } = await appQuery;
   if (!students) return;
@@ -662,13 +662,16 @@ async function loadStudentFeesTab() {
   });
 
   if (filtered.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--text-muted);">No students found.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--text-muted);">No students found.</td></tr>';
     return;
   }
 
   tbody.innerHTML = filtered.map(s => {
     const fees = feeMap[s.student_id] || [];
     const name = `${s.first_name} ${s.middle_name || ''} ${s.last_name}`;
+    const photoHtml = s.student_photo_url
+      ? `<img src="${s.student_photo_url}" alt="Photo" class="student-photo-thumb" />`
+      : '<span class="dash-photo-placeholder">🎓</span>';
 
     // Build term fee display
     const termDisplay = fees
@@ -708,6 +711,7 @@ async function loadStudentFeesTab() {
     }, 0);
 
     return `<tr>
+      <td>${photoHtml}</td>
       <td><strong>${s.student_id}</strong></td>
       <td>${name}</td>
       <td>${s.class_applying}</td>

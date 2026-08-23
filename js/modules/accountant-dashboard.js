@@ -657,8 +657,8 @@ async function loadAccountantFeesPage() {
       </div>
       <div class="table-wrapper">
         <table class="app-table">
-          <thead><tr><th>Student ID</th><th>Name</th><th>Class</th><th>Fee Details by Term</th><th>Total Balance</th><th>Action</th></tr></thead>
-          <tbody id="accFeeStudentsBody"><tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--text-muted);">Loading...</td></tr></tbody>
+          <thead><tr><th>Photo</th><th>Student ID</th><th>Name</th><th>Class</th><th>Fee Details by Term</th><th>Total Balance</th><th>Action</th></tr></thead>
+          <tbody id="accFeeStudentsBody"><tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--text-muted);">Loading...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -750,7 +750,7 @@ async function loadAccStudentFees() {
   const search = (getEl('accFeeSearch')?.value || '').toLowerCase();
   const classFilter = getEl('accFeeClass')?.value || '';
 
-  let appQuery = supabaseClient.from('applications').select('student_id, first_name, middle_name, last_name, class_applying');
+  let appQuery = supabaseClient.from('applications').select('student_id, first_name, middle_name, last_name, class_applying, student_photo_url');
   if (schoolId) appQuery = appQuery.eq('school_id', schoolId);
   const { data: students } = await appQuery;
   if (!students) return;
@@ -778,13 +778,16 @@ async function loadAccStudentFees() {
   });
 
   if (filtered.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--text-muted);">No students found.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--text-muted);">No students found.</td></tr>';
     return;
   }
 
   tbody.innerHTML = filtered.map(s => {
     const fees = feeMap[s.student_id] || [];
     const name = `${s.first_name} ${s.middle_name || ''} ${s.last_name}`;
+    const photoHtml = s.student_photo_url
+      ? `<img src="${s.student_photo_url}" alt="Photo" class="student-photo-thumb" />`
+      : '<span class="dash-photo-placeholder">🎓</span>';
     const termDisplay = fees.sort((a, b) => {
       const terms = ['First', 'Second', 'Third'];
       return terms.indexOf(a.term) - terms.indexOf(b.term) || a.academic_year.localeCompare(b.academic_year);
@@ -805,6 +808,7 @@ async function loadAccStudentFees() {
     const totalBalance = fees.reduce((sum, f) => sum + Math.max((Number(f.total_amount) + Number(f.debt || 0)) - Number(f.amount_paid), 0), 0);
 
     return `<tr>
+      <td>${photoHtml}</td>
       <td><strong>${s.student_id}</strong></td>
       <td>${name}</td>
       <td>${s.class_applying}</td>
