@@ -322,6 +322,15 @@
 -- updated separately with the matching browser-side rule.)
 \i 047-login-id-format-resolution.sql
 
+-- Step 43: Complete Teacher & Accountant Deletion
+-- Creates: delete_teacher_completely() / delete_accountant_completely()
+-- Each atomically removes the staff record, child rows, the linked
+-- profile AND the auth.users account (staff can no longer sign in).
+-- Mirrors the student cascade (delete_student_completely) for staff.
+-- Used by: js/modules/admin-teachers.js (deleteTeacher) and
+--          js/modules/admin-accountants.js (deleteAccountant).
+\i 048-delete-staff-completely.sql
+
 -- ============================================================
 --  SCHEMA DEPLOYMENT COMPLETE
 -- ============================================================

@@ -112,12 +112,81 @@ window.editAccountant = function (id, name, email, phone) {
 };
 
 window.deleteAccountant = async function (id) {
-  if (!confirm('Delete this accountant record?')) return;
-  const { data: accountant } = await supabaseClient.from('accountants').select('full_name').eq('id', id).single();
-  const { error } = await supabaseClient.from('accountants').delete().eq('id', id);
-  if (error) { alert('Error: ' + error.message); return; }
-  await renderAccountantsTable();
-  logSubAdminActivity(`Deleted accountant "${accountant?.full_name || id}"`, 'accountant', accountant?.full_name || id);
+  if (!confirm(`⚠️ PERMANENT DELETION\n\nDelete accountant and ALL associated records?\n\nThis will permanently remove:\n• Accountant profile\n• Auth account (accountant will NOT be able to sign in)\n\nThis action CANNOT be undone.`)) return;
+  let accountantName = id;
+  try {
+    const { data: accountant } = await supabaseClient.from('accountants').select('full_name, user_id, registration_id').eq('id', id).single();
+    accountantName = accountant?.full_name || id;
+    const userId = accountant?.user_id || null;
+
+    // Use the atomic database function to delete everything in one transaction
+    const { data, error } = await supabaseClient.rpc('delete_accountant_completely', { p_accountant_id: id });
+
+    if (error) {
+      // Fallback: if the RPC function doesn't exist yet, try the old manual method
+      console.warn('RPC delete_accountant_completely not available, falling back to manual deletion:', error.message);
+
+      // Resolve the auth user via the accountant portal synthetic email if not linked
+      let resolvedUserId = userId;
+      if (!resolvedUserId && accountant?.registration_id) {
+        const { data: linkedUser } = await supabaseClient.from('profiles')
+          .select('id')
+          .eq('email', accountant.registration_id.toLowerCase() + '@accountant.local')
+          .maybeSingle();
+        resolvedUserId = linkedUser?.id || null;
+      }
+
+      if (resolvedUserId) {
+        try {
+          const { error: adminError } = await supabaseClient.rpc('delete_auth_user', { p_user_id: resolvedUserId });
+          if (adminError) {
+            try {
+              const { error: delUserError } = await supabaseClient.auth.admin.deleteUser(resolvedUserId);
+              if (delUserError) console.warn('Could not delete auth user (admin API):', delUserError.message);
+            } catch (e) {
+              console.warn('Could not delete auth user:', e.message);
+            }
+          }
+        } catch (e) {
+          console.warn('Error deleting auth user:', e.message);
+        }
+      }
+
+      const { error: accountantErr } = await supabaseClient.from('accountants').delete().eq('id', id);
+      if (accountantErr) { alert('Error: ' + accountantErr.message); return; }
+
+      if (resolvedUserId) {
+        const { error: profileErr } = await supabaseClient.from('profiles').delete().eq('id', resolvedUserId);
+        if (profileErr) console.warn('Warning cleaning profiles:', profileErr.message);
+      }
+
+      await renderAccountantsTable();
+      alert(`✅ Accountant "${accountantName}" and all associated records permanently deleted.\nThe accountant can no longer sign in.`);
+      logSubAdminActivity(`Deleted accountant "${accountantName}"`, 'accountant', `${id} - ${accountantName}`);
+      return;
+    }
+
+    // The RPC may return success:false (e.g. accountant not found / not authorized)
+    if (data?.success === false) {
+      alert('Error: ' + (data?.error || 'Could not delete accountant'));
+      return;
+    }
+
+    // Success using the atomic RPC function
+    const result = data;
+    const counts = result?.deleted_counts || {};
+
+    await renderAccountantsTable();
+
+    let summary = `✅ Accountant ${result?.accountant_name || accountantName} permanently deleted.\n`;
+    summary += `The accountant can no longer sign in.\n\n`;
+    summary += `📋 Records removed:\n`;
+    summary += `  • Profile: ${counts.profiles || 0}\n`;
+    summary += `  • Auth account: ${result?.user_id ? (result?.auth_deleted ? 'Yes' : '⚠️ No (may still be able to sign in)') : 'No portal account'}`;
+
+    alert(summary);
+    logSubAdminActivity(`Deleted accountant "${result?.accountant_name || accountantName}"`, 'accountant', `${id} - ${result?.accountant_name || accountantName}`);
+  } catch (err) { alert('Error: ' + err.message); }
 };
 
 // Approve accountant

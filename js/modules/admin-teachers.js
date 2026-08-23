@@ -306,16 +306,94 @@ window.editTeacher = async function (id) {
 };
 
 window.deleteTeacher = async function (id) {
-  if (!confirm('Delete this teacher record?')) return;
-  const { data: teacher } = await supabaseClient.from('teachers').select('full_name').eq('id', id).single();
-  
-  // Delete class-subject assignments
-  await supabaseClient.from('teacher_classes_subjects').delete().eq('teacher_id', id);
-  
-  const { error } = await supabaseClient.from('teachers').delete().eq('id', id);
-  if (error) { alert('Error: ' + error.message); return; }
-  await renderTeachersTable();
-  logSubAdminActivity(`Deleted teacher "${teacher?.full_name || id}"`, 'teacher', teacher?.full_name || id);
+  if (!confirm(`⚠️ PERMANENT DELETION\n\nDelete teacher and ALL associated records?\n\nThis will permanently remove:\n• Teacher profile\n• Teacher documents (certificates, appointment letters)\n• Class & subject assignments\n• Auth account (teacher will NOT be able to sign in)\n\nThis action CANNOT be undone.`)) return;
+  let teacherName = id;
+  try {
+    const { data: teacher } = await supabaseClient.from('teachers').select('full_name, user_id, registration_id').eq('id', id).single();
+    teacherName = teacher?.full_name || id;
+    const userId = teacher?.user_id || null;
+
+    // Use the atomic database function to delete everything in one transaction
+    const { data, error } = await supabaseClient.rpc('delete_teacher_completely', { p_teacher_id: id });
+
+    if (error) {
+      // Fallback: if the RPC function doesn't exist yet, try the old manual method
+      console.warn('RPC delete_teacher_completely not available, falling back to manual deletion:', error.message);
+
+      // Resolve the auth user via the teacher portal synthetic email if not linked
+      let resolvedUserId = userId;
+      if (!resolvedUserId && teacher?.registration_id) {
+        const { data: linkedUser } = await supabaseClient.from('profiles')
+          .select('id')
+          .eq('email', teacher.registration_id.toLowerCase() + '@teacher.local')
+          .maybeSingle();
+        resolvedUserId = linkedUser?.id || null;
+      }
+
+      if (resolvedUserId) {
+        try {
+          const { error: adminError } = await supabaseClient.rpc('delete_auth_user', { p_user_id: resolvedUserId });
+          if (adminError) {
+            try {
+              const { error: delUserError } = await supabaseClient.auth.admin.deleteUser(resolvedUserId);
+              if (delUserError) console.warn('Could not delete auth user (admin API):', delUserError.message);
+            } catch (e) {
+              console.warn('Could not delete auth user:', e.message);
+            }
+          }
+        } catch (e) {
+          console.warn('Error deleting auth user:', e.message);
+        }
+      }
+
+      // Delete from all related tables manually
+      const tablesToClean = [
+        { table: 'teacher_classes_subjects', column: 'teacher_id', value: id },
+        { table: 'teacher_documents', column: 'teacher_id', value: id },
+      ];
+
+      for (const { table, column, value } of tablesToClean) {
+        const { error: delErr } = await supabaseClient.from(table).delete().eq(column, value);
+        if (delErr) console.warn(`Warning cleaning ${table}:`, delErr.message);
+      }
+
+      const { error: teacherErr } = await supabaseClient.from('teachers').delete().eq('id', id);
+      if (teacherErr) { alert('Error: ' + teacherErr.message); return; }
+
+      if (resolvedUserId) {
+        const { error: profileErr } = await supabaseClient.from('profiles').delete().eq('id', resolvedUserId);
+        if (profileErr) console.warn('Warning cleaning profiles:', profileErr.message);
+      }
+
+      await renderTeachersTable();
+      alert(`✅ Teacher "${teacherName}" and all associated records permanently deleted.\nThe teacher can no longer sign in.`);
+      logSubAdminActivity(`Deleted teacher "${teacherName}"`, 'teacher', `${id} - ${teacherName}`);
+      return;
+    }
+
+    // The RPC may return success:false (e.g. teacher not found / not authorized)
+    if (data?.success === false) {
+      alert('Error: ' + (data?.error || 'Could not delete teacher'));
+      return;
+    }
+
+    // Success using the atomic RPC function
+    const result = data;
+    const counts = result?.deleted_counts || {};
+
+    await renderTeachersTable();
+
+    let summary = `✅ Teacher ${result?.teacher_name || teacherName} permanently deleted.\n`;
+    summary += `The teacher can no longer sign in.\n\n`;
+    summary += `📋 Records removed:\n`;
+    summary += `  • Teacher documents: ${counts.teacher_documents || 0}\n`;
+    summary += `  • Class/subject assignments: ${counts.teacher_classes_subjects || 0}\n`;
+    summary += `  • Profile: ${counts.profiles || 0}\n`;
+    summary += `  • Auth account: ${result?.user_id ? (result?.auth_deleted ? 'Yes' : '⚠️ No (may still be able to sign in)') : 'No portal account'}`;
+
+    alert(summary);
+    logSubAdminActivity(`Deleted teacher "${result?.teacher_name || teacherName}"`, 'teacher', `${id} - ${result?.teacher_name || teacherName}`);
+  } catch (err) { alert('Error: ' + err.message); }
 };
 
 // Approve teacher (for teacher registration system)

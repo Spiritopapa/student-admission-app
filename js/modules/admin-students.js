@@ -3,6 +3,7 @@
  */
 
 import { getEl, showMessage, clearMessage, setLoading, buildStudentName, formatDate, formatDateTime, statusBadge, portalBadge, uploadPhoto, previewFile, validateImageFile, logSubAdminActivity, getCurrentSchoolId, parseCSVLine, openPrintWindow, getCurrentAcademicYear } from './utils.js';
+import { deleteCloudinaryFile, getCloudinaryPublicIdFromUrl } from './cloudinary.js';
 
 let supabaseClient = null;
 let allStudents = [];
@@ -280,6 +281,77 @@ window.confirmPortal = async function (studentId) {
 };
 
 // ================================================================
+// Replace Student Photo (double-click a photo in the Students table)
+// ================================================================
+
+// Holds the student id whose photo is about to be replaced. Set when the
+// photo is double-clicked, then consumed by the hidden file picker's change
+// handler once the admin has chosen a replacement image.
+let pendingPhotoStudentId = null;
+
+window.replaceStudentPhoto = function (studentId) {
+  const student = allStudents.find((s) => s.student_id === studentId);
+  if (!student) { alert('Student not found in cache.'); return; }
+  pendingPhotoStudentId = studentId;
+  const input = getEl('replaceStudentPhotoInput');
+  if (input) input.click();
+};
+
+/**
+ * Best-effort removal of a student's previous photo asset. Cloudinary assets
+ * are deleted through the /api/cloudinary-delete serverless proxy; legacy
+ * Supabase Storage assets are removed from the student-photos bucket. Failing
+ * to delete the old file is harmless — the database record is already updated,
+ * so the app never breaks.
+ */
+async function deleteStudentPhotoAsset(oldUrl) {
+  if (!oldUrl) return;
+  // Cloudinary asset → remove via the serverless proxy.
+  try {
+    const publicId = getCloudinaryPublicIdFromUrl(oldUrl);
+    if (publicId) {
+      await deleteCloudinaryFile(oldUrl);
+      return;
+    }
+  } catch (e) { console.warn('Cloudinary photo delete skipped:', e.message); }
+  // Legacy Supabase Storage asset → remove from the student-photos bucket.
+  try {
+    const marker = '/student-photos/';
+    const idx = oldUrl.indexOf(marker);
+    if (idx === -1) return;
+    const storagePath = oldUrl.substring(idx + marker.length).split('?')[0];
+    await supabaseClient.storage.from('student-photos').remove([storagePath]);
+  } catch (e) { console.warn('Storage photo delete skipped:', e.message); }
+}
+
+/**
+ * Update a student's photo to a newly uploaded file. Returns the new public
+ * URL on success, or null when the upload / update failed.
+ */
+async function replaceStudentPhotoFromFile(studentId, file) {
+  const student = allStudents.find((s) => s.student_id === studentId);
+  const oldUrl = student?.student_photo_url || null;
+
+  const newUrl = await uploadPhoto(supabaseClient, 'student-photos', file, studentId);
+  if (!newUrl) return null;
+
+  const schoolId = await getCurrentSchoolId();
+  const { error } = await supabaseClient.from('applications')
+    .update({ student_photo_url: newUrl })
+    .eq('student_id', studentId)
+    .eq('school_id', schoolId);
+  if (error) {
+    console.warn('Replace photo DB update failed:', error.message);
+    return null;
+  }
+
+  // Clean up the old photo after the row has been updated (best-effort).
+  await deleteStudentPhotoAsset(oldUrl);
+  logSubAdminActivity(`Replaced photo for student "${studentId}"`, 'student', studentId);
+  return newUrl;
+}
+
+// ================================================================
 // Admit New Student
 // ================================================================
 
@@ -455,7 +527,9 @@ export async function renderAdminSubStudentsTable() {
   tbody.innerHTML = displayData.map((s) => {
     const name = buildStudentName(s.first_name, s.middle_name, s.last_name);
     const genderDisplay = s.gender || 'Male';
-    const photoHtml = s.student_photo_url ? `<img src="${s.student_photo_url}" class="dash-photo" />` : '<span class="dash-photo-placeholder">📷</span>';
+    const photoHtml = s.student_photo_url
+      ? `<img src="${s.student_photo_url}" class="dash-photo" ondblclick="replaceStudentPhoto('${s.student_id}')" alt="Student photo" title="Double-click to replace photo" />`
+      : `<span class="dash-photo-placeholder" ondblclick="replaceStudentPhoto('${s.student_id}')" title="Double-click to add photo">📷</span>`;
     const confirmBtn = s.portal_confirmed
       ? '<span class="action-btn" style="background:var(--bg);color:var(--text-muted);cursor:default;">Done</span>'
       : `<button class="action-btn confirm" onclick="confirmPortal('${s.student_id}')">Confirm Portal</button>`;
@@ -487,7 +561,9 @@ export async function renderAdminSubStudentsTable() {
       tbody.innerHTML = data.map((s) => {
         const name = buildStudentName(s.first_name, s.middle_name, s.last_name);
         const genderDisplay = s.gender || 'Male';
-        const photoHtml = s.student_photo_url ? `<img src="${s.student_photo_url}" class="dash-photo" />` : '<span class="dash-photo-placeholder">📷</span>';
+        const photoHtml = s.student_photo_url
+          ? `<img src="${s.student_photo_url}" class="dash-photo" ondblclick="replaceStudentPhoto('${s.student_id}')" alt="Student photo" title="Double-click to replace photo" />`
+          : `<span class="dash-photo-placeholder" ondblclick="replaceStudentPhoto('${s.student_id}')" title="Double-click to add photo">📷</span>`;
         const confirmBtn = s.portal_confirmed
           ? '<span class="action-btn" style="background:var(--bg);color:var(--text-muted);cursor:default;">Done</span>'
           : `<button class="action-btn confirm" onclick="confirmPortal('${s.student_id}')">Confirm Portal</button>`;
@@ -632,6 +708,33 @@ export function setupEditStudent() {
       } catch (err) { showMessage('editStudentMessage', 'Error: ' + err.message, 'error'); }
       finally { setLoading(btn, false, 'Update Student'); }
     });
+  });
+
+  // Double-click photo replacement (Students module table). The hidden file
+  // picker #replaceStudentPhotoInput is opened by window.replaceStudentPhoto.
+  getEl('replaceStudentPhotoInput')?.addEventListener('change', async function () {
+    const file = this.files[0];
+    const studentId = pendingPhotoStudentId;
+    pendingPhotoStudentId = null;
+    if (!file || !studentId) { this.value = ''; return; }
+
+    const validation = validateImageFile(file, MAX_PHOTO_SIZE_MB);
+    if (!validation.valid) { alert(validation.error); this.value = ''; return; }
+
+    try {
+      const newUrl = await replaceStudentPhotoFromFile(studentId, file);
+      if (newUrl) {
+        showMessage('editStudentMessage', '✅ Student photo updated.', 'success');
+        await loadAllStudents();
+      } else {
+        alert('❌ Photo upload failed. Please try again.');
+      }
+    } catch (err) {
+      console.error('Replace photo error:', err);
+      alert('❌ Could not update photo: ' + err.message);
+    } finally {
+      this.value = '';
+    }
   });
 }
 
