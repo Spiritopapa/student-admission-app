@@ -88,6 +88,7 @@ export function setupTeacherDashboard() {
 
   // Student search/filter listeners
   getEl('teacherStudentsSearch')?.addEventListener('input', loadTeacherStudents);
+  getEl('teacherStudentsClass')?.addEventListener('change', loadTeacherStudents);
   getEl('teacherStudentsGender')?.addEventListener('change', loadTeacherStudents);
   getEl('teacherStudentsStatus')?.addEventListener('change', loadTeacherStudents);
 
@@ -309,6 +310,7 @@ async function loadTeacherStudents() {
   if (!tbody) return;
 
   const search = (getEl('teacherStudentsSearch')?.value || '').toLowerCase();
+  const classFilter = getEl('teacherStudentsClass')?.value || '';
   const genderFilter = getEl('teacherStudentsGender')?.value || '';
   const statusFilter = getEl('teacherStudentsStatus')?.value || '';
 
@@ -317,6 +319,14 @@ async function loadTeacherStudents() {
     if (!user) return;
 
     const { classes, teacher } = await getTeacherClasses(user.id);
+
+    // Populate the class filter; only show it when the teacher has multiple classes
+    const classSel = getEl('teacherStudentsClass');
+    if (classSel) {
+      classSel.innerHTML = '<option value="">All Classes</option>' +
+        classes.map(c => `<option value="${c}">${c}</option>`).join('');
+      classSel.style.display = classes.length > 1 ? '' : 'none';
+    }
 
     if (classes.length === 0) {
       if (noEl) { noEl.style.display = 'block'; noEl.textContent = 'No classes assigned to you yet.'; }
@@ -347,6 +357,7 @@ async function loadTeacherStudents() {
 
     if (lastError && allStudents.length === 0) { console.error('Load students error:', lastError); return; }
     let items = allStudents || [];
+    if (classFilter) items = items.filter(s => s.class_applying === classFilter);
     if (genderFilter) items = items.filter(s => s.gender === genderFilter);
     if (statusFilter) items = items.filter(s => s.status === statusFilter);
     if (search) items = items.filter(s => {
@@ -367,6 +378,7 @@ async function loadTeacherStudents() {
         <td><strong>${s.student_id}</strong></td>
         <td>${name}</td>
         <td>${s.gender || 'Male'}</td>
+        <td>${s.class_applying || '-'}</td>
         <td>${s.parent_name}</td>
         <td>${s.parent_contact}</td>
         <td>${statusBadge(s.status)}</td>
@@ -856,6 +868,7 @@ function renderTeacherMonthlyGrid(dates) {
   let headerHtml = '<th class="save-cell-header" style="min-width:50px;">Save</th>';
   headerHtml += '<th class="student-name-cell" style="min-width:140px;">Student Name</th>';
   headerHtml += '<th class="student-id-cell" style="min-width:80px;">ID</th>';
+  headerHtml += '<th class="student-class-cell" style="min-width:80px;">Class</th>';
   dates.forEach(date => {
     const d = new Date(date + 'T00:00:00');
     const dayNum = d.getDate();
@@ -896,6 +909,7 @@ function renderTeacherMonthlyGrid(dates) {
       <td class="save-cell"><button type="button" class="btn-save-student" data-student="${student.student_id}" title="Save this student's attendance">💾</button></td>
       <td class="student-name-cell">${student.name}</td>
       <td class="student-id-cell">${student.student_id}</td>
+      <td class="student-class-cell">${student.class_applying || '-'}</td>
       ${dayCells}
       <td class="present-count-cell">${presentCount}/${markedCount}</td>
     </tr>`;
@@ -1454,7 +1468,7 @@ async function renderTeacherAttReport() {
       });
 
       const { data: apps } = await supabaseClient.from('applications')
-        .select('student_id, first_name, middle_name, last_name')
+        .select('student_id, first_name, middle_name, last_name, class_applying')
         .in('student_id', Object.keys(studentStats));
       const appMap = new Map((apps || []).map(a => [a.student_id, a]));
 
@@ -1463,7 +1477,7 @@ async function renderTeacherAttReport() {
           const app = appMap.get(sid);
           const name = app ? buildStudentName(app.first_name, app.middle_name, app.last_name) : sid;
           const pct = stats.total > 0 ? ((stats.present / stats.total) * 100).toFixed(1) : '0.0';
-          return { student_id: sid, name, ...stats, pct };
+          return { student_id: sid, name, class: app?.class_applying || '', ...stats, pct };
         })
         .filter(r => {
           if (search && !r.name.toLowerCase().includes(search) && !r.student_id.toLowerCase().includes(search)) return false;
@@ -1474,7 +1488,7 @@ async function renderTeacherAttReport() {
       tbody.innerHTML = rows.map(r => {
         const pctColor = parseFloat(r.pct) >= 80 ? 'var(--success)' : parseFloat(r.pct) >= 50 ? 'var(--warning)' : 'var(--danger)';
         return `<tr>
-          <td><strong>${r.student_id}</strong></td><td>${r.name}</td>
+          <td><strong>${r.student_id}</strong></td><td>${r.name}</td><td>${r.class || '-'}</td>
           <td style="text-align:center;">${r.total}</td>
           <td style="text-align:center;color:var(--success);font-weight:600;">${r.present}</td>
           <td style="text-align:center;color:var(--danger);font-weight:600;">${r.absent}</td>
@@ -1507,7 +1521,7 @@ async function renderTeacherAttReport() {
         const dayPct = dayTotal > 0 ? ((dayCounts.present / dayTotal) * 100).toFixed(1) : '0.0';
 
         dailyHtml += `<tr style="background:var(--bg);font-weight:700;">
-          <td colspan="5" style="padding:0.5rem 1rem;font-size:0.9rem;">
+          <td colspan="6" style="padding:0.5rem 1rem;font-size:0.9rem;">
             📅 <strong>${date}</strong>
             <span style="font-weight:400;font-size:0.8rem;color:var(--text-muted);margin-left:0.5rem;">
               Present: ${dayCounts.present} | Absent: ${dayCounts.absent} | Late: ${dayCounts.late} | Excused: ${dayCounts.excused} | Total: ${dayTotal} |
@@ -1528,6 +1542,7 @@ async function renderTeacherAttReport() {
             <td style="font-size:0.8rem;color:var(--text-muted);">${date}</td>
             <td><strong>${r.student_id}</strong></td>
             <td>${name}</td>
+            <td>${r.class_name || '-'}</td>
             <td style="text-align:center;color:${statusColors[r.status] || 'inherit'};font-weight:600;">${statusIcons[r.status] || r.status} ${r.status}</td>
             <td style="font-size:0.8rem;">${r.remarks || '-'}</td>
           </tr>`;
@@ -1535,7 +1550,7 @@ async function renderTeacherAttReport() {
       });
 
       if (dailyBody) {
-        dailyBody.innerHTML = dailyHtml || '<tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--text-muted);">No records found.</td></tr>';
+        dailyBody.innerHTML = dailyHtml || '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--text-muted);">No records found.</td></tr>';
       }
     }
   } catch (err) {
@@ -1726,6 +1741,7 @@ export async function loadTeacherExamStudents() {
       students: allStudents.map(s => ({
         student_id: s.student_id,
         name: buildStudentName(s.first_name, s.middle_name, s.last_name),
+        class_applying: s.class_applying,
       })),
       subjects: subjectsToShow,
       results: resultsMap,
@@ -1776,6 +1792,7 @@ function renderTeacherScoreSheet() {
     html += `<tr>
       <td><strong>${s.student_id}</strong></td>
       <td>${s.name}</td>
+      <td>${s.class_applying || '-'}</td>
       ${subjectCells}
     </tr>`;
   });
@@ -1783,7 +1800,7 @@ function renderTeacherScoreSheet() {
   // Update table header with subject columns
   const headerRow = document.querySelector('#teacherExamTable thead tr');
   if (headerRow) {
-    headerRow.innerHTML = `<th style="min-width:100px;">Student ID</th><th style="min-width:120px;">Name</th>${subjects.map(sub => `<th style="min-width:160px;">${sub} <span style="font-weight:400;font-size:0.65rem;color:var(--text-muted);">(Class/Exam/Total/Grade)</span></th>`).join('')}`;
+    headerRow.innerHTML = `<th style="min-width:100px;">Student ID</th><th style="min-width:120px;">Name</th><th style="min-width:80px;">Class</th>${subjects.map(sub => `<th style="min-width:160px;">${sub} <span style="font-weight:400;font-size:0.65rem;color:var(--text-muted);">(Class/Exam/Total/Grade)</span></th>`).join('')}`;
   }
 
   tbody.innerHTML = html;

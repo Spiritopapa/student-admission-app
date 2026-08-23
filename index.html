@@ -2090,12 +2090,13 @@
             <p class="subtitle">Students in your assigned class</p>
             <div class="search-filter-row">
               <input type="text" id="teacherStudentsSearch" placeholder="Search name, ID, parent..." class="search-input" style="max-width:250px;" />
+              <select id="teacherStudentsClass" class="filter-select" style="display:none;"><option value="">All Classes</option></select>
               <select id="teacherStudentsGender" class="filter-select"><option value="">All Genders</option><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option></select>
               <select id="teacherStudentsStatus" class="filter-select"><option value="">All Status</option><option value="pending">Pending</option><option value="admitted">Admitted</option></select>
             </div>
             <div class="table-wrapper">
               <table class="app-table">
-                <thead><tr><th>#</th><th>Photo</th><th>Student ID</th><th>Name</th><th>Gender</th><th>Parent</th><th>Contact</th><th>Status</th><th>Portal</th></tr></thead>
+                <thead><tr><th>#</th><th>Photo</th><th>Student ID</th><th>Name</th><th>Gender</th><th>Class</th><th>Parent</th><th>Contact</th><th>Status</th><th>Portal</th></tr></thead>
                 <tbody id="teacherStudentsBody"></tbody>
               </table>
             </div>
@@ -2169,14 +2170,14 @@
               <!-- Summary View -->
               <div class="table-wrapper" id="teacherAttReportSummaryTable">
                 <table class="app-table">
-                  <thead><tr><th>Student ID</th><th>Name</th><th>Total Days</th><th>Present</th><th>Absent</th><th>Late</th><th>Excused</th><th>Attendance %</th></tr></thead>
+                  <thead><tr><th>Student ID</th><th>Name</th><th>Class</th><th>Total Days</th><th>Present</th><th>Absent</th><th>Late</th><th>Excused</th><th>Attendance %</th></tr></thead>
                   <tbody id="teacherAttReportBody"></tbody>
                 </table>
               </div>
               <!-- Daily View -->
               <div class="table-wrapper" id="teacherAttReportDailyTable" style="display:none;">
                 <table class="app-table">
-                  <thead><tr><th>Date</th><th>Student ID</th><th>Name</th><th>Status</th><th>Remarks</th></tr></thead>
+                  <thead><tr><th>Date</th><th>Student ID</th><th>Name</th><th>Class</th><th>Status</th><th>Remarks</th></tr></thead>
                   <tbody id="teacherAttReportDailyBody"></tbody>
                 </table>
               </div>
@@ -2260,7 +2261,7 @@
                   </tr>
                 </thead>
                 <tbody id="teacherExamStudentsBody">
-                  <tr><td colspan="3" style="text-align:center;padding:2rem;color:var(--text-muted);">Select an exam and click "Load Students" to begin.</td></tr>
+                  <tr><td colspan="4" style="text-align:center;padding:2rem;color:var(--text-muted);">Select an exam and click "Load Students" to begin.</td></tr>
                 </tbody>
               </table>
             </div>
