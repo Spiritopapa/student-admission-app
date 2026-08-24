@@ -162,8 +162,17 @@ export async function deleteCloudinaryFile(fileUrl) {
         resource_type: getCloudinaryResourceType(publicId),
       }),
     });
-    const data = await res.json().catch(() => ({}));
+    const raw = await res.text().catch(() => '');
+    let data = {};
+    try { data = raw ? JSON.parse(raw) : {}; }
+    catch (e) { data = { __nonJson: true }; }
     if (!res.ok || !data.success) {
+      // Non-JSON body usually means the request did NOT reach the serverless
+      // function (e.g. the Vercel SPA fallback served index.html instead).
+      // Surface that so it isn't mistaken for a Cloudinary rejection.
+      if (data.__nonJson || /text\/html/i.test(res.headers?.get?.('content-type') || '')) {
+        console.warn('Cloudinary-delete endpoint did not return JSON — is /api/cloudinary-delete deployed? Raw:', String(raw).slice(0, 120));
+      }
       console.warn('Cloudinary delete not confirmed:', data?.error || `HTTP ${res.status}`);
       return false;
     }
