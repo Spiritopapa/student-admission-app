@@ -685,6 +685,102 @@ export function setupEditStudent() {
   wireRemovePhoto('editPhoto', 'editPhotoPreviewImg', 'editPhotoPlaceholder', 'editClearPhoto');
   wireRemovePhoto('editPhotoDash', 'editPhotoPreviewImgDash', 'editPhotoPlaceholderDash', 'editClearPhotoDash');
 
+  // ================================================================
+  // Modal edit form (separate form for the Admin Dashboard Students module)
+  // ================================================================
+  getEl('emPhoto')?.addEventListener('change', function () {
+    const file = this.files[0];
+    if (!file) return;
+    const validation = validateImageFile(file, MAX_PHOTO_SIZE_MB);
+    if (!validation.valid) { alert(validation.error); this.value = ''; return; }
+    previewFile(file, getEl('emPhotoPreviewImg'), null, getEl('emClearPhoto'), MAX_PHOTO_SIZE_MB);
+    getEl('emPhotoPlaceholder').textContent = 'New photo selected';
+  });
+  wireRemovePhoto('emPhoto', 'emPhotoPreviewImg', 'emPhotoPlaceholder', 'emClearPhoto');
+
+  getEl('emEditForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    clearMessage('emMessage');
+    const btn = getEl('emSubmitBtn');
+    setLoading(btn, true, 'Saving...');
+
+    const studentId = getEl('emStudentId').value;
+
+    // Capture the photo currently stored on the student. If this update swaps
+    // in a new photo (or removes it), the old asset is deleted afterwards so
+    // replaced/removed photos don't keep piling up in the Cloudinary folder.
+    let previousPhotoUrl = '';
+    let photoBeingReplaced = false;
+    try {
+      const schoolId = await getCurrentSchoolId();
+      let prevQuery = supabaseClient.from('applications').select('student_photo_url').eq('student_id', studentId);
+      if (schoolId) prevQuery = prevQuery.eq('school_id', schoolId);
+      const { data: prevStudent } = await prevQuery.maybeSingle();
+      if (prevStudent?.student_photo_url) previousPhotoUrl = prevStudent.student_photo_url;
+    } catch (err) { /* best-effort; leftover files are harmless */ }
+
+    const payload = {
+      first_name: getEl('emFirstName').value.trim(),
+      middle_name: getEl('emMiddleName').value.trim() || null,
+      last_name: getEl('emLastName').value.trim(),
+      class_applying: getEl('emClass').value,
+      term: getEl('emTerm').value,
+      date_of_birth: getEl('emDOB').value,
+      parent_name: getEl('emParentName').value.trim(),
+      parent_contact: getEl('emParentContact').value.trim(),
+      home_town: getEl('emHomeTown').value.trim() || null,
+      place_of_stay: getEl('emPlaceOfStay').value.trim() || null,
+      gender: getEl('emGender').value,
+      religion: getEl('emReligion').value,
+      teacher: getEl('emTeacher').value.trim() || null,
+      previous_school: getEl('emPrevSchool').value.trim() || null,
+      admission_date: getEl('emAdmissionDate').value,
+      school_id: await getCurrentSchoolId(),
+    };
+
+    const emPhotoFile = getEl('emPhoto').files[0];
+    if (emPhotoFile) {
+      // Enforce 500KB (0.5MB) maximum photo size before upload
+      const validation = validateImageFile(emPhotoFile, MAX_PHOTO_SIZE_MB);
+      if (!validation.valid) {
+        showMessage('emMessage', validation.error, 'error');
+        getEl('emPhoto').value = '';
+        setLoading(btn, false, '💾 Update Student');
+        return;
+      }
+      pendingPhotoRemoval = false;
+      const photoUrl = await uploadPhoto(supabaseClient, 'student-photos', emPhotoFile, await studentPhotoPrefix(studentId));
+      if (photoUrl) {
+        payload.student_photo_url = photoUrl;
+        photoBeingReplaced = true;
+      }
+    } else if (pendingPhotoRemoval) {
+      // No replacement file, but the admin clicked 'Remove' -> clear the stored photo.
+      payload.student_photo_url = null;
+      photoBeingReplaced = true;
+    }
+
+    try {
+      const { error } = await supabaseClient.from('applications').update(payload).eq('student_id', studentId);
+      if (error) throw error;
+
+      // Delete the OLD photo asset (Cloudinary or legacy Supabase Storage) once
+      // the student row is updated with a replacement/removal. Best-effort so a
+      // failure never breaks the update itself.
+      if (previousPhotoUrl && photoBeingReplaced) {
+        await deleteStudentPhotoAsset(previousPhotoUrl);
+      }
+      pendingPhotoRemoval = false;
+
+      showMessage('emMessage', '✅ Student updated.', 'success');
+      logSubAdminActivity(`Updated student "${studentId}"`, 'student', studentId);
+      await loadAllStudents();
+      // Close the modal shortly after a successful update
+      setTimeout(() => closeEditStudentModal(), 900);
+    } catch (err) { showMessage('emMessage', 'Error: ' + err.message, 'error'); }
+    finally { setLoading(btn, false, '💾 Update Student'); }
+  });
+
   // Dashboard edit form uses Dash-suffixed IDs, students page uses standard IDs
   ['editStudentForm', 'editStudentFormStudents'].forEach((formId) => {
     const form = getEl(formId);
@@ -813,8 +909,15 @@ window.editStudent = async function (studentId) {
 
   // Determine if we're on the Students tab page or the main dashboard
   const isStudentsPage = getEl('page-admin-students')?.classList.contains('active-page');
-  const sectionId = isStudentsPage ? 'editStudentSectionStudents' : 'editStudentSection';
-  const otherSectionId = isStudentsPage ? 'editStudentSection' : 'editStudentSectionStudents';
+
+  // From the admin dashboard Students module, open the dedicated separate edit
+  // form (modal) rather than the inline <details> section.
+  if (!isStudentsPage) {
+    await openEditStudentModal(studentId);
+    return;
+  }
+  const sectionId = 'editStudentSectionStudents';
+  const otherSectionId = 'editStudentSection';
 
   // Get the active edit section
   const editSection = getEl(sectionId);
@@ -883,6 +986,90 @@ window.editStudent = async function (studentId) {
     if (editClearBtn) editClearBtn.style.display = 'none';
   }
   if (editPhotoInput) editPhotoInput.value = '';
+};
+
+// ================================================================
+// Edit Student Modal (separate form for the Admin Dashboard Students module)
+// ================================================================
+
+window.closeEditStudentModal = function () {
+  const modal = getEl('editStudentModal');
+  if (modal) modal.style.display = 'none';
+};
+
+// Close the modal when clicking on the dark overlay backdrop
+getEl('editStudentModal')?.addEventListener('click', (e) => {
+  if (e.target.id === 'editStudentModal') closeEditStudentModal();
+});
+
+window.openEditStudentModal = async function (studentId) {
+  const student = allStudents.find((s) => s.student_id === studentId);
+  if (!student) { alert('Student not found in cache.'); return; }
+
+  const modal = getEl('editStudentModal');
+  if (!modal) return;
+
+  pendingPhotoRemoval = false;
+
+  // Populate the separate edit form fields
+  const setField = (id, value) => {
+    const el = getEl(id);
+    if (el) el.value = value;
+  };
+
+  setField('emStudentId', student.student_id);
+  setField('emFirstName', student.first_name || '');
+  setField('emMiddleName', student.middle_name || '');
+  setField('emLastName', student.last_name || '');
+  setField('emTerm', student.term || 'First');
+  setField('emDOB', student.date_of_birth || '');
+  setField('emParentName', student.parent_name || '');
+  setField('emParentContact', student.parent_contact || '');
+  setField('emHomeTown', student.home_town || '');
+  setField('emPlaceOfStay', student.place_of_stay || '');
+  setField('emReligion', student.religion || 'Christian');
+  setField('emGender', student.gender || 'Male');
+  setField('emTeacher', student.teacher || '');
+  setField('emPrevSchool', student.previous_school || '');
+  setField('emAdmissionDate', student.admission_date || '');
+
+  // Populate class dropdown
+  const emClassSelect = getEl('emClass');
+  if (emClassSelect) {
+    try {
+      const schoolId = await getCurrentSchoolId();
+      let query = supabaseClient.from('classes').select('name').order('name', { ascending: true });
+      if (schoolId) query = query.eq('school_id', schoolId);
+      const { data: classes } = await query;
+      if (classes && classes.length > 0) {
+        emClassSelect.innerHTML = '<option value="">— Select —</option>' + classes.map((c) => `<option>${c.name}</option>`).join('');
+      }
+      emClassSelect.value = student.class_applying || '';
+    } catch (err) { console.error('Failed to load classes for edit modal:', err); }
+  }
+
+  // Handle photo preview within the modal
+  const editPhotoImg = getEl('emPhotoPreviewImg');
+  const editPhotoPlaceholder = getEl('emPhotoPlaceholder');
+  const editClearBtn = getEl('emClearPhoto');
+  if (student.student_photo_url) {
+    editPhotoImg.src = student.student_photo_url;
+    editPhotoImg.style.display = 'block';
+    if (editPhotoPlaceholder) editPhotoPlaceholder.textContent = '';
+    if (editClearBtn) editClearBtn.style.display = 'inline-block';
+  } else {
+    editPhotoImg.src = '#';
+    editPhotoImg.style.display = 'none';
+    if (editPhotoPlaceholder) editPhotoPlaceholder.textContent = 'No photo';
+    if (editClearBtn) editClearBtn.style.display = 'none';
+  }
+  const editPhotoInput = getEl('emPhoto');
+  if (editPhotoInput) editPhotoInput.value = '';
+
+  // Clear any previous messages, then show the modal
+  clearMessage('emMessage');
+  setLoading(getEl('emSubmitBtn'), false, '💾 Update Student');
+  modal.style.display = 'flex';
 };
 
 // ================================================================
