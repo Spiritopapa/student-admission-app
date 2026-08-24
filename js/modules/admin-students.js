@@ -288,6 +288,9 @@ window.confirmPortal = async function (studentId) {
 // photo is double-clicked, then consumed by the hidden file picker's change
 // handler once the admin has chosen a replacement image.
 let pendingPhotoStudentId = null;
+// True when the admin clicked “Remove” in an edit form for a student that has a
+// stored photo, meaning the stored photo should be deleted when the update saves.
+let pendingPhotoRemoval = false;
 
 window.replaceStudentPhoto = function (studentId) {
   const student = allStudents.find((s) => s.student_id === studentId);
@@ -632,21 +635,34 @@ export function setupEditStudent() {
     getEl('editPhotoPlaceholderDash').textContent = 'New photo selected';
   });
 
-  getEl('editClearPhoto')?.addEventListener('click', () => {
-    getEl('editPhoto').value = '';
-    getEl('editPhotoPreviewImg').src = '#';
-    getEl('editPhotoPreviewImg').style.display = 'none';
-    getEl('editPhotoPlaceholder').textContent = 'Current photo will be kept';
-    getEl('editClearPhoto').style.display = 'none';
-  });
-
-  getEl('editClearPhotoDash')?.addEventListener('click', () => {
-    getEl('editPhotoDash').value = '';
-    getEl('editPhotoPreviewImgDash').src = '#';
-    getEl('editPhotoPreviewImgDash').style.display = 'none';
-    getEl('editPhotoPlaceholderDash').textContent = 'Current photo will be kept';
-    getEl('editClearPhotoDash').style.display = 'none';
-  });
+  // Shared handler for the “Remove” button on both edit forms. When a just-picked
+  // replacement file is present, it clears that pending selection (keeping the
+  // stored photo). When no new file is chosen and the student has a stored photo,
+  // it marks the photo for removal so the old Cloudinary file is deleted on save.
+  const wireRemovePhoto = (inputId, imgId, placeholderId, btnId) => {
+    const input = getEl(inputId);
+    getEl(btnId)?.addEventListener('click', () => {
+      const newFileChosen = !!(input && input.files && input.files[0]);
+      if (newFileChosen) {
+        // A replacement file was just selected → clear it, keep the stored photo.
+        input.value = '';
+        const img = getEl(imgId);
+        if (img) { img.src = '#'; img.style.display = 'none'; }
+        if (getEl(placeholderId)) getEl(placeholderId).textContent = 'Current photo will be kept';
+        if (getEl(btnId)) getEl(btnId).style.display = 'none';
+        pendingPhotoRemoval = false;
+      } else {
+        // No new file → delete the stored photo on save (and its Cloudinary file).
+        pendingPhotoRemoval = true;
+        const img = getEl(imgId);
+        if (img) { img.src = '#'; img.style.display = 'none'; }
+        if (getEl(placeholderId)) getEl(placeholderId).textContent = 'Current photo will be removed on save';
+        if (getEl(btnId)) getEl(btnId).style.display = 'none';
+      }
+    });
+  };
+  wireRemovePhoto('editPhoto', 'editPhotoPreviewImg', 'editPhotoPlaceholder', 'editClearPhoto');
+  wireRemovePhoto('editPhotoDash', 'editPhotoPreviewImgDash', 'editPhotoPlaceholderDash', 'editClearPhotoDash');
 
   // Dashboard edit form uses Dash-suffixed IDs, students page uses standard IDs
   ['editStudentForm', 'editStudentFormStudents'].forEach((formId) => {
@@ -662,6 +678,20 @@ export function setupEditStudent() {
       setLoading(btn, true, 'Saving...');
 
       const studentId = form.querySelector('#editStudentId').value;
+
+      // Capture the photo currently stored on the student. If this update swaps
+      // in a new photo (or removes it), the old asset is deleted afterwards so
+      // replaced/removed photos don't keep piling up in the Cloudinary folder.
+      let previousPhotoUrl = '';
+      let photoBeingReplaced = false;
+      try {
+        const schoolId = await getCurrentSchoolId();
+        let prevQuery = supabaseClient.from('applications').select('student_photo_url').eq('student_id', studentId);
+        if (schoolId) prevQuery = prevQuery.eq('school_id', schoolId);
+        const { data: prevStudent } = await prevQuery.maybeSingle();
+        if (prevStudent?.student_photo_url) previousPhotoUrl = prevStudent.student_photo_url;
+      } catch (e) { /* best-effort; leftover files are harmless */ }
+
       const payload = {
         first_name: form.querySelector('#editFirstName').value.trim(),
         middle_name: form.querySelector('#editMiddleName').value.trim() || null,
@@ -690,13 +720,31 @@ export function setupEditStudent() {
           setLoading(btn, false, 'Update Student');
           return;
         }
+        pendingPhotoRemoval = false;
         const photoUrl = await uploadPhoto(supabaseClient, 'student-photos', editPhotoFile, studentId);
-        if (photoUrl) payload.student_photo_url = photoUrl;
+        if (photoUrl) {
+          payload.student_photo_url = photoUrl;
+          photoBeingReplaced = true;
+        }
+      } else if (pendingPhotoRemoval) {
+        // No replacement file, but the admin clicked “Remove” → clear the stored photo.
+        payload.student_photo_url = null;
+        photoBeingReplaced = true;
       }
 
       try {
         const { error } = await supabaseClient.from('applications').update(payload).eq('student_id', studentId);
         if (error) throw error;
+
+        // Delete the OLD photo asset (Cloudinary or legacy Supabase Storage) once
+        // the student row is updated with a replacement/removal. This prevents
+        // replaced/removed photos from duplicating / orphan-filling our Cloudinary
+        // folder, and is best-effort so a failure never breaks the update itself.
+        if (previousPhotoUrl && photoBeingReplaced) {
+          await deleteStudentPhotoAsset(previousPhotoUrl);
+        }
+        pendingPhotoRemoval = false;
+
         showMessage('editStudentMessage', '✅ Student updated.', 'success');
         logSubAdminActivity(`Updated student "${studentId}"`, 'student', studentId);
         await loadAllStudents();
@@ -756,6 +804,8 @@ window.editStudent = async function (studentId) {
   editSection.open = true;
   const otherSection = getEl(otherSectionId);
   if (otherSection) { otherSection.style.display = 'none'; otherSection.open = false; }
+
+  pendingPhotoRemoval = false;
 
   // Determine which ID suffix to use based on the section
   const idSuffix = isStudentsPage ? '' : 'Dash';
