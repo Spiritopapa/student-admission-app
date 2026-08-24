@@ -780,67 +780,6 @@
       </div>
     </div>
 
-    <!-- ==================== ADMIN EDIT STUDENT MODAL (separate form) ==================== -->
-    <div id="editStudentModal" class="modal-overlay" style="display:none;">
-      <div class="modal-card" style="max-width:900px;max-height:90vh;overflow-y:auto;">
-        <div class="modal-header">
-          <h3>✏️ Edit Student</h3>
-          <button type="button" class="modal-close" onclick="closeEditStudentModal()" style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--text-muted);">&times;</button>
-        </div>
-        <div class="modal-body" style="padding:1.25rem;">
-          <form id="emEditForm" class="admission-form" style="max-width:100%;">
-            <input type="hidden" id="emStudentId" />
-            <div class="form-row three-col">
-              <div class="form-group"><label>First Name *</label><input type="text" id="emFirstName" required /></div>
-              <div class="form-group"><label>Middle Name</label><input type="text" id="emMiddleName" /></div>
-              <div class="form-group"><label>Last Name *</label><input type="text" id="emLastName" required /></div>
-            </div>
-            <div class="form-row">
-              <div class="form-group"><label>Class *</label><select id="emClass" required><option value="">— Select —</option></select></div>
-              <div class="form-group"><label>Term *</label><select id="emTerm" required><option value="First">First Term</option><option value="Second">Second Term</option><option value="Third">Third Term</option></select></div>
-              <div class="form-group"><label>Date of Birth *</label><input type="date" id="emDOB" required /></div>
-            </div>
-            <div class="form-row">
-              <div class="form-group"><label>Parent Name *</label><input type="text" id="emParentName" required /></div>
-              <div class="form-group"><label>Parent Contact *</label><input type="tel" id="emParentContact" required /></div>
-            </div>
-            <div class="form-row">
-              <div class="form-group"><label>Home Town</label><input type="text" id="emHomeTown" /></div>
-              <div class="form-group"><label>Place of Stay</label><input type="text" id="emPlaceOfStay" /></div>
-            </div>
-            <div class="form-row">
-              <div class="form-group"><label>Religion *</label><select id="emReligion" required><option value="Christian">Christian</option><option value="Muslim">Muslim</option><option value="Others">Others</option></select></div>
-              <div class="form-group"><label>Teacher</label><input type="text" id="emTeacher" /></div>
-            </div>
-            <div class="form-row">
-              <div class="form-group"><label>Gender *</label><select id="emGender" required><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option></select></div>
-              <div class="form-group"><label>Previous School</label><input type="text" id="emPrevSchool" /></div>
-              <div class="form-group"><label>Admission Date *</label><input type="date" id="emAdmissionDate" required /></div>
-            </div>
-            <div class="form-group photo-upload-group">
-              <label>Student Photo</label>
-              <div class="photo-upload-wrapper">
-                <div class="photo-preview" id="emPhotoPreview">
-                  <img id="emPhotoPreviewImg" src="#" alt="Preview" style="display:none;width:80px;height:80px;object-fit:cover;border-radius:50%;border:2px solid var(--border);" />
-                  <span id="emPhotoPlaceholder" style="font-size:0.85rem;color:var(--text-muted);">Current photo will be shown on open</span>
-                </div>
-                <div class="photo-actions">
-                  <input type="file" id="emPhoto" accept="image/*" />
-                  <label for="emPhoto" class="btn btn-secondary btn-sm">Choose File</label>
-                  <button type="button" class="btn btn-sm btn-clear" id="emClearPhoto" style="display:none;">Remove</button>
-                </div>
-              </div>
-            </div>
-            <div style="display:flex;gap:0.75rem;justify-content:flex-end;margin-top:1rem;">
-              <button type="button" class="btn btn-secondary" onclick="closeEditStudentModal()">Cancel</button>
-              <button type="submit" class="btn btn-primary" id="emSubmitBtn">💾 Update Student</button>
-            </div>
-          </form>
-          <div id="emMessage" class="message" style="display:none;margin-top:0.75rem;"></div>
-        </div>
-      </div>
-    </div>
-
     <!-- ==================== ADMIN CLASSES ==================== -->
     <section id="page-admin-classes" class="page">
       <h2>🏫 Classes</h2>
