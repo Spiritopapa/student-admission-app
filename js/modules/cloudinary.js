@@ -82,6 +82,10 @@ export function getCloudinaryResourceType(fileName) {
  * @param {File} file - the file picked from an <input type="file">.
  * @param {object} [options]
  * @param {string} [options.prefix='file'] - readable prefix for the public id.
+ *   Every caller passes the owning USER / ENTITY id here (e.g. the student's
+ *   STU-XXXXX or a teacher/school id), so the resulting file name in the
+ *   Cloudinary folder always carries that id — making duplicate uploads for the
+ *   same user easy to spot when deleting them manually.
  * @param {string} [options.folder=CLOUDINARY_BASE_FOLDER] - folder to place it in
  *   (best-effort; the unsigned preset may override with its own default folder).
  * @param {string} [options.resourceType='auto'] - image | raw | video | auto.
@@ -100,11 +104,18 @@ export async function uploadToCloudinary(file, options = {}) {
   const publicId = `${prefix}_${Date.now()}_${baseName}.${ext}`;
   const endpoint = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`;
 
-  const send = async (folder /*: string|null*/, includePublicId /*: boolean*/ = true) => {
+  const send = async (
+    folder /*: string|null */,
+    includePublicId /*: boolean*/ = true,
+    publicIdValue /*: string*/ = publicId
+  ) => {
     const form = new FormData();
     form.append('file', file);
     form.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-    if (includePublicId) form.append('public_id', publicId);
+    // Always try to keep the deterministic, user-id-bearing public id so the file
+    // name in the Cloudinary Media Library can be traced back to its owner when
+    // cleaning up duplicate uploads.
+    if (includePublicId) form.append('public_id', publicIdValue);
     if (folder) form.append('folder', folder);
     const res = await fetch(endpoint, { method: 'POST', body: form });
     const data = await res.json().catch(() => ({}));
@@ -116,17 +127,31 @@ export async function uploadToCloudinary(file, options = {}) {
 
   const folder = options.folder || CLOUDINARY_BASE_FOLDER;
   try {
+    // Attempt 1 — destination folder + user-id-tagged public id.
     return await send(folder, true);
   } catch (err) {
-    // If the unsigned preset refuses folder/public_id, retry with ONLY the file
-    // + preset. Cloudinary then auto-generates the id inside the preset's
-    // default folder and we simply store whatever secure_url comes back.
-    if (/preset|folder|public_id|unsigned|not allowed|forbidden|reject/i.test(err.message || '')) {
+    const blocked =
+      /preset|folder|public_id|unsigned|not allowed|forbidden|reject/i.test(err.message || '');
+    if (blocked) {
       try {
-        return await send(null, false);
+        // Attempt 2 — some unsigned presets refuse a separate `folder` param but
+        // still honor a `public_id`. Fold the folder INTO the public id and submit
+        // WITHOUT the folder param, so we keep the user-id-tagged file name instead
+        // of letting Cloudinary mint a random one. If the name carries a folder
+        // already, Cloudinary keeps that path.
+        const pathPublicId = folder ? `${folder}/${publicId}` : publicId;
+        return await send(null, true, pathPublicId);
       } catch (err2) {
-        console.warn('Cloudinary upload failed:', err2.message);
-        return null;
+        // Attempt 3 (LAST resort) — an unsigned preset that forbids ANY public_id.
+        // Cloudinary auto-generates a random id in its default folder. The name will
+        // not contain the user id, but the upload still succeeds and deletion still
+        // works because it resolves the public_id from the saved URL.
+        try {
+          return await send(null, false);
+        } catch (err3) {
+          console.warn('Cloudinary upload failed:', err3.message);
+          return null;
+        }
       }
     }
     console.warn('Cloudinary upload failed:', err.message);
