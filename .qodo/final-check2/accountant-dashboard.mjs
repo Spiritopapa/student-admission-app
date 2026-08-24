@@ -1581,7 +1581,7 @@ function showAccDebtorsPreviewModal(html) {
         </style>
       </head><body>${content.innerHTML}</body></html>
     `, 'Debtors List', 900, 700);
-    logStaffActivity('Generated debtors list (printed)', { role: 'accountant', entityType: 'debtors' }).catch(() => {});
+    try { await logStaffActivity('Generated debtors list (printed)', { role: 'accountant', entityType: 'debtors' }); } catch (e) { /* noop */ }
   });
 }
 

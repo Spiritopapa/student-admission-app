@@ -240,7 +240,7 @@ export async function renderAccountantsTable() {
       : '';
     const resetPwBtn = `<button class="action-btn" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:none;" onclick="openAdminResetPassword('accountant','${t.id}','${t.full_name.replace(/'/g, "\\'")}')">🔑 Password</button>`;
     const actionBtns = `<button class="action-btn confirm" onclick="editAccountant('${t.id}','${t.full_name.replace(/'/g, "\\'")}','${(t.email || '').replace(/'/g, "\\'")}','${(t.phone || '').replace(/'/g, "\\'")}')">Edit</button>${resetPwBtn}<button class="action-btn danger" onclick="deleteAccountant('${t.id}')">Delete</button>`;
-    const activityBtn = `<button class="action-btn" style="background:linear-gradient(135deg,#0ea5e9,#0284c7);color:#fff;border:none;" onclick="viewAccountantActivities('${t.id}')">📋 Activity</button>`;
+const activityBtn = `<button class="action-btn" style="background:linear-gradient(135deg,#0ea5e9,#0284c7);color:#fff;border:none;" onclick="viewAccountantActivities('${t.id}')">📋 Activity</button>`;
     return `<tr>
       <td><span class="dash-photo-placeholder">🧾</span></td>
       <td><strong>${t.full_name}</strong>${regInfo}</td>

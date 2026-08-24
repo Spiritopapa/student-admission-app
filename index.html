@@ -1071,7 +1071,42 @@
       </details>
     </section>
 
-    <!-- ==================== ADMIN ANNOUNCEMENTS ==================== -->
+    <!-- ==================== STAFF ACTIVITY LOG MODAL ==================== -->
+    <div id="staffActivitiesModal" class="modal-overlay" style="display:none;">
+      <div class="modal-card" style="max-width:950px;max-height:90vh;overflow-y:auto;">
+        <div class="modal-header">
+          <h3 id="staffActivitiesModalTitle">📋 Activity Log</h3>
+          <button class="modal-close" onclick="document.getElementById('staffActivitiesModal').style.display='none'">✖</button>
+        </div>
+        <div class="modal-body" id="staffActivitiesModalBody">
+          <div id="staffActivitiesLoading" style="text-align:center;padding:2rem;color:var(--text-muted);">Loading activities...</div>
+          <p id="staffActivitiesError" style="display:none;text-align:center;color:var(--danger);padding:2rem;"></p>
+          <div id="staffActivitiesContent" style="display:none;">
+            <div class="form-row" style="margin-bottom:1rem;">
+              <div class="form-group">
+                <label>Staff Member</label>
+                <span id="staffActivitiesStaffName" style="font-weight:600;font-size:1.1rem;"></span>
+              </div>
+              <div class="form-group">
+                <label>Registration ID</label>
+                <span id="staffActivitiesRegId" style="font-weight:600;"></span>
+              </div>
+              <div class="form-group">
+                <label>Role</label>
+                <span id="staffActivitiesBadge" class="badge-confirmed"></span>
+              </div>
+            </div>
+            <div class="table-wrapper">
+              <table class="app-table">
+                <thead><tr><th>Date &amp; Time</th><th>Action</th><th>Entity Type</th><th>Details</th></tr></thead>
+                <tbody id="staffActivitiesBody"></tbody>
+              </table>
+            </div>
+            <p id="noStaffActivities" style="display:none;text-align:center;color:var(--text-muted);padding:2rem;">No activities recorded for this staff member yet.</p>
+          </div>
+        </div>
+      </div>
+    </div>
     <section id="page-admin-announcements" class="page">
       <h2>📢 Announcements</h2>
       <p class="subtitle">Create and manage announcements visible to the school community.</p>

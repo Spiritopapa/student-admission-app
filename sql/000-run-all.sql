@@ -350,6 +350,17 @@
 --          generation flow and the Add/Edit staff form.
 \i 050-teacher-staff-type.sql
 
+-- Step 46: Staff Activity Log
+-- Creates: staff_activities table (with RLS) so school admins can open a
+--          '📋 Activity' button for each teacher & accountant and audit
+--          login/logout, fee payments, income/expenditure, debtors list
+--          generation, password changes, reprints, profile updates, exam
+--          marks entry, attendance marking and assessment activity.
+-- Used by: js/modules/utils.js (logStaffActivity), js/modules/admin-teachers.js
+--          (viewTeacherActivities) and js/modules/admin-accountants.js
+--          (viewAccountantActivities).
+\i 051-staff-activity-log.sql
+
 -- ============================================================
 --  SCHEMA DEPLOYMENT COMPLETE
 -- ============================================================
