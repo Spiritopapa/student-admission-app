@@ -175,6 +175,9 @@ window.deleteStudent = async function (studentId) {
     allStudents.find(s => s.student_id === studentId)?.middle_name,
     allStudents.find(s => s.student_id === studentId)?.last_name
   );
+  // Capture the student's photo URL BEFORE the DB record is deleted, so the
+  // Cloudinary/Storage asset can be cleaned up after a successful deletion.
+  const studentPhotoUrl = allStudents.find((s) => s.student_id === studentId)?.student_photo_url;
   try {
     // Use the atomic database function to delete everything in one transaction
     const { data, error } = await supabaseClient.rpc('delete_student_completely', {
@@ -231,6 +234,9 @@ window.deleteStudent = async function (studentId) {
       allStudents = allStudents.filter(s => s.student_id !== studentId);
       renderAdminTable();
 
+      // Best-effort cleanup of the student's Cloudinary / Storage photo asset.
+      await deleteStudentPhotoAsset(studentPhotoUrl);
+
       alert(`✅ Student ${studentId} and all associated records permanently deleted.\nThe student can no longer sign in.`);
       logSubAdminActivity(`Deleted student "${studentName || studentId}"`, 'student', `${studentId} - ${studentName || ''}`);
       return;
@@ -242,6 +248,9 @@ window.deleteStudent = async function (studentId) {
     
     allStudents = allStudents.filter(s => s.student_id !== studentId);
     renderAdminTable();
+
+    // Best-effort cleanup of the student's Cloudinary / Storage photo asset.
+    await deleteStudentPhotoAsset(studentPhotoUrl);
 
     let summary = `✅ Student ${studentId} (${result?.student_name || studentName || ''}) permanently deleted.\n`;
     summary += `The student can no longer sign in.\n\n`;
