@@ -1152,7 +1152,7 @@ async function recordPayment() {
 // RECEIPT MODAL & PRINTING
 // ================================================================
 
-async function showReceiptModal(data) {
+export async function showReceiptModal(data) {
   // Fetch school logo URL if not already present
   if (!data.school_logo_url) {
     try {

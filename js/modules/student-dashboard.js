@@ -4,6 +4,7 @@
 
 import { getEl, showMessage, clearMessage, setLoading, buildStudentName, formatDate, getTermDisplay, getGrade, getTeacherRemarks, getHeadTeacherRemarks, getSubjectGrade, getPerformanceLevel, collectStyles, openPrintWindow, getCurrentSchoolId } from './utils.js';
 import { loadStudentAssessments } from './assessment-taking.js';
+import { showReceiptModal, generateReceiptHTML, renderReceiptQR } from './admin-fees.js';
 
 let supabaseClient = null;
 let _studentPortalConfirmed = false;
@@ -596,13 +597,18 @@ async function loadStudentFees() {
         ${paymentHistory.length > 0 ? `
           <div class="table-wrapper" style="overflow-x:auto;">
             <table class="app-table" style="min-width:700px;">
-              <thead><tr><th>Receipt No</th><th>Term</th><th style="text-align:right;">Amount</th><th>Date</th><th style="text-align:center;">Print</th></tr></thead>
+              <thead><tr><th>Receipt No</th><th>Term</th><th style="text-align:right;">Amount</th><th>Date</th><th style="text-align:center;">Actions</th></tr></thead>
               <tbody>${paymentHistory.map(p => {
                 const dateStr = p.date ? formatDate(p.date) : '-';
-                const printBtn = p.type === 'receipt' && p.receipt_number !== '-'
-                  ? `<button class="fee-print-btn" onclick='printSavedReceipt(${JSON.stringify(p.rawData).replace(/'/g,"&#39;")}, "${p.recorded_by_name || ''}")'>🖨️ Print</button>`
+                const escRow = JSON.stringify(p.rawData).replace(/'/g, "&#39;");
+                const processorParam = (p.recorded_by_name || '').replace(/"/g, '&quot;');
+                const receiptActions = p.type === 'receipt' && p.receipt_number !== '-'
+                  ? `<div style="display:inline-flex;gap:0.35rem;">
+                      <button class="fee-print-btn" style="padding:2px 7px;font-size:11px;background:var(--success-light);border-color:var(--success);" onclick='viewSavedReceipt(${escRow}, "${processorParam}")' title="View official receipt" aria-label="View receipt">👁 View</button>
+                      <button class="fee-print-btn" onclick='printSavedReceipt(${escRow}, "${processorParam}")' title="Print official receipt" aria-label="Print receipt">🖨️ Print</button>
+                    </div>`
                   : '<span style="color:var(--text-muted);font-size:0.75rem;">-</span>';
-                return `<tr><td><strong>${p.receipt_number}</strong></td><td>${getTermDisplay(p.term)} ${p.academic_year ? '- ' + p.academic_year : ''}</td><td style="text-align:right;">GH₵ ${p.amount.toFixed(2)}</td><td>${dateStr}</td><td style="text-align:center;">${printBtn}</td></tr>`;
+                return `<tr><td><strong>${p.receipt_number}</strong></td><td>${getTermDisplay(p.term)} ${p.academic_year ? '- ' + p.academic_year : ''}</td><td style="text-align:right;">GH₵ ${p.amount.toFixed(2)}</td><td>${dateStr}</td><td style="text-align:center;">${receiptActions}</td></tr>`;
               }).join('')}</tbody>
             </table>
           </div>
@@ -1027,51 +1033,87 @@ function printStudentReport() {
 }
 
 // ================================================================
-// Print Saved Receipt (global function for onclick in template)
+// Student Receipt View & Print (official admin-style receipt with QR)
 // ================================================================
 
-window.printSavedReceipt = function(receipt, accountantName) {
+// Rebuilds the full official receipt data for a saved payment receipt so the
+// student sees and prints the EXACT same receipt (logo, school, fee table,
+// payment details, status, notes and scannable verification QR) as the one
+// issued on the admin / accountant fee dashboards.
+async function buildStudentReceiptData(receipt, processorLabel) {
+  // Stored receipt_data (snapshot taken when the receipt was issued) is the
+  // authoritative source; fall back to the saved columns for older receipts.
+  const stored = (receipt && receipt.receipt_data && typeof receipt.receipt_data === 'object')
+    ? { ...receipt.receipt_data }
+    : {};
+  const data = { ...stored };
+
+  data.receipt_number = receipt.receipt_number || data.receipt_number;
+  data.verification_token = receipt.verification_token || data.verification_token;
+  data.student_id = receipt.student_id || data.student_id || '';
+  data.academic_year = receipt.academic_year || data.academic_year;
+  data.term = receipt.term || data.term;
+  data.receipt_date = receipt.receipt_date || receipt.payment_date || data.receipt_date || data.payment_date || null;
+  data.amount_paid = Number(receipt.amount ?? receipt.amount_paid ?? data.amount_paid ?? data.amount_now ?? 0);
+  data.payment_method = receipt.payment_method || data.payment_method || '';
+  data.reference_number = receipt.reference_number || data.reference_number || null;
+  data.notes = receipt.notes || data.notes || null;
+  data.payment_status = receipt.payment_status || data.payment_status || 'paid';
+  if (!data.amount_now && data.amount_paid) data.amount_now = data.amount_paid;
+
+  if (processorLabel && !data.processed_by) {
+    const idx = processorLabel.indexOf(':');
+    if (idx !== -1) {
+      data.processed_by_label = processorLabel.slice(0, idx).trim();
+      data.processed_by = processorLabel.slice(idx + 1).trim();
+    } else {
+      data.processed_by_label = 'Staff';
+      data.processed_by = processorLabel.trim();
+    }
+  }
+
+  // Fill any missing school / student details so the receipt always renders fully.
+  try {
+    if (!data.school_name) {
+      const schoolId = await getCurrentSchoolId();
+      if (schoolId) {
+        const { data: school } = await supabaseClient.from('schools').select('name').eq('id', schoolId).maybeSingle();
+        if (school && school.name) data.school_name = school.name;
+      }
+    }
+    if (!data.student_name || !data.class) {
+      const { data: app } = await supabaseClient.from('applications')
+        .select('first_name, middle_name, last_name, class_applying')
+        .eq('student_id', data.student_id)
+        .maybeSingle();
+      if (app) {
+        data.student_name = data.student_name || buildStudentName(app.first_name, app.middle_name, app.last_name);
+        data.class = data.class || app.class_applying;
+      }
+    }
+  } catch (e) { /* keep whatever snapshot fields we already have */ }
+
+  return data;
+}
+
+// View a saved receipt in the shared Payment Receipt modal (same as admin).
+window.viewSavedReceipt = async function (receipt, processorLabel) {
   if (!receipt) return;
-  const styles = collectStyles() + `
-    body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;padding:20px;margin:0;background:#fff;font-size:13px;}
-    .receipt-box{max-width:400px;margin:0 auto;border:2px solid #333;padding:1.5rem;position:relative;}
-    .receipt-header{text-align:center;border-bottom:2px dashed #333;padding-bottom:1rem;margin-bottom:1rem;}
-    .receipt-header h2{margin:0 0 0.25rem;font-size:1.3rem;}
-    .receipt-header p{margin:0;font-size:0.8rem;color:#555;}
-    .receipt-title{text-align:center;font-size:1.1rem;font-weight:700;margin:0.75rem 0;text-transform:uppercase;letter-spacing:2px;}
-    .receipt-row{display:flex;justify-content:space-between;padding:0.3rem 0;border-bottom:1px dotted #ccc;font-size:0.85rem;}
-    .receipt-row.total{font-weight:800;font-size:1rem;border-bottom:2px solid #333;border-top:2px solid #333;margin-top:0.5rem;padding:0.5rem 0;}
-    .receipt-footer{text-align:center;margin-top:1rem;font-size:0.75rem;color:#888;border-top:2px dashed #333;padding-top:0.75rem;}
-    @media print{body{padding:0;margin:0;}.receipt-box{border-color:#333;}}
-  `;
-  const receiptDate = receipt.receipt_date || receipt.payment_date;
-  const formattedDate = receiptDate ? new Date(receiptDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : '-';
-  const receiptNumber = receipt.receipt_number || receipt.receipt_no || 'N/A';
-  const amountPaid = Number(receipt.amount || receipt.amount_paid || 0).toFixed(2);
-  const html = `
-    <html><head><title>Receipt ${receiptNumber}</title><style>${styles}</style></head><body>
-      <div class="receipt-box">
-        <div class="receipt-header">
-          <h2>🏫 School Receipt</h2>
-          <p>Official Payment Receipt</p>
-        </div>
-        <div class="receipt-title">RECEIPT</div>
-        <div class="receipt-row"><span>Receipt No:</span><strong>${receiptNumber}</strong></div>
-        <div class="receipt-row"><span>Student ID:</span><strong>${receipt.student_id || 'N/A'}</strong></div>
-        <div class="receipt-row"><span>Term:</span><strong>${receipt.term || 'N/A'}</strong></div>
-        <div class="receipt-row"><span>Academic Year:</span><strong>${receipt.academic_year || 'N/A'}</strong></div>
-        <div class="receipt-row"><span>Payment Date:</span><strong>${formattedDate}</strong></div>
-        <div class="receipt-row"><span>Payment Method:</span><strong>${receipt.payment_method || 'N/A'}</strong></div>
-        <div class="receipt-row total"><span>Amount Paid:</span><strong>GH₵ ${amountPaid}</strong></div>
-        ${receipt.reference_number ? `<div class="receipt-row"><span>Reference:</span><strong>${receipt.reference_number}</strong></div>` : ''}
-        ${receipt.notes ? `<div class="receipt-row"><span>Notes:</span><strong>${receipt.notes}</strong></div>` : ''}
-        <div class="receipt-footer">
-          <p>Thank you for your payment!</p>
-          ${accountantName ? `<p style="font-size:0.75rem;color:#555;margin-top:0.5rem;">Processed by: <strong>${accountantName}</strong></p>` : ''}
-          <p style="font-size:0.65rem;margin-top:0.3rem;">Generated on ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
-        </div>
-      </div>
-    </body></html>`;
-  const win = openPrintWindow(html, 'Receipt', 500, 600);
-  if (win) { win.focus(); setTimeout(() => { win.print(); }, 800); }
+  const data = await buildStudentReceiptData(receipt, processorLabel);
+  await showReceiptModal(data);
+};
+
+// Print a saved receipt: renders the official receipt (with QR) and prints it
+// exactly like the admin/accountant receipt print action.
+window.printSavedReceipt = async function (receipt, processorLabel) {
+  if (!receipt) return;
+  const data = await buildStudentReceiptData(receipt, processorLabel);
+  const content = getEl('receiptContent');
+  if (content) content.innerHTML = generateReceiptHTML(data);
+  renderReceiptQR(data);
+  // Allow a beat for the QR canvas to finish rendering before it is snapshotted
+  // into the print document (mirrors the admin modal's QR serialization path).
+  setTimeout(() => {
+    if (typeof window.printReceipt === 'function') window.printReceipt();
+  }, 600);
 };

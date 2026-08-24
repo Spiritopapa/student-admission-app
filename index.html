@@ -502,7 +502,7 @@
             <button type="button" class="dash-nav-link" data-admin-page="students"><span class="dash-nav-icon">👥</span> Students</button>
             <button type="button" class="dash-nav-link" data-admin-page="classes"><span class="dash-nav-icon">🏫</span> Classes</button>
             <button type="button" class="dash-nav-link" data-admin-page="subjects"><span class="dash-nav-icon">📖</span> Subjects</button>
-            <button type="button" class="dash-nav-link" data-admin-page="teachers"><span class="dash-nav-icon">📚</span> Teachers</button>
+            <button type="button" class="dash-nav-link" data-admin-page="teachers"><span class="dash-nav-icon">👥</span> Staff</button>
             <button type="button" class="dash-nav-link" data-admin-page="accountants"><span class="dash-nav-icon">🧾</span> Accountants</button>
             <button type="button" class="dash-nav-link" data-admin-page="parents"><span class="dash-nav-icon">👨‍👩‍👧</span> Parents</button>
             <button type="button" class="dash-nav-link" data-admin-page="admit"><span class="dash-nav-icon">➕</span> Admit Student</button>
@@ -835,45 +835,61 @@
       </details>
     </section>
 
-    <!-- ==================== ADMIN TEACHERS ==================== -->
+    <!-- ==================== ADMIN STAFF ==================== -->
     <section id="page-admin-teachers" class="page">
-      <h2>📚 Teachers</h2>
-      <p class="subtitle">Manage teaching staff assigned to classes. Generate registration IDs for teachers to register on the portal.</p>
+      <h2>👥 Staff</h2>
+      <p class="subtitle">Manage all staff members (teaching and non-teaching). Generate registration IDs for staff to register on the portal.</p>
       
       <div class="card-toolbar">
-        <input type="text" id="adminTeachersSearch" placeholder="Search all teacher fields..." class="search-input" />
-        <button type="button" class="btn btn-primary" id="addTeacherBtn">➕ Add Teacher</button>
-        <button type="button" class="btn btn-secondary" id="btnGenerateTeacherId">🔑 Generate Teacher ID</button>
-        <button type="button" class="btn btn-secondary" id="btnExportTeachersCSV">📥 Export CSV</button>
-        <button type="button" class="btn btn-secondary" id="btnImportTeachersCSV">📤 Import CSV</button>
+        <input type="text" id="adminTeachersSearch" placeholder="Search all staff fields..." class="search-input" />
+        <button type="button" class="btn btn-primary" id="addTeacherBtn">➕ Add Staff</button>
+        <button type="button" class="btn btn-secondary" id="btnGenerateTeacherId">🔑 Generate Staff ID</button>
+        <button type="button" class="btn btn-secondary" id="btnExportTeachersCSV">📥 Export Staff CSV</button>
+        <button type="button" class="btn btn-secondary" id="btnImportTeachersCSV">📤 Import Staff CSV</button>
         <input type="file" id="csvTeachersImportInput" accept=".csv" style="display:none;" />
       </div>
 
-      <!-- New Teacher Registration ID Form -->
+      <!-- New Staff Registration ID Form -->
       <details class="admit-section" id="newTeacherSection" style="margin-top:1rem;display:none;">
-        <summary class="btn btn-secondary" style="cursor:pointer;">➕ Create Teacher with Registration ID</summary>
+        <summary class="btn btn-secondary" style="cursor:pointer;">➕ Create Staff with Registration ID</summary>
         <form id="newTeacherForm" class="admission-form" style="margin-top:1rem;max-width:100%;">
           <div class="form-row">
             <div class="form-group"><label>Full Name *</label><input type="text" id="newTeacherName" required placeholder="e.g. Jane Smith" /></div>
+            <div class="form-group"><label>Staff Type</label>
+              <select id="newTeacherStaffType">
+                <option value="teaching">Teaching Staff</option>
+                <option value="non_teaching">Non-Teaching Staff</option>
+              </select>
+            </div>
+          </div>
+          <div id="newTeacherClassFields" style="display:block;">
+            <div class="form-row">
+              <div class="form-group"><label>Classes Assigned (hold Ctrl to select multiple)</label>
+                <select id="newTeacherClass" multiple style="height:80px;width:100%;padding:0.3rem;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:0.85rem;font-family:inherit;"></select>
+              </div>
+              <div class="form-group"><label>Subjects (hold Ctrl to select multiple)</label>
+                <select id="newTeacherSubject" multiple style="height:80px;width:100%;padding:0.3rem;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:0.85rem;font-family:inherit;"></select>
+              </div>
+            </div>
           </div>
           <div class="form-row">
             <div class="form-group"><label>Generated Registration ID</label><input type="text" id="newTeacherRegId" readonly style="background:var(--bg);font-weight:700;font-size:1.1rem;letter-spacing:1px;text-align:center;" /></div>
           </div>
-          <p class="subtitle" style="color:var(--text-muted);font-size:0.8rem;">Provide this Registration ID to the teacher so they can register on the portal. They will set their own password.</p>
-          <button type="submit" class="btn btn-primary btn-full" id="saveTeacherBtn">✅ Create Teacher & Generate ID</button>
+          <p class="subtitle" style="color:var(--text-muted);font-size:0.8rem;">Provide this Registration ID to the staff member so they can register on the portal. They will set their own password.</p>
+          <button type="submit" class="btn btn-primary btn-full" id="saveTeacherBtn">✅ Create Staff &amp; Generate ID</button>
         </form>
         <div id="newTeacherMessage" class="message" style="display:none;"></div>
       </details>
 
       <div class="table-wrapper">
         <table class="app-table">
-          <thead><tr><th>Photo</th><th>Full Name</th><th>Email</th><th>Phone</th><th>Class</th><th>Subject</th><th>Qualification</th><th>Status</th><th>Registration</th><th>Approve</th><th>Action</th></tr></thead>
+          <thead><tr><th>Photo</th><th>Full Name</th><th>Staff Type</th><th>Email</th><th>Phone</th><th>Class</th><th>Subject</th><th>Qualification</th><th>Status</th><th>Registration</th><th>Approve</th><th>Action</th></tr></thead>
           <tbody id="adminTeachersBody"></tbody>
         </table>
       </div>
-      <p id="adminNoTeachers" style="display:none;text-align:center;color:var(--text-muted);padding:2rem;">No teachers found.</p>
+      <p id="adminNoTeachers" style="display:none;text-align:center;color:var(--text-muted);padding:2rem;">No staff found.</p>
       <details class="admit-section" id="teacherFormSection" style="margin-top:1.5rem;">
-        <summary class="btn btn-secondary" style="cursor:pointer;">📝 Add / Edit Teacher</summary>
+        <summary class="btn btn-secondary" style="cursor:pointer;">📝 Add / Edit Staff</summary>
         <form id="teacherForm" class="admission-form" style="margin-top:1rem;max-width:100%;">
           <input type="hidden" id="teacherEditId" />
           <div class="form-row">
@@ -882,18 +898,30 @@
             <div class="form-group"><label>Phone</label><input type="tel" id="teacherPhone" /></div>
           </div>
           <div class="form-row">
-            <div class="form-group">
-              <label>Classes Assigned (hold Ctrl/Cmd to select multiple)</label>
-              <select id="teacherClass" multiple style="height:100px;width:100%;padding:0.3rem;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:0.85rem;font-family:inherit;"></select>
+            <div class="form-group"><label>Staff Type</label>
+              <select id="teacherStaffType">
+                <option value="teaching">Teaching Staff</option>
+                <option value="non_teaching">Non-Teaching Staff</option>
+              </select>
             </div>
-            <div class="form-group"><label>Qualification</label><input type="text" id="teacherQualification" /></div>
+          </div>
+          <div id="teacherClassFieldWrap" style="display:block;">
+            <div class="form-row">
+              <div class="form-group">
+                <label>Classes Assigned (hold Ctrl/Cmd to select multiple)</label>
+                <select id="teacherClass" multiple style="height:100px;width:100%;padding:0.3rem;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:0.85rem;font-family:inherit;"></select>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group" style="grid-column:1/-1;">
+                <label>Subjects for Each Class</label>
+                <div id="teacherClassSubjects"></div>
+                <p class="subtitle" style="color:var(--text-muted);font-size:0.8rem;margin-top:0.25rem;">Select the classes above, then choose which subjects this teacher teaches in each class.</p>
+              </div>
+            </div>
           </div>
           <div class="form-row">
-            <div class="form-group" style="grid-column:1/-1;">
-              <label>Subjects for Each Class</label>
-              <div id="teacherClassSubjects"></div>
-              <p class="subtitle" style="color:var(--text-muted);font-size:0.8rem;margin-top:0.25rem;">Select the classes above, then choose which subjects this teacher teaches in each class.</p>
-            </div>
+            <div class="form-group"><label>Qualification</label><input type="text" id="teacherQualification" /></div>
           </div>
           <h4 style="margin-top:1rem;color:var(--primary);">👤 Personal Information</h4>
           <div class="form-row">

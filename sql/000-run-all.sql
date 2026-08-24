@@ -341,6 +341,15 @@
 --          every school's provided info appears on the Super Admin dashboard.
 \i 049-school-onboarding-persistence-fix.sql
 
+-- Step 45: Staff Type (Teaching / Non-Teaching)
+-- Adds: teachers.staff_type column so the admin Staff module can classify
+--       staff members as 'teaching' or 'non_teaching'. Class/subject
+--       assignment fields in the admin staff forms are shown for teaching
+--       staff and dropped for non-teaching staff.
+-- Used by: js/modules/admin-teachers.js (admin Staff Module) — the ID
+--          generation flow and the Add/Edit staff form.
+\i 050-teacher-staff-type.sql
+
 -- ============================================================
 --  SCHEMA DEPLOYMENT COMPLETE
 -- ============================================================

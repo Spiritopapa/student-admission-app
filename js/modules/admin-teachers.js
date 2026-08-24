@@ -27,6 +27,8 @@ export function setupTeacherForm() {
   getEl('addTeacherBtn')?.addEventListener('click', async () => {
     getEl('teacherEditId').value = '';
     getEl('teacherForm').reset();
+    if (getEl('teacherStaffType')) getEl('teacherStaffType').value = 'teaching';
+    toggleTeacherClassFields();
     teacherSubjectMatch = {};
     teacherLegacySubjects = [];
     await populateTeacherFormDropdowns();
@@ -52,13 +54,15 @@ export function setupTeacherForm() {
       subjectsByClass[cls] = Array.from(sel.selectedOptions).map(o => o.value);
     });
     const allSubjects = Array.from(new Set(Object.values(subjectsByClass).flat()));
+    const isTeachingStaff = (getEl('teacherStaffType')?.value || 'teaching') === 'teaching';
     
     const payload = {
       full_name: getEl('teacherFullName').value.trim(),
       email: getEl('teacherEmail').value.trim() || null,
       phone: getEl('teacherPhone').value.trim() || null,
-      class_taught: selectedClasses.join(', ') || null,
-      subject: allSubjects.join(', ') || null,
+      staff_type: getEl('teacherStaffType')?.value || 'teaching',
+      class_taught: isTeachingStaff ? selectedClasses.join(', ') || null : null,
+      subject: isTeachingStaff ? allSubjects.join(', ') || null : null,
       qualification: getEl('teacherQualification').value.trim() || null,
       is_active: getEl('teacherActive').value === 'true',
       first_name: getEl('teacherFirstName')?.value.trim() || null,
@@ -110,8 +114,8 @@ export function setupTeacherForm() {
         const { error } = await supabaseClient.from('teachers').update(payload).eq('id', editId);
         if (error) throw error;
         
-        // Update class-subject assignments
-        await saveTeacherClassSubjects(editId, subjectsByClass);
+        // Update class-subject assignments (only relevant for teaching staff)
+        await saveTeacherClassSubjects(editId, isTeachingStaff ? subjectsByClass : {});
         
         showMessage('teacherMessage', '✅ Teacher updated successfully.', 'success');
         logSubAdminActivity(`Updated teacher "${payload.full_name}"`, 'teacher', payload.full_name);
@@ -119,7 +123,7 @@ export function setupTeacherForm() {
         const { data, error } = await supabaseClient.from('teachers').insert([payload]).select();
         if (error) throw error;
         
-        if (data && data.length > 0) {
+        if (data && data.length > 0 && isTeachingStaff) {
           // Save class-subject assignments
           await saveTeacherClassSubjects(data[0].id, subjectsByClass);
         }
@@ -132,6 +136,7 @@ export function setupTeacherForm() {
       teacherSubjectMatch = {};
       teacherLegacySubjects = [];
       renderTeacherClassSubjectBlocks();
+      toggleTeacherClassFields();
       await renderTeachersTable();
     } catch (err) { showMessage('teacherMessage', 'Error: ' + err.message, 'error'); }
     finally { setLoading(btn, false, 'Save Teacher'); }
@@ -139,6 +144,11 @@ export function setupTeacherForm() {
 
   getEl('teacherClass')?.addEventListener('change', renderTeacherClassSubjectBlocks);
   getEl('adminTeachersSearch')?.addEventListener('input', renderTeachersTable);
+  
+  // Staff type toggles: show/hide the class & subject assignment fields.
+  getEl('newTeacherStaffType')?.addEventListener('change', toggleNewTeacherClassFields);
+  getEl('teacherStaffType')?.addEventListener('change', toggleTeacherClassFields);
+  toggleNewTeacherClassFields();
   
   // CSV Export/Import
   getEl('btnExportTeachersCSV')?.addEventListener('click', exportTeachersCSV);
@@ -254,6 +264,9 @@ async function generateTeacherId() {
     getEl('newTeacherRegId').value = regId || 'TCH-0001';
     getEl('newTeacherSection').style.display = 'block';
     getEl('newTeacherSection').open = true;
+    // Populate the class/subject dropdowns (used for teaching staff).
+    await populateNewTeacherDropdowns();
+    toggleNewTeacherClassFields();
   } catch (err) { alert('Error: ' + err.message); }
 }
 
@@ -265,25 +278,43 @@ async function saveNewTeacher(e) {
   const fullName = getEl('newTeacherName').value.trim();
   
   const regId = getEl('newTeacherRegId').value.trim();
-  if (!fullName || !regId) { showMessage('newTeacherMessage', 'Name and Registration ID are required.', 'error'); setLoading(btn, false, '✅ Create Teacher & Generate ID'); return; }
+  if (!fullName || !regId) { showMessage('newTeacherMessage', 'Name and Registration ID are required.', 'error'); setLoading(btn, false, '✅ Create Staff & Generate ID'); return; }
+  
+  const staffType = getEl('newTeacherStaffType')?.value || 'teaching';
+  const isTeachingStaff = staffType === 'teaching';
+  const classSel = getEl('newTeacherClass');
+  const subjSel = getEl('newTeacherSubject');
+  const selectedClasses = isTeachingStaff && classSel ? Array.from(classSel.selectedOptions).map(o => o.value) : [];
+  const selectedSubjects = isTeachingStaff && subjSel ? Array.from(subjSel.selectedOptions).map(o => o.value) : [];
+  const subjectsByClass = {};
+  if (isTeachingStaff) {
+    selectedClasses.forEach(cls => { subjectsByClass[cls] = selectedSubjects; });
+  }
   
   try {
     const { data: { user } } = await supabaseClient.auth.getUser();
     const schoolId = await getCurrentSchoolId();
     const { data, error } = await supabaseClient.from('teachers').insert([{
       registration_id: regId, full_name: fullName, school_id: schoolId,
+      staff_type: staffType,
+      class_taught: isTeachingStaff ? (selectedClasses.join(', ') || null) : null,
+      subject: isTeachingStaff ? (selectedSubjects.join(', ') || null) : null,
       created_by: user?.id || null, is_approved: true,
     }]).select();
     
-    if (error) { showMessage('newTeacherMessage', 'Error: ' + error.message, 'error'); setLoading(btn, false, '✅ Create Teacher & Generate ID'); return; }
+    if (error) { showMessage('newTeacherMessage', 'Error: ' + error.message, 'error'); setLoading(btn, false, '✅ Create Staff & Generate ID'); return; }
     
-    showMessage('newTeacherMessage', `✅ Teacher "${fullName}" created with ID: ${regId}. Provide this ID to them for registration.`, 'success');
+    if (data && data.length > 0 && selectedClasses.length > 0) {
+      await saveTeacherClassSubjects(data[0].id, subjectsByClass);
+    }
+    
+    showMessage('newTeacherMessage', `✅ Staff "${fullName}" created with ID: ${regId}. Provide this ID to them for registration.`, 'success');
     getEl('newTeacherName').value = '';
     getEl('newTeacherRegId').value = '';
     getEl('newTeacherSection').style.display = 'none';
     await renderTeachersTable();
   } catch (err) { showMessage('newTeacherMessage', 'Error: ' + err.message, 'error'); }
-  finally { setLoading(btn, false, '✅ Create Teacher & Generate ID'); }
+  finally { setLoading(btn, false, '✅ Create Staff & Generate ID'); }
 }
 
 // ================================================================
@@ -303,6 +334,7 @@ window.editTeacher = async function (id) {
     getEl('teacherPhone').value = teacher.phone || '';
     getEl('teacherQualification').value = teacher.qualification || '';
     getEl('teacherActive').value = teacher.is_active ? 'true' : 'false';
+    getEl('teacherStaffType').value = teacher.staff_type === 'non_teaching' ? 'non_teaching' : 'teaching';
     
     // Personal Information
     getEl('teacherFirstName').value = teacher.first_name || '';
@@ -390,6 +422,9 @@ window.editTeacher = async function (id) {
     
     // Render per-class subject selectors (pre-selected from the loaded assignments)
     renderTeacherClassSubjectBlocks();
+    
+    // Show/hide the class & subject fields based on staff type.
+    toggleTeacherClassFields();
     
     getEl('teacherFormSection').open = true;
   } catch (err) {
@@ -507,6 +542,64 @@ window.unlinkTeacherUser = async function (teacherId) {
   } catch (err) { alert('Error: ' + err.message); }
 };
 
+// ================================================================
+// Staff Type toggle helpers
+// ================================================================
+
+// Show/hide the class & subject assignment controls based on the staff
+// type selected in the "Create Staff with Registration ID" form.
+function toggleNewTeacherClassFields() {
+  const wrap = getEl('newTeacherClassFields');
+  if (!wrap) return;
+  const isTeaching = (getEl('newTeacherStaffType')?.value || 'teaching') === 'teaching';
+  wrap.style.display = isTeaching ? 'block' : 'none';
+  if (!isTeaching) {
+    // Non-teaching staff: clear any teaching-specific selections.
+    const c = getEl('newTeacherClass');
+    const s = getEl('newTeacherSubject');
+    if (c) Array.from(c.options).forEach(o => { o.selected = false; });
+    if (s) Array.from(s.options).forEach(o => { o.selected = false; });
+  }
+}
+
+// Show/hide the class & subject assignment controls based on the staff
+// type selected in the Add / Edit Staff form.
+function toggleTeacherClassFields() {
+  const wrap = getEl('teacherClassFieldWrap');
+  if (!wrap) return;
+  const isTeaching = (getEl('teacherStaffType')?.value || 'teaching') === 'teaching';
+  wrap.style.display = isTeaching ? 'block' : 'none';
+  if (!isTeaching) {
+    // Non-teaching staff: clear any selected classes and subject blocks so
+    // they are not persisted when the record is saved.
+    const classSel = getEl('teacherClass');
+    if (classSel) Array.from(classSel.options).forEach(o => { o.selected = false; });
+    const container = getEl('teacherClassSubjects');
+    if (container) container.innerHTML = '';
+  } else {
+    renderTeacherClassSubjectBlocks();
+  }
+}
+
+// Populate the class / subject multiple-selects in the "Generate ID" form.
+async function populateNewTeacherDropdowns() {
+  const classSel = getEl('newTeacherClass');
+  const subjSel = getEl('newTeacherSubject');
+  if (!classSel && !subjSel) return;
+  try {
+    const schoolId = await getCurrentSchoolId();
+    let classesQuery = supabaseClient.from('classes').select('name').order('name', { ascending: true });
+    let subjectsQuery = supabaseClient.from('subjects').select('name').order('name', { ascending: true });
+    if (schoolId) {
+      classesQuery = classesQuery.eq('school_id', schoolId);
+      subjectsQuery = subjectsQuery.eq('school_id', schoolId);
+    }
+    const [classesRes, subjectsRes] = await Promise.all([classesQuery, subjectsQuery]);
+    if (classSel) classSel.innerHTML = (classesRes.data || []).map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+    if (subjSel) subjSel.innerHTML = (subjectsRes.data || []).map(s => `<option value="${s.name}">${s.name}</option>`).join('');
+  } catch (err) { console.error('Failed to load class/subject lists:', err); }
+}
+
 async function populateTeacherFormDropdowns() {
   const classSelect = getEl('teacherClass');
   if (!classSelect) return;
@@ -546,7 +639,7 @@ export async function renderTeachersTable() {
       t.tin_number, t.ntc_number, t.ssnit_number, t.certificate_number, t.emis_code,
       t.gender, t.region, t.district, t.school_name, t.circuit, t.rank,
       t.salary_scale, t.salary_step, t.nationality, t.religion, t.marital_status,
-      t.place_of_birth, t.disability
+      t.place_of_birth, t.disability, t.staff_type
     ].filter(Boolean).join(' ').toLowerCase();
     return searchable.includes(search);
   });
@@ -585,6 +678,7 @@ export async function renderTeachersTable() {
     return `<tr>
       <td>${photoHtml}</td>
       <td><strong>${t.full_name}</strong></td>
+      <td><span style="font-size:0.8rem;color:var(--primary-dark);font-weight:600;">${t.staff_type === 'non_teaching' ? 'Non-Teaching' : 'Teaching'}</span></td>
       <td>${t.email || '-'}</td>
       <td>${t.phone || '-'}</td>
       <td>${t.class_taught || '-'}</td>
@@ -644,6 +738,7 @@ window.viewTeacherDetails = async function (teacherId) {
         ${field('Place of Birth', teacher.place_of_birth)}
         ${field('Nationality', teacher.nationality)}
         ${field('Religion', teacher.religion)}
+        ${field('Staff Type', teacher.staff_type === 'non_teaching' ? 'Non-Teaching Staff' : 'Teaching Staff')}
         
         <h4 style="grid-column:1/-1;margin:0.5rem 0;color:var(--primary);">🆔 Identification</h4>
         ${field('Staff ID', teacher.staff_id)}
@@ -760,7 +855,7 @@ function escapeCSVCell(val) {
 
 function teachersToCSV(teachers) {
   const header = [
-    'Full Name', 'First Name', 'Middle Name', 'Surname', 'Date of Birth', 'Age',
+    'Full Name', 'Staff Type', 'First Name', 'Middle Name', 'Surname', 'Date of Birth', 'Age',
     'Gender', 'Region', 'Marital Status', 'Disability', 'Place of Birth', 'Nationality',
     'Religion', 'Staff ID', 'Mobile Number', 'Ghana Card Number', 'TIN Number', 'NTC Number', 'SSNIT Number',
     'Certificate Number', 'EMIS Code', 'Date of First Appointment', 'Date of Transfer',
@@ -773,7 +868,8 @@ function teachersToCSV(teachers) {
     'Email', 'Phone', 'Class Taught', 'Subject', 'Qualification', 'Registration ID'
   ];
   const rows = teachers.map(t => [
-    t.full_name, t.first_name, t.middle_name, t.surname, t.dob, t.age,
+    t.full_name, t.staff_type === 'non_teaching' ? 'Non-Teaching' : 'Teaching',
+    t.first_name, t.middle_name, t.surname, t.dob, t.age,
     t.gender, t.region, t.marital_status, t.disability, t.place_of_birth, t.nationality,
     t.religion, t.staff_id, t.mobile_number, t.ghana_card_number, t.tin_number, t.ntc_number, t.ssnit_number,
     t.certificate_number, t.emis_code, t.date_first_appointment_district, t.date_transfer_last_school,
@@ -847,6 +943,7 @@ async function importTeachersCSV() {
       
       const payload = {
         full_name: fullName,
+        staff_type: (getVal('Staff Type') || 'Teaching').toLowerCase().includes('non') ? 'non_teaching' : 'teaching',
         first_name: getVal('First Name') || null,
         middle_name: getVal('Middle Name') || null,
         surname: getVal('Surname') || null,
@@ -906,7 +1003,7 @@ async function importTeachersCSV() {
       } catch (err) { skipped++; }
     }
     
-    let msg = `✅ Imported ${imported} teacher(s) successfully.`;
+    let msg = `✅ Imported ${imported} staff member(s) successfully.`;
     if (skipped > 0) msg += ` ⚠️ ${skipped} row(s) skipped.`;
     alert(msg);
     fileInput.value = '';
