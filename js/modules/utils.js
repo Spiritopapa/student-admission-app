@@ -87,6 +87,78 @@ export async function getCurrentSchoolId() {
 export function clearSchoolIdCache() {
   _cachedSchoolId = null;
   _cachedSchoolIdUser = null;
+  _cachedSchoolInitials = null;
+  _cachedSchoolInitialsSchool = null;
+}
+
+// ================================================================
+// School initials - used to tag Cloudinary file names
+// ================================================================
+
+let _cachedSchoolInitials = null;
+let _cachedSchoolInitialsSchool = null;
+
+/**
+ * Derive up to 3 uppercase initials from a school's name, mirroring the SQL
+ * helper `school_initials(p_school_id)` in sql/046-per-school-staff-ids.sql.
+ * e.g. "Sunshine International School" -> "SIS" ; unknown -> "SCH".
+ */
+export function getSchoolInitialsFromName(schoolName) {
+  const clean = String(schoolName || '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9 ]/g, ' ');
+  const initials = clean
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((w) => w[0])
+    .join('');
+  return initials.slice(0, 3) || 'SCH';
+}
+
+/**
+ * Resolve a school's initials from its id by reading the school name.
+ * Caches the result per school id. Falls back to "SCH" when the lookup fails.
+ */
+export async function getSchoolInitials(schoolId) {
+  if (!_supabaseForSchoolId || !schoolId) return 'SCH';
+  if (_cachedSchoolInitials && _cachedSchoolInitialsSchool === schoolId) {
+    return _cachedSchoolInitials;
+  }
+  try {
+    let schoolName = null;
+    // Prefer the per-school settings name, then the canonical schools.name.
+    const { data: settings } = await _supabaseForSchoolId
+      .from('school_settings')
+      .select('school_name')
+      .eq('school_id', schoolId)
+      .maybeSingle();
+    if (settings?.school_name) {
+      schoolName = settings.school_name;
+    } else {
+      const { data: school } = await _supabaseForSchoolId
+        .from('schools')
+        .select('name')
+        .eq('id', schoolId)
+        .maybeSingle();
+      if (school?.name) schoolName = school.name;
+    }
+    const initials = getSchoolInitialsFromName(schoolName);
+    _cachedSchoolInitials = initials;
+    _cachedSchoolInitialsSchool = schoolId;
+    return initials;
+  } catch (err) {
+    console.warn('Failed to resolve school initials:', err.message);
+    return 'SCH';
+  }
+}
+
+/**
+ * Convenience wrapper returning the CURRENT user's school initials
+ * (e.g. "SIS"), or "SCH" when no school is attached to the user.
+ */
+export async function getCurrentSchoolInitials() {
+  const schoolId = await getCurrentSchoolId();
+  return getSchoolInitials(schoolId);
 }
 
 // ================================================================

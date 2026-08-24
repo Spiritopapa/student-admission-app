@@ -2,7 +2,7 @@
  * Admin Students Module - Student management, admit, edit, delete
  */
 
-import { getEl, showMessage, clearMessage, setLoading, buildStudentName, formatDate, formatDateTime, statusBadge, portalBadge, uploadPhoto, previewFile, validateImageFile, logSubAdminActivity, getCurrentSchoolId, parseCSVLine, openPrintWindow, getCurrentAcademicYear } from './utils.js';
+import { getEl, showMessage, clearMessage, setLoading, buildStudentName, formatDate, formatDateTime, statusBadge, portalBadge, uploadPhoto, previewFile, validateImageFile, logSubAdminActivity, getCurrentSchoolId, getCurrentSchoolInitials, parseCSVLine, openPrintWindow, getCurrentAcademicYear } from './utils.js';
 import { deleteCloudinaryFile, getCloudinaryPublicIdFromUrl } from './cloudinary.js';
 
 let supabaseClient = null;
@@ -337,6 +337,18 @@ async function deleteStudentPhotoAsset(oldUrl) {
 }
 
 /**
+ * Build a Cloudinary display prefix for a student photo that includes BOTH the
+ * student id and the current school's initials, e.g. "STU-KABP9Q-SIS". This
+ * makes duplicated uploads for the same student easy to identify in the
+ * Cloudinary Media Library. Falls back to the bare student id if the initials
+ * cannot be resolved.
+ */
+async function studentPhotoPrefix(studentId) {
+  const initials = await getCurrentSchoolInitials();
+  return initials && initials !== 'SCH' ? `${studentId}-${initials}` : studentId;
+}
+
+/**
  * Update a student's photo to a newly uploaded file. Returns the new public
  * URL on success, or null when the upload / update failed.
  */
@@ -344,7 +356,7 @@ async function replaceStudentPhotoFromFile(studentId, file) {
   const student = allStudents.find((s) => s.student_id === studentId);
   const oldUrl = student?.student_photo_url || null;
 
-  const newUrl = await uploadPhoto(supabaseClient, 'student-photos', file, studentId);
+  const newUrl = await uploadPhoto(supabaseClient, 'student-photos', file, await studentPhotoPrefix(studentId));
   if (!newUrl) return null;
 
   const schoolId = await getCurrentSchoolId();
@@ -410,7 +422,7 @@ export function setupAdmitForm() {
           getEl('admitClearPhoto').style.display = 'none';
           return;
         }
-        photoUrl = await uploadPhoto(supabaseClient, 'student-photos', photoFile, studentId);
+        photoUrl = await uploadPhoto(supabaseClient, 'student-photos', photoFile, await studentPhotoPrefix(studentId));
       }
 
       const schoolId = await getCurrentSchoolId();
@@ -730,7 +742,7 @@ export function setupEditStudent() {
           return;
         }
         pendingPhotoRemoval = false;
-        const photoUrl = await uploadPhoto(supabaseClient, 'student-photos', editPhotoFile, studentId);
+        const photoUrl = await uploadPhoto(supabaseClient, 'student-photos', editPhotoFile, await studentPhotoPrefix(studentId));
         if (photoUrl) {
           payload.student_photo_url = photoUrl;
           photoBeingReplaced = true;

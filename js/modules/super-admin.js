@@ -14,7 +14,7 @@
  *   filters out related data from that school across all views.
  */
 
-import { getEl, showMessage, clearMessage, setLoading, formatDate, formatCurrency, statusBadge, validateImageFile, previewFile, uploadPhoto, getCurrentAcademicYear } from './utils.js';
+import { getEl, showMessage, clearMessage, setLoading, formatDate, formatCurrency, statusBadge, validateImageFile, previewFile, uploadPhoto, getCurrentAcademicYear, getSchoolInitialsFromName } from './utils.js';
 
 let supabaseClient = null;
 let _lockedModulesCache = null;
@@ -793,7 +793,12 @@ async function saveNewSchool(e) {
     let logoUrl = null;
     if (logoFile && newSchool?.id) {
       try {
-        logoUrl = await uploadPhoto(supabaseClient, 'school-logos', logoFile, `school_${newSchool.id}`);
+        // Tag the logo with the school's own initials, e.g. "school_<id>-SIS",
+        // so the Cloudinary folder shows readable school logos at a glance.
+        const schoolInitials = getSchoolInitialsFromName(name);
+        const logoSuffix = schoolInitials && schoolInitials !== 'SCH' ? `-${schoolInitials}` : '';
+        const logoPrefix = `school_${newSchool.id}${logoSuffix}`;
+        logoUrl = await uploadPhoto(supabaseClient, 'school-logos', logoFile, logoPrefix);
       } catch (logoErr) {
         console.warn('Logo upload failed:', logoErr.message);
       }

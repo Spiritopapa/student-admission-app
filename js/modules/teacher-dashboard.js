@@ -8,7 +8,7 @@
  * Updated to support multiple class and subject assignments.
  */
 
-import { getEl, showMessage, clearMessage, setLoading, buildStudentName, formatDate, statusBadge, getGrade, getSubjectGrade, getPerformanceLevel, getTeacherRemarks, getHeadTeacherRemarks, formatCurrency, getCurrentSchoolId, openPrintWindow, logStaffActivity } from './utils.js';
+import { getEl, showMessage, clearMessage, setLoading, buildStudentName, formatDate, statusBadge, getGrade, getSubjectGrade, getPerformanceLevel, getTeacherRemarks, getHeadTeacherRemarks, formatCurrency, getCurrentSchoolId, getCurrentSchoolInitials, openPrintWindow, logStaffActivity } from './utils.js';
 import { uploadToCloudinary, isCloudinaryReady, getCloudinaryPublicIdFromUrl, deleteCloudinaryFile } from './cloudinary.js';
 import { loadTeacherAssessmentsPage } from './teacher-assessments.js';
 
@@ -2234,16 +2234,22 @@ function previewTeacherPhoto() {
 
 async function uploadTeacherFile(file, prefix) {
   if (!file) return null;
+  // Append the teacher's school initials so the Cloudinary file name reads
+  // e.g. "teacher_documents_photo_<uid>-SIS" — easy to identify duplicates in
+  // the Media Library. Falls back to the un-suffixed prefix if not resolvable.
+  const schoolInitials = await getCurrentSchoolInitials();
+  const taggedPrefix = schoolInitials && schoolInitials !== 'SCH' ? `${prefix}-${schoolInitials}` : prefix;
+
   // Cloudinary is the primary store when configured (covers photos AND PDFs).
   if (isCloudinaryReady()) {
     const cloudinaryUrl = await uploadToCloudinary(file, {
-      prefix: `teacher_documents_${prefix}`,
+      prefix: `teacher_documents_${taggedPrefix}`,
     });
     if (cloudinaryUrl) return cloudinaryUrl;
     console.warn('Cloudinary upload failed — falling back to Supabase Storage.');
   }
   const ext = file.name.split('.').pop();
-  const fileName = `${prefix}_${Date.now()}.${ext}`;
+  const fileName = `${taggedPrefix}_${Date.now()}.${ext}`;
   const { data: upData, error: upErr } = await supabaseClient.storage
     .from('teacher-documents')
     .upload(fileName, file, { cacheControl: '3600', upsert: false });
