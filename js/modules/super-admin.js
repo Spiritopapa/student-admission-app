@@ -14,7 +14,7 @@
  *   filters out related data from that school across all views.
  */
 
-import { getEl, showMessage, clearMessage, setLoading, formatDate, formatCurrency, statusBadge, validateImageFile, previewFile, uploadPhoto, getCurrentAcademicYear, getSchoolInitialsFromName } from './utils.js';
+import { getEl, showMessage, clearMessage, setLoading, formatDate, formatDateTime, formatCurrency, statusBadge, validateImageFile, previewFile, uploadPhoto, getCurrentAcademicYear, getSchoolInitialsFromName } from './utils.js';
 
 let supabaseClient = null;
 let _lockedModulesCache = null;
@@ -306,7 +306,8 @@ function formatTimeAgo(isoString) {
   if (diffMin < 60) return `${diffMin}m ago`;
   const diffHr = Math.floor(diffMin / 60);
   if (diffHr < 24) return `${diffHr}h ago`;
-  return formatDate(isoString);
+  // For activities older than 24h, show the full date AND time they were performed
+  return formatDateTime(isoString);
 }
 
 // ================================================================
@@ -940,7 +941,7 @@ window.viewSubAdminActivities = async function (subAdminId) {
     } else {
       if (noAct) noAct.style.display = 'none';
       body.innerHTML = activities.map(a => `<tr>
-        <td>${formatDate(a.created_at)}</td>
+        <td>${formatDateTime(a.created_at)}</td>
         <td>${a.action}</td>
         <td>${a.entity_type || '-'}</td>
         <td>${a.entity_details || '-'}</td>

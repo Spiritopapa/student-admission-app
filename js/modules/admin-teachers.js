@@ -3,7 +3,7 @@
  * Updated to support multiple class and subject assignments per teacher
  */
 
-import { getEl, showMessage, clearMessage, setLoading, logSubAdminActivity, getCurrentSchoolId, parseCSVLine, openPrintWindow, formatDate } from './utils.js';
+import { getEl, showMessage, clearMessage, setLoading, logSubAdminActivity, getCurrentSchoolId, parseCSVLine, openPrintWindow, formatDateTime } from './utils.js';
 
 let supabaseClient = null;
 
@@ -846,7 +846,7 @@ window.viewTeacherActivities = async function (teacherId) {
     } else {
       if (noAct) noAct.style.display = 'none';
       body.innerHTML = activities.map(a => `<tr>
-        <td>${formatDate(a.created_at)}</td>
+        <td>${formatDateTime(a.created_at)}</td>
         <td><span class="badge-confirmed">${a.action}</span></td>
         <td>${a.entity_type || '-'}</td>
         <td>${a.entity_details || '-'}</td>

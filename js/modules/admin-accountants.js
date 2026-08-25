@@ -2,7 +2,7 @@
  * Admin Accountants Module - Accountant management, registration ID generation
  */
 
-import { getEl, showMessage, clearMessage, setLoading, logSubAdminActivity, getCurrentSchoolId, formatDate } from './utils.js';
+import { getEl, showMessage, clearMessage, setLoading, logSubAdminActivity, getCurrentSchoolId, formatDateTime } from './utils.js';
 
 let supabaseClient = null;
 
@@ -299,7 +299,7 @@ window.viewAccountantActivities = async function (accountantId) {
     } else {
       if (noAct) noAct.style.display = 'none';
       body.innerHTML = activities.map(a => `<tr>
-        <td>${formatDate(a.created_at)}</td>
+        <td>${formatDateTime(a.created_at)}</td>
         <td><span class="badge-confirmed">${a.action}</span></td>
         <td>${a.entity_type || '-'}</td>
         <td>${a.entity_details || '-'}</td>

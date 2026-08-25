@@ -11,7 +11,7 @@
  * - Module lock filtering (hides sections for locked modules)
  */
 
-import { getEl, buildStudentName, formatDate, statusBadge, getCurrentSchoolId, showMessage, clearMessage, setLoading } from './utils.js';
+import { getEl, buildStudentName, formatDate, formatDateTime, statusBadge, getCurrentSchoolId, showMessage, clearMessage, setLoading } from './utils.js';
 
 let supabaseClient = null;
 let allStudents = [];
@@ -547,7 +547,8 @@ function formatTimeAgo(isoString) {
   if (diffMin < 60) return `${diffMin}m ago`;
   const diffHr = Math.floor(diffMin / 60);
   if (diffHr < 24) return `${diffHr}h ago`;
-  return formatDate(isoString);
+  // For activities older than 24h, show the full date AND time they were performed
+  return formatDateTime(isoString);
 }
 
 // ================================================================
