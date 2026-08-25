@@ -464,8 +464,11 @@ export function previewFile(file, imgElement, placeholderElement, clearBtn, maxS
 export async function uploadPhoto(supabaseClient, bucket, file, prefix) {
   if (!file) return null;
 
-  // ---------- Cloudinary (primary) ----------
-  if (isCloudinaryReady()) {
+  // ---------- Cloudinary (primary for IMAGES only) ----------
+  // Documents (PDFs etc.) bypass Cloudinary: this Cloudinary account blocks
+  // public PDF/document delivery (HTTP 401 "deny or ACL failure"), so documents
+  // must land in Supabase Storage to remain downloadable.
+  if (file.type.startsWith('image/') && isCloudinaryReady()) {
     const cloudinaryFolders = {
       'student-photos': 'student_photos',
       'school-logos': 'school_logos',

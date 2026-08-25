@@ -67,6 +67,23 @@ export function getCloudinaryPublicIdFromUrl(fileUrl) {
   }
 }
 
+/**
+ * True when a URL points to a Cloudinary PDF/document that this account cannot
+ * serve publicly (public fetch returns HTTP 401 "deny or ACL failure"). The app
+ * now stores new documents in Supabase Storage, so such URLs only remain for
+ * rows uploaded before the fix — those files need a re-upload.
+ */
+export function isUnservableCloudinaryDocument(fileUrl) {
+  if (!fileUrl) return false;
+  try {
+    const { hostname, pathname } = new URL(fileUrl);
+    if (!/cloudinary\.com$/i.test(hostname)) return false;
+    return /\.(pdf|docx?|xlsx?|pptx?|txt|csv)$/i.test(pathname);
+  } catch (e) {
+    return false;
+  }
+}
+
 /** Guess the Cloudinary resource type from a public id / file name. */
 export function getCloudinaryResourceType(fileName) {
   return /\.(pdf|docx?|pptx?|xlsx?|txt|csv)$/i.test(fileName) ? 'raw' : 'image';

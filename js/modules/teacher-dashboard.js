@@ -9,7 +9,7 @@
  */
 
 import { getEl, showMessage, clearMessage, setLoading, buildStudentName, formatDate, statusBadge, getGrade, getSubjectGrade, getPerformanceLevel, getTeacherRemarks, getHeadTeacherRemarks, formatCurrency, getCurrentSchoolId, getCurrentSchoolInitials, openPrintWindow, logStaffActivity } from './utils.js';
-import { uploadToCloudinary, isCloudinaryReady, getCloudinaryPublicIdFromUrl, deleteCloudinaryFile } from './cloudinary.js';
+import { uploadToCloudinary, isCloudinaryReady, getCloudinaryPublicIdFromUrl, deleteCloudinaryFile, isUnservableCloudinaryDocument } from './cloudinary.js';
 import { loadTeacherAssessmentsPage } from './teacher-assessments.js';
 
 let supabaseClient = null;
@@ -2336,23 +2336,37 @@ function previewTeacherPhoto() {
 
 async function uploadTeacherFile(file, prefix) {
   if (!file) return null;
-  // Append the teacher's school initials so the Cloudinary file name reads
-  // e.g. "teacher_documents_photo_<uid>-SIS" — easy to identify duplicates in
-  // the Media Library. Falls back to the un-suffixed prefix if not resolvable.
-  const schoolInitials = await getCurrentSchoolInitials();
-  const taggedPrefix = schoolInitials && schoolInitials !== 'SCH' ? `${prefix}-${schoolInitials}` : prefix;
 
-  // Cloudinary is the primary store when configured (covers photos AND PDFs).
-  if (isCloudinaryReady()) {
-    const cloudinaryUrl = await uploadToCloudinary(file, {
-      prefix: `teacher_documents_${taggedPrefix}`,
-    });
-    if (cloudinaryUrl) return cloudinaryUrl;
-    console.warn('Cloudinary upload failed — falling back to Supabase Storage.');
+  // Teacher PHOTOS (images) keep using Cloudinary — image delivery works.
+  // PDF documents must NOT go to Cloudinary: this Cloudinary account blocks
+  // public PDF delivery (returns HTTP 401 "deny or ACL failure"), which made
+  // every uploaded certificate / appointment-letter download show the browser's
+  // "This page isn't working" error. Documents go to the public Supabase Storage
+  // "teacher-documents" bucket instead, where they always download correctly.
+  const isImage = file.type.startsWith('image/');
+
+  if (isImage) {
+    // Append the teacher's school initials so the Cloudinary file name reads
+    // e.g. "teacher_documents_photo_<uid>-SIS" — easy to identify duplicates in
+    // the Media Library. Falls back to the un-suffixed prefix if not resolvable.
+    const schoolInitials = await getCurrentSchoolInitials();
+    const taggedPrefix = schoolInitials && schoolInitials !== 'SCH' ? `${prefix}-${schoolInitials}` : prefix;
+    if (isCloudinaryReady()) {
+      const cloudinaryUrl = await uploadToCloudinary(file, {
+        prefix: `teacher_documents_${taggedPrefix}`,
+      });
+      if (cloudinaryUrl) return cloudinaryUrl;
+      console.warn('Cloudinary upload failed — falling back to Supabase Storage.');
+    }
   }
-  const ext = file.name.split('.').pop();
-  const fileName = `${taggedPrefix}_${Date.now()}.${ext}`;
-  const { data: upData, error: upErr } = await supabaseClient.storage
+
+  // Supabase Storage `teacher-documents` bucket (public). The storage RLS policy
+  // requires the object name to start with cert_/appt_/photo_ followed by the
+  // teacher UUID and an underscore, so use the RAW prefix (never the school
+  // initials suffix, which is only used for Cloudinary display names).
+  const ext = (file.name.split('.').pop() || 'bin').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const fileName = `${prefix}_${Date.now()}.${ext}`;
+  const { error: upErr } = await supabaseClient.storage
     .from('teacher-documents')
     .upload(fileName, file, { cacheControl: '3600', upsert: false });
   if (upErr) {
@@ -2701,9 +2715,13 @@ export async function loadTeacherProfileForm(teacher) {
     
     if (certContainer) {
       if (certDocs.length > 0) {
-        certContainer.innerHTML = certDocs.map(d => 
-          `<a href="${d.file_url}" target="_blank" rel="noopener" style="display:inline-block;padding:0.25rem 0.5rem;background:var(--primary-light);border:1px solid var(--primary);border-radius:4px;color:var(--primary);text-decoration:none;font-size:0.75rem;margin-bottom:0.25rem;">📄 Download: ${d.file_name || 'Certificate.pdf'}</a>`
-        ).join('<br>');
+        certContainer.innerHTML = certDocs.map(d => {
+          const name = d.file_name || 'Certificate.pdf';
+          if (isUnservableCloudinaryDocument(d.file_url)) {
+            return `<span style="display:block;font-size:0.75rem;color:var(--danger);margin-bottom:0.25rem;">📄 ${name} — ⚠️ blocked by Cloudinary, please re-upload to restore the download</span>`;
+          }
+          return `<a href="${d.file_url}" target="_blank" rel="noopener" style="display:inline-block;padding:0.25rem 0.5rem;background:var(--primary-light);border:1px solid var(--primary);border-radius:4px;color:var(--primary);text-decoration:none;font-size:0.75rem;margin-bottom:0.25rem;">📄 Download: ${name}</a>`;
+        }).join('<br>');
       } else {
         certContainer.innerHTML = '';
       }
@@ -2711,9 +2729,13 @@ export async function loadTeacherProfileForm(teacher) {
     
     if (apptContainer) {
       if (apptDocs.length > 0) {
-        apptContainer.innerHTML = apptDocs.map(d => 
-          `<a href="${d.file_url}" target="_blank" rel="noopener" style="display:inline-block;padding:0.25rem 0.5rem;background:var(--primary-light);border:1px solid var(--primary);border-radius:4px;color:var(--primary);text-decoration:none;font-size:0.75rem;margin-bottom:0.25rem;">📄 Download: ${d.file_name || 'Appointment.pdf'}</a>`
-        ).join('<br>');
+        apptContainer.innerHTML = apptDocs.map(d => {
+          const name = d.file_name || 'Appointment.pdf';
+          if (isUnservableCloudinaryDocument(d.file_url)) {
+            return `<span style="display:block;font-size:0.75rem;color:var(--danger);margin-bottom:0.25rem;">📄 ${name} — ⚠️ blocked by Cloudinary, please re-upload to restore the download</span>`;
+          }
+          return `<a href="${d.file_url}" target="_blank" rel="noopener" style="display:inline-block;padding:0.25rem 0.5rem;background:var(--primary-light);border:1px solid var(--primary);border-radius:4px;color:var(--primary);text-decoration:none;font-size:0.75rem;margin-bottom:0.25rem;">📄 Download: ${name}</a>`;
+        }).join('<br>');
       } else {
         apptContainer.innerHTML = '';
       }

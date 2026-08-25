@@ -4,6 +4,7 @@
  */
 
 import { getEl, showMessage, clearMessage, setLoading, logSubAdminActivity, getCurrentSchoolId, parseCSVLine, openPrintWindow, formatDateTime } from './utils.js';
+import { isUnservableCloudinaryDocument } from './cloudinary.js';
 
 let supabaseClient = null;
 
@@ -706,11 +707,15 @@ window.viewTeacherDetails = async function (teacherId) {
       .select('*')
       .eq('teacher_id', teacherId);
     
-    const docHtml = (documents || []).map(d => `
-      <div style="margin-bottom:0.5rem;">
-        <a href="${d.file_url}" target="_blank" class="btn btn-sm btn-secondary">📄 ${d.document_type === 'certificate' ? 'Certificate' : 'Appointment Letter'}: ${d.file_name || 'View'}</a>
-      </div>
-    `).join('') || '<span style="color:var(--text-muted);">No documents uploaded.</span>';
+    const docHtml = (documents || []).map(d => {
+      const label = d.document_type === 'certificate' ? 'Certificate' : 'Appointment Letter';
+      if (isUnservableCloudinaryDocument(d.file_url)) {
+        return `<div style="margin-bottom:0.5rem;font-size:0.8rem;color:var(--danger);">📄 ${label}: ${d.file_name || 'Attachment'} — ⚠️ blocked by Cloudinary, please ask the teacher to re-upload to restore the download</div>`;
+      }
+      return `<div style="margin-bottom:0.5rem;">
+        <a href="${d.file_url}" target="_blank" class="btn btn-sm btn-secondary">📄 ${label}: ${d.file_name || 'View'}</a>
+      </div>`;
+    }).join('') || '<span style="color:var(--text-muted);">No documents uploaded.</span>';
     
     const photoHtml = teacher.photo_url
       ? `<img src="${teacher.photo_url}" style="width:100px;height:100px;border-radius:50%;object-fit:cover;border:3px solid var(--primary);" />`
