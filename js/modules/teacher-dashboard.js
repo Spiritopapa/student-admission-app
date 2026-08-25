@@ -53,7 +53,7 @@ export function setupTeacherDashboard() {
   // Attendance listeners
   getEl('teacherBtnLoadAttendance')?.addEventListener('click', loadTeacherAttendanceForDate);
   getEl('teacherBtnSaveAttendance')?.addEventListener('click', saveTeacherAttendance);
-  getEl('teacherBtnViewReport')?.addEventListener('click', loadTeacherAttReport);
+  getEl('teacherBtnViewReport')?.addEventListener('click', openTeacherAttendanceReportPage);
   getEl('teacherAttClass')?.addEventListener('change', () => {});
   getEl('teacherAttDate')?.addEventListener('change', () => {});
 
@@ -1448,6 +1448,22 @@ async function saveIndividualTeacherMonthlyAttendance(studentId) {
 }
 
 // Attendance Report
+/**
+ * Opens the standalone attendance report page (attendance-report.html).
+ * The page derives the teacher's class scope + school from the signed-in user
+ * and passes the current report filters (term, date range) as query params.
+ */
+function openTeacherAttendanceReportPage() {
+  const url = new URL('attendance-report.html', window.location.href);
+  const term = getEl('teacherAttReportTerm')?.value || '';
+  const from = getEl('teacherAttReportDateFrom')?.value || '';
+  const to = getEl('teacherAttReportDateTo')?.value || '';
+  if (term) url.searchParams.set('term', term);
+  if (from) url.searchParams.set('from', from);
+  if (to) url.searchParams.set('to', to);
+  window.open(url.toString(), '_blank', 'width=1100,height=750,scrollbars=yes,resizable=yes');
+}
+
 async function loadTeacherAttReport() {
   const section = getEl('teacherAttReportSection');
   if (!section) {

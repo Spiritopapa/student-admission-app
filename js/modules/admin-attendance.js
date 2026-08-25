@@ -17,7 +17,7 @@ export function initAdminAttendance(supabase) {
 export function setupAttendanceListeners() {
   getEl('btnLoadAttendance')?.addEventListener('click', loadAttendanceForDate);
   getEl('btnSaveAttendance')?.addEventListener('click', saveAttendance);
-  getEl('btnViewAttReport')?.addEventListener('click', loadAttendanceReport);
+  getEl('btnViewAttReport')?.addEventListener('click', openAttendanceReportPage);
   getEl('attReportSearch')?.addEventListener('input', renderAttendanceReport);
   getEl('attReportClass')?.addEventListener('change', renderAttendanceReport);
   getEl('attReportTerm')?.addEventListener('change', renderAttendanceReport);
@@ -40,6 +40,24 @@ export function setupAttendanceListeners() {
   getEl('btnSetAllAbsent')?.addEventListener('click', () => setAllMonthlyStatus('absent'));
   getEl('btnResetMonthlyAttendance')?.addEventListener('click', resetAllMonthlyStatus);
   getEl('btnPrintMonthlyAttendance')?.addEventListener('click', printMonthlyAttendanceGrid);
+}
+
+/**
+ * Opens the standalone attendance report page (attendance-report.html)
+ * passing the current report filters (class, term, date range) as query params.
+ * Scope (school / role) is determined inside the page from the signed-in user.
+ */
+export function openAttendanceReportPage() {
+  const url = new URL('attendance-report.html', window.location.href);
+  const cls = getEl('attReportClass')?.value || '';
+  const term = getEl('attReportTerm')?.value || '';
+  const from = getEl('attReportDateFrom')?.value || '';
+  const to = getEl('attReportDateTo')?.value || '';
+  if (cls) url.searchParams.set('class', cls);
+  if (term) url.searchParams.set('term', term);
+  if (from) url.searchParams.set('from', from);
+  if (to) url.searchParams.set('to', to);
+  window.open(url.toString(), '_blank', 'width=1100,height=750,scrollbars=yes,resizable=yes');
 }
 
 function switchAttendanceMode(mode) {

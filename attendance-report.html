@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Attendance Report</title>
+  <style>
+    :root {
+      --green: #16a34a;
+      --red: #dc2626;
+      --slate: #1e293b;
+      --muted: #64748b;
+      --border: #cbd5e1;
+      --bg: #f1f5f9;
+      --primary: #4f46e5;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--bg);
+      color: var(--slate);
+    }
+    .report-page { max-width: 1080px; margin: 0 auto; padding: 1.25rem; }
+
+    .report-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+    .report-toolbar h2 { margin: 0 auto 0 0; font-size: 1.1rem; }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.5rem 1rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--slate);
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.15s ease;
+    }
+    .btn:hover { border-color: var(--primary); color: var(--primary); }
+    .btn-primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .btn-primary:hover { opacity: 0.9; color: #fff; }
+
+    /* Report header */
+    .report-header {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-left: 6px solid var(--primary);
+      border-radius: 10px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1rem;
+    }
+    .report-header h1 { margin: 0; font-size: 1.6rem; color: var(--slate); }
+    .report-header .report-type { font-size: 0.95rem; font-weight: 600; color: var(--primary); margin-top: 0.15rem; }
+    .report-header .report-meta { margin-top: 0.5rem; font-size: 0.8rem; color: var(--muted); }
+    .report-header .report-meta strong { color: var(--slate); }
+
+    /* Message */
+    .report-message { padding: 1rem; border-radius: 8px; margin-bottom: 1rem; font-size: 0.9rem; }
+    .report-message.error { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
+    .report-message.info { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; }
+    .report-message.success { background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; }
+
+    /* Mini stats chips */
+    .report-stats { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
+    .report-stats .chip {
+      background: #fff; border: 1px solid var(--border); border-radius: 8px;
+      padding: 0.5rem 0.9rem; font-size: 0.8rem;
+    }
+    .report-stats .chip b { font-size: 1.05rem; }
+    .chip.present b { color: var(--green); }
+    .chip.absent b { color: var(--red); }
+
+    /* Summary / Daily toggle */
+    .report-toggle { display: flex; gap: 0.4rem; margin-bottom: 0.75rem; }
+    .report-toggle button {
+      padding: 0.45rem 1.1rem; font-size: 0.85rem; font-weight: 600;
+      border: 1px solid var(--border); background: #fff; border-radius: 20px;
+      cursor: pointer; color: var(--muted); font-family: inherit;
+    }
+    .report-toggle button.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+
+    /* Tables */
+    .table-wrap { background: #fff; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 1rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    thead th { background: var(--slate); color: #fff; text-align: left; padding: 0.55rem 0.75rem; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.4px; }
+    tbody td { padding: 0.5rem 0.75rem; border-bottom: 1px solid #eef2f7; }
+    tbody tr:nth-child(even) { background: #f8fafc; }
+    tbody tr:hover { background: #eef2ff; }
+    .num { text-align: center; font-variant-numeric: tabular-nums; }
+    .status-present { color: var(--green); font-weight: 700; }
+    .status-absent { color: var(--red); font-weight: 700; }
+    .day-head td { background: #eef2ff !important; font-weight: 700; padding: 0.55rem 0.75rem; font-size: 0.85rem; }
+    .summary-row-total td { font-weight: 700; background: #f8fafc; border-top: 2px solid var(--border); }
+    .pct-good { color: var(--green); font-weight: 700; }
+    .pct-warn { color: #d97706; font-weight: 700; }
+    .pct-bad { color: var(--red); font-weight: 700; }
+    .empty { text-align: center; color: var(--muted); padding: 2rem; font-size: 0.9rem; }
+
+    @media print {
+      body { background: #fff; }
+      .report-toolbar, .report-toggle { display: none !important; }
+      .report-page { padding: 0; max-width: 100%; }
+      .report-header, .table-wrap { box-shadow: none; border-color: #999; }
+      thead th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+  <div class="report-page">
+
+    <!-- Toolbar (hidden when printing) -->
+    <div class="report-toolbar">
+      <button type="button" class="btn btn-primary" id="btnPrintReport">🖨️ Print / Save PDF</button>
+      <button type="button" class="btn" id="btnBack">← Back to Dashboard</button>
+    </div>
+
+    <!-- Report Header -->
+    <div class="report-header">
+      <h1 id="reportSchoolName">Attendance Report</h1>
+      <div class="report-type" id="reportType">📊 Summary Report</div>
+      <div class="report-meta" id="reportMeta">Loading…</div>
+    </div>
+
+    <!-- Message / errors -->
+    <div id="reportMessage" class="report-message" style="display:none;"></div>
+
+    <!-- Mini stats -->
+    <div class="report-stats" id="reportStats" style="display:none;">
+      <div class="chip present">Present: <b id="statPresent">0</b></div>
+      <div class="chip absent">Absent: <b id="statAbsent">0</b></div>
+      <div class="chip">Students: <b id="statStudents">0</b></div>
+      <div class="chip">Recorded Days: <b id="statDays">0</b></div>
+    </div>
+
+    <!-- Summary / Daily toggle -->
+    <div class="report-toggle" id="reportToggle" style="display:none;">
+      <button type="button" id="btnSummaryView" class="active">📊 Summary View</button>
+      <button type="button" id="btnDailyView">📅 Daily View</button>
+    </div>
+
+    <!-- Summary View -->
+    <div class="table-wrap" id="summaryWrap" style="display:none;">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:40px;">#</th>
+            <th>Student ID</th>
+            <th>Student Name</th>
+            <th>Class</th>
+            <th class="num">Present</th>
+            <th class="num">Absent</th>
+            <th class="num">Total</th>
+            <th class="num">Attendance %</th>
+          </tr>
+        </thead>
+        <tbody id="summaryBody"></tbody>
+      </table>
+    </div>
+
+    <!-- Daily View -->
+    <div class="table-wrap" id="dailyWrap" style="display:none;">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:110px;">Date</th>
+            <th>Student ID</th>
+            <th>Student Name</th>
+            <th>Class</th>
+            <th>Status</th>
+            <th>Remarks</th>
+          </tr>
+        </thead>
+        <tbody id="dailyBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script type="module" src="js/supabase-config.js"></script>
+  <script type="module" src="js/modules/attendance-report.js"></script>
+</body>
+</html>
