@@ -29,6 +29,9 @@ export function initNavigation() {
   setupMobileModuleTapZoom();
   setupNavbarScroll();
   setupMobileBottomNav();
+
+  // The home landing page is active by default on first load; populate its count.
+  loadHomeStats();
 }
 
 // ================================================================
@@ -474,6 +477,32 @@ function isDashboardPage(pageId) {
 }
 
 // ================================================================
+// Home Landing Stats
+// ================================================================
+
+/**
+ * Loads the number of registered schools for the home landing page.
+ * The home page only shows the total schools count (registered by the super admin).
+ */
+export async function loadHomeStats() {
+  try {
+    const supabase = window.supabaseClient;
+    if (!supabase) return;
+    const { count, error } = await supabase
+      .from('schools')
+      .select('id', { count: 'exact', head: true });
+    if (error) {
+      console.warn('Failed to load home school count:', error.message);
+      return;
+    }
+    const el = getEl('homeStatSchools');
+    if (el) el.textContent = (count != null ? count : 0).toLocaleString();
+  } catch (err) {
+    console.warn('Failed to load home stats:', err.message);
+  }
+}
+
+// ================================================================
 // Show Page
 // ================================================================
 
@@ -484,6 +513,10 @@ export function showPage(pageId) {
   navLinks.forEach((link) => link.classList.remove('active'));
   const activeLink = document.querySelector(`.nav-links a[data-page="${pageId}"]`);
   if (activeLink) activeLink.classList.add('active');
+  // Load the live school count when the public home landing page is shown
+  if (pageId === 'home') {
+    loadHomeStats();
+  }
   // Sync mobile bottom nav active state
   if (window.__updateBottomNavActive) {
     window.__updateBottomNavActive(pageId);
