@@ -56,11 +56,19 @@
   display: flex;
   align-items: center;
   gap: 3rem;
-  padding: 2rem 0 1rem;
+  padding: 3rem 2.5rem;
   position: relative;
   z-index: 1;
   min-height: calc(100vh - var(--nav-height) - 6rem);
   min-height: calc(100dvh - var(--nav-height) - 6rem);
+  /* School campus background photo with a frosted overlay for readability */
+  background:
+    linear-gradient(rgba(244, 242, 255, 0.55), rgba(232, 228, 250, 0.78)),
+    url('https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=1920&q=80')
+      center / cover no-repeat;
+  border: 1px solid var(--glass-border);
+  border-radius: 24px;
+  box-shadow: var(--shadow-lg);
 }
 
 .home-hero-content {
@@ -439,7 +447,7 @@
   .home-hero {
     flex-direction: column;
     gap: 1.5rem;
-    padding: 1rem 0 0.5rem;
+    padding: 2rem 1.25rem;
     min-height: auto;
     text-align: center;
   }
