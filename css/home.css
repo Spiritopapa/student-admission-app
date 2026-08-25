@@ -63,8 +63,8 @@
   min-height: calc(100dvh - var(--nav-height) - 6rem);
   /* School campus background photo with a frosted overlay for readability */
   background:
-    linear-gradient(rgba(244, 242, 255, 0.55), rgba(232, 228, 250, 0.78)),
-    url('https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=1920&q=80')
+    linear-gradient(rgba(255, 255, 255, 0.42), rgba(240, 238, 252, 0.62)),
+    url('https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&w=1920&q=80')
       center / cover no-repeat;
   border: 1px solid var(--glass-border);
   border-radius: 24px;
