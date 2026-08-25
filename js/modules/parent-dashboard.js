@@ -66,7 +66,7 @@ export async function loadParentDashboard(user) {
     const confirmedBadge = app.portal_confirmed ? '<span class="badge-confirmed">✅ Portal Active</span>' : '<span class="badge-unconfirmed">⏳ Pending</span>';
 
     const records = attMap.get(app.student_id) || [];
-    const attStats = { present: 0, absent: 0, late: 0, excused: 0 };
+    const attStats = { present: 0, absent: 0 };
     records.forEach(r => { attStats[r.status]++; });
     const attTotal = records.length;
     const attPct = attTotal > 0 ? ((attStats.present / attTotal) * 100).toFixed(1) : 'N/A';
@@ -85,15 +85,15 @@ export async function loadParentDashboard(user) {
         <div class="detail-item"><span class="detail-label">Date of Birth</span><span class="detail-value">${formatDate(app.date_of_birth)}</span></div>
         <div class="detail-item"><span class="detail-label">Teacher</span><span class="detail-value">${app.teacher || '-'}</span></div>
         <div class="detail-item"><span class="detail-label">Religion</span><span class="detail-value">${app.religion}</span></div>
-        <div class="detail-item"><span class="detail-label">Attendance</span><span class="detail-value"><strong style="color:${pctColor};">${attPct}%</strong> (${attStats.present}✓ ${attStats.absent}✗ ${attStats.late}⏰ ${attStats.excused}🏥)</span></div>
+        <div class="detail-item"><span class="detail-label">Attendance</span><span class="detail-value"><strong style="color:${pctColor};">${attPct}%</strong> (${attStats.present}✓ ${attStats.absent}✗)</span></div>
       </div>
       ${recentRecords.length > 0 ? `
       <div style="margin-top:0.5rem;padding-top:0.5rem;border-top:1px solid var(--border);">
         <span style="font-size:0.75rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;">Recent Attendance</span>
         <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.4rem;">
           ${recentRecords.map(r => {
-            const icons = { present: '✅', absent: '❌', late: '⏰', excused: '🏥' };
-            const colors = { present: 'var(--success)', absent: 'var(--danger)', late: 'var(--warning)', excused: 'var(--purple)' };
+            const icons = { present: '✅', absent: '❌' };
+            const colors = { present: 'var(--success)', absent: 'var(--danger)' };
             return `<span style="font-size:0.8rem;color:${colors[r.status] || 'inherit'};">${icons[r.status] || ''} ${formatDate(r.date)}</span>`;
           }).join('<span style="color:var(--border);">|</span>')}
         </div>

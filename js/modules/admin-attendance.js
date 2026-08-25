@@ -213,7 +213,7 @@ function renderAttendanceTable() {
   const stats = getEl('attendanceStats');
   if (!tbody) return;
 
-  const counts = { present: 0, absent: 0, late: 0, excused: 0 };
+  const counts = { present: 0, absent: 0 };
   attendanceCache.forEach(a => { counts[a.status]++; });
   const total = attendanceCache.length;
 
@@ -221,8 +221,6 @@ function renderAttendanceTable() {
     stats.style.display = 'flex';
     getEl('attStatPresent').textContent = counts.present;
     getEl('attStatAbsent').textContent = counts.absent;
-    getEl('attStatLate').textContent = counts.late;
-    getEl('attStatExcused').textContent = counts.excused;
     getEl('attStatTotal').textContent = total;
   }
 
@@ -232,9 +230,9 @@ function renderAttendanceTable() {
   }
 
   tbody.innerHTML = attendanceCache.map((a, idx) => {
-    const statusBtns = ['present', 'absent', 'late', 'excused'].map(s => {
+    const statusBtns = ['present', 'absent'].map(s => {
       const active = a.status === s ? ' active' : '';
-      const icons = { present: '✓', absent: '✗', late: '⏰', excused: '🏥' };
+      const icons = { present: '✓', absent: '✗' };
       return `<button type="button" class="att-status-btn ${s}${active}" data-student="${a.student_id}" data-status="${s}">${icons[s]}</button>`;
     }).join(' ');
 
@@ -272,12 +270,10 @@ function renderAttendanceTable() {
 }
 
 function updateAttStats() {
-  const counts = { present: 0, absent: 0, late: 0, excused: 0 };
+  const counts = { present: 0, absent: 0 };
   attendanceCache.forEach(a => { counts[a.status]++; });
   getEl('attStatPresent').textContent = counts.present;
   getEl('attStatAbsent').textContent = counts.absent;
-  getEl('attStatLate').textContent = counts.late;
-  getEl('attStatExcused').textContent = counts.excused;
   getEl('attStatTotal').textContent = attendanceCache.length;
 }
 
@@ -537,12 +533,12 @@ function renderMonthlyGrid(dates) {
     let markedCount = 0;
     const dayCells = dates.map(date => {
       const status = student.days[date] || 'unmarked';
-      if (status === 'present' || status === 'late') presentCount++;
+      if (status === 'present') presentCount++;
       if (status !== 'unmarked') markedCount++;
       const d = new Date(date + 'T00:00:00');
       const isWeekend = d.getDay() === 0 || d.getDay() === 6;
       const weekendClass = isWeekend ? ' weekend' : '';
-      const icons = { present: '✓', absent: '✗', late: '⏰', excused: '🏥' };
+      const icons = { present: '✓', absent: '✗' };
       const iconHtml = status !== 'unmarked' ? `<span class="day-status-icon">${icons[status] || '✗'}</span>` : '<span class="day-status-icon" style="opacity:0.3;">—</span>';
       return `<td class="att-day-cell ${status}${weekendClass}" data-student="${student.student_id}" data-date="${date}" data-status="${status}">
         ${iconHtml}
@@ -577,15 +573,15 @@ function renderMonthlyGrid(dates) {
       const student = monthlyCache.find(s => s.student_id === studentId);
       if (!student) return;
 
-      // Cycle through statuses: unmarked -> present -> late -> excused -> absent -> unmarked
-      const statusOrder = ['unmarked', 'present', 'late', 'excused', 'absent'];
+      // Cycle through statuses: unmarked -> present -> absent -> unmarked
+      const statusOrder = ['unmarked', 'present', 'absent'];
       const currentStatus = student.days[date] || 'unmarked';
       const currentIdx = statusOrder.indexOf(currentStatus);
       const nextStatus = statusOrder[(currentIdx + 1) % statusOrder.length];
       student.days[date] = nextStatus;
 
       // Update cell appearance
-      const icons = { present: '✓', absent: '✗', late: '⏰', excused: '🏥' };
+      const icons = { present: '✓', absent: '✗' };
       cell.className = `att-day-cell ${nextStatus}`;
       cell.dataset.status = nextStatus;
       const iconHtml = nextStatus !== 'unmarked' ? `<span class="day-status-icon">${icons[nextStatus]}</span>` : '<span class="day-status-icon" style="opacity:0.3;">—</span>';
@@ -609,7 +605,7 @@ function renderMonthlyGrid(dates) {
       // Toggle: if all present, set all absent; otherwise set all present
       const allPresent = Array.from(cells).every(c => c.dataset.status === 'present');
       const newStatus = allPresent ? 'absent' : 'present';
-      const icons = { present: '✓', absent: '✗', late: '⏰', excused: '🏥' };
+      const icons = { present: '✓', absent: '✗' };
 
       cells.forEach(cell => {
         const studentId = cell.dataset.student;
@@ -633,24 +629,20 @@ function renderMonthlyGrid(dates) {
  * Update the monthly stats summary bar.
  */
 function updateMonthlyStats(dates) {
-  let totalPresent = 0, totalAbsent = 0, totalLate = 0, totalExcused = 0, totalUnmarked = 0;
+  let totalPresent = 0, totalAbsent = 0, totalUnmarked = 0;
 
   monthlyCache.forEach(student => {
     dates.forEach(date => {
       const status = student.days[date] || 'unmarked';
       if (status === 'present') totalPresent++;
       else if (status === 'absent') totalAbsent++;
-      else if (status === 'late') totalLate++;
-      else if (status === 'excused') totalExcused++;
       else if (status === 'unmarked') totalUnmarked++;
     });
   });
-  const totalRecords = totalPresent + totalAbsent + totalLate + totalExcused;
+  const totalRecords = totalPresent + totalAbsent;
 
   getEl('attMonthlyPresent').textContent = totalPresent;
   getEl('attMonthlyAbsent').textContent = totalAbsent;
-  getEl('attMonthlyLate').textContent = totalLate;
-  getEl('attMonthlyExcused').textContent = totalExcused;
   getEl('attMonthlyTotal').textContent = totalRecords;
 
   const stats = getEl('attMonthlyStats');
@@ -666,7 +658,7 @@ function setAllMonthlyStatus(status) {
     return;
   }
 
-  const icons = { present: '✓', absent: '✗', late: '⏰', excused: '🏥' };
+  const icons = { present: '✓', absent: '✗' };
   const dates = Object.keys(monthlyCache[0]?.days || {});
 
   monthlyCache.forEach(student => {
@@ -739,7 +731,7 @@ async function saveMonthlyAttendance() {
     const schoolId = await getCurrentSchoolId();
 
     // Collect all records to save
-    // - Marked cells (present/absent/late/excused) are inserted or updated
+    // - Marked cells (present/absent) are inserted or updated
     // - Unmarked cells are tracked separately so existing records can be DELETED
     const recordsToSave = [];
     const unmarkedKeys = []; // "student_id|date" pairs for cells to clear
@@ -1009,8 +1001,8 @@ async function printMonthlyAttendanceGrid() {
   tableHtml += '<th style="border:1px solid #ccc;padding:0.3rem;background:#1e293b;color:#fff;text-align:center;">✅</th>';
   tableHtml += '</tr></thead><tbody>';
 
-  const statusIcons = { present: '✓', absent: '✗', late: '⏰', excused: '🏥' };
-  const statusColors = { present: '#d1fae5', absent: '#fee2e2', late: '#fef3c7', excused: '#ede9fe' };
+  const statusIcons = { present: '✓', absent: '✗' };
+  const statusColors = { present: '#d1fae5', absent: '#fee2e2' };
 
   monthlyCache.forEach(student => {
     let presentCount = 0;
@@ -1020,7 +1012,7 @@ async function printMonthlyAttendanceGrid() {
     tableHtml += `<td style="border:1px solid #ccc;padding:0.3rem;">${student.student_id}</td>`;
     dates.forEach(date => {
       const status = student.days[date] || 'unmarked';
-      if (status === 'present' || status === 'late') presentCount++;
+      if (status === 'present') presentCount++;
       if (status !== 'unmarked') markedCount++;
       const bgColor = statusColors[status] || 'transparent';
       const icon = status !== 'unmarked' ? (statusIcons[status] || '✗') : '—';
@@ -1037,8 +1029,6 @@ async function printMonthlyAttendanceGrid() {
     <div style="margin-top:0.75rem;font-size:0.7rem;display:flex;gap:1rem;flex-wrap:wrap;">
       <span><span style="display:inline-block;width:12px;height:12px;background:#d1fae5;border:1px solid #065f46;border-radius:2px;vertical-align:middle;"></span> Present (✓)</span>
       <span><span style="display:inline-block;width:12px;height:12px;background:#fee2e2;border:1px solid #991b1b;border-radius:2px;vertical-align:middle;"></span> Absent (✗)</span>
-      <span><span style="display:inline-block;width:12px;height:12px;background:#fef3c7;border:1px solid #92400e;border-radius:2px;vertical-align:middle;"></span> Late (⏰)</span>
-      <span><span style="display:inline-block;width:12px;height:12px;background:#ede9fe;border:1px solid #5b21b6;border-radius:2px;vertical-align:middle;"></span> Excused (🏥)</span>
       <span><span style="display:inline-block;width:12px;height:12px;background:transparent;border:1px solid #ccc;border-radius:2px;vertical-align:middle;"></span> Unmarked (—)</span>
     </div>
   `;
@@ -1194,7 +1184,7 @@ async function renderAttendanceReport() {
       const studentStats = {};
       filteredRecords.forEach(r => {
         const sid = r.student_id;
-        if (!studentStats[sid]) studentStats[sid] = { total: 0, present: 0, absent: 0, late: 0, excused: 0 };
+        if (!studentStats[sid]) studentStats[sid] = { total: 0, present: 0, absent: 0 };
         studentStats[sid].total++;
         studentStats[sid][r.status]++;
       });
@@ -1221,8 +1211,6 @@ async function renderAttendanceReport() {
           <td style="text-align:center;">${r.total}</td>
           <td style="text-align:center;color:var(--success);">${r.present}</td>
           <td style="text-align:center;color:var(--danger);">${r.absent}</td>
-          <td style="text-align:center;color:var(--warning);">${r.late}</td>
-          <td style="text-align:center;color:var(--purple);">${r.excused}</td>
           <td style="text-align:center;"><strong style="color:${pctColor};">${r.pct}%</strong></td>
         </tr>`;
       }).join('');
@@ -1241,7 +1229,7 @@ async function renderAttendanceReport() {
       let dailyHtml = '';
       sortedDates.forEach(date => {
         const records = dateGroups[date];
-        const dayCounts = { present: 0, absent: 0, late: 0, excused: 0 };
+        const dayCounts = { present: 0, absent: 0 };
         records.forEach(r => { dayCounts[r.status]++; });
         const dayTotal = records.length;
         const dayPct = dayTotal > 0 ? ((dayCounts.present / dayTotal) * 100).toFixed(1) : '0.0';
@@ -1251,7 +1239,7 @@ async function renderAttendanceReport() {
           <td colspan="6" style="padding:0.5rem 1rem;font-size:0.9rem;">
             📅 <strong>${date}</strong> 
             <span style="font-weight:400;font-size:0.8rem;color:var(--text-muted);margin-left:0.5rem;">
-              Present: ${dayCounts.present} | Absent: ${dayCounts.absent} | Late: ${dayCounts.late} | Excused: ${dayCounts.excused} | Total: ${dayTotal} | 
+              Present: ${dayCounts.present} | Absent: ${dayCounts.absent} | Total: ${dayTotal} | 
             </span>
             <span style="font-weight:600;font-size:0.8rem;">${dayPct}%</span>
           </td>
@@ -1262,8 +1250,8 @@ async function renderAttendanceReport() {
           const app = appMap.get(r.student_id);
           const name = app ? [app.first_name, app.middle_name, app.last_name].filter(Boolean).join(' ') : r.student_id;
           const cls = app?.class_applying || r.class_name || '-';
-          const statusIcons = { present: '✅', absent: '❌', late: '⏰', excused: '🏥' };
-          const statusColors = { present: 'var(--success)', absent: 'var(--danger)', late: 'var(--warning)', excused: 'var(--purple)' };
+          const statusIcons = { present: '✅', absent: '❌' };
+          const statusColors = { present: 'var(--success)', absent: 'var(--danger)' };
 
           if (search && !name.toLowerCase().includes(search) && !r.student_id.toLowerCase().includes(search)) return;
           if (classFilter && cls !== classFilter) return;
@@ -1285,7 +1273,7 @@ async function renderAttendanceReport() {
     }
   } catch (err) {
     console.error('Render attendance report error:', err);
-    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:1rem;color:var(--danger);">Error loading report.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:1rem;color:var(--danger);">Error loading report.</td></tr>';
   }
 }
 

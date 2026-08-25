@@ -1158,13 +1158,11 @@
       <div class="attendance-summary-row" id="attendanceStats" style="display:none;">
         <div class="att-stat-card present"><span class="att-stat-number" id="attStatPresent">0</span><span>Present</span></div>
         <div class="att-stat-card absent"><span class="att-stat-number" id="attStatAbsent">0</span><span>Absent</span></div>
-        <div class="att-stat-card late"><span class="att-stat-number" id="attStatLate">0</span><span>Late</span></div>
-        <div class="att-stat-card excused"><span class="att-stat-number" id="attStatExcused">0</span><span>Excused</span></div>
         <div class="att-stat-card total"><span class="att-stat-number" id="attStatTotal">0</span><span>Total</span></div>
       </div>
 
       <div class="attendance-instructions" style="background:var(--primary-light);border-radius:var(--radius-sm);padding:0.75rem 1rem;margin-bottom:1rem;font-size:0.85rem;color:var(--text);">
-        <strong>📌 Instructions:</strong> Select a date, class, and click <strong>"Load Attendance"</strong> to begin marking. Click the status buttons to toggle between Present ✓, Absent ✗, Late ⏰, and Excused 🏥. Click <strong>"Save Attendance"</strong> to persist all changes.
+        <strong>📌 Instructions:</strong> Select a date, class, and click <strong>"Load Attendance"</strong> to begin marking. Click the status buttons to toggle between Present ✓ and Absent ✗. Click <strong>"Save Attendance"</strong> to persist all changes.
       </div>
 
       <div id="attendanceMessage" class="message" style="display:none;"></div>
@@ -1177,7 +1175,7 @@
               <th>Student ID</th>
               <th>Student Name</th>
               <th>Class</th>
-              <th style="width:140px;">Status</th>
+              <th style="width:105px;">Status</th>
               <th>Remarks</th>
             </tr>
           </thead>
@@ -1218,8 +1216,6 @@
                 <th>Total Days</th>
                 <th>Present</th>
                 <th>Absent</th>
-                <th>Late</th>
-                <th>Excused</th>
                 <th>Attendance %</th>
               </tr>
             </thead>
@@ -1263,15 +1259,13 @@
 
         <div class="att-monthly-instructions" style="background:var(--primary-light);border-radius:var(--radius-sm);padding:0.75rem 1rem;margin-bottom:1rem;font-size:0.85rem;color:var(--text);">
           <strong>📌 Instructions:</strong> Select a start date and class, then click <strong>"Load 30-Day Grid"</strong>.
-          Click any cell to cycle through statuses: <span style="color:#991b1b;">Absent</span> → <span style="color:#065f46;">Present</span> → <span style="color:#92400e;">Late</span> → <span style="color:#5b21b6;">Excused</span> → <span style="color:#991b1b;">Absent</span>.
+          Click any cell to toggle between <span style="color:#991b1b;">Absent</span> and <span style="color:#065f46;">Present</span>.
           Click column headers to toggle all students for that day. Click <strong>"Save All Changes"</strong> to persist.
         </div>
 
         <div id="attMonthlyStats" class="att-monthly-summary" style="display:none;">
           <div class="att-monthly-summary-item"><span class="color-dot present-dot"></span> Present: <strong id="attMonthlyPresent">0</strong></div>
           <div class="att-monthly-summary-item"><span class="color-dot absent-dot"></span> Absent: <strong id="attMonthlyAbsent">0</strong></div>
-          <div class="att-monthly-summary-item"><span class="color-dot late-dot"></span> Late: <strong id="attMonthlyLate">0</strong></div>
-          <div class="att-monthly-summary-item"><span class="color-dot excused-dot"></span> Excused: <strong id="attMonthlyExcused">0</strong></div>
           <div class="att-monthly-summary-item" style="margin-left:auto;">Total Records: <strong id="attMonthlyTotal">0</strong></div>
         </div>
 
@@ -2024,8 +2018,6 @@
             <div class="attendance-summary-row" id="studentAttStats" style="margin-bottom:1rem;">
               <div class="att-stat-card present"><span class="att-stat-number" id="stuAttPresent">0</span><span>Present</span></div>
               <div class="att-stat-card absent"><span class="att-stat-number" id="stuAttAbsent">0</span><span>Absent</span></div>
-              <div class="att-stat-card late"><span class="att-stat-number" id="stuAttLate">0</span><span>Late</span></div>
-              <div class="att-stat-card excused"><span class="att-stat-number" id="stuAttExcused">0</span><span>Excused</span></div>
               <div class="att-stat-card total"><span class="att-stat-number" id="stuAttTotal">0</span><span>Total Days</span></div>
               <div class="att-stat-card" style="border-left:3px solid var(--primary);"><span class="att-stat-number" id="stuAttPct">0%</span><span>Attendance</span></div>
             </div>
@@ -2198,20 +2190,18 @@
             <div class="attendance-summary-row" id="teacherAttStats" style="display:none;">
               <div class="att-stat-card present"><span class="att-stat-number" id="teacherAttPresent">0</span><span>Present</span></div>
               <div class="att-stat-card absent"><span class="att-stat-number" id="teacherAttAbsent">0</span><span>Absent</span></div>
-              <div class="att-stat-card late"><span class="att-stat-number" id="teacherAttLate">0</span><span>Late</span></div>
-              <div class="att-stat-card excused"><span class="att-stat-number" id="teacherAttExcused">0</span><span>Excused</span></div>
               <div class="att-stat-card total"><span class="att-stat-number" id="teacherAttTotal">0</span><span>Total</span></div>
             </div>
 
             <div class="attendance-instructions" style="background:var(--primary-light);border-radius:var(--radius-sm);padding:0.75rem 1rem;margin-bottom:1rem;font-size:0.85rem;color:var(--text);">
-              <strong>📌 Instructions:</strong> Select date and click <strong>"Load Attendance"</strong>. Click status buttons to toggle: ✓ Present, ✗ Absent, ⏰ Late, 🏥 Excused. Click <strong>"Save Attendance"</strong> to persist.
+              <strong>📌 Instructions:</strong> Select date and click <strong>"Load Attendance"</strong>. Click status buttons to toggle: ✓ Present, ✗ Absent. Click <strong>"Save Attendance"</strong> to persist.
             </div>
 
             <div id="teacherAttMessage" class="message" style="display:none;"></div>
 
             <div class="table-wrapper">
               <table class="app-table">
-                <thead><tr><th style="width:50px;">#</th><th>Student ID</th><th>Name</th><th>Class</th><th style="width:140px;">Status</th><th>Remarks</th></tr></thead>
+                <thead><tr><th style="width:50px;">#</th><th>Student ID</th><th>Name</th><th>Class</th><th style="width:105px;">Status</th><th>Remarks</th></tr></thead>
                 <tbody id="teacherAttBody"><tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--text-muted);">Select date and click "Load Attendance" to begin.</td></tr></tbody>
               </table>
             </div>
@@ -2236,7 +2226,7 @@
               <!-- Summary View -->
               <div class="table-wrapper" id="teacherAttReportSummaryTable">
                 <table class="app-table">
-                  <thead><tr><th>Student ID</th><th>Name</th><th>Class</th><th>Total Days</th><th>Present</th><th>Absent</th><th>Late</th><th>Excused</th><th>Attendance %</th></tr></thead>
+                  <thead><tr><th>Student ID</th><th>Name</th><th>Class</th><th>Total Days</th><th>Present</th><th>Absent</th><th>Attendance %</th></tr></thead>
                   <tbody id="teacherAttReportBody"></tbody>
                 </table>
               </div>
@@ -2267,15 +2257,13 @@
 
               <div class="att-monthly-instructions" style="background:var(--primary-light);border-radius:var(--radius-sm);padding:0.75rem 1rem;margin-bottom:1rem;font-size:0.85rem;color:var(--text);">
                 <strong>📌 Instructions:</strong> Select a start date and class, then click <strong>"Load 30-Day Grid"</strong>.
-                Click any cell to cycle through statuses: <span style="color:#991b1b;">Absent</span> → <span style="color:#065f46;">Present</span> → <span style="color:#92400e;">Late</span> → <span style="color:#5b21b6;">Excused</span> → <span style="color:#991b1b;">Absent</span>.
+                Click any cell to toggle between <span style="color:#991b1b;">Absent</span> and <span style="color:#065f46;">Present</span>.
                 Click column headers to toggle all students for that day. Click <strong>"Save All Changes"</strong> to persist.
               </div>
 
               <div id="teacherAttMonthlyStats" class="att-monthly-summary" style="display:none;">
                 <div class="att-monthly-summary-item"><span class="color-dot present-dot"></span> Present: <strong id="teacherAttMonthlyPresent">0</strong></div>
                 <div class="att-monthly-summary-item"><span class="color-dot absent-dot"></span> Absent: <strong id="teacherAttMonthlyAbsent">0</strong></div>
-                <div class="att-monthly-summary-item"><span class="color-dot late-dot"></span> Late: <strong id="teacherAttMonthlyLate">0</strong></div>
-                <div class="att-monthly-summary-item"><span class="color-dot excused-dot"></span> Excused: <strong id="teacherAttMonthlyExcused">0</strong></div>
                 <div class="att-monthly-summary-item" style="margin-left:auto;">Total Records: <strong id="teacherAttMonthlyTotal">0</strong></div>
               </div>
 
@@ -2963,14 +2951,12 @@
               <input type="date" id="superAttDate" class="search-input" style="max-width:160px;" />
               <select id="superAttSchool" class="filter-select"><option value="">All Schools</option></select>
               <select id="superAttClass" class="filter-select"><option value="">All Classes</option></select>
-              <select id="superAttStatus" class="filter-select"><option value="">All Status</option><option value="present">Present</option><option value="absent">Absent</option><option value="late">Late</option><option value="excused">Excused</option></select>
+              <select id="superAttStatus" class="filter-select"><option value="">All Status</option><option value="present">Present</option><option value="absent">Absent</option></select>
             </div>
 
             <div class="attendance-summary-row" id="superAttStats" style="display:none;">
               <div class="att-stat-card present"><span class="att-stat-number" id="superAttPresent">0</span><span>Present</span></div>
               <div class="att-stat-card absent"><span class="att-stat-number" id="superAttAbsent">0</span><span>Absent</span></div>
-              <div class="att-stat-card late"><span class="att-stat-number" id="superAttLate">0</span><span>Late</span></div>
-              <div class="att-stat-card excused"><span class="att-stat-number" id="superAttExcused">0</span><span>Excused</span></div>
               <div class="att-stat-card total"><span class="att-stat-number" id="superAttTotal">0</span><span>Total</span></div>
             </div>
 

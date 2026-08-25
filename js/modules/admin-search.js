@@ -856,7 +856,7 @@ async function viewStudentAttendance(studentId) {
     </div>`;
   } else {
     // Stats
-    const stats = { present: 0, absent: 0, late: 0, excused: 0 };
+    const stats = { present: 0, absent: 0 };
     records.forEach(r => { stats[r.status]++; });
     const total = records.length;
     const pct = total > 0 ? ((stats.present / total) * 100).toFixed(1) : '0';
@@ -864,9 +864,7 @@ async function viewStudentAttendance(studentId) {
     const statusBadge = (status) => {
       const map = {
         present: '<span style="background:#dcfce7;color:#166534;padding:2px 8px;border-radius:12px;font-size:0.75rem;">✅ Present</span>',
-        absent: '<span style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:12px;font-size:0.75rem;">❌ Absent</span>',
-        late: '<span style="background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:12px;font-size:0.75rem;">⏰ Late</span>',
-        excused: '<span style="background:#e0e7ff;color:#3730a3;padding:2px 8px;border-radius:12px;font-size:0.75rem;">📝 Excused</span>'
+        absent: '<span style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:12px;font-size:0.75rem;">❌ Absent</span>'
       };
       return map[status] || status;
     };
@@ -884,14 +882,6 @@ async function viewStudentAttendance(studentId) {
         <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:0.75rem;text-align:center;">
           <div style="font-size:1.5rem;font-weight:700;color:#991b1b;">${stats.absent}</div>
           <div style="font-size:0.75rem;color:#991b1b;">Absent</div>
-        </div>
-        <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:0.75rem;text-align:center;">
-          <div style="font-size:1.5rem;font-weight:700;color:#92400e;">${stats.late}</div>
-          <div style="font-size:0.75rem;color:#92400e;">Late</div>
-        </div>
-        <div style="background:#eef2ff;border:1px solid #c7d2fe;border-radius:8px;padding:0.75rem;text-align:center;">
-          <div style="font-size:1.5rem;font-weight:700;color:#3730a3;">${stats.excused}</div>
-          <div style="font-size:0.75rem;color:#3730a3;">Excused</div>
         </div>
         <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:0.75rem;text-align:center;">
           <div style="font-size:1.5rem;font-weight:700;color:#1e40af;">${pct}%</div>

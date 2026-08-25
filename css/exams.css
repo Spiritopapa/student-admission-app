@@ -367,8 +367,6 @@
 
 .rc-att-item.present { color: #16a34a; }
 .rc-att-item.absent { color: #dc2626; }
-.rc-att-item.late { color: #f59e0b; }
-.rc-att-item.excused { color: #8b5cf6; }
 
 /* Subjects Score Table */
 .rc-subjects-table {

@@ -939,7 +939,7 @@ async function buildReportCardHTML(examId, studentId) {
     const { data: allAtt } = await supabaseClient.from('attendance').select('*').eq('student_id', studentId);
     if (allAtt && allAtt.length > 0) attRecords = allAtt;
   }
-  const attStats = { present: 0, absent: 0, late: 0, excused: 0 };
+  const attStats = { present: 0, absent: 0 };
   (attRecords || []).forEach(r => { attStats[r.status]++; });
   const attTotal = (attRecords || []).length;
   const termDays = settings?.total_term_days ? parseInt(settings.total_term_days) : attTotal;
@@ -1151,8 +1151,6 @@ async function buildReportCardHTML(examId, studentId) {
     <div class="rc-att-breakdown">
       <span class="rc-att-item present">✓ ${attStats.present}</span>
       <span class="rc-att-item absent">✗ ${attStats.absent}</span>
-      <span class="rc-att-item late">⏰ ${attStats.late}</span>
-      <span class="rc-att-item excused">🏥 ${attStats.excused}</span>
     </div>
   </div>
 

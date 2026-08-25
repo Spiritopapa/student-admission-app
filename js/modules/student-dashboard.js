@@ -664,24 +664,22 @@ async function loadStudentAttendance() {
     if (!records || records.length === 0) {
       if (noEl) noEl.style.display = 'block';
       tbody.innerHTML = '';
-      if (statsEl) { getEl('stuAttPresent').textContent = '0'; getEl('stuAttAbsent').textContent = '0'; getEl('stuAttLate').textContent = '0'; getEl('stuAttExcused').textContent = '0'; getEl('stuAttTotal').textContent = '0'; getEl('stuAttPct').textContent = '0%'; }
+      if (statsEl) { getEl('stuAttPresent').textContent = '0'; getEl('stuAttAbsent').textContent = '0'; getEl('stuAttTotal').textContent = '0'; getEl('stuAttPct').textContent = '0%'; }
       return;
     }
     if (noEl) noEl.style.display = 'none';
-    const stats = { present: 0, absent: 0, late: 0, excused: 0 };
+    const stats = { present: 0, absent: 0 };
     records.forEach(r => { stats[r.status]++; });
     const total = records.length;
     const pct = total > 0 ? ((stats.present / total) * 100).toFixed(1) : '0.0';
     if (statsEl) {
       getEl('stuAttPresent').textContent = stats.present;
       getEl('stuAttAbsent').textContent = stats.absent;
-      getEl('stuAttLate').textContent = stats.late;
-      getEl('stuAttExcused').textContent = stats.excused;
       getEl('stuAttTotal').textContent = total;
       getEl('stuAttPct').textContent = pct + '%';
     }
-    const statusIcons = { present: '✅ Present', absent: '❌ Absent', late: '⏰ Late', excused: '🏥 Excused' };
-    const statusColors = { present: 'var(--success)', absent: 'var(--danger)', late: 'var(--warning)', excused: 'var(--purple)' };
+    const statusIcons = { present: '✅ Present', absent: '❌ Absent' };
+    const statusColors = { present: 'var(--success)', absent: 'var(--danger)' };
     tbody.innerHTML = records.map(r => `<tr><td>${formatDate(r.date)}</td><td><span style="color:${statusColors[r.status] || 'inherit'};font-weight:600;">${statusIcons[r.status] || r.status}</span></td><td>${r.remarks || '-'}</td></tr>`).join('');
   } catch (err) {
     console.error('Load student attendance error:', err);
@@ -787,7 +785,7 @@ async function showStudentReportCard(examId, studentId) {
         if (fallbackAtt && fallbackAtt.length > 0) attRecords = fallbackAtt;
       }
     }
-    const attStats = { present: 0, absent: 0, late: 0, excused: 0 };
+    const attStats = { present: 0, absent: 0 };
     (attRecords || []).forEach(r => { attStats[r.status]++; });
     const attTotal = (attRecords || []).length;
     const attPct = attTotal > 0 ? ((attStats.present / attTotal) * 100).toFixed(1) : 'N/A';
@@ -878,8 +876,6 @@ async function showStudentReportCard(examId, studentId) {
     <div class="rc-att-breakdown">
       <span class="rc-att-item present">✓ ${attStats.present}</span>
       <span class="rc-att-item absent">✗ ${attStats.absent}</span>
-      <span class="rc-att-item late">⏰ ${attStats.late}</span>
-      <span class="rc-att-item excused">🏥 ${attStats.excused}</span>
     </div>
   </div>
   <table class="rc-subjects-table">

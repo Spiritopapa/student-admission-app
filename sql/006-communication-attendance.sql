@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS public.attendance (
   student_id      TEXT NOT NULL REFERENCES public.applications(student_id) ON DELETE CASCADE,
   date            DATE NOT NULL,
   status          TEXT NOT NULL DEFAULT 'present'
-                  CHECK (status IN ('present','absent','late','excused')),
+                  CHECK (status IN ('present','absent')),
   class_name      TEXT NOT NULL,
   academic_year   TEXT NOT NULL,
   term            TEXT NOT NULL DEFAULT 'First'

@@ -59,33 +59,7 @@
   box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.35), 0 4px 12px rgba(239, 68, 68, 0.25);
 }
 
-/* --- Late (Amber) --- */
-.att-status-btn.late:hover {
-  border-color: var(--warning);
-  color: var(--warning);
-  background: var(--warning-light);
-  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15);
-}
-.att-status-btn.late.active {
-  border-color: var(--warning);
-  background: var(--warning);
-  color: #fff;
-  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.35), 0 4px 12px rgba(245, 158, 11, 0.25);
-}
-
-/* --- Excused (Purple) --- */
-.att-status-btn.excused:hover {
-  border-color: var(--purple);
-  color: var(--purple);
-  background: var(--purple-light);
-  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
-}
-.att-status-btn.excused.active {
-  border-color: var(--purple);
-  background: var(--purple);
-  color: #fff;
-  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.35), 0 4px 12px rgba(139, 92, 246, 0.25);
-}
+/* --- Present (Green) continuation --- */
 
 /* Mobile: bigger touch targets for attendance buttons */
 @media (max-width: 640px) {
@@ -136,8 +110,6 @@
 }
 .att-stat-card.present { border-left: 3px solid var(--success); }
 .att-stat-card.absent { border-left: 3px solid var(--danger); }
-.att-stat-card.late { border-left: 3px solid var(--warning); }
-.att-stat-card.excused { border-left: 3px solid var(--purple); }
 .att-stat-card.total { border-left: 3px solid var(--primary); }
 
 /* Attendance Instructions */
@@ -368,14 +340,6 @@
   background: transparent;
   color: var(--text-muted);
 }
-.att-monthly-grid .att-day-cell.late {
-  background: #fef3c7;
-  color: #92400e;
-}
-.att-monthly-grid .att-day-cell.excused {
-  background: #ede9fe;
-  color: #5b21b6;
-}
 .att-monthly-grid .att-day-cell .day-status-icon {
   font-size: 0.85rem;
   line-height: 1;
@@ -434,8 +398,6 @@
 }
 .att-monthly-summary-item .color-dot.present-dot { background: #d1fae5; border: 1px solid #065f46; }
 .att-monthly-summary-item .color-dot.absent-dot { background: #fee2e2; border: 1px solid #991b1b; }
-.att-monthly-summary-item .color-dot.late-dot { background: #fef3c7; border: 1px solid #92400e; }
-.att-monthly-summary-item .color-dot.excused-dot { background: #ede9fe; border: 1px solid #5b21b6; }
 
 @media (max-width: 640px) {
   .att-monthly-toolbar {

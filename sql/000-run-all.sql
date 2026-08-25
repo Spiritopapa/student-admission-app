@@ -361,6 +361,8 @@
 --          (viewAccountantActivities).
 \i 051-staff-activity-log.sql
 
+\i 052-attendance-present-absent-only.sql
+
 -- ============================================================
 --  SCHEMA DEPLOYMENT COMPLETE
 -- ============================================================

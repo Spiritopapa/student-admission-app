@@ -1322,18 +1322,14 @@ async function loadAttendancePage() {
     const total = items.length;
     const present = items.filter(a => a.status === 'present').length;
     const absent = items.filter(a => a.status === 'absent').length;
-    const late = items.filter(a => a.status === 'late').length;
-    const excused = items.filter(a => a.status === 'excused').length;
     getEl('superAttPresent').textContent = present;
     getEl('superAttAbsent').textContent = absent;
-    getEl('superAttLate').textContent = late;
-    getEl('superAttExcused').textContent = excused;
     getEl('superAttTotal').textContent = total;
     getEl('superAttStats').style.display = 'flex';
 
     tbody.innerHTML = items.map(a => {
       const name = a.applications ? `${a.applications.first_name} ${a.applications.last_name}` : a.student_id;
-      const statusColors = { present: 'var(--success)', absent: 'var(--danger)', late: 'var(--warning)', excused: 'var(--purple)' };
+      const statusColors = { present: 'var(--success)', absent: 'var(--danger)' };
       return `<tr>
         <td>${a.applications?.student_id || a.student_id}</td>
         <td>${name}</td>
