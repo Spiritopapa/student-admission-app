@@ -18,6 +18,7 @@ let allStudents = [];
 let allFees = [];
 let allAnnouncements = [];
 let allTeachers = [];
+let todayAttendance = []; // [{ class_name, present, absent }] for today
 let schoolName = '';
 let lastUpdated = null;
 let activityLog = [];
@@ -51,6 +52,7 @@ export async function loadAdminDashboardHome() {
       fetchFees(),
       fetchAnnouncements(),
       fetchTeachers(),
+      fetchTodayAttendance(),
       fetchSchoolName(),
     ]);
     renderDashboard();
@@ -257,6 +259,36 @@ async function fetchTeachers() {
   allTeachers = data || [];
 }
 
+/**
+ * Fetches today's attendance records for the current school and groups them
+ * by class, counting only Present and Absent statuses (excludes late/excused).
+ */
+async function fetchTodayAttendance() {
+  todayAttendance = [];
+  const schoolId = await getCurrentSchoolId();
+  // CRITICAL SECURITY: Fail closed. Never fetch without a school_id filter.
+  if (!schoolId) { todayAttendance = []; return; }
+  const today = new Date().toISOString().slice(0, 10);
+  const { data, error } = await supabaseClient
+    .from('attendance')
+    .select('class_name, status')
+    .eq('date', today)
+    .eq('school_id', schoolId);
+  if (error) {
+    console.warn('Failed to fetch today\'s attendance:', error.message);
+    todayAttendance = [];
+    return;
+  }
+  const grouped = {};
+  (data || []).forEach(r => {
+    if (!r.class_name) return;
+    if (!grouped[r.class_name]) grouped[r.class_name] = { class_name: r.class_name, present: 0, absent: 0 };
+    if (r.status === 'present') grouped[r.class_name].present++;
+    else if (r.status === 'absent') grouped[r.class_name].absent++;
+  });
+  todayAttendance = Object.values(grouped).sort((a, b) => a.class_name.localeCompare(b.class_name));
+}
+
 // ================================================================
 // Refresh Data (called by realtime subscription)
 // ================================================================
@@ -272,6 +304,7 @@ export async function refreshDashboardData(source = 'realtime') {
       fetchFees(),
       fetchAnnouncements(),
       fetchTeachers(),
+      fetchTodayAttendance(),
     ]);
 
     const newStudentsCount = allStudents.length;
@@ -312,7 +345,7 @@ function startRealtimeSubscription() {
 
   _dashboardChannel = supabaseClient.channel('admin-dashboard-realtime');
 
-  const tables = ['applications', 'fees', 'announcements', 'teachers', 'payment_transactions', 'exam_results', 'exam_student_details', 'school_modules'];
+  const tables = ['applications', 'fees', 'announcements', 'teachers', 'payment_transactions', 'exam_results', 'exam_student_details', 'school_modules', 'attendance', 'teacher_classes_subjects'];
   
   for (const table of tables) {
     _dashboardChannel.on(
@@ -700,6 +733,17 @@ function renderDashboard() {
       </div>
     </div>
 
+    <!-- Today's Attendance by Class -->
+    <div class="dash-list-card animated-card dash-attendance-card">
+      <div class="dash-list-header">
+        <h3>📋 Today's Attendance</h3>
+        <span class="dash-list-count" id="dashTodayAttCount">${todayAttendance.length} classes</span>
+      </div>
+      <div class="dash-list-body" id="dashTodayAttendance">
+        ${renderTodayAttendance()}
+      </div>
+    </div>
+
     <!-- Charts & Fee Row -->
     <div class="dash-duo-row">
       <!-- Student Population Chart -->
@@ -790,6 +834,48 @@ function renderDashboard() {
       });
     };
   }
+}
+
+// ================================================================
+// Today's Attendance by Class
+// ================================================================
+
+/**
+ * Renders the today's-attendance summary grouped by class. Counts only
+ * Present and Absent statuses (per requirement, excludes late/excused).
+ */
+function renderTodayAttendance() {
+  if (todayAttendance.length === 0) {
+    return '<div class="dash-empty" style="padding:1rem;text-align:center;color:var(--text-muted);">No attendance marked today yet.</div>';
+  }
+
+  const totalPresent = todayAttendance.reduce((s, c) => s + c.present, 0);
+  const totalAbsent = todayAttendance.reduce((s, c) => s + c.absent, 0);
+
+  return `
+    <div class="dash-att-summary">
+      <div class="dash-att-row dash-att-header">
+        <span class="dash-att-class">Class</span>
+        <span class="dash-att-count present">Present</span>
+        <span class="dash-att-count absent">Absent</span>
+        <span class="dash-att-count">Total</span>
+      </div>
+      ${todayAttendance.map(cls => `
+        <div class="dash-att-row" data-class="${cls.class_name}">
+          <span class="dash-att-class">${cls.class_name}</span>
+          <span class="dash-att-count present">${cls.present}</span>
+          <span class="dash-att-count absent">${cls.absent}</span>
+          <span class="dash-att-count">${cls.present + cls.absent}</span>
+        </div>
+      `).join('')}
+      <div class="dash-att-row dash-att-total">
+        <span class="dash-att-class">All Classes</span>
+        <span class="dash-att-count present">${totalPresent}</span>
+        <span class="dash-att-count absent">${totalAbsent}</span>
+        <span class="dash-att-count">${totalPresent + totalAbsent}</span>
+      </div>
+    </div>
+  `;
 }
 
 // ================================================================

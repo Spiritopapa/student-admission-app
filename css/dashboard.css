@@ -1359,3 +1359,74 @@
   word-break: break-word;
   flex: 1.4;
 }
+
+/* ==================================================================
+   TODAY'S ATTENDANCE BY CLASS (Admin & Teacher dashboard cards)
+   ================================================================== */
+.dash-attendance-card {
+  margin-bottom: 1rem;
+}
+.dash-att-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.dash-att-row {
+  display: grid;
+  grid-template-columns: 1.4fr 0.7fr 0.7fr 0.7fr;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.6rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg);
+}
+.dash-att-row:hover {
+  border-color: var(--primary);
+}
+.dash-att-class {
+  font-weight: 600;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dash-att-count {
+  font-weight: 700;
+  color: var(--text);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.dash-att-count.present {
+  color: #059669;
+}
+.dash-att-count.absent {
+  color: #dc2626;
+}
+.dash-att-header {
+  background: var(--primary-light);
+  border-color: var(--primary);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+.dash-att-header .dash-att-count,
+.dash-att-header .dash-att-class {
+  color: var(--text-muted);
+  font-weight: 700;
+}
+.dash-att-total {
+  background: rgba(99, 102, 241, 0.08);
+  border-color: var(--primary);
+  font-weight: 700;
+  margin-top: 0.25rem;
+}
+
+@media (max-width: 560px) {
+  .dash-att-row {
+    grid-template-columns: 1fr 0.7fr 0.7fr 0.7fr;
+    gap: 0.3rem;
+    padding: 0.4rem 0.45rem;
+    font-size: 0.85rem;
+  }
+}

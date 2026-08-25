@@ -295,8 +295,104 @@ async function loadTeacherDashboardStats() {
     getEl('teacherStatMale').textContent = male;
     getEl('teacherStatFemale').textContent = female;
 
+    // Load today's attendance summary for the teacher's classes
+    await loadTeacherTodayAttendance(classes);
+
   } catch (err) {
     console.error('Failed to load teacher stats:', err);
+  }
+}
+
+// ================================================================
+// TODAY'S ATTENDANCE BY CLASS (Dashboard card)
+// ================================================================
+
+/**
+ * Loads today's attendance for the teacher's assigned classes and renders
+ * a summary card showing only Present and Absent counts per class.
+ */
+async function loadTeacherTodayAttendance(classes) {
+  const container = getEl('teacherTodayAttendance');
+  if (!container) return;
+  try {
+    const schoolId = await getCurrentSchoolId();
+    const today = new Date().toISOString().slice(0, 10);
+
+    let query = supabaseClient
+      .from('attendance')
+      .select('class_name, status')
+      .eq('date', today)
+      .in('class_name', classes.length ? classes : ['__none__']);
+    if (schoolId) query = query.eq('school_id', schoolId);
+
+    const { data, error } = await query;
+    if (error) {
+      console.warn('Failed to fetch today\'s attendance:', error.message);
+      container.innerHTML = '';
+      return;
+    }
+
+    // Group by class, counting only present/absent (excludes late/excused)
+    const grouped = {};
+    (data || []).forEach(r => {
+      if (!r.class_name) return;
+      if (!grouped[r.class_name]) grouped[r.class_name] = { present: 0, absent: 0 };
+      if (r.status === 'present') grouped[r.class_name].present++;
+      else if (r.status === 'absent') grouped[r.class_name].absent++;
+    });
+
+    const list = Object.keys(grouped).sort().map(cls => ({ class_name: cls, ...grouped[cls] }));
+
+    if (list.length === 0) {
+      container.innerHTML = `
+        <div class="dash-list-card animated-card dash-attendance-card">
+          <div class="dash-list-header">
+            <h3>📋 Today's Attendance</h3>
+            <span class="dash-list-count">0 classes</span>
+          </div>
+          <div class="dash-list-body">
+            <div class="dash-empty" style="padding:1rem;text-align:center;color:var(--text-muted);">No attendance marked today for your classes.</div>
+          </div>
+        </div>`;
+      return;
+    }
+
+    const totalPresent = list.reduce((s, c) => s + c.present, 0);
+    const totalAbsent = list.reduce((s, c) => s + c.absent, 0);
+
+    container.innerHTML = `
+      <div class="dash-list-card animated-card dash-attendance-card" style="margin-top:1rem;">
+        <div class="dash-list-header">
+          <h3>📋 Today's Attendance</h3>
+          <span class="dash-list-count">${list.length} classes</span>
+        </div>
+        <div class="dash-list-body">
+          <div class="dash-att-summary">
+            <div class="dash-att-row dash-att-header">
+              <span class="dash-att-class">Class</span>
+              <span class="dash-att-count present">Present</span>
+              <span class="dash-att-count absent">Absent</span>
+              <span class="dash-att-count">Total</span>
+            </div>
+            ${list.map(cls => `
+              <div class="dash-att-row" data-class="${cls.class_name}">
+                <span class="dash-att-class">${cls.class_name}</span>
+                <span class="dash-att-count present">${cls.present}</span>
+                <span class="dash-att-count absent">${cls.absent}</span>
+                <span class="dash-att-count">${cls.present + cls.absent}</span>
+              </div>
+            `).join('')}
+            <div class="dash-att-row dash-att-total">
+              <span class="dash-att-class">All My Classes</span>
+              <span class="dash-att-count present">${totalPresent}</span>
+              <span class="dash-att-count absent">${totalAbsent}</span>
+              <span class="dash-att-count">${totalPresent + totalAbsent}</span>
+            </div>
+          </div>
+        </div>
+      </div>`;
+  } catch (err) {
+    console.error('Failed to load today\'s attendance:', err);
   }
 }
 
