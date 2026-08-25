@@ -919,6 +919,9 @@ window.deleteSubAdmin = async function (id) {
 window.viewSubAdminActivities = async function (subAdminId) {
   const modal = getEl('subAdminActivitiesModal');
   if (!modal) return;
+  // Remember whose log is on screen so the "Clear All Logs" button deletes the right rows.
+  modal.dataset.subAdminId = subAdminId;
+  clearMessage('subAdminActivitiesClearMessage');
   modal.style.display = 'flex';
   getEl('activitiesLoading').style.display = 'block';
   getEl('activitiesContent').style.display = 'none';
@@ -951,6 +954,42 @@ window.viewSubAdminActivities = async function (subAdminId) {
   finally {
     getEl('activitiesLoading').style.display = 'none';
     getEl('activitiesContent').style.display = 'block';
+  }
+};
+
+// ================================================================
+// Clear a sub admin's activity log.
+// Deletes ALL rows for the currently-viewed sub admin from the
+// `sub_admin_activities` table, then reloads the modal contents.
+// ================================================================
+window.clearSubAdminActivityLog = async function () {
+  const modal = getEl('subAdminActivitiesModal');
+  if (!modal) return;
+  const subAdminId = modal.dataset.subAdminId;
+  if (!subAdminId) return;
+
+  if (!confirm('⚠️ Delete ALL activity log entries for this sub admin?\n\nThis cannot be undone.')) return;
+
+  const btn = getEl('clearSubAdminActivitiesBtn');
+  const originalText = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Clearing...'; }
+
+  try {
+    const { error } = await supabaseClient
+      .from('sub_admin_activities')
+      .delete()
+      .eq('sub_admin_id', subAdminId);
+    if (error) throw error;
+
+    // Reload the modal for that sub admin (shows the now-empty list)
+    await viewSubAdminActivities(subAdminId);
+
+    showMessage('subAdminActivitiesClearMessage', '🗑️ All activity logs for this sub admin were cleared.', 'success');
+  } catch (err) {
+    console.error('clearSubAdminActivityLog error:', err);
+    showMessage('subAdminActivitiesClearMessage', 'Failed to clear logs: ' + err.message, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = originalText; }
   }
 };
 

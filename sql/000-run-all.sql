@@ -363,6 +363,16 @@
 
 \i 052-attendance-present-absent-only.sql
 
+-- Step 47: Clear Activity Logs (RLS DELETE policies)
+-- Adds DELETE policies on staff_activities (teacher/accountant logs) and
+-- sub_admin_activities so the '🗑️ Clear All Logs' button in the activity-log
+-- modals can delete every log row for one user. Mirrors the existing SELECT
+-- policies (super admin / school admin / the user themself). Safe to re-run.
+-- Used by: js/modules/admin-teachers.js (clearStaffActivityLog),
+--          js/modules/admin-accountants.js (shared clearStaffActivityLog),
+--          js/modules/super-admin.js (clearSubAdminActivityLog).
+\i 053-clear-activity-logs.sql
+
 -- ============================================================
 --  SCHEMA DEPLOYMENT COMPLETE
 -- ============================================================

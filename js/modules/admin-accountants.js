@@ -265,6 +265,10 @@ export async function renderAccountantsTable() {
 window.viewAccountantActivities = async function (accountantId) {
   const modal = getEl('staffActivitiesModal');
   if (!modal) return;
+  // Remember whose log is on screen so the "Clear All Logs" button deletes the right rows.
+  modal.dataset.staffId = accountantId;
+  modal.dataset.staffType = 'accountant';
+  clearMessage('staffActivitiesClearMessage');
   modal.style.display = 'flex';
   getEl('staffActivitiesLoading').style.display = 'block';
   getEl('staffActivitiesContent').style.display = 'none';

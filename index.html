@@ -1096,6 +1096,10 @@
                 <span id="staffActivitiesBadge" class="badge-confirmed"></span>
               </div>
             </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:0.75rem;flex-wrap:wrap;margin-bottom:0.75rem;">
+              <div id="staffActivitiesClearMessage" class="message" style="display:none;margin:0;"></div>
+              <button type="button" class="btn btn-sm btn-danger" id="clearStaffActivitiesBtn" onclick="clearStaffActivityLog()">🗑️ Clear All Logs</button>
+            </div>
             <div class="table-wrapper">
               <table class="app-table">
                 <thead><tr><th>Date &amp; Time</th><th>Action</th><th>Entity Type</th><th>Details</th></tr></thead>
@@ -2815,6 +2819,10 @@
                         <label>Registration ID</label>
                         <span id="activitiesRegId" style="font-weight:600;"></span>
                       </div>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;gap:0.75rem;flex-wrap:wrap;margin-bottom:0.75rem;">
+                      <div id="subAdminActivitiesClearMessage" class="message" style="display:none;margin:0;"></div>
+                      <button type="button" class="btn btn-sm btn-danger" id="clearSubAdminActivitiesBtn" onclick="clearSubAdminActivityLog()">🗑️ Clear All Logs</button>
                     </div>
                     <div class="table-wrapper">
                       <table class="app-table">

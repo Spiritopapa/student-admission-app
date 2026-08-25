@@ -812,6 +812,10 @@ window.closeTeacherDetailModal = function () {
 window.viewTeacherActivities = async function (teacherId) {
   const modal = getEl('staffActivitiesModal');
   if (!modal) return;
+  // Remember whose log is on screen so the "Clear All Logs" button deletes the right rows.
+  modal.dataset.staffId = teacherId;
+  modal.dataset.staffType = 'teacher';
+  clearMessage('staffActivitiesClearMessage');
   modal.style.display = 'flex';
   getEl('staffActivitiesLoading').style.display = 'block';
   getEl('staffActivitiesContent').style.display = 'none';
@@ -862,6 +866,46 @@ window.viewTeacherActivities = async function (teacherId) {
   } finally {
     getEl('staffActivitiesLoading').style.display = 'none';
     getEl('staffActivitiesContent').style.display = 'block';
+  }
+};
+
+// ================================================================
+// Clear a staff member's activity log (shared teacher + accountant).
+// Deletes ALL rows for the currently-viewed user from the
+// `staff_activities` table, then reloads the modal contents.
+// ================================================================
+window.clearStaffActivityLog = async function () {
+  const modal = getEl('staffActivitiesModal');
+  if (!modal) return;
+  const staffId = modal.dataset.staffId;
+  const staffType = modal.dataset.staffType;
+  if (!staffId || !staffType) return;
+
+  const person = staffType === 'teacher' ? 'teacher' : 'accountant';
+  if (!confirm(`⚠️ Delete ALL activity log entries for this ${person}?\n\nThis cannot be undone.`)) return;
+
+  const btn = getEl('clearStaffActivitiesBtn');
+  const originalText = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Clearing...'; }
+
+  try {
+    const { error } = await supabaseClient
+      .from('staff_activities')
+      .delete()
+      .eq('staff_id', staffId)
+      .eq('staff_type', staffType);
+    if (error) throw error;
+
+    // Reload the modal for that user (shows the now-empty list)
+    if (staffType === 'teacher') await viewTeacherActivities(staffId);
+    else await viewAccountantActivities(staffId);
+
+    showMessage('staffActivitiesClearMessage', `🗑️ All activity logs for this ${person} were cleared.`, 'success');
+  } catch (err) {
+    console.error('clearStaffActivityLog error:', err);
+    showMessage('staffActivitiesClearMessage', 'Failed to clear logs: ' + err.message, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = originalText; }
   }
 };
 
