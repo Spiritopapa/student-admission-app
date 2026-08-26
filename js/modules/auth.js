@@ -23,6 +23,55 @@ export function initAuth(supabase) {
 }
 
 // ================================================================
+// Trial / Full Version enforcement helpers
+// These gate the whole school once its trial has expired.
+// ================================================================
+
+// True when a school row is on a trial whose expiry has passed.
+function isTrialExpired(school) {
+  return !!(school && school.plan_version === 'trial'
+    && school.trial_ends_at
+    && new Date(school.trial_ends_at) < new Date());
+}
+
+// User-friendly reason shown when a school is trial-blocked.
+function trialBlockMessage() {
+  return 'Your school\'s trial period has expired. Access is blocked until the Super Administrator renews the trial or upgrades the school to the Full version.';
+}
+
+// Determines whether the current (persisted) session user's school has an
+// expired trial — used by initSession to block re-entry on page load.
+async function sessionSchoolIsTrialBlocked(role, userId) {
+  try {
+    if (!userId) return false;
+    let schoolId = null;
+    if (role === 'admin') {
+      const { data: s } = await supabaseClient.from('schools')
+        .select('id, plan_version, trial_ends_at')
+        .eq('user_id', userId)
+        .maybeSingle();
+      return isTrialExpired(s);
+    } else if (role === 'sub_admin') {
+      const { data: sub } = await supabaseClient.from('sub_admins')
+        .select('school_id')
+        .eq('user_id', userId)
+        .maybeSingle();
+      schoolId = sub?.school_id || null;
+      if (!schoolId) return false;
+      const { data: s } = await supabaseClient.from('schools')
+        .select('plan_version, trial_ends_at')
+        .eq('id', schoolId)
+        .maybeSingle();
+      return isTrialExpired(s);
+    }
+    return false;
+  } catch (err) {
+    console.warn('Trial-expiry session check failed:', err.message);
+    return false;
+  }
+}
+
+// ================================================================
 // Navigation UI Helpers
 // ================================================================
 
@@ -740,7 +789,7 @@ export function setupLoginForm(loadDashboardCallbacks) {
       const isSubAdminID = /^SA-\d{4}$/i.test(identifier);
       const isTeacherID = /^TCH-([A-Z0-9]{1,3}-)?\d{4}$/i.test(identifier);
       const isAccountantID = /^ACC-([A-Z0-9]{1,3}-)?\d{4}$/i.test(identifier);
-      const isSchoolID = /^SCH-([A-Z0-9]{1,3}-)?\d{4}$/i.test(identifier);
+      const isSchoolID = /^SCH-(TRIAL-)?([A-Z0-9]{1,3}-)?\d{4}$/i.test(identifier);
       let email;
       if (isStudentID) {
         email = identifier + '@student.local';
@@ -801,13 +850,13 @@ export function setupLoginForm(loadDashboardCallbacks) {
       if (role === 'admin') {
         const regId = data.user.user_metadata?.registration_id || null;
         let { data: school } = await supabaseClient.from('schools')
-          .select('id')
+          .select('id, plan_version, trial_ends_at')
           .eq('user_id', data.user.id)
           .maybeSingle();
         if (!school && regId) {
           // Self-heal: look up by registration_id and auto-link
           const { data: byReg } = await supabaseClient.from('schools')
-            .select('id')
+            .select('id, plan_version, trial_ends_at')
             .eq('registration_id', regId)
             .maybeSingle();
           if (byReg) {
@@ -819,12 +868,19 @@ export function setupLoginForm(loadDashboardCallbacks) {
                 .update({ user_id: data.user.id })
                 .eq('registration_id', regId);
             }
-            school = { id: byReg.id };
+            school = byReg;
           }
         }
         if (!school) {
           await supabaseClient.auth.signOut();
           showMessage('loginMessage', 'School account not linked. Please contact the Super Administrator.', 'error');
+          updateUIForAuth(null, null);
+          return;
+        }
+        // TRIAL EXPIRY GUARD: block login once the school's trial has ended.
+        if (isTrialExpired(school)) {
+          await supabaseClient.auth.signOut();
+          showMessage('loginMessage', trialBlockMessage(), 'error');
           updateUIForAuth(null, null);
           return;
         }
@@ -835,13 +891,13 @@ export function setupLoginForm(loadDashboardCallbacks) {
       if (role === 'sub_admin') {
         const regId = data.user.user_metadata?.registration_id || null;
         let { data: subAdmin } = await supabaseClient.from('sub_admins')
-          .select('is_approved')
+          .select('is_approved, school_id')
           .eq('user_id', data.user.id)
           .maybeSingle();
         if (!subAdmin && regId) {
           // Self-heal: look up by registration_id and auto-link if pre-approved
           const { data: byReg } = await supabaseClient.from('sub_admins')
-            .select('is_approved')
+            .select('is_approved, school_id')
             .eq('registration_id', regId)
             .maybeSingle();
           if (byReg && byReg.is_approved) {
@@ -854,7 +910,7 @@ export function setupLoginForm(loadDashboardCallbacks) {
                 .eq('registration_id', regId)
                 .eq('is_approved', true);
             }
-            subAdmin = { is_approved: true };
+            subAdmin = { is_approved: true, school_id: byReg.school_id };
           }
         }
         if (!subAdmin || !subAdmin.is_approved) {
@@ -862,6 +918,19 @@ export function setupLoginForm(loadDashboardCallbacks) {
           showMessage('loginMessage', 'Your account is pending approval. Please wait for the School Administrator to approve your account.', 'error');
           updateUIForAuth(null, null);
           return;
+        }
+        // TRIAL EXPIRY GUARD: a sub admin of a trial-expired school is blocked too.
+        if (subAdmin.school_id) {
+          const { data: sSchool } = await supabaseClient.from('schools')
+            .select('plan_version, trial_ends_at')
+            .eq('id', subAdmin.school_id)
+            .maybeSingle();
+          if (isTrialExpired(sSchool)) {
+            await supabaseClient.auth.signOut();
+            showMessage('loginMessage', trialBlockMessage(), 'error');
+            updateUIForAuth(null, null);
+            return;
+          }
         }
       }
 
@@ -1081,6 +1150,15 @@ export async function initSession(loadDashboardCallbacks) {
       if (role === 'super_admin') {
         if (loadDashboardCallbacks.loadSuperAdminDashboard) loadDashboardCallbacks.loadSuperAdminDashboard();
       } else if (role === 'admin' || role === 'sub_admin') {
+        // TRIAL EXPIRY GUARD (persisted session): block school access once the
+        // school's trial has ended, so an expired trial can't be bypassed by a
+        // kept-open/refreshed session.
+        if (await sessionSchoolIsTrialBlocked(role, session.user.id)) {
+          await supabaseClient.auth.signOut();
+          updateUIForAuth(null, null);
+          showMessage('loginMessage', trialBlockMessage(), 'error');
+          return;
+        }
         if (loadDashboardCallbacks.loadAdminDashboard) loadDashboardCallbacks.loadAdminDashboard();
       } else if (role === 'student') {
         if (loadDashboardCallbacks.loadStudentDashboard) loadDashboardCallbacks.loadStudentDashboard(session.user);

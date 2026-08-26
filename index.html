@@ -2620,6 +2620,11 @@
               <div class="stat-card" style="border-left:3px solid #14b8a6;"><span class="stat-number" id="superStatSubjects">0</span><span>Subjects</span></div>
               <div class="stat-card" style="border-left:3px solid var(--danger);"><span class="stat-number" id="superStatAnnouncements">0</span><span>Announcements</span></div>
             </div>
+            <div class="stats-row" style="margin-top:0.5rem;">
+              <div class="stat-card" style="border-left:3px solid #059669;"><span class="stat-number" id="superStatFullSchools">0</span><span>Full Schools</span></div>
+              <div class="stat-card" style="border-left:3px solid #f59e0b;"><span class="stat-number" id="superStatTrialSchools">0</span><span>Trial Schools</span></div>
+              <div class="stat-card" style="border-left:3px solid var(--danger);"><span class="stat-number" id="superStatTrialExpired">0</span><span>Trial Expired</span></div>
+            </div>
             <h3 style="margin-top:1.5rem;">🏫 Quick School Access</h3>
             <div class="modules-grid" id="superSchoolsQuickList"></div>
 
@@ -2649,22 +2654,41 @@
             <details class="admit-section" id="newSchoolSection" style="margin-top:1rem;display:none;">
               <summary class="btn btn-secondary" style="cursor:pointer;">➕ Create New School</summary>
 
-              <!-- Step 1 : Enter school name -->
+              <!-- Step 1 : Enter school name + choose version -->
               <div id="superSchoolStep1" style="margin-top:0.75rem;">
-                <p class="subtitle" style="color:var(--text-muted);font-size:0.85rem;">Step 1 of 2 — enter the school name. The School ID will be generated from its initials.</p>
+                <p class="subtitle" style="color:var(--text-muted);font-size:0.85rem;">Step 1 of 2 — enter the school name and choose its version. The School ID will be generated from its initials.</p>
                 <div class="form-group" style="max-width:460px;">
                   <label for="newSchoolName">School Name *</label>
                   <input type="text" id="newSchoolName" required placeholder="e.g. Sunshine International School" style="text-transform:capitalize;" />
                 </div>
+                <div class="form-row" style="max-width:460px;align-items:flex-end;">
+                  <div class="form-group" style="flex:1;">
+                    <label for="newSchoolVersion">Version *</label>
+                    <select id="newSchoolVersion" required onchange="onNewSchoolVersionChange()">
+                      <option value="full" selected>✓ Full Version</option>
+                      <option value="trial">⏱ Trial Version</option>
+                    </select>
+                  </div>
+                  <div class="form-group" id="newSchoolTrialDaysGroup" style="flex:1;display:none;">
+                    <label for="newSchoolTrialDays">Trial Duration (days) *</label>
+                    <input type="number" id="newSchoolTrialDays" min="1" max="365" value="14" />
+                  </div>
+                </div>
+                <p class="subtitle" id="newSchoolVersionNote" style="color:var(--text-muted);font-size:0.8rem;max-width:460px;">
+                  Full Version — unlimited access to all enabled modules.
+                </p>
                 <button type="button" class="btn btn-primary" id="btnSchoolGenNext" onclick="superSchoolGenerateNext()">Next → Generate School ID</button>
               </div>
 
               <!-- Step 2 : Generated ID + remaining details -->
               <form id="newSchoolForm" class="admission-form" style="display:none;margin-top:1rem;max-width:100%;">
+                <input type="hidden" id="newSchoolVersionInput" value="full" />
+                <input type="hidden" id="newSchoolTrialDaysInput" value="14" />
                 <div class="form-row">
                   <div class="form-group"><label for="newSchoolNameDisplay">School Name</label><input type="text" id="newSchoolNameDisplay" readonly style="background:var(--bg);" /></div>
-                  <div class="form-group"><label for="newSchoolRegId">Generated School ID (includes school initials)</label><input type="text" id="newSchoolRegId" readonly style="background:var(--bg);font-weight:700;font-size:1.1rem;letter-spacing:1px;text-align:center;color:var(--primary);" /></div>
+                  <div class="form-group"><label for="newSchoolRegId">Generated School ID (includes school initials &amp; version)</label><input type="text" id="newSchoolRegId" readonly style="background:var(--bg);font-weight:700;font-size:1.1rem;letter-spacing:1px;text-align:center;color:var(--primary);" /></div>
                 </div>
+                <div id="newSchoolVersionSummary" style="padding:0.6rem 0.85rem;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);margin-bottom:0.75rem;"></div>
                 <div class="form-row">
                   <div class="form-group"><label for="newSchoolEmail">Email (optional)</label><input type="email" id="newSchoolEmail" placeholder="admin@school.com" /></div>
                   <div class="form-group"><label for="newSchoolPhone">Phone (optional)</label><input type="tel" id="newSchoolPhone" placeholder="+233 XX XXX XXXX" /></div>
@@ -2700,7 +2724,7 @@
             <!-- Schools Table -->
             <div class="table-wrapper" style="margin-top:1rem;">
               <table class="app-table">
-                <thead><tr><th>School ID</th><th>School Name</th><th>Admin</th><th>Type</th><th>Location</th><th>Students</th><th>Teachers</th><th>Accountants</th><th>Email</th><th>Mobile</th><th>Status</th><th>Linked</th><th>Created</th><th>Action</th></tr></thead>
+                <thead><tr><th>School ID</th><th>School Name</th><th>Admin</th><th>Type</th><th>Version</th><th>Location</th><th>Students</th><th>Teachers</th><th>Accountants</th><th>Email</th><th>Mobile</th><th>Status</th><th>Linked</th><th>Created</th><th>Action</th></tr></thead>
                 <tbody id="schoolsBody"></tbody>
               </table>
             </div>
@@ -3324,6 +3348,15 @@
               <option value="private">Private</option>
             </select>
           </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label for="editSchoolVersion">Version</label>
+            <select id="editSchoolVersion" onchange="onEditSchoolVersionChange()">
+              <option value="full">Full Version</option>
+              <option value="trial">Trial Version</option>
+            </select>
+          </div>
+          <div class="form-group" id="editSchoolTrialDaysGroup" style="display:none;"><label for="editSchoolTrialDays">Trial Duration (days) *</label><input type="number" id="editSchoolTrialDays" min="1" max="365" /></div>
         </div>
         <div class="form-row">
           <div class="form-group"><label for="editSchoolLocation">Location</label><input type="text" id="editSchoolLocation" /></div>

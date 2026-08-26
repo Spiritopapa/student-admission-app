@@ -338,7 +338,7 @@ async function loadDashboardStats() {
       supabaseClient.from('classes').select('*', { count: 'exact', head: true }),
       supabaseClient.from('subjects').select('*', { count: 'exact', head: true }),
       supabaseClient.from('announcements').select('*', { count: 'exact', head: true }),
-      supabaseClient.from('schools').select('id, name, registration_id, admin_name, school_type, student_population, location, address, email, phone').order('name')
+      supabaseClient.from('schools').select('id, name, registration_id, admin_name, school_type, student_population, location, address, email, phone, plan_version, trial_ends_at').order('name')
     ]);
 
     // Fetch locked modules to filter counts
@@ -368,6 +368,21 @@ async function loadDashboardStats() {
     setStat('superStatClasses', classesCount || 0);
     setStat('superStatSubjects', subjectsCount || 0);
     setStat('superStatAnnouncements', filteredAnnouncements);
+
+    // Trial / Full version breakdown (from the schools we already fetched).
+    const now = new Date();
+    let fullCount = 0, trialCount = 0, trialExpiredCount = 0;
+    (schools || []).forEach(s => {
+      if (s.plan_version === 'trial') {
+        trialCount++;
+        if (s.trial_ends_at && new Date(s.trial_ends_at) < now) trialExpiredCount++;
+      } else {
+        fullCount++;
+      }
+    });
+    if (getEl('superStatFullSchools')) setStat('superStatFullSchools', fullCount);
+    if (getEl('superStatTrialSchools')) setStat('superStatTrialSchools', trialCount);
+    if (getEl('superStatTrialExpired')) setStat('superStatTrialExpired', trialExpiredCount);
 
     // School quick-access cards with lock indicators
     const container = getEl('superSchoolsQuickList');
@@ -425,7 +440,7 @@ async function loadSchoolsList() {
     const { data, error } = await query;
     if (error) { console.error('Load schools error:', error); return; }
     let items = data || [];
-    if (search) items = items.filter(s => `${s.name} ${s.email || ''} ${s.registration_id}`.toLowerCase().includes(search));
+    if (search) items = items.filter(s => `${s.name} ${s.email || ''} ${s.registration_id} ${s.plan_version || ''}`.toLowerCase().includes(search));
     if (items.length === 0) { tbody.innerHTML = ''; if (noEl) noEl.style.display = 'block'; return; }
     if (noEl) noEl.style.display = 'none';
 
@@ -452,6 +467,11 @@ async function loadSchoolsList() {
       const resetPwBtn = `<button class="btn btn-sm" onclick="openResetSchoolPassword('${s.id}', '${s.name.replace(/'/g, "\\'")}')" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:none;cursor:pointer;box-shadow:0 2px 8px rgba(245,158,11,0.3);">🔑 Reset Password</button>`;
       const adminName = s.admin_name || '-';
       const schoolType = s.school_type ? (s.school_type === 'private' ? '<span style="display:inline-block;padding:0.15rem 0.5rem;border-radius:99px;background:rgba(245,158,11,0.12);color:#d97706;font-size:0.72rem;font-weight:700;">Private</span>' : '<span style="display:inline-block;padding:0.15rem 0.5rem;border-radius:99px;background:rgba(16,185,129,0.12);color:#059669;font-size:0.72rem;font-weight:700;">Public</span>') : '-';
+      const versionBadge = s.plan_version === 'trial'
+        ? (s.trial_ends_at && new Date(s.trial_ends_at) < new Date()
+            ? '<span style="display:inline-block;padding:0.15rem 0.5rem;border-radius:99px;background:rgba(239,68,68,0.12);color:#dc2626;font-size:0.72rem;font-weight:700;">⏱ Trial · Expired</span>'
+            : `<span style="display:inline-block;padding:0.15rem 0.5rem;border-radius:99px;background:rgba(245,158,11,0.12);color:#d97706;font-size:0.72rem;font-weight:700;">⏱ Trial${s.trial_ends_at ? ' · ' + formatDate(s.trial_ends_at) : ''}</span>`)
+        : '<span style="display:inline-block;padding:0.15rem 0.5rem;border-radius:99px;background:rgba(16,185,129,0.12);color:#059669;font-size:0.72rem;font-weight:700;">✓ Full</span>';
       const schoolLocation = s.location || s.address || '-';
       const population = s.student_population != null ? Number(s.student_population).toLocaleString() : '-';
       const teacherCount = teachersBySchool[s.id] || 0;
@@ -461,6 +481,7 @@ async function loadSchoolsList() {
         <td>${s.name} ${lockBadge}</td>
         <td>${adminName}</td>
         <td>${schoolType}</td>
+        <td>${versionBadge}</td>
         <td>${schoolLocation}</td>
         <td>${population}</td>
         <td>${teacherCount}</td>
@@ -527,6 +548,9 @@ window.openSchoolInfo = async function (schoolId) {
       ['School Name', s.name],
       ['School Administrator', s.admin_name],
       ['School Type', typeVal],
+      ['Version', s.plan_version === 'trial'
+        ? (`Trial${s.trial_ends_at ? ' (expires ' + formatDate(s.trial_ends_at) + ')' : ''}${s.trial_ends_at && new Date(s.trial_ends_at) < new Date() ? ' — EXPIRED' : ''}`)
+        : 'Full'],
       ['Location', s.location || s.address],
       ['Student Population', popVal],
       ['Teachers', teacherCount],
@@ -571,6 +595,21 @@ window.openEditSchoolInfo = async function (schoolId) {
     getEl('editSchoolPopulation').value = (s.student_population != null ? s.student_population : '');
     getEl('editSchoolEmail').value = s.email || '';
     getEl('editSchoolPhone').value = s.phone || '';
+    // Version + trial fields
+    const editVerSel = getEl('editSchoolVersion');
+    if (editVerSel) editVerSel.value = s.plan_version === 'trial' ? 'trial' : 'full';
+    const daysGroup = getEl('editSchoolTrialDaysGroup');
+    if (s.plan_version === 'trial' && daysGroup) daysGroup.style.display = '';
+    if (s.plan_version !== 'trial' && daysGroup) daysGroup.style.display = 'none';
+    const trialDaysInput = getEl('editSchoolTrialDays');
+    if (trialDaysInput) {
+      if (s.plan_version === 'trial' && s.trial_ends_at) {
+        const remain = Math.max(Math.ceil((new Date(s.trial_ends_at) - new Date()) / 86400000), 1);
+        trialDaysInput.value = Number.isFinite(remain) ? String(remain) : '14';
+      } else {
+        trialDaysInput.value = '14';
+      }
+    }
     // Sync the info-modal's Edit button so it opens this modal for the same school.
     const infoEditBtn = getEl('schoolInfoEditBtn');
     if (infoEditBtn) infoEditBtn.setAttribute('onclick', `openEditSchoolInfo('${s.id}')`);
@@ -597,6 +636,9 @@ window.saveEditSchoolInfo = async function () {
   const popRaw = getEl('editSchoolPopulation').value;
   const email = getEl('editSchoolEmail').value.trim() || null;
   const phone = getEl('editSchoolPhone').value.trim() || null;
+  const version = getEl('editSchoolVersion')?.value || 'full';
+  const trialDays = version === 'trial' ? (parseInt(getEl('editSchoolTrialDays')?.value || '14', 10) || 14) : 0;
+  const trialEndsAt = version === 'trial' ? new Date(Date.now() + trialDays * 86400000).toISOString() : null;
 
   if (!name) { showMessage('editSchoolMessage', 'School name is required.', 'error'); return; }
   if (popRaw !== '' && (!Number.isFinite(Number(popRaw)) || Number(popRaw) < 0)) {
@@ -616,6 +658,8 @@ window.saveEditSchoolInfo = async function () {
       email,
       phone,
       student_population: population,
+      plan_version: version,
+      trial_ends_at: trialEndsAt,
     }).eq('id', schoolId);
     if (error) { showMessage('editSchoolMessage', 'Error saving: ' + error.message, 'error'); setLoading(btn, false, '💾 Save Changes'); return; }
     // School name changes auto-propagate to school_settings via the
@@ -741,22 +785,73 @@ async function generateSchoolId() {
   if (nameInput) setTimeout(() => nameInput.focus(), 50);
 }
 
+// Toggle the Trial-duration field in the Create-School wizard Step 1,
+// and update the explanatory note based on the selected version.
+window.onNewSchoolVersionChange = function () {
+  const sel = getEl('newSchoolVersion');
+  const daysGroup = getEl('newSchoolTrialDaysGroup');
+  const note = getEl('newSchoolVersionNote');
+  if (!sel) return;
+  const v = sel.value;
+  if (daysGroup) daysGroup.style.display = v === 'trial' ? '' : 'none';
+  if (note) {
+    note.textContent = v === 'trial'
+      ? `Trial Version — the school gets access for the chosen number of days, then the trial expires. A trial School ID includes a TRIAL marker.`
+      : `Full Version — unlimited access to all enabled modules.`;
+  }
+};
+
+// Toggle the Trial-duration field in the Edit School modal.
+window.onEditSchoolVersionChange = function () {
+  const sel = getEl('editSchoolVersion');
+  const daysGroup = getEl('editSchoolTrialDaysGroup');
+  const daysInput = getEl('editSchoolTrialDays');
+  if (!sel) return;
+  const v = sel.value;
+  if (daysGroup) daysGroup.style.display = v === 'trial' ? '' : 'none';
+  if (v === 'trial' && daysInput && !daysInput.value) daysInput.value = '14';
+};
+
+// Build an HTML summary showing the selected version + generated ID info.
+function renderSchoolVersionSummary() {
+  const summary = getEl('newSchoolVersionSummary');
+  if (!summary) return;
+  const v = getEl('newSchoolVersionInput')?.value || 'full';
+  const regId = getEl('newSchoolRegId')?.value || '';
+  if (v === 'trial') {
+    const days = parseInt(getEl('newSchoolTrialDaysInput')?.value || '14', 10) || 14;
+    const end = new Date(Date.now() + days * 86400000);
+    summary.innerHTML = `<strong style="color:#d97706;">⏱ Trial Version</strong><br>
+      <span style="font-size:0.8rem;color:var(--text-muted);">Trial access for ${days} day(s) (ends ${end.toLocaleDateString()}) — the ID <strong>${regId}</strong> carries the <strong>TRIAL</strong> marker. Convert to Full at any time from the school's Edit info.</span>`;
+  } else {
+    summary.innerHTML = `<strong style="color:#059669;">✓ Full Version</strong><br>
+      <span style="font-size:0.8rem;color:var(--text-muted);">Unlimited access to all enabled modules.</span>`;
+  }
+}
+
 window.superSchoolGenerateNext = async function () {
   clearMessage('newSchoolMessage');
   const nameInput = getEl('newSchoolName');
   const name = (nameInput?.value || '').trim();
   if (!name) { showMessage('newSchoolMessage', 'Enter the school name first to generate its School ID.', 'error'); nameInput?.focus(); return; }
+  const versionSel = getEl('newSchoolVersion');
+  const version = versionSel?.value || 'full';
+  const trialDays = version === 'trial' ? (parseInt(getEl('newSchoolTrialDays')?.value || '14', 10) || 14) : 0;
   setLoading(getEl('btnSchoolGenNext'), true, 'Generating...');
   try {
-    const { data: regId, error } = await supabaseClient.rpc('generate_school_id', { p_school_name: name });
+    const { data: regId, error } = await supabaseClient.rpc('generate_school_id', { p_school_name: name, p_version: version });
     if (error) { throw new Error(error.message); }
     getEl('newSchoolRegId').value = regId || '';
     getEl('newSchoolNameDisplay').value = name;
+    // Stash the version + trial duration into the Step-2 form hidden fields.
+    getEl('newSchoolVersionInput').value = version;
+    getEl('newSchoolTrialDaysInput').value = String(trialDays);
     const step1 = getEl('superSchoolStep1');
     const form = getEl('newSchoolForm');
     if (step1) step1.style.display = 'none';
     if (form) form.style.display = 'block';
-    showMessage('newSchoolMessage', `School ID generated from "${name}" initials.`, 'success');
+    renderSchoolVersionSummary();
+    showMessage('newSchoolMessage', `School ID generated from "${name}" initials (${version === 'trial' ? 'Trial' : 'Full'} version).`, 'success');
   } catch (err) {
     showMessage('newSchoolMessage', 'Error generating ID: ' + err.message, 'error');
   } finally {
@@ -782,11 +877,15 @@ async function saveNewSchool(e) {
   const address = getEl('newSchoolAddress').value.trim() || null;
   const regId = getEl('newSchoolRegId').value.trim();
   const logoFile = getEl('newSchoolLogoInput')?.files?.[0] || null;
+  const version = getEl('newSchoolVersionInput')?.value || 'full';
+  const trialDays = version === 'trial' ? (parseInt(getEl('newSchoolTrialDaysInput')?.value || '14', 10) || 14) : 0;
+  const trialEndsAt = version === 'trial' ? new Date(Date.now() + trialDays * 86400000).toISOString() : null;
   if (!name || !regId) { showMessage('newSchoolMessage', 'School name and generated School ID are required.', 'error'); setLoading(btn, false, '✅ Create School'); return; }
   try {
     const { data: { user } } = await supabaseClient.auth.getUser();
     const { data: newSchool, error } = await supabaseClient.from('schools').insert([{
       registration_id: regId, name, email, phone, address, location: address, created_by: user?.id || null, is_approved: true,
+      plan_version: version, trial_ends_at: trialEndsAt,
     }]).select('id').single();
     if (error) { showMessage('newSchoolMessage', 'Error: ' + error.message, 'error'); setLoading(btn, false, '✅ Create School'); return; }
     
@@ -827,7 +926,7 @@ async function saveNewSchool(e) {
       }
     }
     
-    showMessage('newSchoolMessage', `✅ School "${name}" created with ID: ${regId}. Provide this ID to the school admin for registration.`, 'success');
+    showMessage('newSchoolMessage', `✅ School "${name}" created with ${version === 'trial' ? `TRIAL version (expires ${new Date(trialEndsAt).toLocaleDateString()})` : 'FULL version'} and ID: ${regId}. Provide this ID to the school admin for registration.`, 'success');
     getEl('newSchoolName').value = '';
     getEl('newSchoolEmail').value = '';
     getEl('newSchoolPhone').value = '';
@@ -838,6 +937,16 @@ async function saveNewSchool(e) {
     getEl('newSchoolLogoPlaceholder').style.display = '';
     getEl('newSchoolLogoClear').style.display = 'none';
     getEl('newSchoolSection').style.display = 'none';
+    // Reset the version/trial fields for the next school.
+    if (getEl('newSchoolVersion')) getEl('newSchoolVersion').value = 'full';
+    const _daysGroup = getEl('newSchoolTrialDaysGroup');
+    if (_daysGroup) _daysGroup.style.display = 'none';
+    if (getEl('newSchoolTrialDays')) getEl('newSchoolTrialDays').value = '14';
+    const _note = getEl('newSchoolVersionNote');
+    if (_note) _note.textContent = 'Full Version — unlimited access to all enabled modules.';
+    if (getEl('newSchoolVersionInput')) getEl('newSchoolVersionInput').value = 'full';
+    if (getEl('newSchoolTrialDaysInput')) getEl('newSchoolTrialDaysInput').value = '14';
+    if (getEl('newSchoolVersionSummary')) getEl('newSchoolVersionSummary').innerHTML = '';
     await loadSchoolsList();
     await loadDashboardStats();
   } catch (err) { showMessage('newSchoolMessage', 'Error: ' + err.message, 'error'); }
