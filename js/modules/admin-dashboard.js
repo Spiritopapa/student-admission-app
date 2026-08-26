@@ -23,6 +23,8 @@ let schoolName = '';
 let lastUpdated = null;
 let activityLog = [];
 let lockedModules = new Set();
+let trialStatus = { isTrial: false, endsAt: null }; // Trial version countdown state
+let _trialTimerId = null;
 
 // ================================================================
 // Realtime subscription references (for cleanup)
@@ -54,8 +56,10 @@ export async function loadAdminDashboardHome() {
       fetchTeachers(),
       fetchTodayAttendance(),
       fetchSchoolName(),
+      fetchTrialStatus(),
     ]);
     renderDashboard();
+    renderTrialBanner();
     propagateSchoolName();
     startRealtimeSubscription();
     startPeriodicRefresh();
@@ -193,6 +197,88 @@ function propagateSchoolName() {
   });
 }
 
+// ================================================================
+// Trial Version Countdown
+// ================================================================
+
+// Reads the current school's version + trial expiry from the schools table.
+async function fetchTrialStatus() {
+  const schoolId = await getCurrentSchoolId();
+  trialStatus = { isTrial: false, endsAt: null };
+  if (!schoolId) return;
+  try {
+    const { data, error } = await supabaseClient
+      .from('schools')
+      .select('plan_version, trial_ends_at')
+      .eq('id', schoolId)
+      .maybeSingle();
+    if (error) {
+      console.warn('Failed to fetch trial status:', error.message);
+      return;
+    }
+    trialStatus.isTrial = data?.plan_version === 'trial';
+    trialStatus.endsAt = data?.trial_ends_at ? new Date(data.trial_ends_at) : null;
+  } catch (err) {
+    console.warn('Failed to fetch trial status:', err.message);
+  }
+}
+
+// Shows/hides the trial banner and (re)starts the live countdown timer.
+function renderTrialBanner() {
+  const banner = getEl('adminTrialBanner');
+  if (!banner) return;
+  if (!trialStatus.isTrial || !trialStatus.endsAt) {
+    banner.style.display = 'none';
+    stopTrialTimer();
+    return;
+  }
+  banner.style.display = 'flex';
+  updateTrialBannerText();
+  startTrialTimer();
+}
+
+function startTrialTimer() {
+  if (_trialTimerId) return;
+  _trialTimerId = setInterval(updateTrialBannerText, 1000);
+}
+
+function stopTrialTimer() {
+  if (_trialTimerId) {
+    clearInterval(_trialTimerId);
+    _trialTimerId = null;
+  }
+}
+
+function padNum(n) {
+  return String(n).padStart(2, '0');
+}
+
+// Live-updating countdown: shows days remaining + an hh:mm:ss countdown.
+function updateTrialBannerText() {
+  const countEl = getEl('adminTrialCountdown');
+  const daysEl = getEl('adminTrialDays');
+  const pluralEl = getEl('adminTrialDaysPlural');
+  if (!countEl || !trialStatus.endsAt) return;
+  const now = new Date();
+  const diff = trialStatus.endsAt.getTime() - now.getTime();
+
+  if (diff <= 0) {
+    if (countEl) countEl.textContent = '00:00:00';
+    if (daysEl) daysEl.textContent = '0';
+    if (pluralEl) pluralEl.textContent = 's';
+    return;
+  }
+
+  const days = Math.floor(diff / 86400000);
+  const hrs = Math.floor((diff % 86400000) / 3600000);
+  const mins = Math.floor((diff % 3600000) / 60000);
+  const secs = Math.floor((diff % 60000) / 1000);
+
+  if (daysEl) daysEl.textContent = days;
+  if (pluralEl) pluralEl.textContent = days === 1 ? '' : 's';
+  if (countEl) countEl.textContent = `${padNum(hrs)}:${padNum(mins)}:${padNum(secs)}`;
+}
+
 async function fetchStudents() {
   const schoolId = await getCurrentSchoolId();
   // CRITICAL SECURITY: Fail closed. Never fetch without a school_id filter.
@@ -305,6 +391,7 @@ export async function refreshDashboardData(source = 'realtime') {
       fetchAnnouncements(),
       fetchTeachers(),
       fetchTodayAttendance(),
+      fetchTrialStatus(),
     ]);
 
     const newStudentsCount = allStudents.length;
@@ -324,6 +411,7 @@ export async function refreshDashboardData(source = 'realtime') {
     }
 
     renderDashboard();
+    renderTrialBanner();
     updateLastUpdated();
     updateConnectionStatus('live');
     recordActivity(`Dashboard refreshed via ${source}`, 'refresh');
@@ -1278,6 +1366,7 @@ export function cleanupDashboardRealtime() {
   stopRealtimeSubscription();
   stopPeriodicRefresh();
   stopAnnouncementPopupRotation();
+  stopTrialTimer();
   if (window._dashboardRefreshTimer) {
     clearTimeout(window._dashboardRefreshTimer);
     window._dashboardRefreshTimer = null;
