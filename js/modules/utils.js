@@ -899,18 +899,30 @@ async function renderSectionedPdf(sections, options) {
   const A4_W = 210, A4_H = 297; // A4 portrait (mm)
   const PX_W = 794;             // A4 width at 96dpi (px)
 
+  // The hidden mobile print mount (#PRINT_BOX_ID) is already placed far
+  // off-screen (position:fixed; left:-99999px) by printViaNativeMobile, so we
+  // render inside it rather than append a new fixed/absolute element to <body>.
+  // html2canvas 1.0.0-alpha.12 (the build bundled inside html2pdf 0.10.1)
+  // renders a position:fixed or position:absolute ROOT element as a completely
+  // EMPTY canvas, so page sections rendered from a fixed holder produced blank
+  // pages and the whole multi-page PDF failed (jsPDF "Invalid argument passed
+  // to jsPDF.scale" once height collapsed to 0). Rendering from a normal-flow
+  // (position:relative) child of the hidden box — the same structure the
+  // single-pass path already relies on — captures the real content reliably.
+  const host = document.getElementById(PRINT_BOX_ID) || document.body;
+
   // 1) Render each section to its own image — one small canvas at a time.
   const pages = [];
   for (let i = 0; i < sections.length; i++) {
     const holder = document.createElement('div');
     holder.style.cssText =
-      'position:fixed;left:-99999px;top:0;width:' + PX_W + 'px;' +
-      'overflow:visible;background:#ffffff;z-index:-1;';
+      'position:relative;display:block;left:0;top:0;width:' + PX_W + 'px;' +
+      'overflow:visible;background:#ffffff;';
     const clone = sections[i].cloneNode(true);
     clone.style.cssText = (clone.style.cssText || '') +
       ';width:100%;max-width:' + PX_W + 'px;margin:0;box-shadow:none!important;border:0 none;';
     holder.appendChild(clone);
-    document.body.appendChild(holder);
+    host.appendChild(holder);
     try {
       const worker = window.html2pdf()
         .set({ html2canvas: options.html2canvas })
@@ -925,23 +937,26 @@ async function renderSectionedPdf(sections, options) {
         });
       }
     } catch (e) {
-      console.warn('Failed to render one report card for the PDF:', e);
+      console.warn('Failed to render one page for the PDF:', e);
     } finally {
       if (holder.parentNode) holder.parentNode.removeChild(holder);
     }
   }
 
   if (pages.length === 0) {
-    throw new Error('No report cards could be rendered for the PDF.');
+    throw new Error('No pages could be rendered for the PDF.');
   }
 
   // 2) Get a jsPDF instance (the bundle does not expose jsPDF as a global) via a
-  //    throwaway worker, drop its blank first page, then place each card image on
+  //    throwaway worker, drop its blank first page, then place each page image on
   //    its own A4 page so the whole class fits in one multi-page PDF.
   const seed = document.createElement('div');
-  seed.style.cssText = 'position:fixed;left:-99999px;top:0;';
+  // Rendered only as a throwaway blank page that is deleted below; keep it a
+  // normal-flow element inside the hidden box too so the html2canvas pass never
+  // has to rasterize a position:fixed root (which would render empty).
+  seed.style.cssText = 'position:relative;display:block;left:0;top:0;width:' + PX_W + 'px;';
   seed.textContent = ' ';
-  document.body.appendChild(seed);
+  host.appendChild(seed);
   let pdf;
   try {
     pdf = await window.html2pdf().set(options).from(seed).toPdf().get('pdf');
