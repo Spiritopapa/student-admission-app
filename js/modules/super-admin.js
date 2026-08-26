@@ -314,6 +314,70 @@ function formatTimeAgo(isoString) {
 // DASHBOARD STATS
 // ================================================================
 
+// ================================================================
+// Trial Alerts notification panel (super admin dashboard)
+// ================================================================
+const TRIAL_EXPIRING_SOON_DAYS = 3;
+
+// Populates the "Trial Expired / Expiring Soon" alert on the super
+// admin dashboard for all schools currently on a trial version.
+function renderTrialAlerts(schools) {
+  const panel = getEl('superTrialAlertsPanel');
+  if (!panel) return;
+  const listEl = getEl('superTrialAlertsList');
+  const soonEl = getEl('superTrialExpiringSoon');
+  const now = new Date();
+
+  const expired = [];
+  const expiring = [];
+  (schools || []).forEach(s => {
+    if (s.plan_version !== 'trial' || !s.trial_ends_at) return;
+    const end = new Date(s.trial_ends_at);
+    const diffDays = Math.ceil((end - now) / 86400000);
+    if (end < now) {
+      expired.push({ ...s, end });
+    } else if (diffDays <= TRIAL_EXPIRING_SOON_DAYS) {
+      expiring.push({ ...s, end, diffDays });
+    }
+  });
+
+  if (expired.length === 0 && expiring.length === 0) {
+    panel.style.display = 'none';
+    return;
+  }
+
+  const expiredHTML = expired.map(s => `
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:0.5rem;background:#fff;border:1px solid #fecaca;border-radius:8px;padding:0.5rem 0.7rem;">
+      <div style="font-size:0.85rem;color:#7f1d1d;line-height:1.4;">
+        <strong style="color:#b91c1c;">🏫 ${s.name}</strong>
+        <span style="display:block;color:#991b1b;font-size:0.75rem;">${s.registration_id} — TRIAL EXPIRED on ${formatDate(s.end)}</span>
+      </div>
+      <button type="button" class="btn btn-sm btn-primary" onclick="openSchoolInfo('${s.id}')">View</button>
+    </div>`).join('');
+
+  const soonHTML = expiring.length > 0
+    ? '⏳ Expiring soon: ' + expiring.map(s =>
+        `<strong style="color:#92400e;">${s.name}</strong> (${s.diffDays} day${s.diffDays === 1 ? '' : 's'} left)`).join(', ')
+    : '';
+
+  listEl.innerHTML = expiredHTML;
+  soonEl.textContent = soonHTML;
+  panel.style.display = 'block';
+
+  // Adjust title/panel styling for the "only expiring soon" case.
+  const titleEl = getEl('superTrialAlertsTitle');
+  if (titleEl) {
+    titleEl.textContent = expired.length > 0 ? '⚠️ Trial Expired' : '⏳ Trials Expiring Soon';
+  }
+  if (expired.length > 0) {
+    panel.style.borderColor = '#fecaca';
+    panel.style.background = '#fef2f2';
+  } else {
+    panel.style.borderColor = '#fde68a';
+    panel.style.background = '#fffbeb';
+  }
+}
+
 async function loadDashboardStats() {
   try {
     // Fetch all counts in parallel
@@ -383,6 +447,9 @@ async function loadDashboardStats() {
     if (getEl('superStatFullSchools')) setStat('superStatFullSchools', fullCount);
     if (getEl('superStatTrialSchools')) setStat('superStatTrialSchools', trialCount);
     if (getEl('superStatTrialExpired')) setStat('superStatTrialExpired', trialExpiredCount);
+
+    // Notify the super admin about expired + expiring trial schools.
+    renderTrialAlerts(schools || []);
 
     // School quick-access cards with lock indicators
     const container = getEl('superSchoolsQuickList');

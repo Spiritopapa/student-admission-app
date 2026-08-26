@@ -2639,6 +2639,13 @@
               <div class="stat-card" style="border-left:3px solid #f59e0b;"><span class="stat-number" id="superStatTrialSchools">0</span><span>Trial Schools</span></div>
               <div class="stat-card" style="border-left:3px solid var(--danger);"><span class="stat-number" id="superStatTrialExpired">0</span><span>Trial Expired</span></div>
             </div>
+
+            <!-- Trial Expired / Expiring Notification Alert -->
+            <div id="superTrialAlertsPanel" style="display:none;margin-top:1rem;border-radius:12px;border:1px solid #fecaca;background:#fef2f2;padding:0.9rem 1rem;">
+              <div style="font-weight:800;color:#b91c1c;margin-bottom:0.5rem;" id="superTrialAlertsTitle">⚠️ Trial Expired</div>
+              <div id="superTrialAlertsList" style="display:flex;flex-direction:column;gap:0.4rem;"></div>
+              <div id="superTrialExpiringSoon" style="margin-top:0.5rem;font-size:0.8rem;color:#a16207;"></div>
+            </div>
             <h3 style="margin-top:1.5rem;">🏫 Quick School Access</h3>
             <div class="modules-grid" id="superSchoolsQuickList"></div>
 
