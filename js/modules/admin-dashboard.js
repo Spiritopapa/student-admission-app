@@ -728,18 +728,24 @@ function animateFeeProgressBar() {
   const fill = document.getElementById('feeProgressFill');
   if (!fill) return;
 
-  let totalAmount = 0, totalPaid = 0;
+  let totalAmount = 0, totalPaid = 0, totalDebt = 0;
   allFees.forEach(f => {
     totalAmount += Number(f.total_amount) || 0;
     totalPaid += Number(f.amount_paid) || 0;
+    totalDebt += Number(f.debt) || 0;
   });
-  const pct = totalAmount > 0 ? Math.min((totalPaid / totalAmount) * 100, 100) : 0;
+
+  // Collection rate = paid ÷ total expected (term fees + carried-forward debt).
+  // Keeps the admin Collection Rate consistent with the "Total Expected" stat
+  // above it and with the accountant dashboard.
+  const totalExpected = totalAmount + totalDebt;
+  const pct = totalExpected > 0 ? (totalPaid / totalExpected) * 100 : 0;
 
   setTimeout(() => {
     fill.style.width = '0%';
     void fill.offsetWidth;
     fill.style.transition = 'width 1.2s cubic-bezier(0.4, 0, 0.2, 1)';
-    fill.style.width = pct + '%';
+    fill.style.width = Math.min(pct, 100) + '%';
   }, 300);
 }
 
@@ -1007,28 +1013,32 @@ function animateDashboardCounters() {
 
   // Fee counters (only if fees module is not locked)
   if (!lockedModules.has('fees')) {
-    let totalAmount = 0, totalPaid = 0, totalDebt = 0, totalBalance = 0;
+    let totalAmount = 0, totalPaid = 0, totalDebt = 0;
     allFees.forEach(f => {
       const amt = Number(f.total_amount) || 0;
       const paid = Number(f.amount_paid) || 0;
       totalAmount += amt;
       totalPaid += paid;
       totalDebt += Number(f.debt) || 0;
-      totalBalance += amt - paid;
     });
 
-    // Grand Total Debt = all students' total debt + all students' total term fees
-    const grandTotalDebt = totalDebt + totalAmount;
+    // Total Expected = all term fees + carried-forward debt (matches the label)
+    const totalExpected = totalAmount + totalDebt;
+    // Outstanding Balance = what's still owed after all payments (never negative)
+    const outstandingBalance = Math.max(totalExpected - totalPaid, 0);
+    // Grand Total Outstanding = the true debt picture
+    const grandTotalOutstanding = outstandingBalance;
 
     const feeConfigs = [
-      { id: 'feeTotalAmount', target: totalAmount },
+      { id: 'feeTotalAmount', target: totalExpected },
       { id: 'feeTotalPaid', target: totalPaid },
-      { id: 'feeTotalBalance', target: totalBalance },
+      { id: 'feeTotalBalance', target: outstandingBalance },
       { id: 'feeTotalDebt', target: totalDebt },
-      { id: 'feeGrandTotalDebt', target: grandTotalDebt },
+      { id: 'feeGrandTotalDebt', target: grandTotalOutstanding },
     ];
 
-    const pct = totalAmount > 0 ? Math.min((totalPaid / totalAmount) * 100, 100) : 0;
+    // Collection rate = paid ÷ total expected (matches accountant dashboard)
+    const pct = totalExpected > 0 ? (totalPaid / totalExpected) * 100 : 0;
     feeConfigs.forEach((cfg, index) => {
       const el = document.getElementById(cfg.id);
       if (el) {
