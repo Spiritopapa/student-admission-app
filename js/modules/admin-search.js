@@ -24,6 +24,9 @@ let searchCache = {
 };
 let searchLoaded = false;
 let activeContextMenu = null;
+// Currently "zoomed"/armed quick-action button for the mobile two-tap flow
+// (first tap zooms the button, second tap on the same button runs the action).
+let zoomedActionBtn = null;
 
 export function initAdminSearch(supabase) {
   supabaseClient = supabase;
@@ -401,6 +404,10 @@ async function performSearch(query) {
 
   searchResults.style.display = 'block';
 
+  // Any previously zoomed button's DOM is being replaced by this re-render,
+  // so drop the stale reference before rebinding.
+  zoomedActionBtn = null;
+
   // Bind click and contextmenu handlers
   searchResults.querySelectorAll('.deep-search-item').forEach(item => {
     const type = item.getAttribute('data-type');
@@ -409,21 +416,47 @@ async function performSearch(query) {
     // Left click on the row - default action (ignores quick-action buttons)
     item.addEventListener('click', (e) => {
       if (e.target.closest('.deep-search-action-btn')) return;
+      disarmZoomedActionBtn();
       e.stopPropagation();
       handleSearchItemClick(type, id);
     });
 
-    // Quick-action icon buttons (former context-menu items) - one-click access
+    // Quick-action icon buttons (former context-menu items).
+    // Desktop: one tap runs the action directly.
+    // Mobile/touch: 1st tap "zooms"/arms the single tapped button, 2nd tap
+    // on the SAME button runs its action.
     item.querySelectorAll('.deep-search-action-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
         const label = btn.getAttribute('data-action');
-        const actionItem = getContextMenuItems(type, id).find(mi => mi.label === label);
-        if (actionItem) {
-          actionItem.action();
-          closeContextMenu();
-          getEl('adminDeepSearchResults').style.display = 'none';
+        const actionItem = getContextMenuItems(type, id).find(mia => mia.label === label);
+
+        const runAction = () => {
+          if (actionItem) {
+            actionItem.action();
+            closeContextMenu();
+            getEl('adminDeepSearchResults').style.display = 'none';
+          }
+        };
+
+        if (!isMobileOrTouchView()) {
+          runAction();
+          return;
+        }
+
+        // Mobile two-tap "zoom then open" flow.
+        if (zoomedActionBtn === btn) {
+          // Second tap on the already-zoomed button → run the action.
+          disarmZoomedActionBtn();
+          runAction();
+        } else {
+          // First tap (or tapping a different button) → zoom/arm this button.
+          disarmZoomedActionBtn();
+          btn.classList.add('armed');
+          btn.title = `Tap again to open: ${label}`;
+          btn.setAttribute('aria-label', `Tap again to open: ${label}`);
+          zoomedActionBtn = btn;
         }
       });
     });
@@ -432,6 +465,7 @@ async function performSearch(query) {
     item.addEventListener('contextmenu', (e) => {
       e.preventDefault();
       e.stopPropagation();
+      disarmZoomedActionBtn();
       showContextMenu(e.clientX, e.clientY, type, id);
     });
   });
@@ -559,6 +593,34 @@ function closeContextMenu() {
     activeContextMenu.remove();
     activeContextMenu = null;
   }
+}
+
+// ================================================================
+// Mobile two-tap quick actions ("tap to zoom, tap again to open")
+// ================================================================
+
+/**
+ * True when the user is interacting on a touch screen or a narrow/mobile
+ * viewport. On these devices the tiny quick-action buttons beside each search
+ * result get a two-tap flow so a mis-tap can never fire a heavy action:
+ *   1st tap → the button zooms/arms (no action runs)
+ *   2nd tap (same button) → the action actually opens
+ */
+function isMobileOrTouchView() {
+  if (typeof window === 'undefined' || !window.matchMedia) return false;
+  return window.matchMedia('(pointer: coarse)').matches ||
+         window.matchMedia('(max-width: 768px)').matches;
+}
+
+/** Removes the zoomed/armed state from the currently armed quick-action button. */
+function disarmZoomedActionBtn() {
+  if (!zoomedActionBtn) return;
+  const btn = zoomedActionBtn;
+  btn.classList.remove('armed');
+  const originalLabel = btn.getAttribute('data-action') || '';
+  btn.title = originalLabel;
+  btn.setAttribute('aria-label', originalLabel);
+  zoomedActionBtn = null;
 }
 
 // ================================================================
