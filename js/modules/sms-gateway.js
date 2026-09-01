@@ -42,10 +42,10 @@ export function buildPaymentSmsMessage(info) {
   const student = info.studentName || info.studentId || 'student';
   const termYear = `${info.term || ''} Term ${info.academicYear || ''}`.trim();
 
-  let msg = `${school}: Paid GH\u20b5${formatCurrency(info.amount)} for ${student}${termYear ? ' (' + termYear + ')' : ''}.`;
+  let msg = `${school}: Paid GHC${formatCurrency(info.amount)} for ${student}${termYear ? ' (' + termYear + ')' : ''}.`;
   if (info.receiptNumber) msg += ` Receipt: ${info.receiptNumber}.`;
   if (Number(info.remainingBalance) > 0) {
-    msg += ` Balance: GH\u20b5${formatCurrency(info.remainingBalance)}.`;
+    msg += ` Balance: GHC${formatCurrency(info.remainingBalance)}.`;
   }
   msg += ' Thank you.';
   return msg;
@@ -82,7 +82,7 @@ async function logSms(info) {
  * @param {object} info
  * @param {string} info.studentId   student ID the payment was recorded for
  * @param {string} info.receiptNumber  receipt number returned by process_fee_payment
- * @param {number} info.amount      amount paid (GH\u20b5)
+ * @param {number} info.amount      amount paid (GHC)
  * @param {string} info.term        "First" | "Second" | "Third"
  * @param {string} info.academicYear  e.g. "2025/2026"
  * @param {string} info.method      payment method (optional, informational)

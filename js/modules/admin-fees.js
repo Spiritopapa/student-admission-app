@@ -263,7 +263,7 @@ async function loadFeeStructureTab() {
       <td>${f.class_name}</td>
       <td>${f.academic_year}</td>
       <td>${f.term}</td>
-      <td><strong>GH₵ ${formatCurrency(f.fee_amount)}</strong></td>
+      <td><strong>GHC ${formatCurrency(f.fee_amount)}</strong></td>
       <td>
         <button class="action-btn confirm" onclick="editClassFee('${f.id}')">Edit</button>
         <button class="action-btn danger" onclick="deleteClassFee('${f.id}')">Delete</button>
@@ -402,14 +402,14 @@ async function setClassFeeStructure() {
           if (!insErr) updated++;
         }
       }
-      let msg = `✅ Fee structure set: ${className} - ${term} Term = GH₵ ${formatCurrency(amount)}\n📋 Updated ${updated} student fee records.`;
+      let msg = `✅ Fee structure set: ${className} - ${term} Term = GHC ${formatCurrency(amount)}\n📋 Updated ${updated} student fee records.`;
       if (creditsApplied > 0) msg += `\n💰 Applied overpayment credits from previous term for ${creditsApplied} student(s).`;
       showMessage('feeStructureMessage', msg, 'success');
     } else {
-      showMessage('feeStructureMessage', `✅ Fee structure set: ${className} - ${term} Term = GH₵ ${formatCurrency(amount)}`, 'success');
+      showMessage('feeStructureMessage', `✅ Fee structure set: ${className} - ${term} Term = GHC ${formatCurrency(amount)}`, 'success');
     }
 
-    logSubAdminActivity(`Set fee structure: ${className} ${term} Term = GH₵ ${amount}`, 'fee', `${className}/${term}`);
+    logSubAdminActivity(`Set fee structure: ${className} ${term} Term = GHC ${amount}`, 'fee', `${className}/${term}`);
     await loadFeeStructureTab();
   } catch (err) {
     showMessage('feeStructureMessage', 'Error: ' + err.message, 'error');
@@ -689,17 +689,17 @@ async function loadStudentFeesTab() {
         let balanceDisplay = '';
         if (bal < 0) {
           // Negative balance = overpaid = credit for next term
-          balanceDisplay = `<span class="fee-balance-credit">Credit: GH₵ ${formatCurrency(Math.abs(bal))} (will deduct from next term)</span>`;
+          balanceDisplay = `<span class="fee-balance-credit">Credit: GHC ${formatCurrency(Math.abs(bal))} (will deduct from next term)</span>`;
           status = 'paid';
         } else {
-          balanceDisplay = `<span class="fee-balance-${status}">Bal: GH₵ ${formatCurrency(bal)}</span>`;
+          balanceDisplay = `<span class="fee-balance-${status}">Bal: GHC ${formatCurrency(bal)}</span>`;
         }
         return `<div class="fee-term-row">
           <span class="fee-term-label">${f.term} ${f.academic_year}:</span>
-          <span>Total: GH₵ ${formatCurrency(total)}</span>
-          <span>Paid: GH₵ ${formatCurrency(paid)}</span>
+          <span>Total: GHC ${formatCurrency(total)}</span>
+          <span>Paid: GHC ${formatCurrency(paid)}</span>
           ${balanceDisplay}
-          ${overpaid > 0 ? `<span class="fee-credit-badge">💰 Credit: GH₵ ${formatCurrency(overpaid)}</span>` : ''}
+          ${overpaid > 0 ? `<span class="fee-credit-badge">💰 Credit: GHC ${formatCurrency(overpaid)}</span>` : ''}
           <span class="fee-status-badge fee-status-${status}">${status}</span>
         </div>`;
       }).join('') || '<span style="color:var(--text-muted);font-size:0.85rem;">No fee records</span>';
@@ -716,7 +716,7 @@ async function loadStudentFeesTab() {
       <td>${name}</td>
       <td>${s.class_applying}</td>
       <td>${termDisplay}</td>
-      <td><strong>GH₵ ${formatCurrency(totalBalance)}</strong></td>
+      <td><strong>GHC ${formatCurrency(totalBalance)}</strong></td>
       <td>
         <button class="action-btn confirm" onclick="openFeePayment('${s.student_id}')">💰 Pay</button>
         <button class="action-btn" onclick="editStudentFee('${s.student_id}')">✏️ Edit Fees</button>
@@ -856,7 +856,7 @@ async function loadStudentFeeInfo() {
           </div>
           <p style="margin:0 0 0.5rem 0;">
             <strong>${firstPending.term} Term ${firstPending.academic_year}</strong> has an outstanding balance of 
-            <strong style="color:#dc2626;">GH₵ ${formatCurrency(firstPending.balance)}</strong> 
+            <strong style="color:#dc2626;">GHC ${formatCurrency(firstPending.balance)}</strong> 
             that MUST be paid before you can proceed with the current term fees.
           </p>
           <p style="margin:0;font-size:0.85rem;">
@@ -886,19 +886,19 @@ async function loadStudentFeeInfo() {
       let balanceDisplay = '';
       if (bal < 0) {
         // Negative balance = overpaid = credit for next term
-        balanceDisplay = `<span class="fee-balance-credit">Credit: GH₵ ${formatCurrency(Math.abs(bal))}</span>`;
+        balanceDisplay = `<span class="fee-balance-credit">Credit: GHC ${formatCurrency(Math.abs(bal))}</span>`;
         if (overpaid > 0) {
           balanceDisplay += ` <span class="fee-credit-badge">💰 Carried to next term</span>`;
         }
         status = 'paid';
       } else {
-        balanceDisplay = `<span class="fee-balance-${status}">Balance: GH₵ ${formatCurrency(bal)}</span>`;
+        balanceDisplay = `<span class="fee-balance-${status}">Balance: GHC ${formatCurrency(bal)}</span>`;
       }
       feeHtml += `<div class="fee-record-card ${status}">
         <div class="fee-record-term">${f.term} Term - ${f.academic_year}</div>
         <div class="fee-record-details">
-          <span>Total: GH₵ ${formatCurrency(total)}</span>
-          <span>Paid: GH₵ ${formatCurrency(paid)}</span>
+          <span>Total: GHC ${formatCurrency(total)}</span>
+          <span>Paid: GHC ${formatCurrency(paid)}</span>
           ${balanceDisplay}
           <span class="fee-status-badge fee-status-${status}">${status}</span>
         </div>
@@ -938,10 +938,10 @@ async function loadStudentFeeInfo() {
       feeHtml += `<div class="fee-payment-summary" style="margin-top:1rem;padding:0.75rem;background:#f0fdf4;border-radius:4px;font-size:0.85rem;color:#166534;">
         <strong>✅ All current terms paid!</strong><br/>
         Next: <strong>${nextTerm} Term ${nextYear}</strong> — 
-        Total: GH₵ ${formatCurrency(Number(nextFee.total_amount) + Number(nextFee.debt || 0))} | 
-        Paid: GH₵ ${formatCurrency(nextFee.amount_paid)} | 
-        Balance: <span class="fee-balance-${nextStatus}">GH₵ ${formatCurrency(Math.max(nextBal, 0))}</span>
-        ${nextOverpaid > 0 ? ` | <span class="fee-credit-badge">💰 Credit: GH₵ ${formatCurrency(nextOverpaid)}</span>` : ''}
+        Total: GHC ${formatCurrency(Number(nextFee.total_amount) + Number(nextFee.debt || 0))} | 
+        Paid: GHC ${formatCurrency(nextFee.amount_paid)} | 
+        Balance: <span class="fee-balance-${nextStatus}">GHC ${formatCurrency(Math.max(nextBal, 0))}</span>
+        ${nextOverpaid > 0 ? ` | <span class="fee-credit-badge">💰 Credit: GHC ${formatCurrency(nextOverpaid)}</span>` : ''}
         <span class="fee-status-badge fee-status-${nextStatus}" style="margin-left:0.5rem;">${nextStatus}</span>
       </div>`;
     } else {
@@ -1013,7 +1013,7 @@ async function recordPayment() {
 
   if (outstanding <= 0) {
     showMessage('feePaymentMessage', 
-      `✅ ${studentId} has already fully paid for ${term} Term ${year}.\n\nTotal Due: GH₵ ${formatCurrency(totalDue)}\nAmount Paid: GH₵ ${formatCurrency(currentPaid)}\n\nNo further payment is needed for this term.`, 
+      `✅ ${studentId} has already fully paid for ${term} Term ${year}.\n\nTotal Due: GHC ${formatCurrency(totalDue)}\nAmount Paid: GHC ${formatCurrency(currentPaid)}\n\nNo further payment is needed for this term.`, 
       'error');
     return;
   }
@@ -1024,7 +1024,7 @@ async function recordPayment() {
     showMessage('feePaymentMessage', 
       `⛔ COMPULSORY: Cannot pay for ${term} Term ${year} because there is an outstanding balance from a previous term.\n\n` +
       `Unpaid: ${priorBalance.term} Term ${priorBalance.academic_year}\n` +
-      `Amount Due: GH₵ ${formatCurrency(priorBalance.balance)}\n\n` +
+      `Amount Due: GHC ${formatCurrency(priorBalance.balance)}\n\n` +
       `💡 Please select "${priorBalance.term} Term ${priorBalance.academic_year}" in the Academic Year/Term dropdown above and clear this previous balance first.`, 
       'error');
     return;
@@ -1041,16 +1041,16 @@ async function recordPayment() {
   if (amount > outstanding && outstanding > 0) {
     showMessage('feePaymentMessage',
       `⛔ OVERPAYMENT PREVENTED\n\n` +
-      `Outstanding for ${term} Term ${year}: GH₵ ${formatCurrency(outstanding)}\n` +
-      `You attempted to pay: GH₵ ${formatCurrency(amount)}\n` +
-      `Excess amount: GH₵ ${formatCurrency(amount - outstanding)}\n\n` +
-      `💡 Please enter an amount equal to or less than the outstanding balance of GH₵ ${formatCurrency(outstanding)}.\n` +
+      `Outstanding for ${term} Term ${year}: GHC ${formatCurrency(outstanding)}\n` +
+      `You attempted to pay: GHC ${formatCurrency(amount)}\n` +
+      `Excess amount: GHC ${formatCurrency(amount - outstanding)}\n\n` +
+      `💡 Please enter an amount equal to or less than the outstanding balance of GHC ${formatCurrency(outstanding)}.\n` +
       `Overpayment is not allowed. If you need to pay for the next term, please use that term's payment form.`,
       'error');
     return;
   }
 
-  if (!confirm(`Record payment of GH₵ ${formatCurrency(amount)} for ${studentId}?\n\nA receipt will be generated automatically.`)) return;
+  if (!confirm(`Record payment of GHC ${formatCurrency(amount)} for ${studentId}?\n\nA receipt will be generated automatically.`)) return;
 
   const btn = getEl('feeRecordPaymentBtn');
   setLoading(btn, true, 'Processing...');
@@ -1101,11 +1101,11 @@ async function recordPayment() {
       }
     }
 
-    let successMsg = `✅ Payment recorded successfully!\nReceipt: ${data.receipt_number}\nAmount: GH₵ ${formatCurrency(data.amount_paid)}\nStatus: ${data.payment_status}`;
+    let successMsg = `✅ Payment recorded successfully!\nReceipt: ${data.receipt_number}\nAmount: GHC ${formatCurrency(data.amount_paid)}\nStatus: ${data.payment_status}`;
 
     showMessage('feePaymentMessage', successMsg, 'success');
-    logSubAdminActivity(`Recorded payment of GH₵ ${amount} for ${studentId} (Receipt: ${data.receipt_number})`, 'payment', `${studentId} - ${data.student_name}`);
-    try { await logStaffActivity(`Recorded fee payment of GH₵ ${formatCurrency(amount)} for ${studentId} (Receipt: ${data.receipt_number})`, { entityType: 'payment', entityDetails: `${studentId} - ${data.student_name}: GH₵ ${formatCurrency(amount)}` }); } catch (e) { console.warn(e); }
+    logSubAdminActivity(`Recorded payment of GHC ${amount} for ${studentId} (Receipt: ${data.receipt_number})`, 'payment', `${studentId} - ${data.student_name}`);
+    try { await logStaffActivity(`Recorded fee payment of GHC ${formatCurrency(amount)} for ${studentId} (Receipt: ${data.receipt_number})`, { entityType: 'payment', entityDetails: `${studentId} - ${data.student_name}: GHC ${formatCurrency(amount)}` }); } catch (e) { console.warn(e); }
 
     // Notify the parent via SMS as soon as the payment is recorded
     sendFeePaymentSms({
@@ -1342,17 +1342,17 @@ export function generateReceiptHTML(data) {
     </div>`;
   } else if (hasArrears) {
     arrearsBadge = `<div class="receipt-credit-notice" style="margin:0.5rem 0;padding:0.5rem;background:#fef3c7;border:1px solid #f59e0b;border-radius:4px;font-size:0.85rem;color:#92400e;">
-      ⏰ <strong>ARREARS PAYMENT</strong> — This payment includes GH₵ ${formatCurrency(debtAmount)} towards outstanding balance carried forward from a previous term.
+      ⏰ <strong>ARREARS PAYMENT</strong> — This payment includes GHC ${formatCurrency(debtAmount)} towards outstanding balance carried forward from a previous term.
     </div>`;
   }
 
   if (overpaidAmount > 0) {
     balanceRow = `<tr>
       <td>Remaining Balance</td>
-      <td style="text-align:right;"><span class="fee-balance-credit">-GH₵ ${formatCurrency(overpaidAmount)} (Credit for next term)</span></td>
+      <td style="text-align:right;"><span class="fee-balance-credit">-GHC ${formatCurrency(overpaidAmount)} (Credit for next term)</span></td>
     </tr>`;
     overpaymentNotice = `<div class="receipt-credit-notice" style="margin-top:0.5rem;padding:0.5rem;background:#f0fdf4;border-radius:4px;font-size:0.85rem;color:#166534;">
-      💰 <strong>GH₵ ${formatCurrency(overpaidAmount)}</strong> overpaid — this credit will be deducted from the next term's fees.
+      💰 <strong>GHC ${formatCurrency(overpaidAmount)}</strong> overpaid — this credit will be deducted from the next term's fees.
     </div>`;
   } else {
     balanceRow = `<tr>
@@ -1388,7 +1388,7 @@ export function generateReceiptHTML(data) {
           <thead>
             <tr>
               <th>Description</th>
-              <th style="text-align:right;">Amount (GH₵)</th>
+              <th style="text-align:right;">Amount (GHC)</th>
             </tr>
           </thead>
           <tbody>
@@ -1458,7 +1458,7 @@ window.viewStudentReceipts = async function(studentId) {
             <td><strong>${r.receipt_number}</strong></td>
             <td>${formatDate(r.receipt_date)}</td>
             <td>${r.term} ${r.academic_year}</td>
-            <td>GH₵ ${formatCurrency(r.amount)}</td>
+            <td>GHC ${formatCurrency(r.amount)}</td>
             <td>${r.payment_method}</td>
             <td><button class="action-btn confirm" onclick="reprintReceipt('${r.id}')">🖨️ Reprint</button>
             <button class="action-btn danger" onclick="deleteReceiptRecord('${r.id}', '${r.student_id}')">🗑️ Delete</button></td>
@@ -1496,9 +1496,9 @@ window.deleteReceiptRecord = async function(receiptId, studentId) {
       return;
     }
 
-    alert(`✅ Receipt ${data.receipt_number} deleted and payment of GH₵ ${formatCurrency(data.amount)} reversed successfully.`);
+    alert(`✅ Receipt ${data.receipt_number} deleted and payment of GHC ${formatCurrency(data.amount)} reversed successfully.`);
 
-    logSubAdminActivity(`Deleted receipt ${data.receipt_number} for ${data.student_id} and reversed payment (GH₵ ${formatCurrency(data.amount)})`, 'fee', `${data.receipt_number}: GH₵ ${formatCurrency(data.amount)}`);
+    logSubAdminActivity(`Deleted receipt ${data.receipt_number} for ${data.student_id} and reversed payment (GHC ${formatCurrency(data.amount)})`, 'fee', `${data.receipt_number}: GHC ${formatCurrency(data.amount)}`);
 
     // Refresh the receipts modal and the fees/dashboard tables
     await viewStudentReceipts(studentId);
@@ -1564,13 +1564,13 @@ window.printFeeReminder = async function(studentId) {
     const overpaid = bal < 0;
     if (!overpaid) totalOutstanding += bal;
     const balCell = overpaid
-      ? `<span style="color:#166534;">Credit GH₵ ${formatCurrency(Math.abs(bal))}</span>`
-      : `<span style="color:${bal > 0 ? '#b91c1c' : '#166534'};font-weight:${bal > 0 ? 700 : 400};">GH₵ ${formatCurrency(bal)}</span>`;
+      ? `<span style="color:#166534;">Credit GHC ${formatCurrency(Math.abs(bal))}</span>`
+      : `<span style="color:${bal > 0 ? '#b91c1c' : '#166534'};font-weight:${bal > 0 ? 700 : 400};">GHC ${formatCurrency(bal)}</span>`;
     const rowBg = i % 2 === 0 ? '#fff' : '#f6f8fb';
     return `<tr style="background:${rowBg};">
       <td style="padding:5px;border:1px solid #ddd;font-size:11px;">${f.term} Term ${f.academic_year}</td>
-      <td style="padding:5px;border:1px solid #ddd;text-align:right;font-size:11px;">GH₵ ${formatCurrency(total)}</td>
-      <td style="padding:5px;border:1px solid #ddd;text-align:right;font-size:11px;">GH₵ ${formatCurrency(paid)}</td>
+      <td style="padding:5px;border:1px solid #ddd;text-align:right;font-size:11px;">GHC ${formatCurrency(total)}</td>
+      <td style="padding:5px;border:1px solid #ddd;text-align:right;font-size:11px;">GHC ${formatCurrency(paid)}</td>
       <td style="padding:5px;border:1px solid #ddd;text-align:right;font-size:11px;">${balCell}</td>
     </tr>`;
   }).join('');
@@ -1607,9 +1607,9 @@ const logoHtml = schoolLogoUrl
         <thead>
           <tr style="background:#1e3a5f;color:#fff;">
             <th style="padding:5px;border:1px solid #1e3a5f;text-align:left;font-size:11px;">Term / Year</th>
-            <th style="padding:5px;border:1px solid #1e3a5f;text-align:right;font-size:11px;">Total (GH₵)</th>
-            <th style="padding:5px;border:1px solid #1e3a5f;text-align:right;font-size:11px;">Paid (GH₵)</th>
-            <th style="padding:5px;border:1px solid #1e3a5f;text-align:right;font-size:11px;">Balance (GH₵)</th>
+            <th style="padding:5px;border:1px solid #1e3a5f;text-align:right;font-size:11px;">Total (GHC)</th>
+            <th style="padding:5px;border:1px solid #1e3a5f;text-align:right;font-size:11px;">Paid (GHC)</th>
+            <th style="padding:5px;border:1px solid #1e3a5f;text-align:right;font-size:11px;">Balance (GHC)</th>
           </tr>
         </thead>
         <tbody>
@@ -1620,7 +1620,7 @@ const logoHtml = schoolLogoUrl
       <div style="border:2px solid #1e3a5f;border-radius:8px;padding:8px 10px;margin-bottom:10px;background:#eef2f7;">
         <div style="display:flex;justify-content:space-between;align-items:center;">
           <span style="font-size:12px;font-weight:700;color:#1e3a5f;">TOTAL BALANCE LEFT TO PAY</span>
-          <span style="font-size:18px;font-weight:800;color:#b91c1c;">GH₵ ${formatCurrency(totalOutstanding)}</span>
+          <span style="font-size:18px;font-weight:800;color:#b91c1c;">GHC ${formatCurrency(totalOutstanding)}</span>
         </div>
       </div>
 
@@ -1628,7 +1628,7 @@ const logoHtml = schoolLogoUrl
         <strong style="font-size:12px;">📢 REMINDER TO PARENT / GUARDIAN</strong><br/>
         Dear ${parentName},<br/>
         This is to remind you that your ward, <strong>${studentName}</strong> (${student.class_applying}), currently has an outstanding school fees balance of
-        <strong>GH₵ ${formatCurrency(totalOutstanding)}</strong> left to be paid.
+        <strong>GHC ${formatCurrency(totalOutstanding)}</strong> left to be paid.
         ${totalOutstanding > 0
           ? `Kindly settle the outstanding balance as soon as possible to enable your ward's smooth and uninterrupted participation in school activities.`
           : `Your ward's fees are fully settled. Thank you for your timely payment.`}
@@ -1658,7 +1658,7 @@ const logoHtml = schoolLogoUrl
     </head><body>${pageHtml}</body></html>
   `, `Fees Reminder - ${studentName}`, 560, 800);
 
-  logSubAdminActivity(`Printed fees reminder note for ${studentId} (${studentName})`, 'fee', `${studentId}: balance GH₵ ${formatCurrency(totalOutstanding)}`);
+  logSubAdminActivity(`Printed fees reminder note for ${studentId} (${studentName})`, 'fee', `${studentId}: balance GHC ${formatCurrency(totalOutstanding)}`);
 };
 // ================================================================
 //  A5 FEES REMINDER NOTE — shared builders (single + bulk print)
@@ -1716,13 +1716,13 @@ async function buildFeeReminderData(studentId) {
     const overpaid = bal < 0;
     if (!overpaid) totalOutstanding += bal;
     const balCell = overpaid
-      ? `<span style="color:#166534;">Credit GH₵ ${formatCurrency(Math.abs(bal))}</span>`
-      : `<span style="color:${bal > 0 ? '#b91c1c' : '#166534'};font-weight:${bal > 0 ? 700 : 400};">GH₵ ${formatCurrency(bal)}</span>`;
+      ? `<span style="color:#166534;">Credit GHC ${formatCurrency(Math.abs(bal))}</span>`
+      : `<span style="color:${bal > 0 ? '#b91c1c' : '#166534'};font-weight:${bal > 0 ? 700 : 400};">GHC ${formatCurrency(bal)}</span>`;
     const rowBg = i % 2 === 0 ? '#fff' : '#f6f8fb';
     return `<tr style="background:${rowBg};">
       <td style="padding:5px;border:1px solid #ddd;font-size:11px;">${f.term} Term ${f.academic_year}</td>
-      <td style="padding:5px;border:1px solid #ddd;text-align:right;font-size:11px;">GH₵ ${formatCurrency(total)}</td>
-      <td style="padding:5px;border:1px solid #ddd;text-align:right;font-size:11px;">GH₵ ${formatCurrency(paid)}</td>
+      <td style="padding:5px;border:1px solid #ddd;text-align:right;font-size:11px;">GHC ${formatCurrency(total)}</td>
+      <td style="padding:5px;border:1px solid #ddd;text-align:right;font-size:11px;">GHC ${formatCurrency(paid)}</td>
       <td style="padding:5px;border:1px solid #ddd;text-align:right;font-size:11px;">${balCell}</td>
     </tr>`;
   }).join('');
@@ -1774,9 +1774,9 @@ function renderFeeReminderA5(data, schoolInfo) {
         <thead>
           <tr style="background:#1e3a5f;color:#fff;">
             <th style="padding:5px;border:1px solid #1e3a5f;text-align:left;font-size:11px;">Term / Year</th>
-            <th style="padding:5px;border:1px solid #1e3a5f;text-align:right;font-size:11px;">Total (GH₵)</th>
-            <th style="padding:5px;border:1px solid #1e3a5f;text-align:right;font-size:11px;">Paid (GH₵)</th>
-            <th style="padding:5px;border:1px solid #1e3a5f;text-align:right;font-size:11px;">Balance (GH₵)</th>
+            <th style="padding:5px;border:1px solid #1e3a5f;text-align:right;font-size:11px;">Total (GHC)</th>
+            <th style="padding:5px;border:1px solid #1e3a5f;text-align:right;font-size:11px;">Paid (GHC)</th>
+            <th style="padding:5px;border:1px solid #1e3a5f;text-align:right;font-size:11px;">Balance (GHC)</th>
           </tr>
         </thead>
         <tbody>
@@ -1787,7 +1787,7 @@ function renderFeeReminderA5(data, schoolInfo) {
       <div style="border:2px solid #1e3a5f;border-radius:8px;padding:8px 10px;margin-bottom:10px;background:#eef2f7;">
         <div style="display:flex;justify-content:space-between;align-items:center;">
           <span style="font-size:12px;font-weight:700;color:#1e3a5f;">TOTAL BALANCE LEFT TO PAY</span>
-          <span style="font-size:18px;font-weight:800;color:#b91c1c;">GH₵ ${formatCurrency(totalOutstanding)}</span>
+          <span style="font-size:18px;font-weight:800;color:#b91c1c;">GHC ${formatCurrency(totalOutstanding)}</span>
         </div>
       </div>
 
@@ -1795,7 +1795,7 @@ function renderFeeReminderA5(data, schoolInfo) {
         <strong style="font-size:12px;">📢 REMINDER TO PARENT / GUARDIAN</strong><br/>
         Dear ${parentName},<br/>
         This is to remind you that your ward, <strong>${studentName}</strong> (${className}), currently has an outstanding school fees balance of
-        <strong>GH₵ ${formatCurrency(totalOutstanding)}</strong> left to be paid.
+        <strong>GHC ${formatCurrency(totalOutstanding)}</strong> left to be paid.
         ${totalOutstanding > 0
           ? 'Kindly settle the outstanding balance as soon as possible to enable your ward\'s smooth and uninterrupted participation in school activities.'
           : 'Your ward\'s fees are fully settled. Thank you for your timely payment.'}
@@ -1959,7 +1959,7 @@ window.reprintReceipt = async function(receiptId) {
   if (school) receiptData.school_name = school.name;
 
   showReceiptModal(receiptData);
-  try { await logStaffActivity(`Reprinted receipt ${receipt.receipt_number} for ${receiptData.student_name || receipt.student_id}`, { entityType: 'receipt', entityDetails: `${receipt.receipt_number} - GH₵ ${formatCurrency(receipt.amount)}` }); } catch (e) { console.warn(e); }
+  try { await logStaffActivity(`Reprinted receipt ${receipt.receipt_number} for ${receiptData.student_name || receipt.student_id}`, { entityType: 'receipt', entityDetails: `${receipt.receipt_number} - GHC ${formatCurrency(receipt.amount)}` }); } catch (e) { console.warn(e); }
 };
 
 // Print receipt
@@ -2190,7 +2190,7 @@ async function loadDebtorsList() {
     const name = `${s.first_name} ${s.middle_name || ''} ${s.last_name}`;
     const feeDetails = s.fees.map(f => {
       const actualBal = (Number(f.total_amount) + Number(f.debt || 0)) - Number(f.amount_paid);
-      return `<div style="font-size:0.8rem;">${f.term} ${f.academic_year}: Total: GH₵ ${formatCurrency(Number(f.total_amount) + Number(f.debt || 0))} | Paid: GH₵ ${formatCurrency(f.amount_paid)} | Bal: GH₵ ${formatCurrency(actualBal)}${f.debt > 0 ? ` (includes debt: GH₵ ${formatCurrency(f.debt)})` : ''}</div>`;
+      return `<div style="font-size:0.8rem;">${f.term} ${f.academic_year}: Total: GHC ${formatCurrency(Number(f.total_amount) + Number(f.debt || 0))} | Paid: GHC ${formatCurrency(f.amount_paid)} | Bal: GHC ${formatCurrency(actualBal)}${f.debt > 0 ? ` (includes debt: GHC ${formatCurrency(f.debt)})` : ''}</div>`;
     }).join('');
     const lastPayDate = s.last_payment_date ? formatDate(s.last_payment_date) : '<span style="color:var(--text-muted);">Never</span>';
 
@@ -2202,7 +2202,7 @@ async function loadDebtorsList() {
       <td>${name}</td>
       <td>${s.class}</td>
       <td>${feeDetails}</td>
-      <td><strong class="fee-balance-unpaid">GH₵ ${formatCurrency(s.total_balance)}</strong></td>
+      <td><strong class="fee-balance-unpaid">GHC ${formatCurrency(s.total_balance)}</strong></td>
       <td>${lastPayDate}</td>
       <td>
         <button class="action-btn confirm" onclick="openFeePayment('${s.student_id}')">💰 Record Payment</button>
@@ -2264,7 +2264,7 @@ function buildDebtorReminderSms(schoolName, studentName, className, balance) {
   const bal = formatCurrency(Number(balance) || 0);
   return (
     `${school}: Dear Parent/Guardian, this is a reminder that fees for ${studentName}${cls} ` +
-    `have an outstanding balance of GH\u20b5${bal}. Kindly settle the balance to keep your ward in school. Thank you.`
+    `have an outstanding balance of GHC${bal}. Kindly settle the balance to keep your ward in school. Thank you.`
   );
 }
 
@@ -2574,7 +2574,7 @@ async function generateDebtorsPrintHTML() {
             <th style="padding:8px 6px;border:1px solid #333;text-align:left;">Name</th>
             <th style="padding:8px 6px;border:1px solid #333;text-align:left;">Class</th>
             <th style="padding:8px 6px;border:1px solid #333;text-align:left;">Outstanding Details</th>
-            <th style="padding:8px 6px;border:1px solid #333;text-align:right;">Total Balance (GH₵)</th>
+            <th style="padding:8px 6px;border:1px solid #333;text-align:right;">Total Balance (GHC)</th>
             <th style="padding:8px 6px;border:1px solid #333;text-align:left;">Last Payment</th>
           </tr>
         </thead>
@@ -2583,7 +2583,7 @@ async function generateDebtorsPrintHTML() {
             const name = `${s.first_name} ${s.middle_name || ''} ${s.last_name}`;
             const feeDetails = s.fees.map(f => {
               const actualBal = (Number(f.total_amount) + Number(f.debt || 0)) - Number(f.amount_paid);
-              return `${f.term} ${f.academic_year}: Total: GH₵ ${formatCurrency(Number(f.total_amount) + Number(f.debt || 0))} | Paid: GH₵ ${formatCurrency(f.amount_paid)} | Bal: GH₵ ${formatCurrency(actualBal)}${f.debt > 0 ? ` (includes prev debt: GH₵ ${formatCurrency(f.debt)})` : ''}`;
+              return `${f.term} ${f.academic_year}: Total: GHC ${formatCurrency(Number(f.total_amount) + Number(f.debt || 0))} | Paid: GHC ${formatCurrency(f.amount_paid)} | Bal: GHC ${formatCurrency(actualBal)}${f.debt > 0 ? ` (includes prev debt: GHC ${formatCurrency(f.debt)})` : ''}`;
             }).join('; ');
             const lastPayDate = s.last_payment_date ? formatDate(s.last_payment_date) : 'Never';
             const rowBg = i % 2 === 0 ? '#fff' : '#f8f9fa';
@@ -2601,13 +2601,13 @@ async function generateDebtorsPrintHTML() {
         <tfoot>
           <tr style="background:#1e3a5f;color:#fff;font-weight:bold;">
             <td colspan="5" style="padding:8px 6px;border:1px solid #333;text-align:right;">TOTAL OUTSTANDING</td>
-            <td style="padding:8px 6px;border:1px solid #333;text-align:right;">GH₵ ${formatCurrency(totalOutstanding)}</td>
+            <td style="padding:8px 6px;border:1px solid #333;text-align:right;">GHC ${formatCurrency(totalOutstanding)}</td>
             <td style="padding:8px 6px;border:1px solid #333;"></td>
           </tr>
         </tfoot>
       </table>
       <div style="margin-top:15px;font-size:11px;color:#777;text-align:center;border-top:1px solid #ddd;padding-top:8px;">
-        <p style="margin:2px 0;">Total Debtors: ${sorted.length} | Total Outstanding: GH₵ ${formatCurrency(totalOutstanding)}</p>
+        <p style="margin:2px 0;">Total Debtors: ${sorted.length} | Total Outstanding: GHC ${formatCurrency(totalOutstanding)}</p>
         <p style="margin:2px 0;">Generated by Student Admission Portal</p>
       </div>
     </div>
@@ -2760,7 +2760,7 @@ window.showTodayReceipts = async function() {
         </div>
         <div style="flex:1;padding:12px;background:#fef3c7;border-radius:6px;text-align:center;border:1px solid #fde68a;">
           <div style="font-size:12px;color:#92400e;">Total Amount Collected</div>
-          <div style="font-size:24px;font-weight:bold;color:#92400e;">GH₵ ${formatCurrency(totalAmount)}</div>
+          <div style="font-size:24px;font-weight:bold;color:#92400e;">GHC ${formatCurrency(totalAmount)}</div>
         </div>
       </div>`;
 
@@ -2777,7 +2777,7 @@ window.showTodayReceipts = async function() {
             <th>Student Name</th>
             <th>Class</th>
             <th>Term</th>
-            <th>Amount (GH₵)</th>
+            <th>Amount (GHC)</th>
             <th>Method</th>
             <th>Time</th>
             <th>Action</th>
@@ -2810,7 +2810,7 @@ window.showTodayReceipts = async function() {
         <tfoot>
           <tr style="background:#1e3a5f;color:#fff;font-weight:bold;">
             <td colspan="6" style="padding:8px;text-align:right;">TOTAL</td>
-            <td style="padding:8px;text-align:right;">GH₵ ${formatCurrency(totalAmount)}</td>
+            <td style="padding:8px;text-align:right;">GHC ${formatCurrency(totalAmount)}</td>
             <td colspan="3"></td>
           </tr>
         </tfoot>
@@ -2918,7 +2918,7 @@ async function previewDeleteReceipts() {
     }).join('');
 
     if (summaryEl) {
-      summaryEl.innerHTML = `<span style="color:#b91c1c;">⚠️ Found <strong>${receipts.length}</strong> receipt(s) totaling <strong>GH₵ ${formatCurrency(totalAmount)}</strong> that will be deleted.</span>`;
+      summaryEl.innerHTML = `<span style="color:#b91c1c;">⚠️ Found <strong>${receipts.length}</strong> receipt(s) totaling <strong>GHC ${formatCurrency(totalAmount)}</strong> that will be deleted.</span>`;
     }
   } catch (err) {
     tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--danger);">Error loading receipts: ' + err.message + '</td></tr>';
@@ -2974,11 +2974,11 @@ async function deleteReceiptsByClassDate() {
       `✅ Deletion complete!\n\n` +
       `🗑️ Receipts deleted: ${data.receipts_deleted}\n` +
       `💳 Transactions deleted: ${data.transactions_deleted}\n` +
-      `💰 Total amount: GH₵ ${formatCurrency(data.total_amount)}\n` +
+      `💰 Total amount: GHC ${formatCurrency(data.total_amount)}\n` +
       `📋 Fee records updated: ${data.fee_records_updated}`,
       'success');
 
-    logSubAdminActivity(`Deleted ${data.receipts_deleted} receipt(s) for ${className} (${filterDesc})`, 'fee', `${className}: ${data.receipts_deleted} receipts, GH₵ ${data.total_amount}`);
+    logSubAdminActivity(`Deleted ${data.receipts_deleted} receipt(s) for ${className} (${filterDesc})`, 'fee', `${className}: ${data.receipts_deleted} receipts, GHC ${data.total_amount}`);
 
     // Clear the preview table
     const tbody = getEl('feeDeleteReceiptsBody');
@@ -3014,7 +3014,7 @@ async function bulkCarryForward() {
     return;
   }
 
-  if (!confirm(`Carry forward balances for ALL students in ${className}?\n\nFrom: ${fromTerm} ${fromYear}\nTo: ${toTerm} ${toYear}\nNew Fee: GH₵ ${formatCurrency(newAmount)}\n\nAll unpaid balances will be attached as debt.`)) return;
+  if (!confirm(`Carry forward balances for ALL students in ${className}?\n\nFrom: ${fromTerm} ${fromYear}\nTo: ${toTerm} ${toYear}\nNew Fee: GHC ${formatCurrency(newAmount)}\n\nAll unpaid balances will be attached as debt.`)) return;
 
   const btn = getEl('feeBulkCarryForward');
   setLoading(btn, true, 'Processing...');
@@ -3268,8 +3268,8 @@ async function renderHolidayPreviewTable() {
       ? s.entries.map(e => {
           if (Number(e.balance) !== 0) {
             const label = Number(e.balance) < 0
-              ? `<span class="fee-balance-credit">Credit GH₵ ${formatCurrency(Math.abs(e.balance))}</span>`
-              : `<span class="fee-balance-unpaid">GH₵ ${formatCurrency(e.balance)}</span>`;
+              ? `<span class="fee-balance-credit">Credit GHC ${formatCurrency(Math.abs(e.balance))}</span>`
+              : `<span class="fee-balance-unpaid">GHC ${formatCurrency(e.balance)}</span>`;
             return `<div style="font-size:0.8rem;">${e.term} Term ${e.academic_year}: <strong>${label}</strong></div>`;
           }
           return `<div style="font-size:0.8rem;color:var(--text-muted);">${e.term} Term ${e.academic_year}: Paid ✓</div>`;
@@ -3281,11 +3281,11 @@ async function renderHolidayPreviewTable() {
       <td>${s.name}</td>
       <td>
         ${breakdown}
-        <div style="margin-top:0.25rem;font-weight:700;">Total: GH₵ ${formatCurrency(s.totalOutstanding)}</div>
+        <div style="margin-top:0.25rem;font-weight:700;">Total: GHC ${formatCurrency(s.totalOutstanding)}</div>
       </td>
-      <td>${data.nextFeeSource === 'missing' ? '<span style="color:var(--text-muted);">Not set</span>' : `GH₵ ${formatCurrency(s.nextFee)}`}</td>
-      <td>${s.credit > 0 ? `<span class="fee-balance-credit">-GH₵ ${formatCurrency(s.credit)}</span>` : '—'}</td>
-      <td><strong style="color:#b91c1c;">GH₵ ${formatCurrency(s.amountToPay)}</strong></td>
+      <td>${data.nextFeeSource === 'missing' ? '<span style="color:var(--text-muted);">Not set</span>' : `GHC ${formatCurrency(s.nextFee)}`}</td>
+      <td>${s.credit > 0 ? `<span class="fee-balance-credit">-GHC ${formatCurrency(s.credit)}</span>` : '—'}</td>
+      <td><strong style="color:#b91c1c;">GHC ${formatCurrency(s.amountToPay)}</strong></td>
     </tr>`;
   }).join('');
 }
@@ -3328,19 +3328,19 @@ async function generateHolidayPrintHTML() {
           const overpaid = Number(e.balance) < 0;
           const isOutstanding = Number(e.balance) > 0;
           const balanceCell = overpaid
-            ? `<span style="color:#166534;">Credit GH₵ ${formatCurrency(Math.abs(e.balance))}</span>`
-            : `<span style="color:${isOutstanding ? '#b91c1c' : '#166534'};font-weight:${isOutstanding ? 700 : 400};">GH₵ ${formatCurrency(e.balance)}</span>`;
+            ? `<span style="color:#166534;">Credit GHC ${formatCurrency(Math.abs(e.balance))}</span>`
+            : `<span style="color:${isOutstanding ? '#b91c1c' : '#166534'};font-weight:${isOutstanding ? 700 : 400};">GHC ${formatCurrency(e.balance)}</span>`;
           return `<tr style="background:${rowBg};">
             <td style="padding:6px;border:1px solid #ddd;">${e.term} Term ${e.academic_year}</td>
-            <td style="padding:6px;border:1px solid #ddd;text-align:right;">GH₵ ${formatCurrency(e.markup)}</td>
-            <td style="padding:6px;border:1px solid #ddd;text-align:right;">GH₵ ${formatCurrency(e.paid)}</td>
+            <td style="padding:6px;border:1px solid #ddd;text-align:right;">GHC ${formatCurrency(e.markup)}</td>
+            <td style="padding:6px;border:1px solid #ddd;text-align:right;">GHC ${formatCurrency(e.paid)}</td>
             <td style="padding:6px;border:1px solid #ddd;text-align:right;">${balanceCell}</td>
           </tr>`;
         }).join('')
       : `<tr><td colspan="4" style="padding:6px;border:1px solid #ddd;text-align:center;color:#555;">No fee records found.</td></tr>`;
 
     const creditRow = s.credit > 0
-      ? `<tr><td style="padding:6px 5px;">Less: Credit / Overpayment</td><td style="padding:6px 5px;text-align:right;">- GH₵ ${formatCurrency(s.credit)}</td></tr>`
+      ? `<tr><td style="padding:6px 5px;">Less: Credit / Overpayment</td><td style="padding:6px 5px;text-align:right;">- GHC ${formatCurrency(s.credit)}</td></tr>`
       : '';
 
     return `
@@ -3362,16 +3362,16 @@ async function generateHolidayPrintHTML() {
           <thead>
             <tr style="background:#1e3a5f;color:#fff;">
               <th style="padding:6px;border:1px solid #1e3a5f;text-align:left;">Term / Academic Year</th>
-              <th style="padding:6px;border:1px solid #1e3a5f;text-align:right;">Fees (GH₵)</th>
-              <th style="padding:6px;border:1px solid #1e3a5f;text-align:right;">Paid (GH₵)</th>
-              <th style="padding:6px;border:1px solid #1e3a5f;text-align:right;">Balance (GH₵)</th>
+              <th style="padding:6px;border:1px solid #1e3a5f;text-align:right;">Fees (GHC)</th>
+              <th style="padding:6px;border:1px solid #1e3a5f;text-align:right;">Paid (GHC)</th>
+              <th style="padding:6px;border:1px solid #1e3a5f;text-align:right;">Balance (GHC)</th>
             </tr>
           </thead>
           <tbody>
             ${balanceRows}
             <tr style="background:#eef2f7;font-weight:700;">
               <td colspan="3" style="padding:6px;border-top:2px solid #1e3a5f;text-align:right;">TOTAL OUTSTANDING</td>
-              <td style="padding:6px;border-top:2px solid #1e3a5f;text-align:right;color:#b91c1c;">GH₵ ${formatCurrency(s.totalOutstanding)}</td>
+              <td style="padding:6px;border-top:2px solid #1e3a5f;text-align:right;color:#b91c1c;">GHC ${formatCurrency(s.totalOutstanding)}</td>
             </tr>
           </tbody>
         </table>
@@ -3381,26 +3381,26 @@ async function generateHolidayPrintHTML() {
           <table style="width:100%;border-collapse:collapse;font-size:14px;">
             <tr>
               <td style="padding:6px 5px;">Total Outstanding Balance (all terms)</td>
-              <td style="padding:6px 5px;text-align:right;">GH₵ ${formatCurrency(s.totalOutstanding)}</td>
+              <td style="padding:6px 5px;text-align:right;">GHC ${formatCurrency(s.totalOutstanding)}</td>
             </tr>
             ${creditRow}
             <tr>
               <td style="padding:6px 5px;">${nextTerm} Term ${nextYear} Fees ${nextFeeSource === 'missing' ? '<span style="color:#b91c1c;font-size:12px;">(not yet set)</span>' : ''}</td>
-              <td style="padding:6px 5px;text-align:right;">GH₵ ${formatCurrency(s.nextFee)}</td>
+              <td style="padding:6px 5px;text-align:right;">GHC ${formatCurrency(s.nextFee)}</td>
             </tr>
             <tr style="border-top:2px solid #1e3a5f;">
               <td style="padding:8px 5px;font-weight:700;">TOTAL TO PAY NEXT TERM</td>
-              <td style="padding:8px 5px;text-align:right;font-size:18px;font-weight:800;color:#b91c1c;">GH₵ ${formatCurrency(s.amountToPay)}</td>
+              <td style="padding:8px 5px;text-align:right;font-size:18px;font-weight:800;color:#b91c1c;">GHC ${formatCurrency(s.amountToPay)}</td>
             </tr>
           </table>
         </div>
 
         <div style="border:2px solid #f59e0b;background:#fffbeb;border-radius:8px;padding:12px;font-size:13px;color:#78350f;">
           <strong>📢 NOTE TO PARENTS / GUARDIANS</strong><br/>
-          Dear Parent/Guardian, please kindly prepare and pay <strong>GH₵ ${formatCurrency(s.amountToPay)}</strong> for
+          Dear Parent/Guardian, please kindly prepare and pay <strong>GHC ${formatCurrency(s.amountToPay)}</strong> for
           your ward's <strong>${nextTerm} Term ${nextYear}</strong> school fees before or on resumption.
           ${s.credit > 0 ? 'Your ward has a credit which has already been deducted from the amount due. ' : ''}
-          ${s.totalOutstanding > 0 ? `This includes your ward's outstanding balance of GH₵ ${formatCurrency(s.totalOutstanding)} (see the term-by-term breakdown above). ` : ''}
+          ${s.totalOutstanding > 0 ? `This includes your ward's outstanding balance of GHC ${formatCurrency(s.totalOutstanding)} (see the term-by-term breakdown above). ` : ''}
           We thank you for your continued support and wish your ward a happy and restful holiday vacation.
         </div>
 
@@ -3510,7 +3510,7 @@ async function generateFeeRecords() {
     const year = classFee.academic_year;
     const feeAmount = classFee.fee_amount;
 
-    if (!confirm(`Generate fee records for ALL students in ${className}?\n\nTerm: ${term} ${year}\nFee Amount: GH₵ ${formatCurrency(feeAmount)}\n\nExisting records will be preserved.`)) {
+    if (!confirm(`Generate fee records for ALL students in ${className}?\n\nTerm: ${term} ${year}\nFee Amount: GHC ${formatCurrency(feeAmount)}\n\nExisting records will be preserved.`)) {
       setLoading(btn, false, '👥 Generate Fee Records');
       return;
     }
@@ -3636,9 +3636,9 @@ window.editStudentFee = async function(studentId) {
         <tr>
           <th>Year</th>
           <th>Term</th>
-          <th>Total Amount (GH₵)</th>
-          <th>Amount Paid (GH₵)</th>
-          <th>Debt (GH₵)</th>
+          <th>Total Amount (GHC)</th>
+          <th>Amount Paid (GHC)</th>
+          <th>Debt (GHC)</th>
           <th>Status</th>
           <th>Action</th>
         </tr>

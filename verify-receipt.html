@@ -83,15 +83,15 @@ import supabaseClient from './js/supabase-config.js';
       notices += '<div class="notice notice-prev"><strong>⏪ PREVIOUS TERM PAYMENT</strong><br/>' +
         'This payment is for <strong>' + esc(data.term) + ' Term ' + esc(data.academic_year) + '</strong> — an earlier term balance.</div>';
     } else if (Number(data.debt || 0) > 0 && Number(data.amount_now || 0) > 0) {
-      notices += '<div class="notice notice-arr">⏰ <strong>ARREARS PAYMENT</strong> — This payment includes GH₵ ' + money(data.debt) + ' towards an outstanding balance carried forward from a previous term.</div>';
+      notices += '<div class="notice notice-arr">⏰ <strong>ARREARS PAYMENT</strong> — This payment includes GHC ' + money(data.debt) + ' towards an outstanding balance carried forward from a previous term.</div>';
     }
     var isOverpaid = Number(data.overpaid_amount || 0) > 0;
     if (isOverpaid) {
-      notices += '<div class="notice notice-credit">💰 <strong>GH₵ ' + money(data.overpaid_amount) + '</strong> overpaid — this credit will be deducted from the next term\'s fees.</div>';
+      notices += '<div class="notice notice-credit">💰 <strong>GHC ' + money(data.overpaid_amount) + '</strong> overpaid — this credit will be deducted from the next term\'s fees.</div>';
     }
     var balanceRow = isOverpaid
-      ? '<tr><td>Remaining Balance</td><td><span style="color:#166534">-GH₵ ' + money(data.overpaid_amount) + ' (Credit)</span></td></tr>'
-      : '<tr><td>Remaining Balance</td><td>GH₵ ' + money(data.remaining_balance) + '</td></tr>';
+      ? '<tr><td>Remaining Balance</td><td><span style="color:#166534">-GHC ' + money(data.overpaid_amount) + ' (Credit)</span></td></tr>'
+      : '<tr><td>Remaining Balance</td><td>GHC ' + money(data.remaining_balance) + '</td></tr>';
     var issuerRow = data.issued_by
       ? '<tr><td>Processed By</td><td>' + esc(data.issued_by_label || 'Staff') + ': ' + esc(data.issued_by) + '</td></tr>'
       : '';
@@ -111,10 +111,10 @@ import supabaseClient from './js/supabase-config.js';
         '<tr><td>Term / Year</td><td>' + esc(data.term || '-') + ' - ' + esc(data.academic_year || '-') + '</td></tr>' +
       '</table></div>' +
       '<div class="section"><h3>Fee Breakdown</h3><table class="details">' +
-        '<tr><td>Total Fees Due</td><td>GH₵ ' + money(data.total_due) + '</td></tr>' +
-        '<tr><td>Amount Paid Previously</td><td>GH₵ ' + money(data.amount_paid_before) + '</td></tr>' +
-        '<tr class="amount-now"><td><strong>Amount Paid Now</strong></td><td><strong>GH₵ ' + money(data.amount_now) + '</strong></td></tr>' +
-        '<tr><td>Total Paid</td><td>GH₵ ' + money(data.total_paid) + '</td></tr>' +
+        '<tr><td>Total Fees Due</td><td>GHC ' + money(data.total_due) + '</td></tr>' +
+        '<tr><td>Amount Paid Previously</td><td>GHC ' + money(data.amount_paid_before) + '</td></tr>' +
+        '<tr class="amount-now"><td><strong>Amount Paid Now</strong></td><td><strong>GHC ' + money(data.amount_now) + '</strong></td></tr>' +
+        '<tr><td>Total Paid</td><td>GHC ' + money(data.total_paid) + '</td></tr>' +
         balanceRow +
       '</table></div>' +
       '<div class="section"><h3>Payment Info</h3><table class="details">' +

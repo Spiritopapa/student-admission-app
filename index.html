@@ -390,6 +390,10 @@
               <div class="login-input-wrapper">
                 <span class="login-input-icon">🔒</span>
                 <input type="password" id="loginPassword" required placeholder="Enter your password" class="login-input" />
+                <button type="button" id="loginPasswordToggle" class="login-password-toggle" aria-label="Show password" aria-pressed="false" title="Show password">
+                  <svg class="login-eye-icon icon-eye-on" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                  <svg class="login-eye-icon icon-eye-off" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c6.5 0 10 8 10 8a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.53 13.53 0 0 0 2 12s3.5 8 10 8a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg>
+                </button>
               </div>
             </div>
             <button type="submit" class="login-btn-submit">
@@ -1641,7 +1645,7 @@
               <div class="form-group"><label>Class *</label><select id="feeSetClass" class="filter-select" required><option value="">— Select —</option></select></div>
               <div class="form-group"><label>Academic Year</label><select id="feeSetYear" class="filter-select"></select></div>
               <div class="form-group"><label>Term *</label><select id="feeSetTerm" required><option value="First">First Term</option><option value="Second">Second Term</option><option value="Third">Third Term</option></select></div>
-              <div class="form-group"><label>Fee Amount (GH₵) *</label><input type="number" id="feeSetAmount" step="0.01" min="0" placeholder="0.00" /></div>
+              <div class="form-group"><label>Fee Amount (GHC) *</label><input type="number" id="feeSetAmount" step="0.01" min="0" placeholder="0.00" /></div>
             </div>
             <button type="button" class="btn btn-primary" id="feeSetStructureBtn">💾 Set Fee</button>
           </div>
@@ -1687,7 +1691,7 @@
             <div class="form-group"><label>Term</label><select id="feePayTerm"><option value="First">First Term</option><option value="Second">Second Term</option><option value="Third">Third Term</option></select></div>
           </div>
           <div class="form-row">
-            <div class="form-group"><label>Amount (GH₵) *</label><input type="number" id="feePayAmount" step="0.01" min="0.01" placeholder="e.g. 500.00" /></div>
+            <div class="form-group"><label>Amount (GHC) *</label><input type="number" id="feePayAmount" step="0.01" min="0.01" placeholder="e.g. 500.00" /></div>
             <div class="form-group"><label>Payment Method</label><select id="feePayMethod"><option value="cash">Cash</option><option value="mobile_money">Mobile Money</option><option value="bank_transfer">Bank Transfer</option><option value="cheque">Cheque</option><option value="other">Other</option></select></div>
           </div>
           <div class="form-row">
@@ -1758,7 +1762,7 @@
               <small id="feeHolidayNextHint" style="display:block;color:var(--text-muted);font-size:0.75rem;margin-top:0.25rem;"></small>
             </div>
             <div class="form-group" style="flex:1;min-width:150px;">
-              <label>Next Term Fee (GH₵)</label>
+              <label>Next Term Fee (GHC)</label>
               <input type="number" id="feeHolidayNextFee" step="0.01" min="0" placeholder="Auto from fee structure" />
             </div>
           </div>
@@ -1812,7 +1816,7 @@
 
         <div class="table-wrapper" style="margin-top:1rem;">
           <table class="app-table">
-            <thead><tr><th>Receipt #</th><th>Student ID</th><th>Student Name</th><th>Class</th><th>Term</th><th>Amount (GH₵)</th><th>Method</th><th>Date</th></tr></thead>
+            <thead><tr><th>Receipt #</th><th>Student ID</th><th>Student Name</th><th>Class</th><th>Term</th><th>Amount (GHC)</th><th>Method</th><th>Date</th></tr></thead>
             <tbody id="feeDeleteReceiptsBody">
               <tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--text-muted);">Select a class and date range, then click "Preview Receipts" to see matching receipts.</td></tr>
             </tbody>
@@ -3130,23 +3134,23 @@
               <div class="dash-fee-summary" id="accountantFeeOverview">
                 <div class="dash-fee-stat">
                   <span class="dash-fee-label">Total Expected</span>
-                  <span class="dash-fee-value" id="accFeeTotalAmount">GH₵ 0.00</span>
+                  <span class="dash-fee-value" id="accFeeTotalAmount">GHC 0.00</span>
                 </div>
                 <div class="dash-fee-stat">
                   <span class="dash-fee-label">Total Collected</span>
-                  <span class="dash-fee-value paid" id="accFeeTotalPaid">GH₵ 0.00</span>
+                  <span class="dash-fee-value paid" id="accFeeTotalPaid">GHC 0.00</span>
                 </div>
                 <div class="dash-fee-stat">
                   <span class="dash-fee-label">Outstanding Balance</span>
-                  <span class="dash-fee-value balance" id="accFeeTotalBalance">GH₵ 0.00</span>
+                  <span class="dash-fee-value balance" id="accFeeTotalBalance">GHC 0.00</span>
                 </div>
                 <div class="dash-fee-stat">
                   <span class="dash-fee-label">Total Debt</span>
-                  <span class="dash-fee-value debt" id="accFeeTotalDebt">GH₵ 0.00</span>
+                  <span class="dash-fee-value debt" id="accFeeTotalDebt">GHC 0.00</span>
                 </div>
                 <div class="dash-fee-stat dash-fee-stat-grand">
                   <span class="dash-fee-label">Grand Total Debt</span>
-                  <span class="dash-fee-value grand-debt" id="accFeeGrandTotalDebt">GH₵ 0.00</span>
+                  <span class="dash-fee-value grand-debt" id="accFeeGrandTotalDebt">GHC 0.00</span>
                 </div>
                 <div class="dash-fee-counts">
                   <span class="dash-fee-count-item"><span class="fee-dot paid-dot"></span>Paid: <span id="accFeePaidCount">0</span></span>
@@ -3231,7 +3235,7 @@
                 </div>
                 <div class="dash-fee-stat" style="padding:0.75rem 1rem;background:#fef3c7;border-radius:6px;border:1px solid #fde68a;min-width:160px;">
                   <span class="dash-fee-label">Total Collected Today</span>
-                  <span class="dash-fee-value" id="accTodayTotalAmount">GH₵ 0.00</span>
+                  <span class="dash-fee-value" id="accTodayTotalAmount">GHC 0.00</span>
                 </div>
                 <div class="dash-fee-stat" style="padding:0.75rem 1rem;background:#eff6ff;border-radius:6px;border:1px solid #bfdbfe;min-width:160px;">
                   <span class="dash-fee-label">Transactions Today</span>
@@ -3247,7 +3251,7 @@
                   <tfoot id="accTodayFoot" style="display:none;">
                     <tr style="background:#1e3a5f;color:#fff;font-weight:bold;">
                       <td colspan="6" style="padding:8px;text-align:right;">TOTAL</td>
-                      <td style="padding:8px;text-align:right;" id="accTodayTotalCell">GH₵ 0.00</td>
+                      <td style="padding:8px;text-align:right;" id="accTodayTotalCell">GHC 0.00</td>
                       <td colspan="2"></td>
                     </tr>
                   </tfoot>
@@ -3255,11 +3259,11 @@
               </div>
             </div>
 
-            <!-- Fees vs Paid by Class (Animated Bar Chart) -->
+            <!-- Fees by Class (Animated Bar Chart) -->
             <div class="acc-card" style="margin-top:1rem;">
               <div class="acc-card-header">
-                <h3>📊 Fees vs Paid by Class</h3>
-                <span class="acc-badge">Total vs Collected</span>
+                <h3>📊 Fees by Class</h3>
+                <span class="acc-badge">Total vs Collected vs Outstanding</span>
               </div>
               <div id="accFeeClassChart">
                 <div style="text-align:center;padding:2rem;color:var(--text-muted);font-size:0.85rem;">Loading chart...</div>

@@ -749,19 +749,19 @@ async function viewStudentFees(studentId) {
       </div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:0.5rem;margin-bottom:1rem;">
         <div style="background:#f8fafc;border-radius:8px;padding:0.75rem;text-align:center;border:1px solid #e2e8f0;">
-          <div style="font-size:1.2rem;font-weight:700;color:#1e293b;">GH₵ ${totalAmount.toFixed(2)}</div>
+          <div style="font-size:1.2rem;font-weight:700;color:#1e293b;">GHC ${totalAmount.toFixed(2)}</div>
           <div style="font-size:0.75rem;color:#64748b;">Total Expected</div>
         </div>
         <div style="background:#f0fdf4;border-radius:8px;padding:0.75rem;text-align:center;border:1px solid #bbf7d0;">
-          <div style="font-size:1.2rem;font-weight:700;color:#166534;">GH₵ ${totalPaid.toFixed(2)}</div>
+          <div style="font-size:1.2rem;font-weight:700;color:#166534;">GHC ${totalPaid.toFixed(2)}</div>
           <div style="font-size:0.75rem;color:#166534;">Total Paid</div>
         </div>
         <div style="background:#fef2f2;border-radius:8px;padding:0.75rem;text-align:center;border:1px solid #fecaca;">
-          <div style="font-size:1.2rem;font-weight:700;color:#991b1b;">GH₵ ${totalBalance.toFixed(2)}</div>
+          <div style="font-size:1.2rem;font-weight:700;color:#991b1b;">GHC ${totalBalance.toFixed(2)}</div>
           <div style="font-size:0.75rem;color:#991b1b;">Outstanding Balance</div>
         </div>
         <div style="background:#fffbeb;border-radius:8px;padding:0.75rem;text-align:center;border:1px solid #fde68a;">
-          <div style="font-size:1.2rem;font-weight:700;color:#92400e;">GH₵ ${totalDebt.toFixed(2)}</div>
+          <div style="font-size:1.2rem;font-weight:700;color:#92400e;">GHC ${totalDebt.toFixed(2)}</div>
           <div style="font-size:0.75rem;color:#92400e;">Carried Debt</div>
         </div>
       </div>
@@ -778,10 +778,10 @@ async function viewStudentFees(studentId) {
               return `<tr>
                 <td>${f.academic_year || '-'}</td>
                 <td>${getTermDisplay(f.term)}</td>
-                <td style="text-align:right;">GH₵ ${amt.toFixed(2)}</td>
-                <td style="text-align:right;">GH₵ ${paid.toFixed(2)}</td>
-                <td style="text-align:right;"><span style="color:${debt > 0 ? '#dc2626' : 'inherit'}">GH₵ ${debt.toFixed(2)}</span></td>
-                <td style="text-align:right;"><span style="color:${bal > 0 ? '#dc2626' : '#16a34a'}">GH₵ ${bal.toFixed(2)}</span></td>
+                <td style="text-align:right;">GHC ${amt.toFixed(2)}</td>
+                <td style="text-align:right;">GHC ${paid.toFixed(2)}</td>
+                <td style="text-align:right;"><span style="color:${debt > 0 ? '#dc2626' : 'inherit'}">GHC ${debt.toFixed(2)}</span></td>
+                <td style="text-align:right;"><span style="color:${bal > 0 ? '#dc2626' : '#16a34a'}">GHC ${bal.toFixed(2)}</span></td>
                 <td style="text-align:center;">${statusBadge(f.payment_status)}</td>
                 <td>${lastPay}</td>
               </tr>`;

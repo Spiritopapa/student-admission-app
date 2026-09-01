@@ -769,6 +769,41 @@ function friendlyLoginError(error) {
 export function setupLoginForm(loadDashboardCallbacks) {
   const form = getEl('loginForm');
   if (!form) return;
+
+  // Password visibility toggle — reveals the password for 5 seconds, then
+  // automatically hides it again for security. Clicking again early hides it
+  // immediately (and cancels the pending auto-hide timer).
+  const passwordInput = getEl('loginPassword');
+  const toggleBtn = getEl('loginPasswordToggle');
+  if (passwordInput && toggleBtn) {
+    let hideTimer = null;
+    const revealPassword = () => {
+      passwordInput.type = 'text';
+      toggleBtn.classList.add('active');
+      toggleBtn.setAttribute('aria-pressed', 'true');
+      toggleBtn.title = 'Hide password';
+    };
+    const hidePassword = () => {
+      passwordInput.type = 'password';
+      toggleBtn.classList.remove('active');
+      toggleBtn.setAttribute('aria-pressed', 'false');
+      toggleBtn.title = 'Show password';
+      if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
+    };
+    toggleBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (passwordInput.type === 'text') {
+        // User tapped the eye again before the 5s timer fired → hide now.
+        if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
+        hidePassword();
+      } else {
+        revealPassword();
+        if (hideTimer) clearTimeout(hideTimer);
+        hideTimer = setTimeout(hidePassword, 5000);
+      }
+    });
+  }
+
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     clearMessage('loginMessage');

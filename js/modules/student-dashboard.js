@@ -608,7 +608,7 @@ async function loadStudentFees() {
                       <button class="fee-print-btn" onclick='printSavedReceipt(${escRow}, "${processorParam}")' title="Print official receipt" aria-label="Print receipt">🖨️ Print</button>
                     </div>`
                   : '<span style="color:var(--text-muted);font-size:0.75rem;">-</span>';
-                return `<tr><td><strong>${p.receipt_number}</strong></td><td>${getTermDisplay(p.term)} ${p.academic_year ? '- ' + p.academic_year : ''}</td><td style="text-align:right;">GH₵ ${p.amount.toFixed(2)}</td><td>${dateStr}</td><td style="text-align:center;">${receiptActions}</td></tr>`;
+                return `<tr><td><strong>${p.receipt_number}</strong></td><td>${getTermDisplay(p.term)} ${p.academic_year ? '- ' + p.academic_year : ''}</td><td style="text-align:right;">GHC ${p.amount.toFixed(2)}</td><td>${dateStr}</td><td style="text-align:center;">${receiptActions}</td></tr>`;
               }).join('')}</tbody>
             </table>
           </div>

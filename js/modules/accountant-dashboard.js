@@ -6,7 +6,7 @@
 
 import { getEl, showMessage, clearMessage, setLoading, getCurrentSchoolId, formatCurrency, formatDate, generateAcademicYearOptions, getDefaultAcademicYear, openPrintWindow, logStaffActivity } from './utils.js';
 import { sendFeePaymentSms } from './sms-gateway.js';
-import { buildFeeClassChartHtml, animateFeeClassChart } from './fee-class-chart.js';
+import { buildFeeClassChartHtml, animateFeeClassChart, formatPct } from './fee-class-chart.js';
 
 // ================================================================
 // HELPER: Check if student has unpaid balance from previous terms
@@ -173,13 +173,13 @@ async function loadAccTodayReceipts() {
 
     const totalAmount = receipts.reduce((sum, r) => sum + Number(r.amount || 0), 0);
     const totalEl = getEl('accTodayTotalAmount');
-    if (totalEl) totalEl.textContent = `GH₵ ${formatCurrency(totalAmount)}`;
+    if (totalEl) totalEl.textContent = `GHC ${formatCurrency(totalAmount)}`;
 
     const todayCountEl = getEl('accTodayCount');
     if (todayCountEl) todayCountEl.textContent = `${receipts.length} today`;
 
     const totalCell = getEl('accTodayTotalCell');
-    if (totalCell) totalCell.textContent = `GH₵ ${formatCurrency(totalAmount)}`;
+    if (totalCell) totalCell.textContent = `GHC ${formatCurrency(totalAmount)}`;
 
     const foot = getEl('accTodayFoot');
     if (foot) foot.style.display = receipts.length > 0 ? '' : 'none';
@@ -205,7 +205,7 @@ async function loadAccTodayReceipts() {
         <td>${studentName}</td>
         <td>${className}</td>
         <td>${r.term} ${r.academic_year}</td>
-        <td style="text-align:right;font-weight:bold;">GH₵ ${formatCurrency(r.amount)}</td>
+        <td style="text-align:right;font-weight:bold;">GHC ${formatCurrency(r.amount)}</td>
         <td>${r.payment_method}</td>
         <td>${time}</td>
         <td><button class="action-btn confirm" style="font-size:11px;padding:2px 6px;" onclick="reprintReceipt('${r.id}')">🖨️</button></td>
@@ -306,7 +306,7 @@ async function buildAccTodayReceiptsHTML() {
         </div>
         <div style="flex:1;padding:12px;background:#fef3c7;border-radius:6px;text-align:center;border:1px solid #fde68a;">
           <div style="font-size:12px;color:#92400e;">Total Amount Collected</div>
-          <div style="font-size:24px;font-weight:bold;color:#92400e;">GH₵ ${formatCurrency(totalAmount)}</div>
+          <div style="font-size:24px;font-weight:bold;color:#92400e;">GHC ${formatCurrency(totalAmount)}</div>
         </div>
       </div>`;
 
@@ -323,7 +323,7 @@ async function buildAccTodayReceiptsHTML() {
             <th>Student Name</th>
             <th>Class</th>
             <th>Term</th>
-            <th>Amount (GH₵)</th>
+            <th>Amount (GHC)</th>
             <th>Method</th>
             <th>Time</th>
           </tr>
@@ -354,7 +354,7 @@ async function buildAccTodayReceiptsHTML() {
         <tfoot>
           <tr style="background:#1e3a5f;color:#fff;font-weight:bold;">
             <td colspan="6" style="padding:8px;text-align:right;">TOTAL</td>
-            <td style="padding:8px;text-align:right;">GH₵ ${formatCurrency(totalAmount)}</td>
+            <td style="padding:8px;text-align:right;">GHC ${formatCurrency(totalAmount)}</td>
             <td colspan="2"></td>
           </tr>
         </tfoot>
@@ -688,7 +688,7 @@ async function loadAccountantFeesPage() {
           <div class="form-group"><label>Term</label><select id="accPayTerm"><option value="First">First Term</option><option value="Second">Second Term</option><option value="Third">Third Term</option></select></div>
         </div>
         <div class="form-row">
-          <div class="form-group"><label>Amount (GH₵) *</label><input type="number" id="accPayAmount" step="0.01" min="0.01" placeholder="e.g. 500.00" /></div>
+          <div class="form-group"><label>Amount (GHC) *</label><input type="number" id="accPayAmount" step="0.01" min="0.01" placeholder="e.g. 500.00" /></div>
           <div class="form-group"><label>Payment Method</label><select id="accPayMethod"><option value="cash">Cash</option><option value="mobile_money">Mobile Money</option><option value="bank_transfer">Bank Transfer</option><option value="cheque">Cheque</option><option value="other">Other</option></select></div>
         </div>
         <div class="form-row">
@@ -811,9 +811,9 @@ async function loadAccStudentFees() {
       const status = bal <= 0 ? 'paid' : (paid > 0 ? 'partial' : 'unpaid');
       return `<div class="fee-term-row">
         <span class="fee-term-label">${f.term} ${f.academic_year}:</span>
-        <span>GH₵ ${formatCurrency(total)}</span>
-        <span>Paid: GH₵ ${formatCurrency(paid)}</span>
-        <span class="fee-balance-${status}">Bal: GH₵ ${formatCurrency(Math.max(bal, 0))}</span>
+        <span>GHC ${formatCurrency(total)}</span>
+        <span>Paid: GHC ${formatCurrency(paid)}</span>
+        <span class="fee-balance-${status}">Bal: GHC ${formatCurrency(Math.max(bal, 0))}</span>
         <span class="fee-status-badge fee-status-${status}">${status}</span>
       </div>`;
     }).join('') || '<span style="color:var(--text-muted);font-size:0.85rem;">No fee records</span>';
@@ -826,7 +826,7 @@ async function loadAccStudentFees() {
       <td>${name}</td>
       <td>${s.class_applying}</td>
       <td>${termDisplay}</td>
-      <td><strong>GH₵ ${formatCurrency(totalBalance)}</strong></td>
+      <td><strong>GHC ${formatCurrency(totalBalance)}</strong></td>
       <td><button class="action-btn confirm" onclick="accRecordPayment('${s.student_id}')">💰 Pay</button></td>
     </tr>`;
   }).join('');
@@ -888,9 +888,9 @@ async function loadAccFeeStudentInfo() {
       html += `<div class="fee-record-card ${status}">
         <div class="fee-record-term">${f.term} Term - ${f.academic_year}</div>
         <div class="fee-record-details">
-          <span>Total: GH₵ ${formatCurrency(total)}</span>
-          <span>Paid: GH₵ ${formatCurrency(paid)}</span>
-          <span class="fee-balance-${status}">Balance: GH₵ ${formatCurrency(Math.max(bal, 0))}</span>
+          <span>Total: GHC ${formatCurrency(total)}</span>
+          <span>Paid: GHC ${formatCurrency(paid)}</span>
+          <span class="fee-balance-${status}">Balance: GHC ${formatCurrency(Math.max(bal, 0))}</span>
           <span class="fee-status-badge fee-status-${status}">${status}</span>
         </div>
       </div>`;
@@ -950,11 +950,11 @@ async function loadAccFeeStudentInfo() {
       statusHtml = `<div class="fee-payment-summary" style="margin-top:1rem;padding:0.75rem;background:#f0fdf4;border-radius:4px;font-size:0.85rem;color:#166534;">
         <strong>✅ All current terms paid!</strong><br/>
         Auto-selected next: <strong>${selectedTerm} Term ${selectedYear}</strong>
-        ${outstanding > 0 ? ` — Outstanding: <strong>GH₵ ${formatCurrency(outstanding)}</strong>` : ' — Fee record not yet set.'}
+        ${outstanding > 0 ? ` — Outstanding: <strong>GHC ${formatCurrency(outstanding)}</strong>` : ' — Fee record not yet set.'}
       </div>`;
     } else {
       statusHtml = `<div class="fee-payment-summary" style="margin-top:1rem;">
-        <div>Outstanding for <strong>${selectedTerm} Term ${selectedYear}</strong>: <strong>GH₵ ${formatCurrency(outstanding)}</strong></div>
+        <div>Outstanding for <strong>${selectedTerm} Term ${selectedYear}</strong>: <strong>GHC ${formatCurrency(outstanding)}</strong></div>
       </div>`;
     }
   }
@@ -1001,7 +1001,7 @@ async function processAccPayment() {
 
   if (outstanding <= 0) {
     showMessage('accPayMessage', 
-      `✅ ${studentId} has already fully paid for ${term} Term ${academicYear}.\n\nTotal Due: GH₵ ${formatCurrency(totalDue)}\nAmount Paid: GH₵ ${formatCurrency(currentPaid)}\n\nNo further payment is needed for this term.`, 
+      `✅ ${studentId} has already fully paid for ${term} Term ${academicYear}.\n\nTotal Due: GHC ${formatCurrency(totalDue)}\nAmount Paid: GHC ${formatCurrency(currentPaid)}\n\nNo further payment is needed for this term.`, 
       'error');
     return;
   }
@@ -1012,7 +1012,7 @@ async function processAccPayment() {
     showMessage('accPayMessage', 
       `⛔ COMPULSORY: Cannot pay for ${term} Term ${academicYear} because there is an outstanding balance from a previous term.\n\n` +
       `Unpaid: ${priorBalance.term} Term ${priorBalance.academic_year}\n` +
-      `Amount Due: GH₵ ${formatCurrency(priorBalance.balance)}\n\n` +
+      `Amount Due: GHC ${formatCurrency(priorBalance.balance)}\n\n` +
       `💡 Please clear this previous balance first before paying the current term fees.`, 
       'error');
     return;
@@ -1022,16 +1022,16 @@ async function processAccPayment() {
   if (amount > outstanding && outstanding > 0) {
     showMessage('accPayMessage',
       `⛔ OVERPAYMENT PREVENTED\n\n` +
-      `Outstanding for ${term} Term ${academicYear}: GH₵ ${formatCurrency(outstanding)}\n` +
-      `You attempted to pay: GH₵ ${formatCurrency(amount)}\n` +
-      `Excess amount: GH₵ ${formatCurrency(amount - outstanding)}\n\n` +
-      `💡 Please enter an amount equal to or less than the outstanding balance of GH₵ ${formatCurrency(outstanding)}.\n` +
+      `Outstanding for ${term} Term ${academicYear}: GHC ${formatCurrency(outstanding)}\n` +
+      `You attempted to pay: GHC ${formatCurrency(amount)}\n` +
+      `Excess amount: GHC ${formatCurrency(amount - outstanding)}\n\n` +
+      `💡 Please enter an amount equal to or less than the outstanding balance of GHC ${formatCurrency(outstanding)}.\n` +
       `Overpayment is not allowed. If you need to pay for the next term, please use that term's payment form.`,
       'error');
     return;
   }
 
-  if (!confirm(`Record payment of GH₵ ${formatCurrency(amount)} for ${studentId} (${term} Term ${academicYear})?`)) return;
+  if (!confirm(`Record payment of GHC ${formatCurrency(amount)} for ${studentId} (${term} Term ${academicYear})?`)) return;
 
   const btn = getEl('accPayBtn');
   setLoading(btn, true, 'Processing...');
@@ -1054,7 +1054,7 @@ async function processAccPayment() {
     if (!data.success) { showMessage('accPayMessage', 'Error: ' + (data.error || 'Failed'), 'error'); return; }
 
     showMessage('accPayMessage', `✅ Paid! Receipt: ${data.receipt_number}`, 'success');
-    try { await logStaffActivity(`Recorded fee payment of GH₵ ${formatCurrency(amount)} for ${studentId} (Receipt: ${data.receipt_number})`, { role: 'accountant', entityType: 'payment', entityDetails: `${studentId} · ${term} Term ${academicYear} · GH₵ ${formatCurrency(amount)}` }); } catch (e) { console.warn(e); }
+    try { await logStaffActivity(`Recorded fee payment of GHC ${formatCurrency(amount)} for ${studentId} (Receipt: ${data.receipt_number})`, { role: 'accountant', entityType: 'payment', entityDetails: `${studentId} · ${term} Term ${academicYear} · GHC ${formatCurrency(amount)}` }); } catch (e) { console.warn(e); }
     // Notify the parent via SMS as soon as the payment is recorded
     sendFeePaymentSms({
       studentId,
@@ -1180,18 +1180,18 @@ async function loadAccFeeDebtors() {
   tbody.innerHTML = sorted.map(s => {
     const name = `${s.first_name} ${s.middle_name || ''} ${s.last_name}`.trim() || s.student_id;
     const feeDetails = s.fees.map(f =>
-      `<div style="font-size:0.8rem;">${f.term} ${f.academic_year}: GH₵ ${formatCurrency(f.balance)} (Debt: GH₵ ${formatCurrency(f.debt || 0)})</div>`
+      `<div style="font-size:0.8rem;">${f.term} ${f.academic_year}: GHC ${formatCurrency(f.balance)} (Debt: GHC ${formatCurrency(f.debt || 0)})</div>`
     ).join('');
     return `<tr>
       <td><strong>${s.student_id}</strong></td><td>${name}</td><td>${s.class}</td>
       <td>${feeDetails}</td>
-      <td><strong class="fee-balance-unpaid">GH₵ ${formatCurrency(s.total_balance)}</strong></td>
+      <td><strong class="fee-balance-unpaid">GHC ${formatCurrency(s.total_balance)}</strong></td>
       <td><button class="action-btn confirm" onclick="accRecordPayment('${s.student_id}')">💰 Pay</button></td>
     </tr>`;
   }).join('');
 
   const countEl = getEl('accFeeDebtorsCount');
-  if (countEl) countEl.textContent = `${sorted.length} debtor(s) - Total: GH₵ ${formatCurrency(sorted.reduce((sum, s) => sum + s.total_balance, 0))}`;
+  if (countEl) countEl.textContent = `${sorted.length} debtor(s) - Total: GHC ${formatCurrency(sorted.reduce((sum, s) => sum + s.total_balance, 0))}`;
 }
 
 // ================================================================
@@ -1248,7 +1248,7 @@ async function loadAccReceipts() {
       <td>${r.student_id}</td>
       <td>${formatDate(r.receipt_date)}</td>
       <td>${r.term} ${r.academic_year}</td>
-      <td>GH₵ ${formatCurrency(r.amount)}</td>
+      <td>GHC ${formatCurrency(r.amount)}</td>
       <td>${r.payment_method}</td>
       <td><button class="action-btn confirm" onclick="window.reprintReceipt && reprintReceipt('${r.id}')">🖨️ Reprint</button></td>
     </tr>
@@ -1370,18 +1370,18 @@ async function loadAccDebtorsData() {
   tbody.innerHTML = sorted.map(s => {
     const name = `${s.first_name} ${s.middle_name || ''} ${s.last_name}`.trim() || s.student_id;
     const feeDetails = s.fees.map(f =>
-      `<div style="font-size:0.8rem;">${f.term} ${f.academic_year}: GH₵ ${formatCurrency(f.balance)} (Debt: GH₵ ${formatCurrency(f.debt || 0)})</div>`
+      `<div style="font-size:0.8rem;">${f.term} ${f.academic_year}: GHC ${formatCurrency(f.balance)} (Debt: GHC ${formatCurrency(f.debt || 0)})</div>`
     ).join('');
     return `<tr>
       <td><strong>${s.student_id}</strong></td><td>${name}</td><td>${s.class}</td>
       <td>${feeDetails}</td>
-      <td><strong class="fee-balance-unpaid">GH₵ ${formatCurrency(s.total_balance)}</strong></td>
+      <td><strong class="fee-balance-unpaid">GHC ${formatCurrency(s.total_balance)}</strong></td>
       <td><button class="action-btn confirm" onclick="accRecordPayment('${s.student_id}')">💰 Pay</button></td>
     </tr>`;
   }).join('');
 
   const countEl = getEl('accDebtorsCount');
-  if (countEl) countEl.textContent = `${sorted.length} debtor(s) - Total: GH₵ ${formatCurrency(sorted.reduce((sum, s) => sum + s.total_balance, 0))}`;
+  if (countEl) countEl.textContent = `${sorted.length} debtor(s) - Total: GHC ${formatCurrency(sorted.reduce((sum, s) => sum + s.total_balance, 0))}`;
 }
 
 // ================================================================
@@ -1498,7 +1498,7 @@ async function generateAccDebtorsPrintHTML() {
             <th style="padding:8px 6px;border:1px solid #333;text-align:left;">Name</th>
             <th style="padding:8px 6px;border:1px solid #333;text-align:left;">Class</th>
             <th style="padding:8px 6px;border:1px solid #333;text-align:left;">Outstanding Details</th>
-            <th style="padding:8px 6px;border:1px solid #333;text-align:right;">Total Balance (GH₵)</th>
+            <th style="padding:8px 6px;border:1px solid #333;text-align:right;">Total Balance (GHC)</th>
             <th style="padding:8px 6px;border:1px solid #333;text-align:left;">Last Payment</th>
           </tr>
         </thead>
@@ -1507,7 +1507,7 @@ async function generateAccDebtorsPrintHTML() {
             const name = `${s.first_name} ${s.middle_name || ''} ${s.last_name}`.trim();
             const feeDetails = s.fees.map(f => {
               const actualBal = (Number(f.total_amount) + Number(f.debt || 0)) - Number(f.amount_paid);
-              return `${f.term} ${f.academic_year}: Total: GH₵ ${formatCurrency(Number(f.total_amount) + Number(f.debt || 0))} | Paid: GH₵ ${formatCurrency(f.amount_paid)} | Bal: GH₵ ${formatCurrency(actualBal)}${f.debt > 0 ? ` (includes prev debt: GH₵ ${formatCurrency(f.debt)})` : ''}`;
+              return `${f.term} ${f.academic_year}: Total: GHC ${formatCurrency(Number(f.total_amount) + Number(f.debt || 0))} | Paid: GHC ${formatCurrency(f.amount_paid)} | Bal: GHC ${formatCurrency(actualBal)}${f.debt > 0 ? ` (includes prev debt: GHC ${formatCurrency(f.debt)})` : ''}`;
             }).join('; ');
             const lastPayDate = s.last_payment_date ? formatDate(s.last_payment_date) : 'Never';
             const rowBg = i % 2 === 0 ? '#fff' : '#f8f9fa';
@@ -1525,13 +1525,13 @@ async function generateAccDebtorsPrintHTML() {
         <tfoot>
           <tr style="background:#1e3a5f;color:#fff;font-weight:bold;">
             <td colspan="5" style="padding:8px 6px;border:1px solid #333;text-align:right;">TOTAL OUTSTANDING</td>
-            <td style="padding:8px 6px;border:1px solid #333;text-align:right;">GH₵ ${formatCurrency(totalOutstanding)}</td>
+            <td style="padding:8px 6px;border:1px solid #333;text-align:right;">GHC ${formatCurrency(totalOutstanding)}</td>
             <td style="padding:8px 6px;border:1px solid #333;"></td>
           </tr>
         </tfoot>
       </table>
       <div style="margin-top:15px;font-size:11px;color:#777;text-align:center;border-top:1px solid #ddd;padding-top:8px;">
-        <p style="margin:2px 0;">Total Debtors: ${sorted.length} | Total Outstanding: GH₵ ${formatCurrency(totalOutstanding)}</p>
+        <p style="margin:2px 0;">Total Debtors: ${sorted.length} | Total Outstanding: GHC ${formatCurrency(totalOutstanding)}</p>
         <p style="margin:2px 0;">Generated by Student Admission Portal</p>
       </div>
     </div>
@@ -1648,19 +1648,19 @@ async function loadAccFeeOverview() {
     const grandTotalOutstanding = outstandingBalance;
 
     const totalEl = getEl('accFeeTotalAmount');
-    if (totalEl) totalEl.textContent = `GH₵ ${formatCurrency(totalExpected)}`;
+    if (totalEl) totalEl.textContent = `GHC ${formatCurrency(totalExpected)}`;
 
     const paidEl = getEl('accFeeTotalPaid');
-    if (paidEl) paidEl.textContent = `GH₵ ${formatCurrency(totalPaid)}`;
+    if (paidEl) paidEl.textContent = `GHC ${formatCurrency(totalPaid)}`;
 
     const balanceEl = getEl('accFeeTotalBalance');
-    if (balanceEl) balanceEl.textContent = `GH₵ ${formatCurrency(outstandingBalance)}`;
+    if (balanceEl) balanceEl.textContent = `GHC ${formatCurrency(outstandingBalance)}`;
 
     const debtEl = getEl('accFeeTotalDebt');
-    if (debtEl) debtEl.textContent = `GH₵ ${formatCurrency(totalDebt)}`;
+    if (debtEl) debtEl.textContent = `GHC ${formatCurrency(totalDebt)}`;
 
     const grandDebtEl = getEl('accFeeGrandTotalDebt');
-    if (grandDebtEl) grandDebtEl.textContent = `GH₵ ${formatCurrency(grandTotalOutstanding)}`;
+    if (grandDebtEl) grandDebtEl.textContent = `GHC ${formatCurrency(grandTotalOutstanding)}`;
 
     // Collection rate percentage (based on total expected, not just total_amount)
     const pctEl = getEl('accFeePct');
@@ -1774,7 +1774,7 @@ async function loadAccRecentPayments() {
           <span class="acc-recent-name">${name}</span>
           <span class="acc-recent-detail">${p.student_id} · ${p.term} ${p.academic_year}</span>
         </div>
-        <div class="acc-recent-amount">GH₵ ${formatCurrency(p.amount_paid)}</div>
+        <div class="acc-recent-amount">GHC ${formatCurrency(p.amount_paid)}</div>
         <div class="acc-recent-method">${p.payment_method}</div>
         <div class="acc-recent-date">${formatDate(p.payment_date)}</div>
       </div>`;
@@ -1841,18 +1841,20 @@ async function loadAccClassSummary() {
 
     tbody.innerHTML = classNames.map(cls => {
       const data = classMap[cls];
-      const pct = data.totalFees > 0 ? Math.round((data.collected / data.totalFees) * 100) : 0;
+      // Exact percentage — shares the same formatting as the chart above so the
+      // table and chart can never disagree.
+      const pct = formatPct(data.collected, data.totalFees);
       return `<tr>
         <td><strong>${cls}</strong></td>
-        <td>GH₵ ${formatCurrency(data.totalFees)}</td>
-        <td>GH₵ ${formatCurrency(data.collected)}</td>
-        <td>GH₵ ${formatCurrency(data.outstanding)}</td>
+        <td>GHC ${formatCurrency(data.totalFees)}</td>
+        <td>GHC ${formatCurrency(data.collected)}</td>
+        <td>GHC ${formatCurrency(data.outstanding)}</td>
         <td>${data.studentCount}</td>
-        <td>${pct}%</td>
+        <td>${pct}</td>
       </tr>`;
     }).join('');
 
-    // Render the animated "Fees vs Paid by Class" bar chart and animate it.
+    // Render the animated "Fees by Class" bar chart and animate it.
     // Re-uses the same classMap already built for the table above, so the
     // chart and the table always stay in sync (including manual refresh).
     const chartEl = getEl('accFeeClassChart');

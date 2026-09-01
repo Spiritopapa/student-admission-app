@@ -671,7 +671,7 @@
   transition: width 1.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* ==== Fees vs Paid by Class — Animated Bar Chart ==== */
+/* ==== Fees by Class — Animated Bar Chart ==== */
 .dash-chart-body {
   margin-top: 0.25rem;
 }
@@ -702,6 +702,7 @@
 
 .fee-chart-legend-dot.total { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
 .fee-chart-legend-dot.paid  { background: linear-gradient(135deg, #10b981, #34d399); }
+.fee-chart-legend-dot.outstanding { background: linear-gradient(135deg, #f59e0b, #fbbf24); }
 
 .fee-chart-bar-item {
   display: flex;
@@ -756,6 +757,7 @@
 
 .fee-chart-bar-fill.total { background: linear-gradient(90deg, #6366f1, #8b5cf6); }
 .fee-chart-bar-fill.paid  { background: linear-gradient(90deg, #10b981, #34d399); }
+.fee-chart-bar-fill.outstanding { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
 
 .fee-chart-bar-value {
   min-width: 118px;
@@ -769,6 +771,7 @@
 
 .fee-chart-bar-value.total { color: #6366f1; }
 .fee-chart-bar-value.paid  { color: #10b981; }
+.fee-chart-bar-value.outstanding { color: #d97706; }
 .fee-chart-bar-value em {
   font-style: normal;
   color: var(--text-muted);

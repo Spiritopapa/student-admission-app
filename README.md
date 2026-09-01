@@ -143,7 +143,7 @@ Every time a fee payment is recorded (by an **admin** in *Fees Management → Re
 Example message:
 
 ```
-NASCO JHS: Paid GH₵1000.00 for Kofi Mensah (First Term 2025/2026). Receipt: RCP-2026-000123. Thank you.
+NASCO JHS: Paid GHC1000.00 for Kofi Mensah (First Term 2025/2026). Receipt: RCP-2026-000123. Thank you.
 ```
 
 ### How it works
@@ -185,7 +185,7 @@ School admins can send a single fee-reminder SMS to every debtor's parent/guardi
 
 - Use the **class filter** (`All Classes` or a specific class) so the bulk SMS targets exactly the class you want.
 - Tick the **Select All** checkbox or pick individual debtors manually — a live **"N selected"** counter shows how many are queued.
-- Click **📨 Send Fee Reminder SMS**; each parent receives a short message with the school name, the student's name, class and their exact outstanding GH₵ balance.
+- Click **📨 Send Fee Reminder SMS**; each parent receives a short message with the school name, the student's name, class and their exact outstanding GHC balance.
 - Debtors with no valid Ghana phone number are skipped and reported; every attempt is audited as a new `sms_logs` row (visible in SMS Monitoring) so failed sends can be retried.
 
 > Requires the same Nalo gateway as above: set `NALO_SMS_AUTH_KEY` (or username/password) as a **Vercel environment variable** and deploy. Without it `/api/send-sms` returns `500 "Nalo SMS is not configured ..."` and the app now shows that exact reason in the result message.

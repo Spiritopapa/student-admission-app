@@ -223,7 +223,7 @@ export async function logSubAdminActivity(action, entityType = 'general', entity
  * user actually has a teacher/accountant record, so shared code (e.g. the
  * admin fees module used by both admin and accountant) can call it freely.
  *
- * @param {string} action - Human-readable action, e.g. "Recorded fee payment GH₵ 50"
+ * @param {string} action - Human-readable action, e.g. "Recorded fee payment GHC 50"
  * @param {Object} [opts]
  * @param {string} [opts.role]       - Optional forced role ('teacher' | 'accountant').
  *                                     When omitted the profile table decides.

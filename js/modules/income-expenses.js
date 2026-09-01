@@ -49,15 +49,15 @@ export async function loadIncomeExpensesPage(containerId = 'ieContainer') {
       <div class="ie-summary-cards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;margin-bottom:1rem;">
         <div class="ie-stat-card" style="border-left:4px solid var(--success);">
           <div class="ie-stat-label">Total Income</div>
-          <div class="ie-stat-value ie-income" id="ieDashIncome">GH₵ 0.00</div>
+          <div class="ie-stat-value ie-income" id="ieDashIncome">GHC 0.00</div>
         </div>
         <div class="ie-stat-card" style="border-left:4px solid var(--danger);">
           <div class="ie-stat-label">Total Expenses</div>
-          <div class="ie-stat-value ie-expense" id="ieDashExpense">GH₵ 0.00</div>
+          <div class="ie-stat-value ie-expense" id="ieDashExpense">GHC 0.00</div>
         </div>
         <div class="ie-stat-card" style="border-left:4px solid var(--primary);">
           <div class="ie-stat-label">Net Balance</div>
-          <div class="ie-stat-value" id="ieDashNet">GH₵ 0.00</div>
+          <div class="ie-stat-value" id="ieDashNet">GHC 0.00</div>
         </div>
         <div class="ie-stat-card" style="border-left:4px solid #8b5cf6;">
           <div class="ie-stat-label">Total Transactions</div>
@@ -124,7 +124,7 @@ export async function loadIncomeExpensesPage(containerId = 'ieContainer') {
         <button type="button" class="btn btn-sm btn-secondary" id="ieIncomeRefresh">🔄 Refresh</button>
       </div>
       <div style="margin-bottom:0.75rem;display:flex;gap:1rem;flex-wrap:wrap;">
-        <span style="font-size:0.85rem;font-weight:600;color:var(--success);">Total Income: <span id="ieIncomeTotal">GH₵ 0.00</span></span>
+        <span style="font-size:0.85rem;font-weight:600;color:var(--success);">Total Income: <span id="ieIncomeTotal">GHC 0.00</span></span>
         <span style="font-size:0.85rem;font-weight:600;color:var(--text-muted);">Records: <span id="ieIncomeCount">0</span></span>
       </div>
       <div class="table-wrapper">
@@ -149,7 +149,7 @@ export async function loadIncomeExpensesPage(containerId = 'ieContainer') {
         <button type="button" class="btn btn-sm btn-secondary" id="ieExpenseRefresh">🔄 Refresh</button>
       </div>
       <div style="margin-bottom:0.75rem;display:flex;gap:1rem;flex-wrap:wrap;">
-        <span style="font-size:0.85rem;font-weight:600;color:var(--danger);">Total Expenses: <span id="ieExpenseTotal">GH₵ 0.00</span></span>
+        <span style="font-size:0.85rem;font-weight:600;color:var(--danger);">Total Expenses: <span id="ieExpenseTotal">GHC 0.00</span></span>
         <span style="font-size:0.85rem;font-weight:600;color:var(--text-muted);">Records: <span id="ieExpenseCount">0</span></span>
       </div>
       <div class="table-wrapper">
@@ -283,9 +283,9 @@ export async function loadIeDashboard() {
     });
     const netBalance = totalIncome - totalExpense;
 
-    getEl('ieDashIncome').textContent = `GH₵ ${formatCurrency(totalIncome)}`;
-    getEl('ieDashExpense').textContent = `GH₵ ${formatCurrency(totalExpense)}`;
-    getEl('ieDashNet').textContent = `GH₵ ${formatCurrency(netBalance)}`;
+    getEl('ieDashIncome').textContent = `GHC ${formatCurrency(totalIncome)}`;
+    getEl('ieDashExpense').textContent = `GHC ${formatCurrency(totalExpense)}`;
+    getEl('ieDashNet').textContent = `GHC ${formatCurrency(netBalance)}`;
     getEl('ieDashNet').style.color = netBalance >= 0 ? 'var(--success)' : 'var(--danger)';
     getEl('ieDashCount').textContent = records.length;
 
@@ -343,7 +343,7 @@ async function _loadCategoryBreakdown(schoolId, type, containerId, fromDate, toD
       return `<div class="ie-breakdown-item">
         <div class="ie-breakdown-header">
           <span>${c.icon || '📌'} ${c.name}</span>
-          <span style="font-weight:600;">GH₵ ${formatCurrency(amount)}</span>
+          <span style="font-weight:600;">GHC ${formatCurrency(amount)}</span>
         </div>
         <div class="ie-breakdown-track">
           <div class="ie-breakdown-fill" style="width:${pct}%;background:${c.color || '#6366f1'};"></div>
@@ -387,7 +387,7 @@ async function _loadRecentTransactions(schoolId, fromDate, toDate) {
         <td><span class="${typeClass}" style="font-weight:600;">${typeIcon} ${t.type === 'income' ? 'Income' : 'Expense'}</span></td>
         <td>${cat.icon || ''} ${cat.name || 'Unknown'}</td>
         <td>${t.description || '-'}</td>
-        <td style="font-weight:600;color:${t.type === 'income' ? 'var(--success)' : 'var(--danger)'};">GH₵ ${formatCurrency(t.amount)}</td>
+        <td style="font-weight:600;color:${t.type === 'income' ? 'var(--success)' : 'var(--danger)'};">GHC ${formatCurrency(t.amount)}</td>
         <td>${t.payment_method || '-'}</td>
         <td style="font-size:0.8rem;">-</td>
       </tr>`;
@@ -480,7 +480,7 @@ function _applyIeFilters(type) {
   _ieFilteredRecords = filtered;
 
   const total = filtered.reduce((s, r) => s + Number(r.amount), 0);
-  if (totalEl) totalEl.textContent = `GH₵ ${formatCurrency(total)}`;
+  if (totalEl) totalEl.textContent = `GHC ${formatCurrency(total)}`;
   if (countEl) countEl.textContent = filtered.length;
 
   if (filtered.length === 0) {
@@ -494,7 +494,7 @@ function _applyIeFilters(type) {
       <td>${formatDate(r.transaction_date)}</td>
       <td>${cat.icon || ''} ${cat.name || 'Unknown'}</td>
       <td>${r.description || '-'}</td>
-      <td style="font-weight:600;color:${type === 'income' ? 'var(--success)' : 'var(--danger)'};">GH₵ ${formatCurrency(r.amount)}</td>
+      <td style="font-weight:600;color:${type === 'income' ? 'var(--success)' : 'var(--danger)'};">GHC ${formatCurrency(r.amount)}</td>
       <td>${r.payment_method || '-'}</td>
       <td>${r.reference_number || '-'}</td>
       <td>
@@ -539,7 +539,7 @@ function _showIeForm(type, editRecord = null) {
                 <select id="ieFormCategory" required>${catOptions}</select>
               </div>
               <div class="form-group">
-                <label>Amount (GH₵) *</label>
+                <label>Amount (GHC) *</label>
                 <input type="number" id="ieFormAmount" step="0.01" min="0.01" required value="${editRecord ? editRecord.amount : ''}" placeholder="e.g. 500.00" />
               </div>
             </div>
@@ -648,7 +648,7 @@ async function _saveIeRecord() {
 
       if (error) throw error;
       showMessage('ieFormMessage', '✅ Record updated successfully!', 'success');
-      try { await logStaffActivity(`${type === 'income' ? 'Updated income record' : 'Updated expenditure record'}`, { entityType: type, entityDetails: `${description} — GH₵ ${formatCurrency(amount)}` }); } catch (e) { /* noop */ }
+      try { await logStaffActivity(`${type === 'income' ? 'Updated income record' : 'Updated expenditure record'}`, { entityType: type, entityDetails: `${description} — GHC ${formatCurrency(amount)}` }); } catch (e) { /* noop */ }
     } else {
       // Create new record
       const { error } = await supabaseClient.from('income_expenses')
@@ -989,15 +989,15 @@ async function _generateReport() {
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1rem;">
           <div style="padding:1rem;background:#f0fdf4;border-radius:8px;border:1px solid #bbf7d0;text-align:center;">
             <div style="font-size:0.85rem;color:#166534;">Total Income</div>
-            <div style="font-size:1.5rem;font-weight:700;color:#166534;">GH₵ ${formatCurrency(totalIncome)}</div>
+            <div style="font-size:1.5rem;font-weight:700;color:#166534;">GHC ${formatCurrency(totalIncome)}</div>
           </div>
           <div style="padding:1rem;background:#fef2f2;border-radius:8px;border:1px solid #fecaca;text-align:center;">
             <div style="font-size:0.85rem;color:#991b1b;">Total Expenses</div>
-            <div style="font-size:1.5rem;font-weight:700;color:#991b1b;">GH₵ ${formatCurrency(totalExpense)}</div>
+            <div style="font-size:1.5rem;font-weight:700;color:#991b1b;">GHC ${formatCurrency(totalExpense)}</div>
           </div>
           <div style="padding:1rem;background:${netBalance >= 0 ? '#f0fdf4' : '#fef2f2'};border-radius:8px;border:1px solid ${netBalance >= 0 ? '#bbf7d0' : '#fecaca'};text-align:center;">
             <div style="font-size:0.85rem;color:${netBalance >= 0 ? '#166534' : '#991b1b'};">Net Balance</div>
-            <div style="font-size:1.5rem;font-weight:700;color:${netBalance >= 0 ? '#166534' : '#991b1b'};">GH₵ ${formatCurrency(netBalance)}</div>
+            <div style="font-size:1.5rem;font-weight:700;color:${netBalance >= 0 ? '#166534' : '#991b1b'};">GHC ${formatCurrency(netBalance)}</div>
           </div>
         </div>
 
@@ -1010,7 +1010,7 @@ async function _generateReport() {
                 <th>Type</th>
                 <th>Category</th>
                 <th>Description</th>
-                <th>Amount (GH₵)</th>
+                <th>Amount (GHC)</th>
                 <th>Method</th>
                 <th>Reference</th>
               </tr>
@@ -1034,12 +1034,12 @@ async function _generateReport() {
             <tfoot>
               <tr style="background:#1e3a5f;color:#fff;font-weight:bold;">
                 <td colspan="5" style="padding:8px;text-align:right;">TOTAL INCOME / EXPENSE</td>
-                <td style="padding:8px;text-align:right;">GH₵ ${formatCurrency(totalIncome)} / GH₵ ${formatCurrency(totalExpense)}</td>
+                <td style="padding:8px;text-align:right;">GHC ${formatCurrency(totalIncome)} / GHC ${formatCurrency(totalExpense)}</td>
                 <td colspan="2"></td>
               </tr>
               <tr style="background:${netBalance >= 0 ? '#166534' : '#991b1b'};color:#fff;font-weight:bold;">
                 <td colspan="5" style="padding:8px;text-align:right;">NET BALANCE</td>
-                <td style="padding:8px;text-align:right;">GH₵ ${formatCurrency(netBalance)}</td>
+                <td style="padding:8px;text-align:right;">GHC ${formatCurrency(netBalance)}</td>
                 <td colspan="2"></td>
               </tr>
             </tfoot>

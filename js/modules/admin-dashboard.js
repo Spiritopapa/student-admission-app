@@ -685,7 +685,7 @@ function animateCounter(element, targetValue, isFee = false, isPct = false) {
   
   // Reset to 0 for animation
   if (!isPct) {
-    element.textContent = isFee ? 'GH₵ 0.00' : '0';
+    element.textContent = isFee ? 'GHC 0.00' : '0';
   } else {
     element.textContent = '0%';
   }
@@ -699,7 +699,7 @@ function animateCounter(element, targetValue, isFee = false, isPct = false) {
     if (isPct) {
       element.textContent = current.toFixed(1) + '%';
     } else if (isFee) {
-      element.textContent = 'GH₵ ' + current.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+      element.textContent = 'GHC ' + current.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
     } else {
       element.textContent = Math.round(current);
     }
@@ -711,7 +711,7 @@ function animateCounter(element, targetValue, isFee = false, isPct = false) {
       if (isPct) {
         element.textContent = targetValue.toFixed(1) + '%';
       } else if (isFee) {
-        element.textContent = 'GH₵ ' + targetValue.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        element.textContent = 'GHC ' + targetValue.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
       } else {
         element.textContent = Math.round(targetValue);
       }
@@ -872,12 +872,12 @@ function renderDashboard() {
       ` : ''}
     </div>
 
-    <!-- Fees vs Paid by Class (Animated Bar Chart) -->
+    <!-- Fees by Class (Animated Bar Chart) -->
     ${showFees ? `
     <div class="dash-chart-card animated-card" style="margin-bottom:1rem;">
       <div class="dash-chart-header">
-        <h3>📊 Fees vs Paid by Class</h3>
-        <span class="dash-chart-subtitle">Total expected fees vs amount collected per class</span>
+        <h3>📊 Fees by Class</h3>
+        <span class="dash-chart-subtitle">Total fees vs collected vs outstanding per class</span>
       </div>
       <div class="dash-chart-body" id="dashFeeClassChart">
         ${renderFeeClassChart()}
@@ -1138,23 +1138,23 @@ function renderFeeOverview() {
   return `
     <div class="dash-fee-stat">
       <span class="dash-fee-label">Total Expected</span>
-      <span class="dash-fee-value" id="feeTotalAmount">GH₵ 0.00</span>
+      <span class="dash-fee-value" id="feeTotalAmount">GHC 0.00</span>
     </div>
     <div class="dash-fee-stat">
       <span class="dash-fee-label">Total Collected</span>
-      <span class="dash-fee-value paid" id="feeTotalPaid">GH₵ 0.00</span>
+      <span class="dash-fee-value paid" id="feeTotalPaid">GHC 0.00</span>
     </div>
     <div class="dash-fee-stat">
       <span class="dash-fee-label">Outstanding Balance</span>
-      <span class="dash-fee-value balance" id="feeTotalBalance">GH₵ 0.00</span>
+      <span class="dash-fee-value balance" id="feeTotalBalance">GHC 0.00</span>
     </div>
     <div class="dash-fee-stat">
       <span class="dash-fee-label">Carried Forward Debt</span>
-      <span class="dash-fee-value debt" id="feeTotalDebt">GH₵ 0.00</span>
+      <span class="dash-fee-value debt" id="feeTotalDebt">GHC 0.00</span>
     </div>
     <div class="dash-fee-stat dash-fee-stat-grand">
       <span class="dash-fee-label">Grand Total Outstanding</span>
-      <span class="dash-fee-value grand-debt" id="feeGrandTotalDebt">GH₵ 0.00</span>
+      <span class="dash-fee-value grand-debt" id="feeGrandTotalDebt">GHC 0.00</span>
     </div>
     <div class="dash-fee-counts">
       <span class="dash-fee-count-item"><span class="fee-dot paid-dot"></span>Paid: ${paidCount}</span>
@@ -1185,12 +1185,12 @@ function renderFeeProgress() {
 }
 
 // ================================================================
-// Fees vs Paid by Class — Animated Bar Chart
+// Fees by Class — Animated Bar Chart
 // ================================================================
 
 /**
- * Aggregates total fees vs fees paid per class and returns the shared
- * animated bar chart HTML (see fee-class-chart.js).
+ * Aggregates total fees vs collected vs outstanding per class and returns the
+ * shared animated bar chart HTML (see fee-class-chart.js).
  */
 function renderFeeClassChart() {
   const classMap = {};
@@ -1200,18 +1200,21 @@ function renderFeeClassChart() {
   // still show up on the chart (helpful early in the year).
   allStudents.forEach((s) => {
     const cls = s.class_applying || 'Unassigned';
-    if (!classMap[cls]) classMap[cls] = { totalFees: 0, collected: 0 };
+    if (!classMap[cls]) classMap[cls] = { totalFees: 0, collected: 0, outstanding: 0 };
     if (s.student_id) studentClassMap[s.student_id] = cls;
   });
 
-  // Aggregate fee totals/paid per class (matches the accountant's
-  // definition: total = total_amount + carried-forward debt).
+  // Aggregate fee totals / collected / outstanding per class (matches the
+  // accountant's definition: total = total_amount + carried-forward debt,
+  // collected = amount_paid, outstanding = max(total - collected, 0) per record).
   allFees.forEach((f) => {
     const cls = studentClassMap[f.student_id] || 'Unassigned';
-    if (!classMap[cls]) classMap[cls] = { totalFees: 0, collected: 0 };
-    classMap[cls].totalFees += Number(f.total_amount) || 0;
-    classMap[cls].totalFees += Number(f.debt) || 0;
-    classMap[cls].collected += Number(f.amount_paid) || 0;
+    if (!classMap[cls]) classMap[cls] = { totalFees: 0, collected: 0, outstanding: 0 };
+    const total = (Number(f.total_amount) || 0) + (Number(f.debt) || 0);
+    const paid = Number(f.amount_paid) || 0;
+    classMap[cls].totalFees += total;
+    classMap[cls].collected += paid;
+    classMap[cls].outstanding += Math.max(total - paid, 0);
   });
 
   return buildFeeClassChartHtml(classMap);

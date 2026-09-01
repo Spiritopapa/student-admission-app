@@ -903,6 +903,44 @@ legend {
   color: rgba(255, 255, 255, 0.3);
 }
 
+.login-password-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 0.35rem;
+  margin-right: -0.35rem;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.45);
+  cursor: pointer;
+  border-radius: 8px;
+  transition: color 0.2s ease, background 0.2s ease;
+}
+
+.login-password-toggle:hover {
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.login-password-toggle:focus-visible {
+  outline: 2px solid rgba(99, 102, 241, 0.6);
+  outline-offset: 1px;
+}
+
+.login-password-toggle.active {
+  color: #a5b4fc;
+}
+
+.login-password-toggle .login-eye-icon {
+  display: block;
+}
+
+.login-password-toggle .icon-eye-on  { display: block; }
+.login-password-toggle .icon-eye-off { display: none; }
+.login-password-toggle.active .icon-eye-on  { display: none; }
+.login-password-toggle.active .icon-eye-off { display: block; }
+
 .login-input:-webkit-autofill,
 .login-input:-webkit-autofill:hover,
 .login-input:-webkit-autofill:focus {

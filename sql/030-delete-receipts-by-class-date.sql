@@ -128,7 +128,7 @@ BEGIN
     'transactions_deleted', v_transaction_count,
     'total_amount', v_total_amount,
     'fee_records_updated', v_fee_updates,
-    'message', 'Deleted ' || v_receipt_count || ' receipt(s) totaling GH₵ ' || v_total_amount
+    'message', 'Deleted ' || v_receipt_count || ' receipt(s) totaling GHC ' || v_total_amount
   );
 END;
 $$;
