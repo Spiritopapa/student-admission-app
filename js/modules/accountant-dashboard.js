@@ -6,6 +6,7 @@
 
 import { getEl, showMessage, clearMessage, setLoading, getCurrentSchoolId, formatCurrency, formatDate, generateAcademicYearOptions, getDefaultAcademicYear, openPrintWindow, logStaffActivity } from './utils.js';
 import { sendFeePaymentSms } from './sms-gateway.js';
+import { buildFeeClassChartHtml, animateFeeClassChart } from './fee-class-chart.js';
 
 // ================================================================
 // HELPER: Check if student has unpaid balance from previous terms
@@ -1850,6 +1851,15 @@ async function loadAccClassSummary() {
         <td>${pct}%</td>
       </tr>`;
     }).join('');
+
+    // Render the animated "Fees vs Paid by Class" bar chart and animate it.
+    // Re-uses the same classMap already built for the table above, so the
+    // chart and the table always stay in sync (including manual refresh).
+    const chartEl = getEl('accFeeClassChart');
+    if (chartEl) {
+      chartEl.innerHTML = buildFeeClassChartHtml(classMap);
+      setTimeout(() => animateFeeClassChart(chartEl), 60);
+    }
   } catch (err) {
     console.error('[ACC] loadAccClassSummary error:', err);
   }

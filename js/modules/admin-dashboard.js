@@ -12,6 +12,7 @@
  */
 
 import { getEl, buildStudentName, formatDate, formatDateTime, statusBadge, getCurrentSchoolId, showMessage, clearMessage, setLoading } from './utils.js';
+import { buildFeeClassChartHtml, animateFeeClassChart } from './fee-class-chart.js';
 
 let supabaseClient = null;
 let allStudents = [];
@@ -865,6 +866,19 @@ function renderDashboard() {
       ` : ''}
     </div>
 
+    <!-- Fees vs Paid by Class (Animated Bar Chart) -->
+    ${showFees ? `
+    <div class="dash-chart-card animated-card" style="margin-bottom:1rem;">
+      <div class="dash-chart-header">
+        <h3>📊 Fees vs Paid by Class</h3>
+        <span class="dash-chart-subtitle">Total expected fees vs amount collected per class</span>
+      </div>
+      <div class="dash-chart-body" id="dashFeeClassChart">
+        ${renderFeeClassChart()}
+      </div>
+    </div>
+    ` : ''}
+
     <!-- Duo Row: Announcements + Recent Students -->
     <div class="dash-duo-row">
       <!-- Announcements -->
@@ -900,6 +914,7 @@ function renderDashboard() {
     animateDashboardCounters();
     if (showStudents) animateChartBars();
     if (showFees) animateFeeProgressBar();
+    if (showFees) animateFeeClassChart(document.getElementById('dashFeeClassChart'));
     renderActivityFeed();
     updateLastUpdated();
   });
@@ -1157,6 +1172,39 @@ function renderFeeProgress() {
       </div>
     </div>
   `;
+}
+
+// ================================================================
+// Fees vs Paid by Class — Animated Bar Chart
+// ================================================================
+
+/**
+ * Aggregates total fees vs fees paid per class and returns the shared
+ * animated bar chart HTML (see fee-class-chart.js).
+ */
+function renderFeeClassChart() {
+  const classMap = {};
+  const studentClassMap = {};
+
+  // Bucket every student into a class first so classes with zero fees
+  // still show up on the chart (helpful early in the year).
+  allStudents.forEach((s) => {
+    const cls = s.class_applying || 'Unassigned';
+    if (!classMap[cls]) classMap[cls] = { totalFees: 0, collected: 0 };
+    if (s.student_id) studentClassMap[s.student_id] = cls;
+  });
+
+  // Aggregate fee totals/paid per class (matches the accountant's
+  // definition: total = total_amount + carried-forward debt).
+  allFees.forEach((f) => {
+    const cls = studentClassMap[f.student_id] || 'Unassigned';
+    if (!classMap[cls]) classMap[cls] = { totalFees: 0, collected: 0 };
+    classMap[cls].totalFees += Number(f.total_amount) || 0;
+    classMap[cls].totalFees += Number(f.debt) || 0;
+    classMap[cls].collected += Number(f.amount_paid) || 0;
+  });
+
+  return buildFeeClassChartHtml(classMap);
 }
 
 // ================================================================

@@ -671,6 +671,122 @@
   transition: width 1.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* ==== Fees vs Paid by Class — Animated Bar Chart ==== */
+.dash-chart-body {
+  margin-top: 0.25rem;
+}
+
+.fee-chart-legend {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.9rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.fee-chart-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.fee-chart-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.fee-chart-legend-dot.total { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
+.fee-chart-legend-dot.paid  { background: linear-gradient(135deg, #10b981, #34d399); }
+
+.fee-chart-bar-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  margin-bottom: 0.7rem;
+  animation: fadeIn 0.5s ease forwards;
+  opacity: 0;
+}
+
+.fee-chart-bar-label {
+  min-width: 78px;
+  max-width: 110px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text);
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-top: 0.15rem;
+}
+
+.fee-chart-bars {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.fee-chart-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.fee-chart-bar-track {
+  flex: 1;
+  height: 15px;
+  background: rgba(226, 232, 240, 0.45);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.fee-chart-bar-fill {
+  height: 100%;
+  width: 0;
+  border-radius: 99px;
+  will-change: width;
+}
+
+.fee-chart-bar-fill.total { background: linear-gradient(90deg, #6366f1, #8b5cf6); }
+.fee-chart-bar-fill.paid  { background: linear-gradient(90deg, #10b981, #34d399); }
+
+.fee-chart-bar-value {
+  min-width: 118px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.fee-chart-bar-value.total { color: #6366f1; }
+.fee-chart-bar-value.paid  { color: #10b981; }
+.fee-chart-bar-value em {
+  font-style: normal;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.fee-chart-empty {
+  text-align: center;
+  padding: 1.75rem;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+@media (max-width: 520px) {
+  .fee-chart-bar-label { min-width: 62px; max-width: 80px; font-size: 0.72rem; }
+  .fee-chart-bar-value { min-width: 96px; font-size: 0.65rem; }
+}
+
 /* Tri Row (Announcements, Recent Students, Recent Payments) */
 .dash-tri-row {
   display: grid;
