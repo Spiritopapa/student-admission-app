@@ -1,3 +1,44 @@
+# Web-to-APK Wrapper Fixes — Font Size + Navigation Smoothness
+
+## Problem
+When the app is wrapped into an Android APK (WebView), text rendered much
+larger than expected and navigation/page moves were not smooth (stutter/jank).
+
+## Root causes
+1. **Oversized text** — Android WebView auto-inflates text / applies device
+   font-scale inside wrappers, even with a viewport meta present.
+2. **Janky navigation** — `scrollTo({ behavior:'smooth' })`, multi-property
+   page transitions (translate + scale + blur), staggered card-entrance
+   delays and continuous decorative blob animations are heavy in WebView.
+
+## Fixes
+- `index.html` (head): viewport meta is locked (`maximum-scale=1.0`,
+  `user-scalable=no`) **only when the inline detector finds a WebView**
+  (APK). Normal mobile browsers keep pinch-to-zoom.
+- `css/webview.css` (+section 20):
+  - `html.webview-mode { font-size: 15px !important }` (14px on ≤380px)
+    plus `text-size-adjust: 100% !important`.
+  - Page swaps → quick opacity-only fade (0.16s), no translate/scale/blur.
+  - Zeroed staggered `.dash-overview-card` delays; charts fade in instantly.
+  - Decorative animations (`.home-blob`, `.login-blob`, `.glow-pulse`,
+    `.float-anim`, `.login-water-ripple`) disabled in WebView mode.
+  - `will-change` reduced to `auto` on chart fills.
+- `js/modules/navigation.js`:
+  - New `patchWebViewScroll()` — when `html.webview-mode` is set, patches
+    `window.scrollTo` and `Element.prototype.scrollIntoView` so every
+    programmatic scroll is instant (no smooth-scroll lag) in the wrapper.
+  - `showPage()` scrolls to top instantly.
+- `attendance-report.html`, `edit-student.html`, `verify-receipt.html`:
+  locked viewport meta + `text-size-adjust` + smaller 15px mobile root font.
+
+## Verification
+- `node --check` passes for `navigation.js`.
+- CSS brace balance verified for `webview.css` / `base.css`.
+- WebView-only rules are gated on `.webview-mode` so browser behaviour is
+  unchanged except instant top-scroll on page change.
+
+---
+
 # Accountant Dashboard - Student Loading Fix
 
 ## Issue Analysis

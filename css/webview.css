@@ -466,3 +466,81 @@ body {
 html, body {
   width: 100%;
 }
+
+/* ============================================================
+   20. WEBVIEW MODE — FONT SIZE + MOTION PERFORMANCE
+   These rules only apply when the inline detector adds .webview-mode
+   (i.e. the app is wrapped inside an Android WebView / APK).
+   1) Tightens the root font-size and forbids Android text inflation
+      / font-scale so text no longer renders oversized in wrappers.
+   2) Replaces laggy multi-property page transitions (translate +
+      scale + blur) and continuous decorative animations with a quick
+      opacity fade, so every page move feels instant and smooth.
+   ============================================================ */
+html.webview-mode {
+  font-size: 15px !important;                 /* ~6% smaller than the browser default */
+  -webkit-text-size-adjust: none !important;  /* disable Android mobile-text inflation */
+  text-size-adjust: none !important;
+  scroll-behavior: auto !important;           /* kill smooth-scroll lag */
+}
+
+/* Even tighter on very small phones */
+@media (max-width: 380px) {
+  html.webview-mode { font-size: 14px !important; }
+}
+
+/* Interactive controls must stay 16px so Android never auto-inflates them */
+@media (max-width: 768px) {
+  html.webview-mode input,
+  html.webview-mode select,
+  html.webview-mode textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* ---------- 20a. PAGE TRANSITION -> QUICK FADE ---------- */
+@keyframes webviewPageFade {
+  from { opacity: 0; transform: none; filter: none; }
+  to   { opacity: 1; transform: none; filter: none; }
+}
+
+html.webview-mode .page,
+html.webview-mode .page.active-page,
+html.webview-mode section.page,
+html.webview-mode .admin-module-panel,
+html.webview-mode .student-subpage,
+html.webview-mode .teacher-subpage,
+html.webview-mode .super-subpage,
+html.webview-mode .accountant-subpage {
+  animation: webviewPageFade 0.16s ease both !important;
+  animation-duration: 0.16s !important;
+  animation-delay: 0s !important;
+}
+
+/* ---------- 20b. REMOVE STAGGERED/HEAVY ENTRANCE EFFECTS ---------- */
+html.webview-mode .animated-card { animation-duration: 0.2s !important; }
+html.webview-mode .dash-overview-card { animation-delay: 0s !important; }
+html.webview-mode .dash-bar-item,
+html.webview-mode .fee-chart-bar-item {
+  opacity: 1 !important;
+  animation: none !important;
+}
+
+/* ---------- 20c. STOP CONTINUOUS DECORATIVE ANIMATIONS ---------- */
+html.webview-mode .home-blob,
+html.webview-mode .login-blob,
+html.webview-mode .glow-pulse,
+html.webview-mode .float-anim,
+html.webview-mode .login-water-ripple {
+  animation: none !important;
+}
+
+/* ---------- 20d. AVOID BLUR / FILTER DURING NAVIGATION ---------- */
+html.webview-mode .home-hero-content,
+html.webview-mode .home-badge,
+html.webview-mode .login-container {
+  animation: none !important;
+}
+
+/* ---------- 20e. LIGHTWEIGHT WILL-CHANGE ---------- */
+html.webview-mode .fee-chart-bar-fill { will-change: auto; }

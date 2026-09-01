@@ -59,6 +59,15 @@
           document.documentElement.classList.add('webview-mode');
           // Also set a data attribute for JS checks
           document.documentElement.setAttribute('data-webview', 'true');
+          // Lock the viewport ONLY inside the wrapper (APK). Android WebView
+          // can auto-inflate text / ignore the relaxed viewport tag, which
+          // makes fonts render larger than expected. Disabling user zoom and
+          // capping the scale at 1.0 stops that inflation while the normal
+          // mobile browser keeps its pinch-to-zoom capability.
+          var viewportMeta = document.querySelector('meta[name="viewport"]');
+          if (viewportMeta) {
+            viewportMeta.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content');
+          }
         }
       } catch (e) {
         // Fail silently - never break the app

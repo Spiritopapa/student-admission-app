@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>Attendance Report</title>
   <style>
     :root {
@@ -15,7 +15,13 @@
       --primary: #4f46e5;
     }
     * { box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
     html, body { margin: 0; padding: 0; }
+    @media (max-width: 768px) {
+      /* Tighten the base size on wrapped/web mobile so the report text
+         doesn't render oversized next to the small screen. */
+      html { font-size: 15px; }
+    }
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background: var(--bg);

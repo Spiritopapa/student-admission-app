@@ -21,6 +21,10 @@ const mobileNav = getEl('navLinks');
 // ================================================================
 
 export function initNavigation() {
+  // Must run first: in WebView (APK) make every scroll instant so
+  // navigation moves feel responsive instead of stuttering on the
+  // expensive smooth-scroll animations.
+  patchWebViewScroll();
   setupHamburgerMenu();
   setupNavLinkClicks();
   setupLogoutBtn();
@@ -29,6 +33,38 @@ export function initNavigation() {
   setupMobileModuleTapZoom();
   setupNavbarScroll();
   setupMobileBottomNav();
+}
+
+// ================================================================
+// WebView Motion Patches
+// `behavior: 'smooth'` scrolls are costly inside Android WebView and
+// make navigation feel laggy. When the app is running wrapped in an
+// APK (html has .webview-mode), force every programmatic scroll /
+// scrollIntoView to instant so movement is always smooth and quick.
+// Outside WebView the native smooth behavior is untouched.
+// ================================================================
+
+function patchWebViewScroll() {
+  if (!document.documentElement || !document.documentElement.classList.contains('webview-mode')) return;
+  try {
+    const nativeScrollTo = window.scrollTo.bind(window);
+    window.scrollTo = function (options) {
+      if (typeof options === 'object' && options !== null) {
+        options.behavior = 'auto';
+      }
+      return nativeScrollTo.apply(window, arguments);
+    };
+
+    const nativeScrollIntoView = Element.prototype.scrollIntoView;
+    Element.prototype.scrollIntoView = function (arg) {
+      if (typeof arg === 'object' && arg !== null) {
+        arg.behavior = 'auto';
+      }
+      return nativeScrollIntoView.call(this, arg);
+    };
+  } catch (err) {
+    // Never let the patch itself break navigation.
+  }
 }
 
 // ================================================================
@@ -513,7 +549,9 @@ export function showPage(pageId) {
     if (shell) shell.classList.add('active-page');
     window.loadAdminSubPage(pageId.replace('admin-', ''));
   }
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  // Instant top-of-page on navigation: avoids a long smooth-scroll
+  // animation that makes page-switching feel slow (especially in WebView).
+  try { window.scrollTo(0, 0); } catch (e) { window.scrollTo({ top: 0 }); }
 }
 
 // ================================================================
