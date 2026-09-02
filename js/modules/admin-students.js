@@ -123,7 +123,7 @@ function renderAdminTable() {
     const genderDisplay = s.gender || 'Male';
     const photoHtml = s.student_photo_url
       ? `<img src="${s.student_photo_url}" class="dash-photo" onclick="openStudentModal('${s.student_id}')" alt="click to view details" />`
-      : '<span class="dash-photo-placeholder">📷</span>';
+      : '<span class="dash-photo-placeholder"></span>';
     const confirmBtn = s.portal_confirmed
       ? '<span class="action-btn" style="background:var(--bg);color:var(--text-muted);cursor:default;">Done</span>'
       : `<button class="action-btn confirm" onclick="confirmPortal('${s.student_id}')">Confirm Portal</button>`;
@@ -141,7 +141,7 @@ function renderAdminTable() {
         <button class="action-btn view" onclick="openStudentModal('${s.student_id}')">View Profile</button>
         <button class="action-btn confirm" onclick="editStudent('${s.student_id}')">Edit</button>
         ${confirmBtn}
-        <button class="action-btn" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:none;" onclick="openAdminResetPassword('student','${s.student_id}','${name.replace(/'/g, "\\'")}')">🔑 Password</button>
+        <button class="action-btn" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:none;" onclick="openAdminResetPassword('student','${s.student_id}','${name.replace(/'/g, "\\'")}')">Password</button>
         <button class="action-btn danger" onclick="deleteStudent('${s.student_id}')">Delete</button>
       </td>
     </tr>`;
@@ -169,7 +169,7 @@ export function setupStudentSearchListeners() {
 // ================================================================
 
 window.deleteStudent = async function (studentId) {
-  if (!confirm(`⚠️ PERMANENT DELETION\n\nDelete student ${studentId} and ALL associated records?\n\nThis will permanently remove:\n• Student profile\n• Auth account (student will NOT be able to sign in)\n• Fee records (all terms)\n• Receipts\n• Payment transactions\n• Exam results\n• Attendance records\n• Parent links\n\nThis action CANNOT be undone.`)) return;
+  if (!confirm(`PERMANENT DELETION\n\nDelete student ${studentId} and ALL associated records?\n\nThis will permanently remove:\n• Student profile\n• Auth account (student will NOT be able to sign in)\n• Fee records (all terms)\n• Receipts\n• Payment transactions\n• Exam results\n• Attendance records\n• Parent links\n\nThis action CANNOT be undone.`)) return;
   const studentName = buildStudentName(
     allStudents.find(s => s.student_id === studentId)?.first_name,
     allStudents.find(s => s.student_id === studentId)?.middle_name,
@@ -237,7 +237,7 @@ window.deleteStudent = async function (studentId) {
       // Best-effort cleanup of the student's Cloudinary / Storage photo asset.
       await deleteStudentPhotoAsset(studentPhotoUrl);
 
-      alert(`✅ Student ${studentId} and all associated records permanently deleted.\nThe student can no longer sign in.`);
+      alert(`Student ${studentId} and all associated records permanently deleted.\nThe student can no longer sign in.`);
       logSubAdminActivity(`Deleted student "${studentName || studentId}"`, 'student', `${studentId} - ${studentName || ''}`);
       return;
     }
@@ -252,9 +252,9 @@ window.deleteStudent = async function (studentId) {
     // Best-effort cleanup of the student's Cloudinary / Storage photo asset.
     await deleteStudentPhotoAsset(studentPhotoUrl);
 
-    let summary = `✅ Student ${studentId} (${result?.student_name || studentName || ''}) permanently deleted.\n`;
+    let summary = `Student ${studentId} (${result?.student_name || studentName || ''}) permanently deleted.\n`;
     summary += `The student can no longer sign in.\n\n`;
-    summary += `📋 Records removed:\n`;
+    summary += `Records removed:\n`;
     summary += `  • Application: ${counts.applications || 0}\n`;
     summary += `  • Profile: ${counts.profiles || 0}\n`;
     summary += `  • Auth account: ${result?.auth_deleted ? 'Yes' : 'No'}\n`;
@@ -478,7 +478,7 @@ export function setupAdmitForm() {
         school_id: schoolId,
       }], { onConflict: 'student_id,academic_year,term' });
 
-      showMessage('admitMessage', `✅ Student admitted! <strong>ID: ${studentId}</strong>`, 'success');
+      showMessage('admitMessage', `Student admitted! <strong>ID: ${studentId}</strong>`, 'success');
       logSubAdminActivity(`Admitted student "${buildStudentName(getEl('admitFirstName').value.trim(), getEl('admitMiddleName').value.trim(), getEl('admitLastName').value.trim())}"`, 'student', `${studentId}`);
       getEl('admitForm').reset();
       getEl('admitPhotoPreviewImg').style.display = 'none';
@@ -488,7 +488,7 @@ export function setupAdmitForm() {
     } catch (err) {
       showMessage('admitMessage', err.message, 'error');
     } finally {
-      setLoading(btn, false, '✅ Admit Student & Generate ID');
+      setLoading(btn, false, 'Admit Student & Generate ID');
     }
   });
 }
@@ -553,7 +553,7 @@ export async function renderAdminSubStudentsTable() {
     const genderDisplay = s.gender || 'Male';
     const photoHtml = s.student_photo_url
       ? `<img src="${s.student_photo_url}" class="dash-photo" ondblclick="replaceStudentPhoto('${s.student_id}')" alt="Student photo" title="Double-click to replace photo" />`
-      : `<span class="dash-photo-placeholder" ondblclick="replaceStudentPhoto('${s.student_id}')" title="Double-click to add photo">📷</span>`;
+      : `<span class="dash-photo-placeholder" ondblclick="replaceStudentPhoto('${s.student_id}')" title="Double-click to add photo"></span>`;
     const confirmBtn = s.portal_confirmed
       ? '<span class="action-btn" style="background:var(--bg);color:var(--text-muted);cursor:default;">Done</span>'
       : `<button class="action-btn confirm" onclick="confirmPortal('${s.student_id}')">Confirm Portal</button>`;
@@ -571,7 +571,7 @@ export async function renderAdminSubStudentsTable() {
         <button class="action-btn view" onclick="openStudentModal('${s.student_id}')">View Profile</button>
         <button class="action-btn confirm" onclick="editStudent('${s.student_id}')">Edit</button>
         ${confirmBtn}
-        <button class="action-btn" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:none;" onclick="openAdminResetPassword('student','${s.student_id}','${name.replace(/'/g, "\\'")}')">🔑 Password</button>
+        <button class="action-btn" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:none;" onclick="openAdminResetPassword('student','${s.student_id}','${name.replace(/'/g, "\\'")}')">Password</button>
         <button class="action-btn danger" onclick="deleteStudent('${s.student_id}')">Delete</button>
       </td>
     </tr>`;
@@ -580,14 +580,14 @@ export async function renderAdminSubStudentsTable() {
   if (hasMore) {
     const showMoreRow = document.createElement('tr');
     showMoreRow.className = 'show-more-row';
-    showMoreRow.innerHTML = `<td colspan="10">🔽 Show all ${data.length} students</td>`;
+    showMoreRow.innerHTML = `<td colspan="10">Show all ${data.length} students</td>`;
     showMoreRow.addEventListener('click', () => {
       tbody.innerHTML = data.map((s) => {
         const name = buildStudentName(s.first_name, s.middle_name, s.last_name);
         const genderDisplay = s.gender || 'Male';
         const photoHtml = s.student_photo_url
           ? `<img src="${s.student_photo_url}" class="dash-photo" ondblclick="replaceStudentPhoto('${s.student_id}')" alt="Student photo" title="Double-click to replace photo" />`
-          : `<span class="dash-photo-placeholder" ondblclick="replaceStudentPhoto('${s.student_id}')" title="Double-click to add photo">📷</span>`;
+          : `<span class="dash-photo-placeholder" ondblclick="replaceStudentPhoto('${s.student_id}')" title="Double-click to add photo"></span>`;
         const confirmBtn = s.portal_confirmed
           ? '<span class="action-btn" style="background:var(--bg);color:var(--text-muted);cursor:default;">Done</span>'
           : `<button class="action-btn confirm" onclick="confirmPortal('${s.student_id}')">Confirm Portal</button>`;
@@ -605,7 +605,7 @@ export async function renderAdminSubStudentsTable() {
             <button class="action-btn view" onclick="openStudentModal('${s.student_id}')">View Profile</button>
             <button class="action-btn confirm" onclick="editStudent('${s.student_id}')">Edit</button>
             ${confirmBtn}
-            <button class="action-btn" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:none;" onclick="openAdminResetPassword('student','${s.student_id}','${name.replace(/'/g, "\\'")}')">🔑 Password</button>
+            <button class="action-btn" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:none;" onclick="openAdminResetPassword('student','${s.student_id}','${name.replace(/'/g, "\\'")}')">Password</button>
             <button class="action-btn danger" onclick="deleteStudent('${s.student_id}')">Delete</button>
           </td>
         </tr>`;
@@ -766,7 +766,7 @@ export function setupEditStudent() {
         }
         pendingPhotoRemoval = false;
 
-        showMessage('editStudentMessage', '✅ Student updated.', 'success');
+        showMessage('editStudentMessage', 'Student updated.', 'success');
         logSubAdminActivity(`Updated student "${studentId}"`, 'student', studentId);
         await loadAllStudents();
         // Close whichever edit section is open
@@ -793,14 +793,14 @@ export function setupEditStudent() {
     try {
       const newUrl = await replaceStudentPhotoFromFile(studentId, file);
       if (newUrl) {
-        showMessage('editStudentMessage', '✅ Student photo updated.', 'success');
+        showMessage('editStudentMessage', 'Student photo updated.', 'success');
         await loadAllStudents();
       } else {
-        alert('❌ Photo upload failed. Please try again.');
+        alert('Photo upload failed. Please try again.');
       }
     } catch (err) {
       console.error('Replace photo error:', err);
-      alert('❌ Could not update photo: ' + err.message);
+      alert('Could not update photo: ' + err.message);
     } finally {
       this.value = '';
     }
@@ -845,7 +845,7 @@ window.openStudentModal = function (studentId) {
 
   const photoHtml = student.student_photo_url
     ? `<div style="text-align:center;margin-bottom:1rem;"><img src="${student.student_photo_url}" class="student-profile-photo" alt="Student photo" /></div>`
-    : '<div style="display:flex;justify-content:center;margin-bottom:1rem;"><span class="student-profile-photo-placeholder">🎓</span></div>';
+    : '<div style="display:flex;justify-content:center;margin-bottom:1rem;"><span class="student-profile-photo-placeholder"></span></div>';
 
   const section = (title, items) => `
     <h4 style="grid-column:1/-1;margin:0.6rem 0 0.2rem;color:var(--primary);font-size:0.85rem;letter-spacing:0.3px;">${title}</h4>
@@ -856,10 +856,10 @@ window.openStudentModal = function (studentId) {
   getEl('modalStudentContent').innerHTML = `
     ${photoHtml}
     <div style="text-align:center;margin-bottom:1rem;">
-      <button type="button" class="btn btn-secondary btn-sm" onclick="printStudentProfileModal('${student.student_id}')">🖨️ Print Profile</button>
+      <button type="button" class="btn btn-secondary btn-sm" onclick="printStudentProfileModal('${student.student_id}')">Print Profile</button>
     </div>
     <div class="profile-detail">
-      ${section('👤 Personal Information', [
+      ${section('Personal Information', [
         field('Full Name', name),
         field('Gender', student.gender || 'Male'),
         field('Date of Birth', formatDate(student.date_of_birth)),
@@ -867,7 +867,7 @@ window.openStudentModal = function (studentId) {
         field('Home Town', student.home_town),
         field('Place of Stay', student.place_of_stay),
       ])}
-      ${section('🎓 Academic Information', [
+      ${section('Academic Information', [
         field('Student ID', student.student_id),
         field('Class', student.class_applying),
         field('Term', student.term),
@@ -876,14 +876,14 @@ window.openStudentModal = function (studentId) {
         field('Admission Date', formatDate(student.admission_date)),
         field('Application Date', formatDateTime(student.created_at)),
       ])}
-      ${section('👪 Guardian Information', [
+      ${section('Guardian Information', [
         field('Parent / Guardian', student.parent_name),
         field('Parent Contact', student.parent_contact),
       ])}
-      ${section('📌 Status & Portal', [
+      ${section('Status & Portal', [
         field('Admission Status', statusBadge(student.status)),
-        field('Portal Confirmed', student.portal_confirmed ? '✅ Yes' : '❌ No'),
-        field('Sub-Admin Approved', student.sub_admin_approved ? '✅ Yes' : '❌ No'),
+        field('Portal Confirmed', student.portal_confirmed ? 'Yes' : 'No'),
+        field('Sub-Admin Approved', student.sub_admin_approved ? 'Yes' : 'No'),
       ])}
     </div>`;
   getEl('studentDetailModal').style.display = 'flex';
@@ -895,7 +895,7 @@ window.printStudentProfileModal = function (studentId) {
 
   const photoHtml = student.student_photo_url
     ? `<img src="${student.student_photo_url}" style="width:100px;height:100px;border-radius:50%;object-fit:cover;border:3px solid #6366f1;" />`
-    : '<div style="font-size:3rem;text-align:center;">🎓</div>';
+    : '<div style="font-size:3rem;text-align:center;"></div>';
 
   const field = (label, val) => `<tr><td style="padding:6px;border:1px solid #e2e8f0;font-weight:600;background:#f8fafc;width:200px;">${label}</td><td style="padding:6px;border:1px solid #e2e8f0;">${val || '-'}</td></tr>`;
 
@@ -922,7 +922,7 @@ window.printStudentProfileModal = function (studentId) {
     <h3>${name}</h3>
     <p style="text-align:center;color:#64748b;font-size:0.85rem;margin-top:0;">${student.student_id}</p>
     <table>
-      <tr><th colspan="2">👤 Personal Information</th></tr>
+      <tr><th colspan="2">Personal Information</th></tr>
       ${field('Student ID', student.student_id)}
       ${field('Full Name', name)}
       ${field('Gender', student.gender || 'Male')}
@@ -930,20 +930,20 @@ window.printStudentProfileModal = function (studentId) {
       ${field('Religion', student.religion)}
       ${field('Home Town', student.home_town)}
       ${field('Place of Stay', student.place_of_stay)}
-      <tr><th colspan="2">🎓 Academic Information</th></tr>
+      <tr><th colspan="2">Academic Information</th></tr>
       ${field('Class', student.class_applying)}
       ${field('Term', student.term)}
       ${field('Teacher', student.teacher)}
       ${field('Previous School', student.previous_school)}
       ${field('Admission Date', formatDate(student.admission_date))}
       ${field('Application Date', formatDateTime(student.created_at))}
-      <tr><th colspan="2">👪 Guardian Information</th></tr>
+      <tr><th colspan="2">Guardian Information</th></tr>
       ${field('Parent / Guardian', student.parent_name)}
       ${field('Parent Contact', student.parent_contact)}
-      <tr><th colspan="2">📌 Status & Portal</th></tr>
+      <tr><th colspan="2">Status & Portal</th></tr>
       ${field('Admission Status', student.status)}
-      ${field('Portal Confirmed', student.portal_confirmed ? '✅ Yes' : '❌ No')}
-      ${field('Sub-Admin Approved', student.sub_admin_approved ? '✅ Yes' : '❌ No')}
+      ${field('Portal Confirmed', student.portal_confirmed ? 'Yes' : 'No')}
+      ${field('Sub-Admin Approved', student.sub_admin_approved ? 'Yes' : 'No')}
     </table>
     <div class="print-footer"><p>Student Admission Portal &copy; ${new Date().getFullYear()}</p></div>
   </body></html>`, `${name} - Student Profile`, 900, 700);
@@ -1088,7 +1088,7 @@ async function printClassListDirect() {
     const photo = photoUrls[idx];
     const photoHtml = photo
       ? `<img src="${photo}" class="print-photo" alt="Photo" />`
-      : '<span class="print-no-photo">📷</span>';
+      : '<span class="print-no-photo"></span>';
     return `<tr><td style="text-align:center;">${idx + 1}</td><td>${photoHtml}</td><td><strong>${s.student_id}</strong></td><td>${name}</td><td>${formatDate(s.date_of_birth)}</td><td>${s.parent_contact || '-'}</td></tr>`;
   }).join('');
   
@@ -1148,10 +1148,10 @@ export function setupPromoteClass() {
         }
       }
 
-      let msg = `✅ Successfully promoted ${promoted} student(s) from ${selectedClass} to ${nextClass.name}.\n\n`;
-      msg += `📋 Students have been moved to ${nextClass.name} with their existing fee balances preserved.\n`;
-      msg += `💰 To create fee records for the new class, go to Fees → "Set / Update Class Fee" and set the fee structure.`;
-      if (errors > 0) msg += `\n\n⚠️ ${errors} student(s) had errors during promotion.`;
+      let msg = `Successfully promoted ${promoted} student(s) from ${selectedClass} to ${nextClass.name}.\n\n`;
+      msg += `Students have been moved to ${nextClass.name} with their existing fee balances preserved.\n`;
+      msg += `To create fee records for the new class, go to Fees → "Set / Update Class Fee" and set the fee structure.`;
+      if (errors > 0) msg += `\n\n${errors} student(s) had errors during promotion.`;
       alert(msg);
       await loadAllStudents();
     } catch (err) { alert('Error promoting class: ' + err.message); }
@@ -1247,7 +1247,7 @@ async function exportStudentsCSV() {
   link.download = `student_admission_template_${suffix}.csv`;
   link.click();
   URL.revokeObjectURL(link.href);
-  showMessage('editStudentMessage', `✅ Exported ${data.length} student(s) to CSV.`, 'success');
+  showMessage('editStudentMessage', `Exported ${data.length} student(s) to CSV.`, 'success');
 }
 
 // ================================================================
@@ -1371,8 +1371,8 @@ async function importStudentsCSV() {
 
     await loadAllStudents();
 
-    let msg = `✅ Imported ${imported} student(s) successfully.`;
-    if (skipped > 0) msg += ` ⚠️ ${skipped} row(s) skipped.`;
+    let msg = `Imported ${imported} student(s) successfully.`;
+    if (skipped > 0) msg += ` ${skipped} row(s) skipped.`;
     if (errors.length > 0) {
       msg += `\n\nErrors:\n${errors.slice(0, 5).join('\n')}`;
       if (errors.length > 5) msg += `\n...and ${errors.length - 5} more error(s).`;

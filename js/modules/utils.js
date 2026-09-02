@@ -430,7 +430,7 @@ export function validateImageFile(file, maxSizeMB = 5) {
   if (!file.type.startsWith('image/')) return { valid: false, error: 'Please select an image file.' };
   if (file.size > maxSizeMB * 1024 * 1024) {
     const maxKB = Math.round(maxSizeMB * 1024);
-    return { valid: false, error: `❌ Photo rejected! Maximum allowed size is ${maxKB}KB. Your photo is ${(file.size / 1024).toFixed(1)}KB. Please select a smaller photo.` };
+    return { valid: false, error: `Photo rejected! Maximum allowed size is ${maxKB}KB. Your photo is ${(file.size / 1024).toFixed(1)}KB. Please select a smaller photo.` };
   }
   return { valid: true, error: null };
 }
@@ -536,7 +536,7 @@ export function buildStudentName(first, middle, last) {
 // ================================================================
 
 export function getRoleDisplay(role) {
-  return { admin: '👑 Admin', student: '🎓 Student', parent: '👨‍👩‍👧 Parent', sub_admin: '🔧 Sub Admin', super_admin: '⭐ Super Admin', teacher: '📚 Teacher', accountant: '🧾 Accountant' }[role] || 'User';
+  return { admin: 'Admin', student: 'Student', parent: 'Parent', sub_admin: 'Sub Admin', super_admin: 'Super Admin', teacher: 'Teacher', accountant: 'Accountant' }[role] || 'User';
 }
 
 // ================================================================
@@ -553,8 +553,8 @@ export function statusBadge(status) {
 
 export function portalBadge(confirmed) {
   return confirmed
-    ? '<span class="badge-confirmed">✅ Confirmed</span>'
-    : '<span class="badge-unconfirmed">⏳ Pending</span>';
+    ? '<span class="badge-confirmed">Confirmed</span>'
+    : '<span class="badge-unconfirmed">Pending</span>';
 }
 
 // ================================================================
@@ -658,7 +658,7 @@ function createPrintOverlay() {
     'display:flex;align-items:center;justify-content:center;' +
     'background:rgba(255,255,255,0.94);font-family:sans-serif;font-size:14px;' +
     'color:#334155;letter-spacing:0.3px;';
-  overlay.textContent = '⏳ Preparing print preview…';
+  overlay.textContent = 'Preparing print preview…';
   document.body.appendChild(overlay);
   return overlay;
 }
@@ -816,12 +816,12 @@ function scopePrintStyles(cssText) {
  *   • generates a REAL A4 PDF on the fly with html2pdf.js, exports it as a
  *     Blob and renders it inline (`URL.createObjectURL` → <iframe>), so the
  *     user sees the exact document that will be printed or shared;
- *   • pairs the preview with the Web Share API — 📤 Share hands the PDF Blob
+ *   • pairs the preview with the Web Share API — Share hands the PDF Blob
  *     to the device's native share sheet (WhatsApp, Email, Drive, Files…);
- *   • 🖨️ Print / Save as PDF still uses the platform's own native print dialog
+ *   • Print / Save as PDF still uses the platform's own native print dialog
  *     on the mounted document, so the printed output is the real, exact HTML
  *     (WYSIWYG with the PDF);
- *   • 💾 Download PDF saves the same Blob to Downloads / Files (on iOS Safari
+ *   • Download PDF saves the same Blob to Downloads / Files (on iOS Safari
  *     it opens the blob so the browser's Share sheet can "Save to Files").
  *
  * The mount is shared by every document type in the app: all modules reach
@@ -1025,10 +1025,10 @@ function printViaNativeMobile(html, title) {
   modal.innerHTML =
     '<div class="__adh-preview-toolbar">' +
       '<div class="__adh-preview-title-wrap">' +
-        '<span class="__adh-preview-title">🗎 ' + escapeHtml(title || 'Print') + '</span>' +
-        '<span class="__adh-preview-subtitle" id="__adhPreviewStatus">⏳ Generating PDF preview…</span>' +
+        '<span class="__adh-preview-title">' + escapeHtml(title || 'Print') + '</span>' +
+        '<span class="__adh-preview-subtitle" id="__adhPreviewStatus">Generating PDF preview…</span>' +
       '</div>' +
-      '<button type="button" class="__adh-preview-close" id="__adhPreviewClose" aria-label="Close preview">✕</button>' +
+      '<button type="button" class="__adh-preview-close" id="__adhPreviewClose" aria-label="Close preview">×</button>' +
     '</div>' +
     '<div class="__adh-preview-body">' +
       '<div class="__adh-preview-spinner" id="__adhPreviewSpinner">' +
@@ -1041,9 +1041,9 @@ function printViaNativeMobile(html, title) {
       '<iframe id="__adhPreviewFrame" title="' + escapeHtml(title) + ' PDF preview"></iframe>' +
     '</div>' +
     '<div class="__adh-preview-actions">' +
-      '<button type="button" class="__adh-preview-btn __adh-preview-share" id="__adhPreviewShare">📤 Share</button>' +
-      '<button type="button" class="__adh-preview-btn" id="__adhPreviewDownload">💾 Download</button>' +
-      '<button type="button" class="__adh-preview-btn __adh-preview-primary" id="__adhPreviewPrint">🖨️ Print / Save</button>' +
+      '<button type="button" class="__adh-preview-btn __adh-preview-share" id="__adhPreviewShare">Share</button>' +
+      '<button type="button" class="__adh-preview-btn" id="__adhPreviewDownload">Download</button>' +
+      '<button type="button" class="__adh-preview-btn __adh-preview-primary" id="__adhPreviewPrint">Print / Save</button>' +
     '</div>' +
     '<div class="__adh-preview-hint" id="__adhPreviewHint"></div>';
   document.body.appendChild(modal);
@@ -1213,7 +1213,7 @@ function printViaNativeMobile(html, title) {
       // tab where Safari's reader/share sheet offers "Save to Files".
       setStatus('Opening PDF… tap the Share icon in the browser to save to Files.', false);
       const w = window.open(blobUrl, '_blank');
-      if (!w) setStatus('Pop-up blocked — use 📤 Share instead.', false);
+      if (!w) setStatus('Pop-up blocked — use Share instead.', false);
     } else {
       const a = document.createElement('a');
       a.href = blobUrl;
@@ -1262,7 +1262,7 @@ function printViaNativeMobile(html, title) {
 
   // Handle for legacy `win.focus(); win.print()` callers. On mobile the
   // preview modal IS the UI, so a direct print() is intentionally ignored —
-  // the modal's own 🖨️ Print / Save button opens the native dialog once.
+  // the modal's own Print / Save button opens the native dialog once.
   // Desktop iframes still auto-print as before.
   return {
     focus: () => { try { modal.focus(); } catch (e) { /* noop */ } },
@@ -1482,10 +1482,10 @@ function removePrintMount() {
  *     • Live PDF preview — a real A4 PDF is generated on the fly with
  *       html2pdf.js, exported as a Blob (URL.createObjectURL) and shown
  *       inline, so the user sees the exact document;
- *     • 📤 Share — the Web Share API hands the PDF Blob to the device's
+ *     • Share — the Web Share API hands the PDF Blob to the device's
  *       native share sheet (WhatsApp, Email, Drive, Files…);
- *     • 💾 Download PDF — saves the same Blob to Downloads / Files;
- *     • 🖨️ Print / Save as PDF — opens the platform's own print dialog on the
+ *     • Download PDF — saves the same Blob to Downloads / Files;
+ *     • Print / Save as PDF — opens the platform's own print dialog on the
  *       mounted document (printer, "Save as PDF" on Android, "Save to
  *       Files"/AirPrint on iOS).
  *
@@ -1602,7 +1602,7 @@ window.submitAdminResetPassword = async function () {
   }
 
   // Confirm with the admin
-  if (!confirm(`⚠️ RESET PASSWORD\n\nAre you sure you want to reset the password for "${displayName}"?\n\nThe account holder will need to use the new password to log in.`)) {
+  if (!confirm(`RESET PASSWORD\n\nAre you sure you want to reset the password for "${displayName}"?\n\nThe account holder will need to use the new password to log in.`)) {
     return;
   }
 
@@ -1622,18 +1622,18 @@ window.submitAdminResetPassword = async function () {
 
     if (error) {
       showMessage('adminResetPwMessage', 'Error: ' + error.message, 'error');
-      setLoading(btn, false, '🔑 Reset Password');
+      setLoading(btn, false, 'Reset Password');
       return;
     }
     if (!data?.success) {
       showMessage('adminResetPwMessage', data?.error || 'Failed to reset password.', 'error');
-      setLoading(btn, false, '🔑 Reset Password');
+      setLoading(btn, false, 'Reset Password');
       return;
     }
 
-    showMessage('adminResetPwMessage', `✅ Password reset successfully for "${displayName}". They can now log in with the new password.`, 'success');
+    showMessage('adminResetPwMessage', `Password reset successfully for "${displayName}". They can now log in with the new password.`, 'success');
     logSubAdminActivity(`Reset ${type} password for "${displayName}"`, type, displayName);
-    setLoading(btn, false, '🔑 Reset Password');
+    setLoading(btn, false, 'Reset Password');
 
     // Close the modal after a short delay
     setTimeout(() => {
@@ -1642,6 +1642,6 @@ window.submitAdminResetPassword = async function () {
     }, 2000);
   } catch (err) {
     showMessage('adminResetPwMessage', 'Error: ' + err.message, 'error');
-    setLoading(btn, false, '🔑 Reset Password');
+    setLoading(btn, false, 'Reset Password');
   }
 };

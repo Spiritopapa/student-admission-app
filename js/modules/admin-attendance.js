@@ -372,9 +372,9 @@ async function saveAttendance() {
 
     const msgEl = getEl('attendanceMessage') || getEl('payMessage');
     if (msgEl) {
-      showMessage(msgEl.id, `✅ Attendance saved! ${saved} new, ${updated} updated.`, 'success');
+      showMessage(msgEl.id, `Attendance saved! ${saved} new, ${updated} updated.`, 'success');
     } else {
-      alert(`✅ Attendance saved! ${saved} new, ${updated} updated.`);
+      alert(`Attendance saved! ${saved} new, ${updated} updated.`);
     }
 
     // Show instant report for today's date after saving
@@ -407,7 +407,7 @@ async function saveAttendance() {
       alert('Error saving attendance: ' + err.message);
     }
   } finally {
-    setLoading(btn, false, '💾 Save Attendance');
+    setLoading(btn, false, 'Save Attendance');
     logSubAdminActivity(`Saved attendance for ${attendanceCache.length} students`, 'attendance', `${attendanceCache.length} records`);
   }
 }
@@ -537,7 +537,7 @@ function renderMonthlyGrid(dates) {
     const weekendClass = isWeekend ? ' weekend' : '';
     headerHtml += `<th class="day-header${weekendClass}" data-date="${date}" title="${date} (${d.toLocaleDateString('en', { weekday: 'long' })})">${dayNum}<br><span style="font-size:0.55rem;opacity:0.7;">${dayName}</span></th>`;
   });
-  headerHtml += '<th class="present-count-cell" style="min-width:45px;">✅</th>';
+  headerHtml += '<th class="present-count-cell" style="min-width:45px;"></th>';
   thead.innerHTML = headerHtml;
 
   // Build body rows
@@ -564,7 +564,7 @@ function renderMonthlyGrid(dates) {
     }).join('');
 
     return `<tr>
-      <td class="save-cell"><button type="button" class="btn-save-student" data-student="${student.student_id}" title="Save this student's attendance">💾</button></td>
+      <td class="save-cell"><button type="button" class="btn-save-student" data-student="${student.student_id}" title="Save this student's attendance"></button></td>
       <td class="student-name-cell">${student.name}</td>
       <td class="student-id-cell">${student.student_id}</td>
       ${dayCells}
@@ -836,7 +836,7 @@ async function saveMonthlyAttendance() {
       if (saved > 0) parts.push(`${saved} new`);
       if (updated > 0) parts.push(`${updated} updated`);
       if (deleted > 0) parts.push(`${deleted} removed`);
-      showMessage(msgEl.id, `✅ 30-Day attendance saved! ${parts.join(', ') || 'No changes'}.`, 'success');
+      showMessage(msgEl.id, `30-Day attendance saved! ${parts.join(', ') || 'No changes'}.`, 'success');
     }
 
     logSubAdminActivity(`Saved 30-day attendance for ${monthlyCache.length} students`, 'attendance', `${saved} new, ${updated} updated`);
@@ -850,7 +850,7 @@ async function saveMonthlyAttendance() {
       alert('Error saving attendance: ' + err.message);
     }
   } finally {
-    setLoading(btn, false, '💾 Save All Changes');
+    setLoading(btn, false, 'Save All Changes');
   }
 }
 
@@ -867,7 +867,7 @@ async function saveIndividualMonthlyAttendance(studentId) {
   const btn = document.querySelector(`.btn-save-student[data-student="${studentId}"]`);
   if (btn) {
     btn.disabled = true;
-    btn.textContent = '⏳';
+    btn.textContent = '';
   }
 
   try {
@@ -956,7 +956,7 @@ async function saveIndividualMonthlyAttendance(studentId) {
       if (saved > 0) parts.push(`${saved} new`);
       if (updated > 0) parts.push(`${updated} updated`);
       if (deleted > 0) parts.push(`${deleted} removed`);
-      showMessage(msgEl.id, `✅ Attendance saved for <strong>${student.name}</strong>! ${parts.join(', ') || 'No changes'}.`, 'success');
+      showMessage(msgEl.id, `Attendance saved for <strong>${student.name}</strong>! ${parts.join(', ') || 'No changes'}.`, 'success');
     }
 
     logSubAdminActivity(`Saved 30-day attendance for student ${student.name}`, 'attendance', `${saved} new, ${updated} updated`);
@@ -972,7 +972,7 @@ async function saveIndividualMonthlyAttendance(studentId) {
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.textContent = '💾';
+      btn.textContent = '';
     }
   }
 }
@@ -1016,7 +1016,7 @@ async function printMonthlyAttendanceGrid() {
     const dayName = d.toLocaleDateString('en', { weekday: 'short' }).charAt(0);
     tableHtml += `<th style="border:1px solid #ccc;padding:0.2rem;background:#1e293b;color:#fff;text-align:center;min-width:22px;">${dayNum}<br><span style="font-size:0.5rem;opacity:0.7;">${dayName}</span></th>`;
   });
-  tableHtml += '<th style="border:1px solid #ccc;padding:0.3rem;background:#1e293b;color:#fff;text-align:center;">✅</th>';
+  tableHtml += '<th style="border:1px solid #ccc;padding:0.3rem;background:#1e293b;color:#fff;text-align:center;"></th>';
   tableHtml += '</tr></thead><tbody>';
 
   const statusIcons = { present: '✓', absent: '✗' };
@@ -1255,7 +1255,7 @@ async function renderAttendanceReport() {
         // Date header row
         dailyHtml += `<tr style="background:var(--bg);font-weight:700;">
           <td colspan="6" style="padding:0.5rem 1rem;font-size:0.9rem;">
-            📅 <strong>${date}</strong> 
+            <strong>${date}</strong> 
             <span style="font-weight:400;font-size:0.8rem;color:var(--text-muted);margin-left:0.5rem;">
               Present: ${dayCounts.present} | Absent: ${dayCounts.absent} | Total: ${dayTotal} | 
             </span>
@@ -1268,7 +1268,7 @@ async function renderAttendanceReport() {
           const app = appMap.get(r.student_id);
           const name = app ? [app.first_name, app.middle_name, app.last_name].filter(Boolean).join(' ') : r.student_id;
           const cls = app?.class_applying || r.class_name || '-';
-          const statusIcons = { present: '✅', absent: '❌' };
+          const statusIcons = { present: '', absent: '' };
           const statusColors = { present: 'var(--success)', absent: 'var(--danger)' };
 
           if (search && !name.toLowerCase().includes(search) && !r.student_id.toLowerCase().includes(search)) return;

@@ -137,11 +137,11 @@ async function saveExam(e) {
     if (editId) {
       const { error } = await supabaseClient.from('exams').update(payload).eq('id', editId);
       if (error) throw error;
-      showMessage('examMessage', '✅ Exam updated.', 'success');
+      showMessage('examMessage', 'Exam updated.', 'success');
     } else {
       const { error } = await supabaseClient.from('exams').insert([payload]);
       if (error) throw error;
-      showMessage('examMessage', '✅ Exam created.', 'success');
+      showMessage('examMessage', 'Exam created.', 'success');
     }
     getEl('examForm').reset();
     getEl('examEditId').value = '';
@@ -217,7 +217,7 @@ async function addExamSubject() {
   if (!subject) { alert('Please select a subject.'); return; }
   const { error } = await supabaseClient.from('exam_subjects').insert([{ exam_id: examId, class_name: classVal, subject }]);
   if (error) { alert(error.message); return; }
-  showMessage('examMessage', `✅ Subject added to exam for ${classVal}.`, 'success');
+  showMessage('examMessage', `Subject added to exam for ${classVal}.`, 'success');
   await renderExamSubjects();
 }
 
@@ -336,7 +336,7 @@ export async function loadScoreSheet() {
 
       const header = document.createElement('div');
       header.style.cssText = 'display:flex;flex-wrap:wrap;align-items:center;gap:0.5rem;padding:0.75rem 1rem;background:var(--primary-light);border-bottom:1px solid var(--border);';
-      header.innerHTML = `<strong style="font-size:0.9rem;color:var(--primary-dark);">${app.student_id}</strong><span style="font-weight:600;font-size:0.95rem;">${row.name}</span><span style="font-size:0.8rem;color:var(--text-muted);margin-left:auto;">${app.class_applying}</span><button type="button" class="btn btn-sm btn-clear score-save-btn" data-student="${app.student_id}" title="Save scores for this student" style="font-size:0.75rem;padding:0.2rem 0.5rem;background:rgba(22,163,74,0.1);color:#16a34a;border:1px solid rgba(22,163,74,0.3);border-radius:var(--radius-sm);cursor:pointer;">💾 Save</button><button type="button" class="btn btn-sm btn-clear score-reset-btn" data-student="${app.student_id}" title="Reset all scores for this student" style="font-size:0.75rem;padding:0.2rem 0.5rem;background:rgba(220,38,38,0.1);color:#dc2626;border:1px solid rgba(220,38,38,0.3);border-radius:var(--radius-sm);cursor:pointer;">↺ Reset</button>`;
+      header.innerHTML = `<strong style="font-size:0.9rem;color:var(--primary-dark);">${app.student_id}</strong><span style="font-weight:600;font-size:0.95rem;">${row.name}</span><span style="font-size:0.8rem;color:var(--text-muted);margin-left:auto;">${app.class_applying}</span><button type="button" class="btn btn-sm btn-clear score-save-btn" data-student="${app.student_id}" title="Save scores for this student" style="font-size:0.75rem;padding:0.2rem 0.5rem;background:rgba(22,163,74,0.1);color:#16a34a;border:1px solid rgba(22,163,74,0.3);border-radius:var(--radius-sm);cursor:pointer;">Save</button><button type="button" class="btn btn-sm btn-clear score-reset-btn" data-student="${app.student_id}" title="Reset all scores for this student" style="font-size:0.75rem;padding:0.2rem 0.5rem;background:rgba(220,38,38,0.1);color:#dc2626;border:1px solid rgba(220,38,38,0.3);border-radius:var(--radius-sm);cursor:pointer;">↺ Reset</button>`;
       card.appendChild(header);
 
       const body = document.createElement('div');
@@ -365,12 +365,12 @@ export async function loadScoreSheet() {
       const metaRow = document.createElement('div');
       metaRow.style.cssText = 'display:flex;flex-wrap:wrap;gap:0.75rem;padding:0.5rem 0 0 0;margin-top:0.25rem;';
       metaRow.innerHTML = `
-        <label style="font-size:0.8rem;color:var(--text-muted);display:flex;align-items:center;gap:0.4rem;">🎯 Interest
+        <label style="font-size:0.8rem;color:var(--text-muted);display:flex;align-items:center;gap:0.4rem;">Interest
           <select class="student-interest" data-student="${app.student_id}" style="padding:0.3rem 0.5rem;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:0.8rem;">
             ${['mathematics','singing','writing','reading','athletics','science'].map(i => `<option value="${i}" ${row.interest === i ? 'selected' : ''}>${i.charAt(0).toUpperCase()+i.slice(1)}</option>`).join('')}
           </select>
         </label>
-        <label style="font-size:0.8rem;color:var(--text-muted);display:flex;align-items:center;gap:0.4rem;">💡 Attitude
+        <label style="font-size:0.8rem;color:var(--text-muted);display:flex;align-items:center;gap:0.4rem;">Attitude
           <select class="student-attitude" data-student="${app.student_id}" style="padding:0.3rem 0.5rem;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:0.8rem;">
             ${['active','respectful','calm','obedient','pay attention','dull','truant','not active'].map(a => `<option value="${a}" ${row.attitude === a ? 'selected' : ''}>${a.charAt(0).toUpperCase()+a.slice(1)}</option>`).join('')}
           </select>
@@ -553,7 +553,7 @@ async function saveStudentScores(studentId, btn) {
     }, { onConflict: 'exam_id,student_id' });
     if (detailError) throw detailError;
 
-    showMessage('examMessage', `✅ Saved scores for ${row.name} (${row.student_id}).`, 'success');
+    showMessage('examMessage', `Saved scores for ${row.name} (${row.student_id}).`, 'success');
   } catch (err) {
     showMessage('examMessage', 'Error: ' + err.message, 'error');
     console.error('Save student scores error:', err);
@@ -624,11 +624,11 @@ async function saveAllResults() {
 
     // Log success
     const totalStudents = Object.values(classGroups).reduce((sum, arr) => sum + arr.length, 0);
-    showMessage('examMessage', `✅ Saved scores for ${upserts.length} subjects across ${totalStudents} students with rankings.`, 'success');
+    showMessage('examMessage', `Saved scores for ${upserts.length} subjects across ${totalStudents} students with rankings.`, 'success');
   } catch (err) {
     showMessage('examMessage', 'Error: ' + err.message, 'error');
     console.error('Save results error:', err);
-  } finally { setLoading(btn, false, '💾 Save All Scores'); }
+  } finally { setLoading(btn, false, 'Save All Scores'); }
 }
 
 // ================================================================
@@ -672,7 +672,7 @@ export async function generateRankings() {
 
     const overallCard = document.createElement('div');
     overallCard.className = 'ranking-card';
-    let overallHtml = `<div class="ranking-header"><strong>🏆 OVERALL RANKING</strong><span class="ranking-subtitle">By class (highest average)</span></div>`;
+    let overallHtml = `<div class="ranking-header"><strong>OVERALL RANKING</strong><span class="ranking-subtitle">By class (highest average)</span></div>`;
     Object.keys(overallByClass).sort().forEach(cls => {
       const students = Object.values(overallByClass[cls]).sort((a, b) => (b.total / b.count) - (a.total / a.count));
       overallHtml += `<table style="width:100%;border-collapse:collapse;font-size:0.85rem;margin-bottom:0.75rem;"><thead><tr><th style="border:1px solid #ccc;padding:0.4rem;text-align:left;">Pos</th><th style="border:1px solid #ccc;padding:0.4rem;text-align:left;">Student</th><th style="border:1px solid #ccc;padding:0.4rem;text-align:right;">Average</th><th style="border:1px solid #ccc;padding:0.4rem;text-align:center;">Grade</th></tr></thead><tbody>`;
@@ -764,7 +764,7 @@ async function exportCSV() {
   link.download = `exam_scores_${exam?.name || 'exam'}_${className}.csv`;
   link.click();
   URL.revokeObjectURL(link.href);
-  showMessage('examMessage', `✅ Scores exported to CSV (${examSheetCache.length} students).`, 'success');
+  showMessage('examMessage', `Scores exported to CSV (${examSheetCache.length} students).`, 'success');
 }
 
 async function importCSV() {
@@ -818,7 +818,7 @@ async function importCSV() {
       if (attitudeIdx >= 0 && vals[attitudeIdx]?.trim()) cacheRow.attitude = vals[attitudeIdx].trim().toLowerCase();
       updated++;
     }
-    showMessage('examMessage', `✅ Imported ${updated} student score(s) from CSV. Review and click "Save All Scores" to persist.`, 'success');
+    showMessage('examMessage', `Imported ${updated} student score(s) from CSV. Review and click "Save All Scores" to persist.`, 'success');
   } catch (err) {
     showMessage('examMessage', 'Error importing CSV: ' + err.message, 'error');
     console.error('Import CSV error:', err);
@@ -1082,7 +1082,7 @@ async function buildReportCardHTML(examId, studentId) {
   const reopeningDate = exam.reopening_date ? formatDate(exam.reopening_date) : '-';
   const photoHtml = app.student_photo_url
     ? `<img src="${app.student_photo_url}" class="rc-photo" alt="Student" />`
-    : `<div class="rc-photo rc-photo-placeholder">📷</div>`;
+    : `<div class="rc-photo rc-photo-placeholder"></div>`;
 
   // Position display
   const posSuffix = overallPosition === 1 ? 'st' : overallPosition === 2 ? 'nd' : overallPosition === 3 ? 'rd' : 'th';
@@ -1098,7 +1098,7 @@ async function buildReportCardHTML(examId, studentId) {
 
   const logoHtml = schoolLogoUrl
     ? `<img src="${schoolLogoUrl}" alt="School Logo" class="rc-logo" style="width:56px;height:56px;object-fit:contain;border-radius:8px;background:#fff;padding:2px;border:1px solid #e2e8f0;" />`
-    : `<div class="rc-seal">🏫</div>`;
+    : `<div class="rc-seal"></div>`;
 
   return `
 <div class="rc-container">
@@ -1205,7 +1205,7 @@ async function buildReportCardHTML(examId, studentId) {
   <!-- Remarks -->
   <div class="rc-remarks">
     <div class="rc-remarks-box rc-remarks-teacher">
-      <div class="rc-remarks-header">📚 Class Teacher's Remarks</div>
+      <div class="rc-remarks-header">Class Teacher's Remarks</div>
       <div class="rc-remarks-text">${remarks}</div>
       <div class="rc-remarks-signature">
         <span class="rc-sign-line">_________________________</span>
@@ -1213,7 +1213,7 @@ async function buildReportCardHTML(examId, studentId) {
       </div>
     </div>
     <div class="rc-remarks-box rc-remarks-head">
-      <div class="rc-remarks-header">👨‍🏫 Head Teacher's Remarks</div>
+      <div class="rc-remarks-header">Head Teacher's Remarks</div>
       <div class="rc-remarks-text">${headTeacherRemarks || '___________________________________________________________'}</div>
       <div class="rc-remarks-signature">
         <span class="rc-sign-line">_________________________</span>
@@ -1339,7 +1339,7 @@ window.batchPrintReportCards = async function () {
 
     if (!apps || apps.length === 0) {
       alert('No students found in this class.');
-      setLoading(btn, false, '🖨️ Print Report Cards');
+      setLoading(btn, false, 'Print Report Cards');
       return;
     }
 
@@ -1358,7 +1358,7 @@ window.batchPrintReportCards = async function () {
 
     if (allCards.length === 0) {
       alert('No report cards could be generated.');
-      setLoading(btn, false, '🖨️ Print Report Cards');
+      setLoading(btn, false, 'Print Report Cards');
       return;
     }
 
@@ -1396,7 +1396,7 @@ window.batchPrintReportCards = async function () {
     console.error('Batch print error:', err);
     alert('Error: ' + err.message);
   } finally {
-    setLoading(btn, false, '🖨️ Print Report Cards');
+    setLoading(btn, false, 'Print Report Cards');
   }
 };
 
@@ -1413,7 +1413,7 @@ export async function loadOverallScores() {
   const noEl = getEl('noOverallScores');
   
   if (!examId) {
-    if (msgEl) showMessage('overallScoresMessage', '⚠️ Please select an exam first.', 'error');
+    if (msgEl) showMessage('overallScoresMessage', 'Please select an exam first.', 'error');
     if (tbody) tbody.innerHTML = '';
     if (thead) thead.innerHTML = '';
     return;
@@ -1427,7 +1427,7 @@ export async function loadOverallScores() {
     const subjects = (examSubs || []).map(s => s.subject);
     if (subjects.length === 0) {
       if (noEl) noEl.style.display = 'block';
-      if (msgEl) showMessage('overallScoresMessage', '⚠️ No subjects configured for this exam.', 'error');
+      if (msgEl) showMessage('overallScoresMessage', 'No subjects configured for this exam.', 'error');
       if (tbody) tbody.innerHTML = '';
       if (thead) thead.innerHTML = '';
       if (msgEl) setTimeout(() => { clearMessage('overallScoresMessage'); }, 3000);
@@ -1442,7 +1442,7 @@ export async function loadOverallScores() {
     const { data: apps } = await appsQuery;
     if (!apps || apps.length === 0) {
       if (noEl) noEl.style.display = 'block';
-      if (msgEl) showMessage('overallScoresMessage', '⚠️ No admitted students found for the selected class.', 'error');
+      if (msgEl) showMessage('overallScoresMessage', 'No admitted students found for the selected class.', 'error');
       if (tbody) tbody.innerHTML = '';
       if (thead) thead.innerHTML = '';
       if (msgEl) setTimeout(() => { clearMessage('overallScoresMessage'); }, 3000);

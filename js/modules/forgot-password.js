@@ -19,6 +19,7 @@
  */
 
 import supabaseClient from '../supabase-config.js';
+import { buildAssistanceLine, normalizeGhanaPhone } from './sms-gateway.js';
 
 const SMS_ENDPOINT = '/api/send-sms';
 
@@ -151,8 +152,10 @@ async function onSendOtp() {
     if (error) throw error;
     if (!data || !data.success) { showMsg(data?.error || 'Could not send the verification code.', 'error'); return; }
 
-    // Deliver the OTP by SMS through the Nalo gateway.
-    const smsOk = await sendOtpSms(phone, data.otp);
+    // Deliver the OTP by SMS through the Nalo gateway. The RPC also returns
+    // the school administrator's mobile so the message can offer "call for
+    // any assistance" when the recipient isn't the admin themself.
+    const smsOk = await sendOtpSms(phone, data.otp, data.assistance_phone);
     if (!smsOk) {
       showMsg('The verification code could not be delivered by SMS. Please try again or contact your administrator.', 'error');
       return;
@@ -167,8 +170,15 @@ async function onSendOtp() {
   }
 }
 
-async function sendOtpSms(phone, otp) {
-  const message = `Your password reset code is ${otp}. It expires in 10 minutes. Do not share it with anyone.`;
+async function sendOtpSms(phone, otp, assistancePhone) {
+  // Don't tell the user to call their own number (e.g. the school admin
+  // resetting their own password) — that would be a dead-end help line.
+  const selfNumber =
+    phone && assistancePhone &&
+    normalizeGhanaPhone(assistancePhone) === normalizeGhanaPhone(phone);
+  const message =
+    `Your password reset code is ${otp}. It expires in 10 minutes. Do not share it with anyone.` +
+    (selfNumber ? '' : buildAssistanceLine(assistancePhone));
   try {
     const res = await fetch(SMS_ENDPOINT, {
       method: 'POST',

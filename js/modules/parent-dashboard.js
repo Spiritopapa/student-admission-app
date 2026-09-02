@@ -61,9 +61,9 @@ export async function loadParentDashboard(user) {
 
   const wardCards = await Promise.all(apps.map(async (app) => {
     const name = buildStudentName(app.first_name, app.middle_name, app.last_name);
-    const photoHtml = app.student_photo_url ? `<img src="${app.student_photo_url}" class="dash-photo" />` : '<span class="dash-photo-placeholder">📷</span>';
+    const photoHtml = app.student_photo_url ? `<img src="${app.student_photo_url}" class="dash-photo" />` : '<span class="dash-photo-placeholder"></span>';
     const statusBadge = `<span class="status-badge status-${app.status}">${app.status.toUpperCase()}</span>`;
-    const confirmedBadge = app.portal_confirmed ? '<span class="badge-confirmed">✅ Portal Active</span>' : '<span class="badge-unconfirmed">⏳ Pending</span>';
+    const confirmedBadge = app.portal_confirmed ? '<span class="badge-confirmed">Portal Active</span>' : '<span class="badge-unconfirmed">Pending</span>';
 
     const records = attMap.get(app.student_id) || [];
     const attStats = { present: 0, absent: 0 };
@@ -92,7 +92,7 @@ export async function loadParentDashboard(user) {
         <span style="font-size:0.75rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;">Recent Attendance</span>
         <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.4rem;">
           ${recentRecords.map(r => {
-            const icons = { present: '✅', absent: '❌' };
+            const icons = { present: '', absent: '' };
             const colors = { present: 'var(--success)', absent: 'var(--danger)' };
             return `<span style="font-size:0.8rem;color:${colors[r.status] || 'inherit'};">${icons[r.status] || ''} ${formatDate(r.date)}</span>`;
           }).join('<span style="color:var(--border);">|</span>')}

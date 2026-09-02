@@ -211,10 +211,6 @@
   letter-spacing: 0.05em;
 }
 
-#dashAnnouncementPopup .announcement-popup-icon {
-  font-size: 1.2rem;
-}
-
 #dashAnnouncementPopup .announcement-popup-badge {
   background: rgba(255, 255, 255, 0.2);
   padding: 0.15rem 0.5rem;

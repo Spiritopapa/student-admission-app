@@ -89,7 +89,7 @@ ON CONFLICT (school_id, subject_name, grade_label) DO NOTHING;
 --  5. REGISTER MODULE (for sidebar visibility & module locking)
 -- ============================================================
 INSERT INTO modules (name, label, icon, sort_order)
-VALUES ('grading', 'Grading System', '📊', 13)
+VALUES ('grading', 'Grading System', '', 13)
 ON CONFLICT (name) DO NOTHING;
 
 -- ============================================================
@@ -156,10 +156,10 @@ $$;
 --  MIGRATION COMPLETE
 -- ============================================================
 --  What this adds:
---  ✅ grading_systems table with per-subject support
---  ✅ RLS policies for data isolation
---  ✅ Default A-F grading scale seeded
---  ✅ Module registered for sidebar & locking
---  ✅ get_school_grades() function
---  ✅ get_grade_for_score() function
+--  grading_systems table with per-subject support
+--  RLS policies for data isolation
+--  Default A-F grading scale seeded
+--  Module registered for sidebar & locking
+--  get_school_grades() function
+--  get_grade_for_score() function
 -- ============================================================

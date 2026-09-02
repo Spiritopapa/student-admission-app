@@ -118,7 +118,7 @@ export function setupTeacherForm() {
         // Update class-subject assignments (only relevant for teaching staff)
         await saveTeacherClassSubjects(editId, isTeachingStaff ? subjectsByClass : {});
         
-        showMessage('teacherMessage', '✅ Teacher updated successfully.', 'success');
+        showMessage('teacherMessage', 'Teacher updated successfully.', 'success');
         logSubAdminActivity(`Updated teacher "${payload.full_name}"`, 'teacher', payload.full_name);
       } else {
         const { data, error } = await supabaseClient.from('teachers').insert([payload]).select();
@@ -129,7 +129,7 @@ export function setupTeacherForm() {
           await saveTeacherClassSubjects(data[0].id, subjectsByClass);
         }
         
-        showMessage('teacherMessage', '✅ Teacher added successfully.', 'success');
+        showMessage('teacherMessage', 'Teacher added successfully.', 'success');
         logSubAdminActivity(`Created teacher "${payload.full_name}"`, 'teacher', payload.full_name);
       }
       getEl('teacherForm').reset();
@@ -279,7 +279,7 @@ async function saveNewTeacher(e) {
   const fullName = getEl('newTeacherName').value.trim();
   
   const regId = getEl('newTeacherRegId').value.trim();
-  if (!fullName || !regId) { showMessage('newTeacherMessage', 'Name and Registration ID are required.', 'error'); setLoading(btn, false, '✅ Create Staff & Generate ID'); return; }
+  if (!fullName || !regId) { showMessage('newTeacherMessage', 'Name and Registration ID are required.', 'error'); setLoading(btn, false, 'Create Staff & Generate ID'); return; }
   
   const staffType = getEl('newTeacherStaffType')?.value || 'teaching';
   const isTeachingStaff = staffType === 'teaching';
@@ -303,19 +303,19 @@ async function saveNewTeacher(e) {
       created_by: user?.id || null, is_approved: true,
     }]).select();
     
-    if (error) { showMessage('newTeacherMessage', 'Error: ' + error.message, 'error'); setLoading(btn, false, '✅ Create Staff & Generate ID'); return; }
+    if (error) { showMessage('newTeacherMessage', 'Error: ' + error.message, 'error'); setLoading(btn, false, 'Create Staff & Generate ID'); return; }
     
     if (data && data.length > 0 && selectedClasses.length > 0) {
       await saveTeacherClassSubjects(data[0].id, subjectsByClass);
     }
     
-    showMessage('newTeacherMessage', `✅ Staff "${fullName}" created with ID: ${regId}. Provide this ID to them for registration.`, 'success');
+    showMessage('newTeacherMessage', `Staff "${fullName}" created with ID: ${regId}. Provide this ID to them for registration.`, 'success');
     getEl('newTeacherName').value = '';
     getEl('newTeacherRegId').value = '';
     getEl('newTeacherSection').style.display = 'none';
     await renderTeachersTable();
   } catch (err) { showMessage('newTeacherMessage', 'Error: ' + err.message, 'error'); }
-  finally { setLoading(btn, false, '✅ Create Staff & Generate ID'); }
+  finally { setLoading(btn, false, 'Create Staff & Generate ID'); }
 }
 
 // ================================================================
@@ -434,7 +434,7 @@ window.editTeacher = async function (id) {
 };
 
 window.deleteTeacher = async function (id) {
-  if (!confirm(`⚠️ PERMANENT DELETION\n\nDelete teacher and ALL associated records?\n\nThis will permanently remove:\n• Teacher profile\n• Teacher documents (certificates, appointment letters)\n• Class & subject assignments\n• Auth account (teacher will NOT be able to sign in)\n\nThis action CANNOT be undone.`)) return;
+  if (!confirm(`PERMANENT DELETION\n\nDelete teacher and ALL associated records?\n\nThis will permanently remove:\n• Teacher profile\n• Teacher documents (certificates, appointment letters)\n• Class & subject assignments\n• Auth account (teacher will NOT be able to sign in)\n\nThis action CANNOT be undone.`)) return;
   let teacherName = id;
   try {
     const { data: teacher } = await supabaseClient.from('teachers').select('full_name, user_id, registration_id').eq('id', id).single();
@@ -494,7 +494,7 @@ window.deleteTeacher = async function (id) {
       }
 
       await renderTeachersTable();
-      alert(`✅ Teacher "${teacherName}" and all associated records permanently deleted.\nThe teacher can no longer sign in.`);
+      alert(`Teacher "${teacherName}" and all associated records permanently deleted.\nThe teacher can no longer sign in.`);
       logSubAdminActivity(`Deleted teacher "${teacherName}"`, 'teacher', `${id} - ${teacherName}`);
       return;
     }
@@ -511,13 +511,13 @@ window.deleteTeacher = async function (id) {
 
     await renderTeachersTable();
 
-    let summary = `✅ Teacher ${result?.teacher_name || teacherName} permanently deleted.\n`;
+    let summary = `Teacher ${result?.teacher_name || teacherName} permanently deleted.\n`;
     summary += `The teacher can no longer sign in.\n\n`;
-    summary += `📋 Records removed:\n`;
+    summary += `Records removed:\n`;
     summary += `  • Teacher documents: ${counts.teacher_documents || 0}\n`;
     summary += `  • Class/subject assignments: ${counts.teacher_classes_subjects || 0}\n`;
     summary += `  • Profile: ${counts.profiles || 0}\n`;
-    summary += `  • Auth account: ${result?.user_id ? (result?.auth_deleted ? 'Yes' : '⚠️ No (may still be able to sign in)') : 'No portal account'}`;
+    summary += `  • Auth account: ${result?.user_id ? (result?.auth_deleted ? 'Yes' : 'No (may still be able to sign in)') : 'No portal account'}`;
 
     alert(summary);
     logSubAdminActivity(`Deleted teacher "${result?.teacher_name || teacherName}"`, 'teacher', `${id} - ${result?.teacher_name || teacherName}`);
@@ -658,23 +658,23 @@ export async function renderTeachersTable() {
       : '<span style="color:var(--text-muted);font-size:0.8rem;">—</span>';
     const regStatus = t.registration_id
       ? (t.user_id
-        ? '<span style="color:var(--success);font-size:0.75rem;">✅ Registered</span>'
-        : '<span style="color:var(--text-muted);font-size:0.75rem;">🔗 Not registered</span>')
+        ? '<span style="color:var(--success);font-size:0.75rem;">Registered</span>'
+        : '<span style="color:var(--text-muted);font-size:0.75rem;">Not registered</span>')
       : '';
     const approveBtn = t.registration_id
       ? (t.is_approved
         ? '<span class="action-btn" style="background:var(--bg);color:var(--text-muted);cursor:default;">Done</span>'
-        : `<button class="action-btn confirm" onclick="approveTeacher('${t.id}')">✅ Approve</button>`)
+        : `<button class="action-btn confirm" onclick="approveTeacher('${t.id}')">Approve</button>`)
       : '';
     const unlinkBtn = (t.registration_id && t.user_id)
-      ? `<button class="action-btn" onclick="unlinkTeacherUser('${t.id}')">🔗 Unlink</button>`
+      ? `<button class="action-btn" onclick="unlinkTeacherUser('${t.id}')">Unlink</button>`
       : '';
     
     const photoHtml = t.photo_url
       ? `<img src="${t.photo_url}" class="dash-photo" style="width:40px;height:40px;border-radius:50%;object-fit:cover;" />`
-      : '<span class="dash-photo-placeholder">👨‍🏫</span>';
-    const resetPwBtn = `<button class="action-btn" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:none;" onclick="openAdminResetPassword('teacher','${t.id}','${t.full_name.replace(/'/g, "\\'")}')">🔑 Password</button>`;
-    const actionBtns = `<button class="action-btn confirm" onclick="viewTeacherDetails('${t.id}')">👁 View</button><button class="action-btn" onclick="viewTeacherActivities('${t.id}')">📋 Activity</button><button class="action-btn confirm" onclick="editTeacher('${t.id}')">Edit</button>${resetPwBtn}<button class="action-btn danger" onclick="deleteTeacher('${t.id}')">Delete</button>`;
+      : '<span class="dash-photo-placeholder"></span>';
+    const resetPwBtn = `<button class="action-btn" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:none;" onclick="openAdminResetPassword('teacher','${t.id}','${t.full_name.replace(/'/g, "\\'")}')">Password</button>`;
+    const actionBtns = `<button class="action-btn confirm" onclick="viewTeacherDetails('${t.id}')">View</button><button class="action-btn" onclick="viewTeacherActivities('${t.id}')">Activity</button><button class="action-btn confirm" onclick="editTeacher('${t.id}')">Edit</button>${resetPwBtn}<button class="action-btn danger" onclick="deleteTeacher('${t.id}')">Delete</button>`;
     const hasRegistration = !!t.registration_id;
     return `<tr>
       <td>${photoHtml}</td>
@@ -710,16 +710,16 @@ window.viewTeacherDetails = async function (teacherId) {
     const docHtml = (documents || []).map(d => {
       const label = d.document_type === 'certificate' ? 'Certificate' : 'Appointment Letter';
       if (isUnservableCloudinaryDocument(d.file_url)) {
-        return `<div style="margin-bottom:0.5rem;font-size:0.8rem;color:var(--danger);">📄 ${label}: ${d.file_name || 'Attachment'} — ⚠️ blocked by Cloudinary, please ask the teacher to re-upload to restore the download</div>`;
+        return `<div style="margin-bottom:0.5rem;font-size:0.8rem;color:var(--danger);">${label}: ${d.file_name || 'Attachment'} — blocked by Cloudinary, please ask the teacher to re-upload to restore the download</div>`;
       }
       return `<div style="margin-bottom:0.5rem;">
-        <a href="${d.file_url}" target="_blank" class="btn btn-sm btn-secondary">📄 ${label}: ${d.file_name || 'View'}</a>
+        <a href="${d.file_url}" target="_blank" class="btn btn-sm btn-secondary">${label}: ${d.file_name || 'View'}</a>
       </div>`;
     }).join('') || '<span style="color:var(--text-muted);">No documents uploaded.</span>';
     
     const photoHtml = teacher.photo_url
       ? `<img src="${teacher.photo_url}" style="width:100px;height:100px;border-radius:50%;object-fit:cover;border:3px solid var(--primary);" />`
-      : '<div style="font-size:3rem;">👨‍🏫</div>';
+      : '<div style="font-size:3rem;"></div>';
     
     const field = (label, val) => `<div class="detail-item"><span class="detail-label">${label}</span><span class="detail-value">${val || '-'}</span></div>`;
     
@@ -730,7 +730,7 @@ window.viewTeacherDetails = async function (teacherId) {
         <p style="color:var(--text-muted);font-size:0.85rem;">${teacher.registration_id || ''} ${teacher.staff_id ? '| Staff ID: ' + teacher.staff_id : ''}</p>
       </div>
       <div class="profile-detail" style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;">
-        <h4 style="grid-column:1/-1;margin:0.5rem 0;color:var(--primary);">👤 Personal Information</h4>
+        <h4 style="grid-column:1/-1;margin:0.5rem 0;color:var(--primary);">Personal Information</h4>
         ${field('First Name', teacher.first_name)}
         ${field('Middle Name', teacher.middle_name)}
         ${field('Surname', teacher.surname)}
@@ -745,7 +745,7 @@ window.viewTeacherDetails = async function (teacherId) {
         ${field('Religion', teacher.religion)}
         ${field('Staff Type', teacher.staff_type === 'non_teaching' ? 'Non-Teaching Staff' : 'Teaching Staff')}
         
-        <h4 style="grid-column:1/-1;margin:0.5rem 0;color:var(--primary);">🆔 Identification</h4>
+        <h4 style="grid-column:1/-1;margin:0.5rem 0;color:var(--primary);">Identification</h4>
         ${field('Staff ID', teacher.staff_id)}
         ${field('Mobile Number', teacher.mobile_number)}
         ${field('Ghana Card Number', teacher.ghana_card_number)}
@@ -755,7 +755,7 @@ window.viewTeacherDetails = async function (teacherId) {
         ${field('Certificate Number', teacher.certificate_number)}
         ${field('EMIS Code', teacher.emis_code)}
         
-        <h4 style="grid-column:1/-1;margin:0.5rem 0;color:var(--primary);">📅 Appointment & School</h4>
+        <h4 style="grid-column:1/-1;margin:0.5rem 0;color:var(--primary);">Appointment & School</h4>
         ${field('Date of First Appointment', teacher.date_first_appointment_district)}
         ${field('Date of Transfer to Last School', teacher.date_transfer_last_school)}
         ${field('Date Promoted to Present Rank', teacher.date_promoted_present_rank)}
@@ -765,13 +765,13 @@ window.viewTeacherDetails = async function (teacherId) {
         ${field('Circuit', teacher.circuit)}
         ${field('District', teacher.district)}
         
-        <h4 style="grid-column:1/-1;margin:0.5rem 0;color:var(--primary);">💼 Rank & Salary</h4>
+        <h4 style="grid-column:1/-1;margin:0.5rem 0;color:var(--primary);">Rank & Salary</h4>
         ${field('Rank', teacher.rank)}
         ${field('Salary Scale', teacher.salary_scale)}
         ${field('Salary Step', teacher.salary_step)}
         ${field('Salary Level', teacher.salary_level)}
         
-        <h4 style="grid-column:1/-1;margin:0.5rem 0;color:var(--primary);">📚 Education & Additional Info</h4>
+        <h4 style="grid-column:1/-1;margin:0.5rem 0;color:var(--primary);">Education & Additional Info</h4>
         ${field('Date of Assumption in District', teacher.date_assumption_district)}
         ${field('Date of Assumption in Present Station', teacher.date_assumption_present_station)}
         ${field('College Attended', teacher.college_attended)}
@@ -784,7 +784,7 @@ window.viewTeacherDetails = async function (teacherId) {
         ${field('Professional Qualification', teacher.professional_qualification)}
         ${field('Academic Qualification', teacher.academic_qualification)}
         
-        <h4 style="grid-column:1/-1;margin:0.5rem 0;color:var(--primary);">📄 Documents</h4>
+        <h4 style="grid-column:1/-1;margin:0.5rem 0;color:var(--primary);">Documents</h4>
         <div style="grid-column:1/-1;">${docHtml}</div>
       </div>
     `;
@@ -806,7 +806,7 @@ window.closeTeacherDetailModal = function () {
 };
 
 // ================================================================
-// Teacher Activity Log (opened from the Staff table "📋 Activity" button)
+// Teacher Activity Log (opened from the Staff table "Activity" button)
 // ================================================================
 
 /**
@@ -834,9 +834,9 @@ window.viewTeacherActivities = async function (teacherId) {
     if (teacher) {
       getEl('staffActivitiesStaffName').textContent = teacher.full_name;
       getEl('staffActivitiesRegId').textContent = teacher.registration_id || teacher.staff_id || '—';
-      getEl('staffActivitiesBadge').textContent = '👨‍🏫 Teacher';
+      getEl('staffActivitiesBadge').textContent = 'Teacher';
       getEl('staffActivitiesBadge').className = 'badge-confirmed';
-      getEl('staffActivitiesModalTitle').textContent = `📋 Activity Log: ${teacher.full_name}`;
+      getEl('staffActivitiesModalTitle').textContent = `Activity Log: ${teacher.full_name}`;
     }
 
     // Load the activity rows for this teacher
@@ -887,11 +887,11 @@ window.clearStaffActivityLog = async function () {
   if (!staffId || !staffType) return;
 
   const person = staffType === 'teacher' ? 'teacher' : 'accountant';
-  if (!confirm(`⚠️ Delete ALL activity log entries for this ${person}?\n\nThis cannot be undone.`)) return;
+  if (!confirm(`Delete ALL activity log entries for this ${person}?\n\nThis cannot be undone.`)) return;
 
   const btn = getEl('clearStaffActivitiesBtn');
   const originalText = btn ? btn.textContent : '';
-  if (btn) { btn.disabled = true; btn.textContent = '⏳ Clearing...'; }
+  if (btn) { btn.disabled = true; btn.textContent = 'Clearing...'; }
 
   try {
     const { error } = await supabaseClient
@@ -905,7 +905,7 @@ window.clearStaffActivityLog = async function () {
     if (staffType === 'teacher') await viewTeacherActivities(staffId);
     else await viewAccountantActivities(staffId);
 
-    showMessage('staffActivitiesClearMessage', `🗑️ All activity logs for this ${person} were cleared.`, 'success');
+    showMessage('staffActivitiesClearMessage', `All activity logs for this ${person} were cleared.`, 'success');
   } catch (err) {
     console.error('clearStaffActivityLog error:', err);
     showMessage('staffActivitiesClearMessage', 'Failed to clear logs: ' + err.message, 'error');
@@ -1013,7 +1013,7 @@ async function exportTeachersCSV() {
   link.download = `teachers_export_${new Date().toISOString().slice(0,10)}.csv`;
   link.click();
   URL.revokeObjectURL(link.href);
-  showMessage('teacherMessage', `✅ Exported ${data.length} teacher(s) to CSV.`, 'success');
+  showMessage('teacherMessage', `Exported ${data.length} teacher(s) to CSV.`, 'success');
 }
 
 // ================================================================
@@ -1117,8 +1117,8 @@ async function importTeachersCSV() {
       } catch (err) { skipped++; }
     }
     
-    let msg = `✅ Imported ${imported} staff member(s) successfully.`;
-    if (skipped > 0) msg += ` ⚠️ ${skipped} row(s) skipped.`;
+    let msg = `Imported ${imported} staff member(s) successfully.`;
+    if (skipped > 0) msg += ` ${skipped} row(s) skipped.`;
     alert(msg);
     fileInput.value = '';
     await renderTeachersTable();

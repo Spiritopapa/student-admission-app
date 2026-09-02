@@ -29,12 +29,12 @@ export function setupSubjectForm() {
       if (editId) {
         const { error } = await supabaseClient.from('subjects').update(payload).eq('id', editId);
         if (error) throw error;
-        showMessage('subjectMessage', '✅ Subject updated.', 'success');
+        showMessage('subjectMessage', 'Subject updated.', 'success');
         logSubAdminActivity(`Updated subject "${payload.name}"`, 'subject', payload.name);
       } else {
         const { error } = await supabaseClient.from('subjects').insert([payload]);
         if (error) throw error;
-        showMessage('subjectMessage', '✅ Subject added.', 'success');
+        showMessage('subjectMessage', 'Subject added.', 'success');
         logSubAdminActivity(`Created subject "${payload.name}"`, 'subject', payload.name);
       }
       getEl('subjectForm').reset();

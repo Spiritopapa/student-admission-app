@@ -290,7 +290,7 @@ BEGIN
   -- Calculate outstanding balance for this term
   v_remaining := (v_current_total + v_current_debt) - v_current_paid;
 
-  -- ⛔ TOTALLY PREVENT OVERPAYMENT: Cap payment amount to outstanding balance
+  -- TOTALLY PREVENT OVERPAYMENT: Cap payment amount to outstanding balance
   IF p_amount > v_remaining THEN
     p_amount := v_remaining;
   END IF;

@@ -131,9 +131,9 @@ $$;
 --  MIGRATION COMPLETE
 -- ============================================================
 --  What this adds:
---  ✅ delete_student_completely() function - atomic deletion
---  ✅ Handles ALL 10 related tables
---  ✅ Returns detailed deletion counts
---  ✅ Runs in a single transaction (all or nothing)
---  ✅ SECURITY DEFINER so it bypasses RLS
+--  delete_student_completely() function - atomic deletion
+--  Handles ALL 10 related tables
+--  Returns detailed deletion counts
+--  Runs in a single transaction (all or nothing)
+--  SECURITY DEFINER so it bypasses RLS
 -- ============================================================

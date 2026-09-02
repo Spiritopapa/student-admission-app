@@ -6,7 +6,7 @@
 
 import { getEl, showMessage, clearMessage, setLoading, getCurrentSchoolId, formatCurrency, formatDate, logSubAdminActivity, logStaffActivity, generateAcademicYearOptions, getDefaultAcademicYear, openPrintWindow, getNextTerm, getNextAcademicYear } from './utils.js';
 import { RECEIPT_VERIFY_BASE_URL } from '../supabase-config.js';
-import { sendFeePaymentSms, normalizeGhanaPhone, isSmsEnabledForSchool } from './sms-gateway.js';
+import { sendFeePaymentSms, normalizeGhanaPhone, isSmsEnabledForSchool, getAdminContactForSchool, buildAssistanceLine } from './sms-gateway.js';
 
 let supabaseClient = null;
 
@@ -402,11 +402,11 @@ async function setClassFeeStructure() {
           if (!insErr) updated++;
         }
       }
-      let msg = `✅ Fee structure set: ${className} - ${term} Term = GHC ${formatCurrency(amount)}\n📋 Updated ${updated} student fee records.`;
-      if (creditsApplied > 0) msg += `\n💰 Applied overpayment credits from previous term for ${creditsApplied} student(s).`;
+      let msg = `Fee structure set: ${className} - ${term} Term = GHC ${formatCurrency(amount)}\nUpdated ${updated} student fee records.`;
+      if (creditsApplied > 0) msg += `\nApplied overpayment credits from previous term for ${creditsApplied} student(s).`;
       showMessage('feeStructureMessage', msg, 'success');
     } else {
-      showMessage('feeStructureMessage', `✅ Fee structure set: ${className} - ${term} Term = GHC ${formatCurrency(amount)}`, 'success');
+      showMessage('feeStructureMessage', `Fee structure set: ${className} - ${term} Term = GHC ${formatCurrency(amount)}`, 'success');
     }
 
     logSubAdminActivity(`Set fee structure: ${className} ${term} Term = GHC ${amount}`, 'fee', `${className}/${term}`);
@@ -414,7 +414,7 @@ async function setClassFeeStructure() {
   } catch (err) {
     showMessage('feeStructureMessage', 'Error: ' + err.message, 'error');
   } finally {
-    setLoading(btn, false, '💾 Set Fee');
+    setLoading(btn, false, 'Set Fee');
   }
 }
 
@@ -544,7 +544,7 @@ getEl('deleteClassFeeConfirmBtn')?.addEventListener('click', async function() {
   const confirmBtn = getEl('deleteClassFeeConfirmBtn');
   if (confirmBtn) {
     confirmBtn.disabled = true;
-    confirmBtn.textContent = '⏳ Deleting...';
+    confirmBtn.textContent = 'Deleting...';
   }
 
   try {
@@ -587,14 +587,14 @@ getEl('deleteClassFeeConfirmBtn')?.addEventListener('click', async function() {
 
     // Close modal and show success
     closeDeleteClassFeeModal();
-    alert(`✅ Fee structure deleted.\n🗑️ Removed fee records for ${students?.length || 0} student(s) in ${classFee.class_name} - ${classFee.term} Term ${classFee.academic_year}.\n🧾 Receipts and payment transactions were preserved.`);
+    alert(`Fee structure deleted.\nRemoved fee records for ${students?.length || 0} student(s) in ${classFee.class_name} - ${classFee.term} Term ${classFee.academic_year}.\nReceipts and payment transactions were preserved.`);
     await loadFeeStructureTab();
   } catch (err) {
     alert('Error: ' + err.message);
     // Re-enable button on error
     if (confirmBtn) {
       confirmBtn.disabled = false;
-      confirmBtn.textContent = '🗑️ Delete Fee Record';
+      confirmBtn.textContent = 'Delete Fee Record';
     }
   }
 });
@@ -671,7 +671,7 @@ async function loadStudentFeesTab() {
     const name = `${s.first_name} ${s.middle_name || ''} ${s.last_name}`;
     const photoHtml = s.student_photo_url
       ? `<img src="${s.student_photo_url}" alt="Photo" class="student-photo-thumb" />`
-      : '<span class="dash-photo-placeholder">🎓</span>';
+      : '<span class="dash-photo-placeholder"></span>';
 
     // Build term fee display
     const termDisplay = fees
@@ -699,7 +699,7 @@ async function loadStudentFeesTab() {
           <span>Total: GHC ${formatCurrency(total)}</span>
           <span>Paid: GHC ${formatCurrency(paid)}</span>
           ${balanceDisplay}
-          ${overpaid > 0 ? `<span class="fee-credit-badge">💰 Credit: GHC ${formatCurrency(overpaid)}</span>` : ''}
+          ${overpaid > 0 ? `<span class="fee-credit-badge">Credit: GHC ${formatCurrency(overpaid)}</span>` : ''}
           <span class="fee-status-badge fee-status-${status}">${status}</span>
         </div>`;
       }).join('') || '<span style="color:var(--text-muted);font-size:0.85rem;">No fee records</span>';
@@ -718,11 +718,11 @@ async function loadStudentFeesTab() {
       <td>${termDisplay}</td>
       <td><strong>GHC ${formatCurrency(totalBalance)}</strong></td>
       <td>
-        <button class="action-btn confirm" onclick="openFeePayment('${s.student_id}')">💰 Pay</button>
-        <button class="action-btn" onclick="editStudentFee('${s.student_id}')">✏️ Edit Fees</button>
-        <button class="action-btn" onclick="viewStudentReceipts('${s.student_id}')">🧾 Receipts</button>
-        <button class="action-btn view" onclick="printFeeReminder('${s.student_id}')">🖨️ Reminder</button>
-        <button class="action-btn danger" onclick="deleteStudentReceipts('${s.student_id}')">🗑️ Delete Receipt</button>
+        <button class="action-btn confirm" onclick="openFeePayment('${s.student_id}')">Pay</button>
+        <button class="action-btn" onclick="editStudentFee('${s.student_id}')">Edit Fees</button>
+        <button class="action-btn" onclick="viewStudentReceipts('${s.student_id}')">Receipts</button>
+        <button class="action-btn view" onclick="printFeeReminder('${s.student_id}')">Reminder</button>
+        <button class="action-btn danger" onclick="deleteStudentReceipts('${s.student_id}')">Delete Receipt</button>
       </td>
     </tr>`;
   }).join('');
@@ -751,7 +751,7 @@ async function loadStudentFeeInfo() {
     .maybeSingle();
 
   if (!student) {
-    infoEl.innerHTML = '<div style="text-align:center;padding:1rem;color:var(--danger);">❌ Student not found</div>';
+    infoEl.innerHTML = '<div style="text-align:center;padding:1rem;color:var(--danger);">Student not found</div>';
     return;
   }
 
@@ -851,7 +851,7 @@ async function loadStudentFeeInfo() {
         
         priorBalanceHtml = `<div class="fee-payment-summary" style="margin:1rem 0;padding:1rem;background:#fee2e2;border:2px solid #ef4444;border-radius:6px;font-size:0.9rem;color:#991b1b;">
           <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem;">
-            <span style="font-size:1.5rem;">⛔</span>
+            <span style="font-size:1.5rem;"></span>
             <strong style="font-size:1.1rem;">Compulsory: Clear Previous Balance First!</strong>
           </div>
           <p style="margin:0 0 0.5rem 0;">
@@ -860,7 +860,7 @@ async function loadStudentFeeInfo() {
             that MUST be paid before you can proceed with the current term fees.
           </p>
           <p style="margin:0;font-size:0.85rem;">
-            📌 The payment form has been automatically set to this term. Please clear this balance first.
+            The payment form has been automatically set to this term. Please clear this balance first.
           </p>
         </div>`;
       }
@@ -888,7 +888,7 @@ async function loadStudentFeeInfo() {
         // Negative balance = overpaid = credit for next term
         balanceDisplay = `<span class="fee-balance-credit">Credit: GHC ${formatCurrency(Math.abs(bal))}</span>`;
         if (overpaid > 0) {
-          balanceDisplay += ` <span class="fee-credit-badge">💰 Carried to next term</span>`;
+          balanceDisplay += ` <span class="fee-credit-badge">Carried to next term</span>`;
         }
         status = 'paid';
       } else {
@@ -936,18 +936,18 @@ async function loadStudentFeeInfo() {
       let nextStatus = nextBal <= 0 ? 'paid' : (nextFee.amount_paid > 0 ? 'partial' : 'unpaid');
       
       feeHtml += `<div class="fee-payment-summary" style="margin-top:1rem;padding:0.75rem;background:#f0fdf4;border-radius:4px;font-size:0.85rem;color:#166534;">
-        <strong>✅ All current terms paid!</strong><br/>
+        <strong>All current terms paid!</strong><br/>
         Next: <strong>${nextTerm} Term ${nextYear}</strong> — 
         Total: GHC ${formatCurrency(Number(nextFee.total_amount) + Number(nextFee.debt || 0))} | 
         Paid: GHC ${formatCurrency(nextFee.amount_paid)} | 
         Balance: <span class="fee-balance-${nextStatus}">GHC ${formatCurrency(Math.max(nextBal, 0))}</span>
-        ${nextOverpaid > 0 ? ` | <span class="fee-credit-badge">💰 Credit: GHC ${formatCurrency(nextOverpaid)}</span>` : ''}
+        ${nextOverpaid > 0 ? ` | <span class="fee-credit-badge">Credit: GHC ${formatCurrency(nextOverpaid)}</span>` : ''}
         <span class="fee-status-badge fee-status-${nextStatus}" style="margin-left:0.5rem;">${nextStatus}</span>
       </div>`;
     } else {
       // Next term fee not set yet - show awaiting status
       feeHtml += `<div class="fee-payment-summary" style="margin-top:1rem;padding:0.75rem;background:#fef3c7;border-radius:4px;font-size:0.85rem;color:#92400e;">
-        <strong>⏳ Awaiting Next Term Fee</strong><br/>
+        <strong>Awaiting Next Term Fee</strong><br/>
         All current terms are paid. The fee for <strong>${nextTerm} Term ${nextYear}</strong> has not been set yet.<br/>
         Once the fee structure is set via "Set / Update Class Fee", the fee record will be automatically created with any overpaid credit applied.
       </div>`;
@@ -956,7 +956,7 @@ async function loadStudentFeeInfo() {
   
   // Payment form note
   feeHtml += `<div class="fee-payment-summary" style="margin-top:1rem;padding:0.75rem;background:#fef3c7;border-radius:4px;font-size:0.85rem;color:#92400e;">
-    <strong>📌 Note:</strong> Select the Academic Year and Term above, then enter the payment amount. Fee records are automatically created when you set the fee structure via "Set / Update Class Fee".
+    <strong>Note:</strong> Select the Academic Year and Term above, then enter the payment amount. Fee records are automatically created when you set the fee structure via "Set / Update Class Fee".
   </div>`;
 
   infoEl.innerHTML = feeHtml;
@@ -1002,7 +1002,7 @@ async function recordPayment() {
 
   if (!currentFeeRec) {
     showMessage('feePaymentMessage', 
-      `❌ No fee record found for ${studentId} for ${term} Term ${year}.\n\nPlease go to the "Set / Update Class Fee" section to set the fee structure first. Fee records are automatically created when the fee structure is set.`, 
+      `No fee record found for ${studentId} for ${term} Term ${year}.\n\nPlease go to the "Set / Update Class Fee" section to set the fee structure first. Fee records are automatically created when the fee structure is set.`, 
       'error');
     return;
   }
@@ -1013,7 +1013,7 @@ async function recordPayment() {
 
   if (outstanding <= 0) {
     showMessage('feePaymentMessage', 
-      `✅ ${studentId} has already fully paid for ${term} Term ${year}.\n\nTotal Due: GHC ${formatCurrency(totalDue)}\nAmount Paid: GHC ${formatCurrency(currentPaid)}\n\nNo further payment is needed for this term.`, 
+      `${studentId} has already fully paid for ${term} Term ${year}.\n\nTotal Due: GHC ${formatCurrency(totalDue)}\nAmount Paid: GHC ${formatCurrency(currentPaid)}\n\nNo further payment is needed for this term.`, 
       'error');
     return;
   }
@@ -1022,10 +1022,10 @@ async function recordPayment() {
   const priorBalance = await getPriorTermBalance(studentId, year, term);
   if (priorBalance) {
     showMessage('feePaymentMessage', 
-      `⛔ COMPULSORY: Cannot pay for ${term} Term ${year} because there is an outstanding balance from a previous term.\n\n` +
+      `COMPULSORY: Cannot pay for ${term} Term ${year} because there is an outstanding balance from a previous term.\n\n` +
       `Unpaid: ${priorBalance.term} Term ${priorBalance.academic_year}\n` +
       `Amount Due: GHC ${formatCurrency(priorBalance.balance)}\n\n` +
-      `💡 Please select "${priorBalance.term} Term ${priorBalance.academic_year}" in the Academic Year/Term dropdown above and clear this previous balance first.`, 
+      `Please select "${priorBalance.term} Term ${priorBalance.academic_year}" in the Academic Year/Term dropdown above and clear this previous balance first.`, 
       'error');
     return;
   }
@@ -1040,11 +1040,11 @@ async function recordPayment() {
 
   if (amount > outstanding && outstanding > 0) {
     showMessage('feePaymentMessage',
-      `⛔ OVERPAYMENT PREVENTED\n\n` +
+      `OVERPAYMENT PREVENTED\n\n` +
       `Outstanding for ${term} Term ${year}: GHC ${formatCurrency(outstanding)}\n` +
       `You attempted to pay: GHC ${formatCurrency(amount)}\n` +
       `Excess amount: GHC ${formatCurrency(amount - outstanding)}\n\n` +
-      `💡 Please enter an amount equal to or less than the outstanding balance of GHC ${formatCurrency(outstanding)}.\n` +
+      `Please enter an amount equal to or less than the outstanding balance of GHC ${formatCurrency(outstanding)}.\n` +
       `Overpayment is not allowed. If you need to pay for the next term, please use that term's payment form.`,
       'error');
     return;
@@ -1101,7 +1101,7 @@ async function recordPayment() {
       }
     }
 
-    let successMsg = `✅ Payment recorded successfully!\nReceipt: ${data.receipt_number}\nAmount: GHC ${formatCurrency(data.amount_paid)}\nStatus: ${data.payment_status}`;
+    let successMsg = `Payment recorded successfully!\nReceipt: ${data.receipt_number}\nAmount: GHC ${formatCurrency(data.amount_paid)}\nStatus: ${data.payment_status}`;
 
     showMessage('feePaymentMessage', successMsg, 'success');
     logSubAdminActivity(`Recorded payment of GHC ${amount} for ${studentId} (Receipt: ${data.receipt_number})`, 'payment', `${studentId} - ${data.student_name}`);
@@ -1145,7 +1145,7 @@ async function recordPayment() {
   } catch (err) {
     showMessage('feePaymentMessage', 'Error: ' + err.message, 'error');
   } finally {
-    setLoading(btn, false, '💾 Record Payment');
+    setLoading(btn, false, 'Record Payment');
   }
 }
 
@@ -1191,7 +1191,7 @@ export async function showReceiptModal(data) {
 // fee receipt (school, student, fees, payment, issuer, notes...).
 // ================================================================
 
-// ⚠️ IMPORTANT — "site can't be reached" when scanning?
+// IMPORTANT — "site can't be reached" when scanning?
 // The QR encodes a URL that a phone must be able to open. If the app is
 // only running on your PC (localhost) the phone can never reach it.
 // The public base URL is configured in js/supabase-config.js
@@ -1263,7 +1263,7 @@ function renderReceiptQR(data) {
     const payload = buildReceiptQRPayload(data);
     const { isLocal, base } = getReceiptVerificationInfo();
     if (isLocal) {
-      console.warn('⚠️ Receipt QR link is local (' + (base || 'no origin') + ') — a phone cannot reach it. Set RECEIPT_VERIFY_BASE_URL in js/supabase-config.js to your public URL.');
+      console.warn('Receipt QR link is local (' + (base || 'no origin') + ') — a phone cannot reach it. Set RECEIPT_VERIFY_BASE_URL in js/supabase-config.js to your public URL.');
     }
 
     // node-qrcode browser build — generates a clean, standard QR Code Model 2
@@ -1312,7 +1312,7 @@ export function generateReceiptHTML(data) {
   // (built from localhost / file://) and therefore cannot be scanned by a phone.
   const verifyInfo = getReceiptVerificationInfo();
   const verifyWarning = verifyInfo.isLocal
-    ? '<div class="receipt-generated" style="margin-top:0.35rem;font-size:0.6rem;color:#b45309;line-height:1.35;">⚠️ QR link is local — not scannable from a phone. Set RECEIPT_VERIFY_BASE_URL in js/supabase-config.js to your public URL (e.g. your Vercel site).</div>'
+    ? '<div class="receipt-generated" style="margin-top:0.35rem;font-size:0.6rem;color:#b45309;line-height:1.35;">QR link is local — not scannable from a phone. Set RECEIPT_VERIFY_BASE_URL in js/supabase-config.js to your public URL (e.g. your Vercel site).</div>'
     : '';
   const now = new Date().toLocaleDateString('en-GB', {
     day: 'numeric', month: 'long', year: 'numeric',
@@ -1336,13 +1336,12 @@ export function generateReceiptHTML(data) {
   // Show prominent PREVIOUS TERM PAYMENT badge if this is a previous term payment
   if (isPreviousTermPayment) {
     arrearsBadge = `<div class="receipt-credit-notice" style="margin:0.5rem 0;padding:0.75rem;background:#fee2e2;border:2px solid #ef4444;border-radius:6px;font-size:0.9rem;color:#991b1b;text-align:center;">
-      <div style="font-size:1.5rem;margin-bottom:0.25rem;">⏪</div>
       <strong style="font-size:1.1rem;">PREVIOUS TERM PAYMENT</strong><br/>
       <span style="font-size:0.85rem;">This payment is for <strong>${data.term} Term ${data.academic_year}</strong> — an earlier term balance.</span>
     </div>`;
   } else if (hasArrears) {
     arrearsBadge = `<div class="receipt-credit-notice" style="margin:0.5rem 0;padding:0.5rem;background:#fef3c7;border:1px solid #f59e0b;border-radius:4px;font-size:0.85rem;color:#92400e;">
-      ⏰ <strong>ARREARS PAYMENT</strong> — This payment includes GHC ${formatCurrency(debtAmount)} towards outstanding balance carried forward from a previous term.
+      <strong>ARREARS PAYMENT</strong> — This payment includes GHC ${formatCurrency(debtAmount)} towards outstanding balance carried forward from a previous term.
     </div>`;
   }
 
@@ -1352,7 +1351,7 @@ export function generateReceiptHTML(data) {
       <td style="text-align:right;"><span class="fee-balance-credit">-GHC ${formatCurrency(overpaidAmount)} (Credit for next term)</span></td>
     </tr>`;
     overpaymentNotice = `<div class="receipt-credit-notice" style="margin-top:0.5rem;padding:0.5rem;background:#f0fdf4;border-radius:4px;font-size:0.85rem;color:#166534;">
-      💰 <strong>GHC ${formatCurrency(overpaidAmount)}</strong> overpaid — this credit will be deducted from the next term's fees.
+      <strong>GHC ${formatCurrency(overpaidAmount)}</strong> overpaid — this credit will be deducted from the next term's fees.
     </div>`;
   } else {
     balanceRow = `<tr>
@@ -1460,8 +1459,8 @@ window.viewStudentReceipts = async function(studentId) {
             <td>${r.term} ${r.academic_year}</td>
             <td>GHC ${formatCurrency(r.amount)}</td>
             <td>${r.payment_method}</td>
-            <td><button class="action-btn confirm" onclick="reprintReceipt('${r.id}')">🖨️ Reprint</button>
-            <button class="action-btn danger" onclick="deleteReceiptRecord('${r.id}', '${r.student_id}')">🗑️ Delete</button></td>
+            <td><button class="action-btn confirm" onclick="reprintReceipt('${r.id}')">Reprint</button>
+            <button class="action-btn danger" onclick="deleteReceiptRecord('${r.id}', '${r.student_id}')">Delete</button></td>
           </tr>
         `).join('')}
       </tbody>
@@ -1473,17 +1472,17 @@ window.viewStudentReceipts = async function(studentId) {
 // Open the receipts modal for a student, focused on deleting a receipt.
 // Clicking the per-student "Delete Receipt" button in the fees
 // management table opens the same list, where each receipt has a
-// 🗑️ Delete action (in case of a mistaken fee payment).
+// Delete action (in case of a mistaken fee payment).
 window.deleteStudentReceipts = async function(studentId) {
   await viewStudentReceipts(studentId);
 };
 
 // Delete a single receipt from the database and reverse the payment.
 window.deleteReceiptRecord = async function(receiptId, studentId) {
-  if (!confirm(`🗑️ DELETE RECEIPT\n\nAre you sure you want to permanently delete this receipt and REVERSE the payment?\n\nThe fee record will be recalculated (amount paid / status updated) to undo this payment.\n\nThis action CANNOT be undone!`)) return;
+  if (!confirm(`DELETE RECEIPT\n\nAre you sure you want to permanently delete this receipt and REVERSE the payment?\n\nThe fee record will be recalculated (amount paid / status updated) to undo this payment.\n\nThis action CANNOT be undone!`)) return;
 
   // Second confirmation for extra safety
-  if (!confirm(`⚠️ FINAL CONFIRMATION\n\nThis will remove the receipt and its payment transaction from the database and reverse the payment. Continue?`)) return;
+  if (!confirm(`FINAL CONFIRMATION\n\nThis will remove the receipt and its payment transaction from the database and reverse the payment. Continue?`)) return;
 
   try {
     const { data, error } = await supabaseClient.rpc('delete_receipt', {
@@ -1496,7 +1495,7 @@ window.deleteReceiptRecord = async function(receiptId, studentId) {
       return;
     }
 
-    alert(`✅ Receipt ${data.receipt_number} deleted and payment of GHC ${formatCurrency(data.amount)} reversed successfully.`);
+    alert(`Receipt ${data.receipt_number} deleted and payment of GHC ${formatCurrency(data.amount)} reversed successfully.`);
 
     logSubAdminActivity(`Deleted receipt ${data.receipt_number} for ${data.student_id} and reversed payment (GHC ${formatCurrency(data.amount)})`, 'fee', `${data.receipt_number}: GHC ${formatCurrency(data.amount)}`);
 
@@ -1579,10 +1578,10 @@ window.printFeeReminder = async function(studentId) {
     ? '<tr><td colspan="4" style="padding:6px;border:1px solid #ddd;text-align:center;color:#777;font-size:12px;">No fee records found for this student.</td></tr>'
     : '';
 
-
+const logoFallback = (schoolName || 'S').trim().charAt(0).toUpperCase() || 'S';
 const logoHtml = schoolLogoUrl
     ? `<img src="${schoolLogoUrl}" style="width:52px;height:52px;object-fit:contain;border-radius:6px;" />`
-    : '<div style="width:52px;height:52px;border-radius:6px;background:#1e3a5f;color:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;">🏛️</div>';
+    : `<div style="width:52px;height:52px;border-radius:6px;background:#1e3a5f;color:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;">${logoFallback}</div>`;
 
   const now = formatDate(new Date().toISOString());
 
@@ -1592,7 +1591,7 @@ const logoHtml = schoolLogoUrl
         ${logoHtml}
         <div style="flex:1;text-align:center;">
           <div style="font-size:16px;font-weight:700;color:#1e3a5f;">${schoolName}</div>
-          <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:#1e3a5f;">🧾 FEES REMINDER NOTE</div>
+          <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:#1e3a5f;">FEES REMINDER NOTE</div>
           <div style="font-size:10px;color:#555;">Issued: ${now}</div>
         </div>
       </div>
@@ -1625,7 +1624,7 @@ const logoHtml = schoolLogoUrl
       </div>
 
       <div style="border:2px solid #f59e0b;background:#fffbeb;border-radius:8px;padding:10px;font-size:11px;color:#78350f;line-height:1.55;">
-        <strong style="font-size:12px;">📢 REMINDER TO PARENT / GUARDIAN</strong><br/>
+        <strong style="font-size:12px;">REMINDER TO PARENT / GUARDIAN</strong><br/>
         Dear ${parentName},<br/>
         This is to remind you that your ward, <strong>${studentName}</strong> (${student.class_applying}), currently has an outstanding school fees balance of
         <strong>GHC ${formatCurrency(totalOutstanding)}</strong> left to be paid.
@@ -1748,9 +1747,10 @@ async function buildFeeReminderData(studentId) {
 function renderFeeReminderA5(data, schoolInfo) {
   const { schoolName, schoolLogoUrl } = schoolInfo;
   const { studentId, studentName, parentName, parentContact, className, rows, noFeesRow, totalOutstanding } = data;
+  const logoFallback = (schoolName || 'S').trim().charAt(0).toUpperCase() || 'S';
   const logoHtml = schoolLogoUrl
     ? `<img src="${schoolLogoUrl}" style="width:52px;height:52px;object-fit:contain;border-radius:6px;" />`
-    : '<div style="width:52px;height:52px;border-radius:6px;background:#1e3a5f;color:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;">🏛️</div>';
+    : `<div style="width:52px;height:52px;border-radius:6px;background:#1e3a5f;color:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;">${logoFallback}</div>`;
   const now = formatDate(new Date().toISOString());
 
   return `
@@ -1759,7 +1759,7 @@ function renderFeeReminderA5(data, schoolInfo) {
         ${logoHtml}
         <div style="flex:1;text-align:center;">
           <div style="font-size:16px;font-weight:700;color:#1e3a5f;">${schoolName}</div>
-          <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:#1e3a5f;">🧾 FEES REMINDER NOTE</div>
+          <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:#1e3a5f;">FEES REMINDER NOTE</div>
           <div style="font-size:10px;color:#555;">Issued: ${now}</div>
         </div>
       </div>
@@ -1792,7 +1792,7 @@ function renderFeeReminderA5(data, schoolInfo) {
       </div>
 
       <div style="border:2px solid #f59e0b;background:#fffbeb;border-radius:8px;padding:10px;font-size:11px;color:#78350f;line-height:1.55;">
-        <strong style="font-size:12px;">📢 REMINDER TO PARENT / GUARDIAN</strong><br/>
+        <strong style="font-size:12px;">REMINDER TO PARENT / GUARDIAN</strong><br/>
         Dear ${parentName},<br/>
         This is to remind you that your ward, <strong>${studentName}</strong> (${className}), currently has an outstanding school fees balance of
         <strong>GHC ${formatCurrency(totalOutstanding)}</strong> left to be paid.
@@ -2105,7 +2105,7 @@ async function loadDebtorsList() {
 
   const { data: allFees } = await query;
   if (!allFees || allFees.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--text-muted);">🎉 No debtors! All fees are up to date.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--text-muted);">No debtors! All fees are up to date.</td></tr>';
     const countEl = getEl('feeDebtorsCount');
     if (countEl) countEl.textContent = '0 debtor(s)';
     return;
@@ -2118,7 +2118,7 @@ async function loadDebtorsList() {
   });
 
   if (debtors.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--text-muted);">🎉 No debtors! All fees are up to date.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--text-muted);">No debtors! All fees are up to date.</td></tr>';
     const countEl = getEl('feeDebtorsCount');
     if (countEl) countEl.textContent = '0 debtor(s)';
     return;
@@ -2216,7 +2216,7 @@ async function loadDebtorsList() {
       <td><strong class="fee-balance-unpaid">GHC ${formatCurrency(s.total_balance)}</strong></td>
       <td>${lastPayDate}</td>
       <td>
-        <button class="action-btn confirm" onclick="openFeePayment('${s.student_id}')">💰 Record Payment</button>
+        <button class="action-btn confirm" onclick="openFeePayment('${s.student_id}')">Record Payment</button>
       </td>
     </tr>`;
   }).join('');
@@ -2269,13 +2269,14 @@ async function getSchoolNameForSms(schoolId) {
 }
 
 /** Build a short one-SMS fee reminder for a debtor. */
-function buildDebtorReminderSms(schoolName, studentName, className, balance) {
+function buildDebtorReminderSms(schoolName, studentName, className, balance, adminPhone) {
   const school = String(schoolName || 'School').trim().slice(0, 40);
   const cls = className ? ` (${String(className).trim()})` : '';
   const bal = formatCurrency(Number(balance) || 0);
   return (
     `${school}: Dear Parent/Guardian, this is a reminder that fees for ${studentName}${cls} ` +
-    `have an outstanding balance of GHC${bal}. Kindly settle the balance to keep your ward in school. Thank you.`
+    `have an outstanding balance of GHC${bal}. Kindly settle the balance to keep your ward in school.` +
+    ` Thank you.${buildAssistanceLine(adminPhone)}`
   );
 }
 
@@ -2344,13 +2345,13 @@ window.sendBulkFeeReminderSms = async function () {
   // has disabled SMS for this school.
   const schoolId = await getCurrentSchoolId();
   if (!(await isSmsEnabledForSchool(schoolId))) {
-    showMessage('feeDebtorsSmsMessage', '⛔ SMS is currently disabled for this school by the Super Admin. Fee reminder messages cannot be sent until SMS is re-enabled — please contact your Super Administrator.', 'error');
+    showMessage('feeDebtorsSmsMessage', 'SMS is currently disabled for this school by the Super Admin. Fee reminder messages cannot be sent until SMS is re-enabled — please contact your Super Administrator.', 'error');
     return;
   }
 
   const boxes = Array.from(document.querySelectorAll('.debtor-sms-check:checked'));
   if (boxes.length === 0) {
-    showMessage('feeDebtorsSmsMessage', '⚠️ Please select at least one debtor first — tick the checkboxes (or the Select All box) and try again.', 'error');
+    showMessage('feeDebtorsSmsMessage', 'Please select at least one debtor first — tick the checkboxes (or the Select All box) and try again.', 'error');
     return;
   }
 
@@ -2376,7 +2377,7 @@ window.sendBulkFeeReminderSms = async function () {
   }
 
   if (withPhone.length === 0) {
-    showMessage('feeDebtorsSmsMessage', `❌ None of the ${selected.length} selected debtor(s) have a valid parent/guardian phone number on record, so no SMS was sent.`, 'error');
+    showMessage('feeDebtorsSmsMessage', `None of the ${selected.length} selected debtor(s) have a valid parent/guardian phone number on record, so no SMS was sent.`, 'error');
     return;
   }
 
@@ -2387,9 +2388,10 @@ window.sendBulkFeeReminderSms = async function () {
   if (!confirm(confirmText)) return;
 
   const schoolName = await getSchoolNameForSms(schoolId);
+  const adminPhone = await getAdminContactForSchool(schoolId);
 
   const btn = getEl('feeSendSmsBtn');
-  const originalLabel = btn ? btn.textContent.trim() : '📨 Send Fee Reminder SMS';
+  const originalLabel = btn ? btn.textContent.trim() : 'Send Fee Reminder SMS';
   setLoading(btn, true, 'Sending...');
 
   let sent = 0;
@@ -2399,7 +2401,7 @@ window.sendBulkFeeReminderSms = async function () {
     for (let i = 0; i < withPhone.length; i++) {
       const s = withPhone[i];
       if (btn) btn.innerHTML = `<span class="spinner"></span> Sending ${i + 1} of ${total}`;
-      const message = buildDebtorReminderSms(schoolName, s.name, s.className, s.balance);
+      const message = buildDebtorReminderSms(schoolName, s.name, s.className, s.balance, adminPhone);
       const result = await sendDebtorReminderSms(s.phone, s.studentId, message, schoolId);
       if (result.ok) {
         sent += 1;
@@ -2416,7 +2418,7 @@ window.sendBulkFeeReminderSms = async function () {
     setLoading(btn, false, originalLabel);
   }
 
-  let summary = `✅ Bulk SMS complete!\nSent: ${sent}\nFailed: ${failed}`;
+  let summary = `Bulk SMS complete!\nSent: ${sent}\nFailed: ${failed}`;
   if (failed > 0) {
     const topReasons = Object.entries(reasons)
       .sort((a, b) => b[1] - a[1])
@@ -2826,7 +2828,7 @@ window.showTodayReceipts = async function() {
               <td style="text-align:right;font-weight:bold;">${formatCurrency(r.amount)}</td>
               <td>${r.payment_method}</td>
               <td>${time}</td>
-              <td><button class="action-btn confirm" style="font-size:11px;padding:2px 6px;" onclick="reprintReceipt('${r.id}')">🖨️</button></td>
+              <td><button class="action-btn confirm" style="font-size:11px;padding:2px 6px;" onclick="reprintReceipt('${r.id}')"></button></td>
             </tr>`;
           }).join('')}
         </tbody>
@@ -2852,7 +2854,7 @@ window.showTodayReceipts = async function() {
   if (modal) {
     // Update modal title
     const title = modal.querySelector('.modal-header h3');
-    if (title) title.textContent = `📋 Today's Receipts - ${todayFormatted}`;
+    if (title) title.textContent = `Today's Receipts - ${todayFormatted}`;
     modal.style.display = 'flex';
   }
 };
@@ -2941,7 +2943,7 @@ async function previewDeleteReceipts() {
     }).join('');
 
     if (summaryEl) {
-      summaryEl.innerHTML = `<span style="color:#b91c1c;">⚠️ Found <strong>${receipts.length}</strong> receipt(s) totaling <strong>GHC ${formatCurrency(totalAmount)}</strong> that will be deleted.</span>`;
+      summaryEl.innerHTML = `<span style="color:#b91c1c;">Found <strong>${receipts.length}</strong> receipt(s) totaling <strong>GHC ${formatCurrency(totalAmount)}</strong> that will be deleted.</span>`;
     }
   } catch (err) {
     tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--danger);">Error loading receipts: ' + err.message + '</td></tr>';
@@ -2967,10 +2969,10 @@ async function deleteReceiptsByClassDate() {
   if (dateTo) filterParts.push(`To: ${dateTo}`);
   const filterDesc = filterParts.join(' | ');
 
-  if (!confirm(`🗑️ DELETE RECEIPTS - DANGER ZONE\n\n${filterDesc}\n\nThis will PERMANENTLY delete all matching receipts and their associated payment transactions from the database.\n\nFee records will be recalculated (amount paid and payment status updated).\n\nThis action CANNOT be undone!\n\nAre you absolutely sure?`)) return;
+  if (!confirm(`DELETE RECEIPTS - DANGER ZONE\n\n${filterDesc}\n\nThis will PERMANENTLY delete all matching receipts and their associated payment transactions from the database.\n\nFee records will be recalculated (amount paid and payment status updated).\n\nThis action CANNOT be undone!\n\nAre you absolutely sure?`)) return;
 
   // Second confirmation for extra safety
-  if (!confirm(`⚠️ FINAL CONFIRMATION\n\nAre you 100% sure you want to delete these receipts?\n\nThis is irreversible.`)) return;
+  if (!confirm(`FINAL CONFIRMATION\n\nAre you 100% sure you want to delete these receipts?\n\nThis is irreversible.`)) return;
 
   const btn = getEl('feeDeleteReceiptsBtn');
   setLoading(btn, true, 'Deleting...');
@@ -2994,11 +2996,11 @@ async function deleteReceiptsByClassDate() {
     }
 
     showMessage('feeDeleteReceiptsMessage',
-      `✅ Deletion complete!\n\n` +
-      `🗑️ Receipts deleted: ${data.receipts_deleted}\n` +
-      `💳 Transactions deleted: ${data.transactions_deleted}\n` +
-      `💰 Total amount: GHC ${formatCurrency(data.total_amount)}\n` +
-      `📋 Fee records updated: ${data.fee_records_updated}`,
+      `Deletion complete!\n\n` +
+      `Receipts deleted: ${data.receipts_deleted}\n` +
+      `Transactions deleted: ${data.transactions_deleted}\n` +
+      `Total amount: GHC ${formatCurrency(data.total_amount)}\n` +
+      `Fee records updated: ${data.fee_records_updated}`,
       'success');
 
     logSubAdminActivity(`Deleted ${data.receipts_deleted} receipt(s) for ${className} (${filterDesc})`, 'fee', `${className}: ${data.receipts_deleted} receipts, GHC ${data.total_amount}`);
@@ -3016,7 +3018,7 @@ async function deleteReceiptsByClassDate() {
   } catch (err) {
     showMessage('feeDeleteReceiptsMessage', 'Error: ' + err.message, 'error');
   } finally {
-    setLoading(btn, false, '🗑️ Delete Receipts');
+    setLoading(btn, false, 'Delete Receipts');
   }
 }
 
@@ -3080,13 +3082,13 @@ async function bulkCarryForward() {
       }
     }
 
-    showMessage('feeBulkMessage', `✅ Carry forward complete!\nProcessed: ${students.length}\nSuccess: ${successCount}\nErrors: ${errorCount}`, 'success');
+    showMessage('feeBulkMessage', `Carry forward complete!\nProcessed: ${students.length}\nSuccess: ${successCount}\nErrors: ${errorCount}`, 'success');
     logSubAdminActivity(`Bulk carry forward: ${className} ${fromTerm}->${toTerm}`, 'fee', `${className}: ${successCount} students`);
     await loadDebtorsList();
   } catch (err) {
     showMessage('feeBulkMessage', 'Error: ' + err.message, 'error');
   } finally {
-    setLoading(btn, false, '🔄 Bulk Carry Forward');
+    setLoading(btn, false, 'Bulk Carry Forward');
   }
 }
 
@@ -3282,7 +3284,7 @@ async function renderHolidayPreviewTable() {
   }
 
   if (data.nextFeeSource === 'missing') {
-    showMessage('feeHolidayMessage', '⚠️ No fee is set for the next term for this class. Amount to pay currently reflects the balance only. Set the next term fee via "Set / Update Class Fee" or enter it manually above.', 'error');
+    showMessage('feeHolidayMessage', 'No fee is set for the next term for this class. Amount to pay currently reflects the balance only. Set the next term fee via "Set / Update Class Fee" or enter it manually above.', 'error');
   }
 
   tbody.innerHTML = data.statements.map(s => {
@@ -3372,7 +3374,7 @@ async function generateHolidayPrintHTML() {
           ${logoHtml}
           <div style="flex:1;text-align:center;">
             <div style="font-size:20px;font-weight:700;color:#1e3a5f;">${schoolName}</div>
-            <div style="font-size:14px;font-weight:600;letter-spacing:1px;color:#1e3a5f;">🏖️ HOLIDAY FEE STATEMENT</div>
+            <div style="font-size:14px;font-weight:600;letter-spacing:1px;color:#1e3a5f;">HOLIDAY FEE STATEMENT</div>
             <div style="font-size:12px;color:#555;">Issued: ${now}</div>
           </div>
         </div>
@@ -3419,7 +3421,7 @@ async function generateHolidayPrintHTML() {
         </div>
 
         <div style="border:2px solid #f59e0b;background:#fffbeb;border-radius:8px;padding:12px;font-size:13px;color:#78350f;">
-          <strong>📢 NOTE TO PARENTS / GUARDIANS</strong><br/>
+          <strong>NOTE TO PARENTS / GUARDIANS</strong><br/>
           Dear Parent/Guardian, please kindly prepare and pay <strong>GHC ${formatCurrency(s.amountToPay)}</strong> for
           your ward's <strong>${nextTerm} Term ${nextYear}</strong> school fees before or on resumption.
           ${s.credit > 0 ? 'Your ward has a credit which has already been deducted from the amount due. ' : ''}
@@ -3523,9 +3525,9 @@ async function generateFeeRecords() {
       .maybeSingle();
 
     if (!classFee) {
-      setLoading(btn, false, '👥 Generate Fee Records');
+      setLoading(btn, false, 'Generate Fee Records');
       showMessage('feeGenerateMessage', 
-        `❌ No fee structure found for ${className} - ${term} Term.\n\nPlease go to the "Set / Update Class Fee" section first to set the fee structure (including academic year) for this class and term before generating fee records.`, 
+        `No fee structure found for ${className} - ${term} Term.\n\nPlease go to the "Set / Update Class Fee" section first to set the fee structure (including academic year) for this class and term before generating fee records.`, 
         'error');
       return;
     }
@@ -3534,7 +3536,7 @@ async function generateFeeRecords() {
     const feeAmount = classFee.fee_amount;
 
     if (!confirm(`Generate fee records for ALL students in ${className}?\n\nTerm: ${term} ${year}\nFee Amount: GHC ${formatCurrency(feeAmount)}\n\nExisting records will be preserved.`)) {
-      setLoading(btn, false, '👥 Generate Fee Records');
+      setLoading(btn, false, 'Generate Fee Records');
       return;
     }
 
@@ -3590,12 +3592,12 @@ async function generateFeeRecords() {
       if (!error) created++;
     }
 
-    showMessage('feeGenerateMessage', `✅ Complete!\nCreated: ${created}\nSkipped (already exist): ${skipped}\nTotal students: ${students.length}`, 'success');
+    showMessage('feeGenerateMessage', `Complete!\nCreated: ${created}\nSkipped (already exist): ${skipped}\nTotal students: ${students.length}`, 'success');
     logSubAdminActivity(`Generated fee records for ${className} ${term} ${year}`, 'fee', `${className}: ${created} created, ${skipped} skipped`);
   } catch (err) {
     showMessage('feeGenerateMessage', 'Error: ' + err.message, 'error');
   } finally {
-    setLoading(btn, false, '👥 Generate Fee Records');
+    setLoading(btn, false, 'Generate Fee Records');
   }
 }
 
@@ -3604,7 +3606,7 @@ async function generateFeeRecords() {
 // ================================================================
 
 window.deleteFeeRecord = async function(feeId, studentId, termLabel) {
-  if (!confirm(`🗑️ Delete fee record for ${studentId} (${termLabel})?\n\nThis will permanently delete this fee record from the database. Payment transactions and receipts will be preserved. This action CANNOT be undone.`)) return;
+  if (!confirm(`Delete fee record for ${studentId} (${termLabel})?\n\nThis will permanently delete this fee record from the database. Payment transactions and receipts will be preserved. This action CANNOT be undone.`)) return;
 
   try {
     // Delete only the fee record - receipts and payment_transactions are PRESERVED
@@ -3614,7 +3616,7 @@ window.deleteFeeRecord = async function(feeId, studentId, termLabel) {
 
     if (error) throw error;
 
-    showMessage('editStudentFeeMessage', `✅ Fee record for ${termLabel} deleted successfully. Receipts & payment history preserved.`, 'success');
+    showMessage('editStudentFeeMessage', `Fee record for ${termLabel} deleted successfully. Receipts & payment history preserved.`, 'success');
     logSubAdminActivity(`Deleted fee record for ${studentId} (${termLabel})`, 'fee', `${studentId}/${termLabel}`);
 
     // Reload the edit modal content
@@ -3650,7 +3652,7 @@ window.editStudentFee = async function(studentId) {
   const name = student?.data ? `${student.data.first_name} ${student.data.middle_name || ''} ${student.data.last_name}` : studentId;
 
   let html = `<div style="padding:1rem;">
-    <h3 style="margin:0 0 0.5rem 0;">✏️ Edit Fee Records</h3>
+    <h3 style="margin:0 0 0.5rem 0;">Edit Fee Records</h3>
     <p style="margin-bottom:1rem;color:var(--text-muted);font-size:0.85rem;">
       <strong>${studentId}</strong> - ${name}
     </p>
@@ -3688,14 +3690,14 @@ window.editStudentFee = async function(studentId) {
               </select>
             </td>
             <td>
-              <button type="button" class="action-btn danger" onclick="deleteFeeRecord('${f.id}', '${studentId}', '${f.term} ${f.academic_year}')" style="font-size:0.8rem;padding:0.25rem 0.5rem;">🗑️ Delete</button>
+              <button type="button" class="action-btn danger" onclick="deleteFeeRecord('${f.id}', '${studentId}', '${f.term} ${f.academic_year}')" style="font-size:0.8rem;padding:0.25rem 0.5rem;">Delete</button>
             </td>
           </tr>
         `).join('')}
       </tbody>
     </table>
     <div style="margin-top:1rem;display:flex;gap:0.5rem;">
-      <button type="button" class="btn btn-primary" id="saveStudentFeeEdits">💾 Save Changes</button>
+      <button type="button" class="btn btn-primary" id="saveStudentFeeEdits">Save Changes</button>
       <button type="button" class="btn btn-secondary" onclick="document.getElementById('editStudentFeeModal').style.display='none'">Cancel</button>
     </div>
     <div id="editStudentFeeMessage" class="message" style="display:none;margin-top:0.75rem;"></div>
@@ -3710,8 +3712,8 @@ window.editStudentFee = async function(studentId) {
     modal.style.display = 'none';
     modal.innerHTML = `<div class="modal-card" style="max-width:900px;max-height:90vh;overflow-y:auto;">
       <div class="modal-header">
-        <h3>✏️ Edit Student Fee Records</h3>
-        <button class="modal-close" onclick="document.getElementById('editStudentFeeModal').style.display='none'">✖</button>
+        <h3>Edit Student Fee Records</h3>
+        <button class="modal-close" onclick="document.getElementById('editStudentFeeModal').style.display='none'">×</button>
       </div>
       <div class="modal-body" id="editStudentFeeContent"></div>
     </div>`;
@@ -3763,7 +3765,7 @@ window.editStudentFee = async function(studentId) {
           if (!error) updated++;
         }
 
-        showMessage('editStudentFeeMessage', `✅ Updated ${updated} fee record(s) for ${studentId}.`, 'success');
+        showMessage('editStudentFeeMessage', `Updated ${updated} fee record(s) for ${studentId}.`, 'success');
         logSubAdminActivity(`Edited fee records for ${studentId}`, 'fee', `${studentId}: ${updated} records`);
         
         // Reload the student fees tab
@@ -3771,7 +3773,7 @@ window.editStudentFee = async function(studentId) {
       } catch (err) {
         showMessage('editStudentFeeMessage', 'Error: ' + err.message, 'error');
       } finally {
-        setLoading(btn, false, '💾 Save Changes');
+        setLoading(btn, false, 'Save Changes');
       }
     });
   }, 100);

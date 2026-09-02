@@ -249,7 +249,7 @@
 --          reset_student_password() SECURITY DEFINER functions +
 --          _admin_reset_user_password() internal helper.
 -- Used by: admin-teachers.js, admin-accountants.js and admin-students.js
---          "🔑 Password" buttons (see #adminResetPasswordModal) so an
+--          "Password" buttons (see #adminResetPasswordModal) so an
 --          admin can reset a forgotten portal password to a custom one.
 \i 039-reset-user-passwords.sql
 
@@ -352,7 +352,7 @@
 
 -- Step 46: Staff Activity Log
 -- Creates: staff_activities table (with RLS) so school admins can open a
---          '📋 Activity' button for each teacher & accountant and audit
+--          'Activity' button for each teacher & accountant and audit
 --          login/logout, fee payments, income/expenditure, debtors list
 --          generation, password changes, reprints, profile updates, exam
 --          marks entry, attendance marking and assessment activity.
@@ -365,7 +365,7 @@
 
 -- Step 47: Clear Activity Logs (RLS DELETE policies)
 -- Adds DELETE policies on staff_activities (teacher/accountant logs) and
--- sub_admin_activities so the '🗑️ Clear All Logs' button in the activity-log
+-- sub_admin_activities so the 'Clear All Logs' button in the activity-log
 -- modals can delete every log row for one user. Mirrors the existing SELECT
 -- policies (super admin / school admin / the user themself). Safe to re-run.
 -- Used by: js/modules/admin-teachers.js (clearStaffActivityLog),
@@ -385,6 +385,16 @@
 --          js/modules/admin-sms-monitor.js (resend) and
 --          js/modules/forgot-password.js (OTP).
 \i 055-school-sms-toggle.sql
+
+-- Step 49: Admin Assistance Phone in Every SMS
+-- Adds: _fp_get_assistance_phone() — resolves the school administrator's
+--       mobile for every role (staff / student / parent) — and extends
+--       request_forgot_password_otp() so the password-reset OTP SMS can
+--       close with "For any assistance, call …".
+-- Used by: js/modules/sms-gateway.js (fee-payment SMS),
+--          js/modules/admin-fees.js (bulk fee reminders) and
+--          js/modules/forgot-password.js (OTP).
+\i 056-sms-admin-assistance.sql
 
 -- ============================================================
 --  SCHEMA DEPLOYMENT COMPLETE

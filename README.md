@@ -1,10 +1,10 @@
-# 🎓 Student Admission Portal
+# Student Admission Portal
 
 A full-featured student admission web application built with vanilla JavaScript, HTML/CSS, and [Supabase](https://supabase.com) for authentication and database. Designed for easy deployment on **Vercel** and **GitHub Pages**.
 
 ---
 
-## 📋 Features
+## Features
 
 - **Student Application Form** — Collect personal & academic info
 - **User Authentication** — Register, Login, Logout (powered by Supabase Auth)
@@ -18,7 +18,7 @@ A full-featured student admission web application built with vanilla JavaScript,
 
 ---
 
-## 🗂 Project Structure
+## Project Structure
 
 ```
 student-admission-app/
@@ -44,7 +44,7 @@ student-admission-app/
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### 1. Clone or download the project
 
@@ -68,7 +68,7 @@ const SUPABASE_URL = 'https://YOUR_PROJECT.supabase.co';       // ← Replace
 const SUPABASE_ANON_KEY = 'your-anon-key-here';                // ← Replace
 ```
 
-> ⚠️ Do **not** commit real credentials to a public repo. Use environment variables or a `.env` file if you fork for production.
+> Do **not** commit real credentials to a public repo. Use environment variables or a `.env` file if you fork for production.
 
 ### 4. Run the database schema
 
@@ -105,7 +105,7 @@ Every image / file in the app — student photos, school logos, and teacher cert
 
 ---
 
-## 🌐 Deploy to Vercel
+## Deploy to Vercel
 
 1. Push the project to a **GitHub repository**.
 2. Go to [vercel.com](https://vercel.com) and click **Add New → Project**.
@@ -124,7 +124,7 @@ Your app will be live at `https://student-admission-app.vercel.app`.
 
 ---
 
-## 🔐 Row Level Security (RLS)
+## Row Level Security (RLS)
 
 The `supabase-schema.sql` enables **Row Level Security** on both the `profiles` and `applications` tables:
 
@@ -136,7 +136,7 @@ An automatic trigger creates a `profiles` row when a new user signs up via Supab
 
 ---
 
-## 📱 SMS Payment Notifications (Nalo Solutions)
+## SMS Payment Notifications (Nalo Solutions)
 
 Every time a fee payment is recorded (by an **admin** in *Fees Management → Record Payment* or by an **accountant** on their dashboard), the app instantly sends an SMS receipt confirmation to the student's **parent/guardian contact**.
 
@@ -167,7 +167,7 @@ Then run `sql/041-sms-gateway.sql` in the Supabase SQL Editor (or re-run `sql/00
 
 > The `sms_logs` table and the `/api/send-sms` function are protected by RLS / server-side secrets respectively. Messages are sent fire-and-forget, so an SMS failure never blocks the payment receipt from being generated.
 
-### 📨 SMS Monitoring (Admin)
+### SMS Monitoring (Admin)
 
 School admins can monitor every SMS attempt from the **SMS Monitoring** module in the sidebar:
 
@@ -179,23 +179,23 @@ School admins can monitor every SMS attempt from the **SMS Monitoring** module i
 
 To enable the module, run `sql/043-sms-monitoring-module.sql` (included in `sql/000-run-all.sql`). It only registers the `sms-monitoring` module for Super-Admin lock/unlock control — no new tables are created because the module reads the existing `sms_logs` audit table. The Super Admin can lock it per school via **Schools → Module Locks**.
 
-### 📨 Bulk Fee Reminder SMS (Admin → Fees → Debtors)
+### Bulk Fee Reminder SMS (Admin → Fees → Debtors)
 
 School admins can send a single fee-reminder SMS to every debtor's parent/guardian straight from the **Fees Management → Debtors** tab:
 
 - Use the **class filter** (`All Classes` or a specific class) so the bulk SMS targets exactly the class you want.
 - Tick the **Select All** checkbox or pick individual debtors manually — a live **"N selected"** counter shows how many are queued.
-- Click **📨 Send Fee Reminder SMS**; each parent receives a short message with the school name, the student's name, class and their exact outstanding GHC balance.
+- Click **Send Fee Reminder SMS**; each parent receives a short message with the school name, the student's name, class and their exact outstanding GHC balance.
 - Debtors with no valid Ghana phone number are skipped and reported; every attempt is audited as a new `sms_logs` row (visible in SMS Monitoring) so failed sends can be retried.
 
 > Requires the same Nalo gateway as above: set `NALO_SMS_AUTH_KEY` (or username/password) as a **Vercel environment variable** and deploy. Without it `/api/send-sms` returns `500 "Nalo SMS is not configured ..."` and the app now shows that exact reason in the result message.
 
-### 📵 Per-School SMS Enable / Disable (Super Admin)
+### Per-School SMS Enable / Disable (Super Admin)
 
 The Super Admin can switch SMS messaging **on/off per school** from **Super Admin Dashboard → Schools**:
 
-- Each school row shows an **SMS** badge (✅ On / ⛔ Off) with a **📵 Disable / 📱 Enable** button.
-- The Dashboard quick-school cards also flag schools that have SMS off with a **📵 SMS Off** badge.
+- Each school row shows an **SMS** badge (On / Off) with a **Disable / Enable** button.
+- The Dashboard quick-school cards also flag schools that have SMS off with a **SMS Off** badge.
 - Disabling SMS blocks **every** SMS path for that school:
   - fee-payment receipts (`sendFeePaymentSms`),
   - bulk fee-reminder SMS (Admin → Fees → Debtors — the button is disabled with an explanation),
@@ -205,7 +205,7 @@ The Super Admin can switch SMS messaging **on/off per school** from **Super Admi
 Apply with `sql/055-school-sms-toggle.sql` (included in `sql/000-run-all.sql`). It adds the `schools.sms_enabled` column (default `true`), an `is_school_sms_enabled()` RPC readable by all authenticated staff, and hardens `request_forgot_password_otp()`.
 
 
-## 🔑 Forgot Password (SMS OTP)
+## Forgot Password (SMS OTP)
 
 On the **sign-in page** there is a "Forgot password?" link that lets any user reset their own password by confirming the mobile number on file:
 
@@ -231,7 +231,7 @@ On the **sign-in page** there is a "Forgot password?" link that lets any user re
 
 ---
 
-## 📦 Tech Stack
+## Tech Stack
 
 | Layer       | Technology        |
 |-------------|-------------------|
@@ -243,12 +243,12 @@ On the **sign-in page** there is a "Forgot password?" link that lets any user re
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 Pull requests are welcome! For major changes, open an issue first to discuss what you'd like to change.
 
 ---
 
-## 📄 License
+## License
 
 MIT

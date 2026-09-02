@@ -3,17 +3,17 @@
 --  Accountants and Students
 -- ============================================================
 --  What this adds:
---  ✅ reset_teacher_password()    - SECURITY DEFINER RPC
---  ✅ reset_accountant_password() - SECURITY DEFINER RPC
---  ✅ reset_student_password()    - SECURITY DEFINER RPC
---  ✅ Only super_admin OR an admin/sub_admin of the SAME school
+--  reset_teacher_password()    - SECURITY DEFINER RPC
+--  reset_accountant_password() - SECURITY DEFINER RPC
+--  reset_student_password()    - SECURITY DEFINER RPC
+--  Only super_admin OR an admin/sub_admin of the SAME school
 --     can call them (guards each call against cross-school resets)
---  ✅ Updates the auth.users password for the linked user
---  ✅ Returns JSON with success status and details
---  ✅ Fallback: finds the auth user via the portal email
+--  Updates the auth.users password for the linked user
+--  Returns JSON with success status and details
+--  Fallback: finds the auth user via the portal email
 --     (registration_id@teacher.local / @accountant.local /
 --      student_id@student.local) and auto-links it when found
---  ✅ Uses pgcrypto extension for bcrypt password hashing
+--  Uses pgcrypto extension for bcrypt password hashing
 -- ============================================================
 
 -- Ensure pgcrypto extension is available (Supabase installs it in extensions schema)

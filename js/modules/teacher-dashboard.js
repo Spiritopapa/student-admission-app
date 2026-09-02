@@ -31,12 +31,12 @@ export function setupTeacherDashboard() {
       const target = getEl('teacherPage-' + page);
       if (target) target.classList.add('active-subpage');
       const titles = {
-        dashboard: '⭐ Dashboard',
-        students: '👥 My Students',
-        attendance: '📋 Attendance Management',
-        exams: '📝 Exams & Scores',
-        assessments: '❓ Assessments',
-        profile: '👤 My Profile'
+        dashboard: 'Dashboard',
+        students: 'My Students',
+        attendance: 'Attendance Management',
+        exams: 'Exams & Scores',
+        assessments: 'Assessments',
+        profile: 'My Profile'
       };
       const titleEl = getEl('teacherDashTitle');
       if (titleEl && titles[page]) titleEl.textContent = titles[page];
@@ -347,7 +347,7 @@ async function loadTeacherTodayAttendance(classes) {
       container.innerHTML = `
         <div class="dash-list-card animated-card dash-attendance-card">
           <div class="dash-list-header">
-            <h3>📋 Today's Attendance</h3>
+            <h3>Today's Attendance</h3>
             <span class="dash-list-count">0 classes</span>
           </div>
           <div class="dash-list-body">
@@ -363,7 +363,7 @@ async function loadTeacherTodayAttendance(classes) {
     container.innerHTML = `
       <div class="dash-list-card animated-card dash-attendance-card" style="margin-top:1rem;">
         <div class="dash-list-header">
-          <h3>📋 Today's Attendance</h3>
+          <h3>Today's Attendance</h3>
           <span class="dash-list-count">${list.length} classes</span>
         </div>
         <div class="dash-list-body">
@@ -467,7 +467,7 @@ async function loadTeacherStudents() {
       const name = buildStudentName(s.first_name, s.middle_name, s.last_name);
       const photoHtml = s.student_photo_url
         ? `<img src="${s.student_photo_url}" class="dash-photo" />`
-        : '<span class="dash-photo-placeholder">📷</span>';
+        : '<span class="dash-photo-placeholder"></span>';
       return `<tr>
         <td>${idx + 1}</td>
         <td>${photoHtml}</td>
@@ -478,7 +478,7 @@ async function loadTeacherStudents() {
         <td>${s.parent_name}</td>
         <td>${s.parent_contact}</td>
         <td>${statusBadge(s.status)}</td>
-        <td>${s.portal_confirmed ? '<span class="badge-confirmed">✅ Confirmed</span>' : '<span class="badge-unconfirmed">⏳ Not yet</span>'}</td>
+        <td>${s.portal_confirmed ? '<span class="badge-confirmed">Confirmed</span>' : '<span class="badge-unconfirmed">Not yet</span>'}</td>
       </tr>`;
     }).join('');
   } catch (err) {
@@ -605,7 +605,7 @@ function renderTeacherAttendanceTable() {
     }).join(' ');
 
     const lockBadge = locked 
-      ? '<span style="display:inline-block;margin-left:0.35rem;font-size:0.65rem;padding:0.1rem 0.4rem;background:rgba(100,116,139,0.12);color:var(--secondary);border-radius:4px;white-space:nowrap;">🔒 Locked</span>' 
+      ? '<span style="display:inline-block;margin-left:0.35rem;font-size:0.65rem;padding:0.1rem 0.4rem;background:rgba(100,116,139,0.12);color:var(--secondary);border-radius:4px;white-space:nowrap;">Locked</span>' 
       : '';
 
     const remarksDisabled = locked ? ' disabled' : '';
@@ -736,7 +736,7 @@ async function saveTeacherAttendance() {
     }
 
     const skipMsg = skipped > 0 ? ` (${skipped} locked records skipped - admin only)` : '';
-    showMessage('teacherAttMessage', `✅ Attendance saved! ${saved} new, ${updated} updated.${skipMsg}`, 'success');
+    showMessage('teacherAttMessage', `Attendance saved! ${saved} new, ${updated} updated.${skipMsg}`, 'success');
     try { await logStaffActivity(`Marked attendance for ${teacherAttendanceCache.length} students (${saved} new, ${updated} updated)`, { role: 'teacher', entityType: 'attendance', entityDetails: `${teacherAttendanceCache[0]?.date || ''} · ${teacherAttendanceCache[0]?.class_applying || ''}` }); } catch (e) { /* noop */ }
 
     // Show instant report after saving
@@ -760,7 +760,7 @@ async function saveTeacherAttendance() {
   } catch (err) {
     showMessage('teacherAttMessage', 'Error: ' + err.message, 'error');
   } finally {
-    setLoading(btn, false, '💾 Save Attendance');
+    setLoading(btn, false, 'Save Attendance');
   }
 }
 
@@ -970,7 +970,7 @@ function renderTeacherMonthlyGrid(dates) {
     const weekendClass = isWeekend ? ' weekend' : '';
     headerHtml += `<th class="day-header${weekendClass}" data-date="${date}" title="${date} (${d.toLocaleDateString('en', { weekday: 'long' })})">${dayNum}<br><span style="font-size:0.55rem;opacity:0.7;">${dayName}</span></th>`;
   });
-  headerHtml += '<th class="present-count-cell" style="min-width:45px;">✅</th>';
+  headerHtml += '<th class="present-count-cell" style="min-width:45px;"></th>';
   thead.innerHTML = headerHtml;
 
   if (teacherMonthlyCache.length === 0) {
@@ -992,14 +992,13 @@ function renderTeacherMonthlyGrid(dates) {
       const lockedClass = isLocked ? ' locked-cell' : '';
       const icons = { present: '✓', absent: '✗' };
       const iconHtml = status !== 'unmarked' ? `<span class="day-status-icon">${icons[status] || '✗'}</span>` : '<span class="day-status-icon" style="opacity:0.3;">—</span>';
-      const lockIcon = isLocked ? '<span style="font-size:0.55rem;opacity:0.6;margin-left:1px;">🔒</span>' : '';
       return `<td class="att-day-cell ${status}${weekendClass}${lockedClass}" data-student="${student.student_id}" data-date="${date}" data-status="${status}" ${isLocked ? 'data-locked="true" title="Already marked - admin only"' : ''}>
-        ${iconHtml}${lockIcon}
+        ${iconHtml}
       </td>`;
     }).join('');
 
     return `<tr>
-      <td class="save-cell"><button type="button" class="btn-save-student" data-student="${student.student_id}" title="Save this student's attendance">💾</button></td>
+      <td class="save-cell"><button type="button" class="btn-save-student" data-student="${student.student_id}" title="Save this student's attendance"></button></td>
       <td class="student-name-cell">${student.name}</td>
       <td class="student-id-cell">${student.student_id}</td>
       <td class="student-class-cell">${student.class_applying || '-'}</td>
@@ -1270,7 +1269,7 @@ async function saveTeacherMonthlyAttendance() {
       if (saved > 0) parts.push(`${saved} new`);
       if (updated > 0) parts.push(`${updated} updated`);
       if (deleted > 0) parts.push(`${deleted} removed`);
-      showMessage(msgEl.id, `✅ 30-Day attendance saved! ${parts.join(', ') || 'No changes'}.`, 'success');
+      showMessage(msgEl.id, `30-Day attendance saved! ${parts.join(', ') || 'No changes'}.`, 'success');
     try { await logStaffActivity('Marked 30-day attendance', { role: 'teacher', entityType: 'attendance', entityDetails: `${saved} new, ${updated} updated, ${deleted} removed` }); } catch (e) { /* noop */ }
     }
 
@@ -1308,7 +1307,7 @@ async function saveTeacherMonthlyAttendance() {
       alert('Error saving attendance: ' + err.message);
     }
   } finally {
-    setLoading(btn, false, '💾 Save All Changes');
+    setLoading(btn, false, 'Save All Changes');
   }
 }
 
@@ -1326,7 +1325,7 @@ async function saveIndividualTeacherMonthlyAttendance(studentId) {
   const btn = document.querySelector(`.btn-save-student[data-student="${studentId}"]`);
   if (btn) {
     btn.disabled = true;
-    btn.textContent = '⏳';
+    btn.textContent = '';
   }
 
   try {
@@ -1428,7 +1427,7 @@ async function saveIndividualTeacherMonthlyAttendance(studentId) {
       if (updated > 0) parts.push(`${updated} updated`);
       if (deleted > 0) parts.push(`${deleted} removed`);
       const lockedMsg = skippedLocked > 0 ? ` (${skippedLocked} locked skipped)` : '';
-      showMessage(msgEl.id, `✅ Attendance saved for <strong>${student.name}</strong>! ${parts.join(', ') || 'No changes'}${lockedMsg}.`, 'success');
+      showMessage(msgEl.id, `Attendance saved for <strong>${student.name}</strong>! ${parts.join(', ') || 'No changes'}${lockedMsg}.`, 'success');
     }
 
   } catch (err) {
@@ -1442,7 +1441,7 @@ async function saveIndividualTeacherMonthlyAttendance(studentId) {
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.textContent = '💾';
+      btn.textContent = '';
     }
   }
 }
@@ -1626,7 +1625,7 @@ async function renderTeacherAttReport() {
 
         dailyHtml += `<tr style="background:var(--bg);font-weight:700;">
           <td colspan="6" style="padding:0.5rem 1rem;font-size:0.9rem;">
-            📅 <strong>${date}</strong>
+            <strong>${date}</strong>
             <span style="font-weight:400;font-size:0.8rem;color:var(--text-muted);margin-left:0.5rem;">
               Present: ${dayCounts.present} | Absent: ${dayCounts.absent} | Total: ${dayTotal} |
             </span>
@@ -1637,7 +1636,7 @@ async function renderTeacherAttReport() {
         records.forEach(r => {
           const app = appMap.get(r.student_id);
           const name = app ? buildStudentName(app.first_name, app.middle_name, app.last_name) : r.student_id;
-          const statusIcons = { present: '✅', absent: '❌' };
+          const statusIcons = { present: '', absent: '' };
           const statusColors = { present: 'var(--success)', absent: 'var(--danger)' };
 
           if (search && !name.toLowerCase().includes(search) && !r.student_id.toLowerCase().includes(search)) return;
@@ -1852,7 +1851,7 @@ export async function loadTeacherExamStudents() {
     };
 
     renderTeacherScoreSheet();
-    showMessage('teacherExamMessage', `✅ Loaded ${allStudents.length} students with ${subjectsToShow.length} subject${subjectsToShow.length !== 1 ? 's' : ''}. Enter scores below.`, 'success');
+    showMessage('teacherExamMessage', `Loaded ${allStudents.length} students with ${subjectsToShow.length} subject${subjectsToShow.length !== 1 ? 's' : ''}. Enter scores below.`, 'success');
   } catch (err) {
     console.error('Failed to load exam students:', err);
     showMessage('teacherExamMessage', 'Error: ' + err.message, 'error');
@@ -2043,14 +2042,14 @@ async function saveTeacherExamScores() {
       }
     }
 
-    showMessage('teacherExamMessage', `✅ Scores saved! ${saved} new, ${updated} updated.`, 'success');
+    showMessage('teacherExamMessage', `Scores saved! ${saved} new, ${updated} updated.`, 'success');
     // Reload to refresh cache
     await loadTeacherExamStudents();
     try { await logStaffActivity(`Entered examination marks (${saved} new, ${updated} updated)`, { role: 'teacher', entityType: 'exam', entityDetails: `${examId}` }); } catch (e) { /* noop */ }
   } catch (err) {
     showMessage('teacherExamMessage', 'Error: ' + err.message, 'error');
   } finally {
-    setLoading(btn, false, '💾 Save All Scores');
+    setLoading(btn, false, 'Save All Scores');
   }
 }
 
@@ -2082,7 +2081,7 @@ async function autoRankTeacherSubjects() {
       return `
         <div class="ranking-card">
           <div class="ranking-header">
-            <h4>📖 ${subject}</h4>
+            <h4>${subject}</h4>
             <span class="ranking-subtitle">${ranked.length} students</span>
           </div>
           <div class="table-wrapper">
@@ -2105,7 +2104,7 @@ async function autoRankTeacherSubjects() {
     }).join('');
 
     getEl('teacherRankingsContainer').innerHTML = rankingsHtml;
-    showMessage('teacherExamMessage', '🏆 Rankings generated successfully!', 'success');
+    showMessage('teacherExamMessage', 'Rankings generated successfully!', 'success');
   try { await logStaffActivity('Generated exam rankings & report card data', { role: 'teacher', entityType: 'exam', entityDetails: `${examId}` }); } catch (e) { /* noop */ }
   } catch (err) {
     showMessage('teacherExamMessage', 'Error generating rankings: ' + err.message, 'error');
@@ -2171,7 +2170,7 @@ async function printTeacherReportCards() {
       <div class="rc-container" style="page-break-after:always;margin-bottom:1rem;">
         <div class="rc-top-bar"></div>
         <div class="rc-header">
-          ${schoolLogoUrl ? `<img src="${schoolLogoUrl}" alt="School Logo" style="width:44px;height:44px;object-fit:contain;border-radius:8px;background:#fff;padding:2px;border:1px solid #e2e8f0;" />` : '<div class="rc-seal">📚</div>'}
+          ${schoolLogoUrl ? `<img src="${schoolLogoUrl}" alt="School Logo" style="width:44px;height:44px;object-fit:contain;border-radius:8px;background:#fff;padding:2px;border:1px solid #e2e8f0;" />` : '<div class="rc-seal"></div>'}
           <div class="rc-school-info">
             <h2 class="rc-school-name">${schoolName}</h2>
             <p class="rc-school-address">Academic Excellence Through Discipline</p>
@@ -2181,7 +2180,7 @@ async function printTeacherReportCards() {
 
         <div class="rc-student-section">
           <div class="rc-student-photo">
-            <div class="rc-photo-placeholder">🎓</div>
+            <div class="rc-photo-placeholder"></div>
           </div>
           <div class="rc-student-data">
             <table class="rc-info-table">
@@ -2218,12 +2217,12 @@ async function printTeacherReportCards() {
 
         <div class="rc-remarks">
           <div class="rc-remarks-box rc-remarks-teacher">
-            <div class="rc-remarks-header">👨‍🏫 Teacher's Remarks</div>
+            <div class="rc-remarks-header">Teacher's Remarks</div>
             <div class="rc-remarks-text">${teacherRemarks}</div>
             <div style="text-align:right;font-size:0.6rem;color:#94a3b8;">_________________________<br>Class Teacher</div>
           </div>
           <div class="rc-remarks-box rc-remarks-head">
-            <div class="rc-remarks-header">👑 Head Teacher's Remarks</div>
+            <div class="rc-remarks-header">Head Teacher's Remarks</div>
             <div class="rc-remarks-text">${headRemarks}</div>
             <div style="text-align:right;font-size:0.6rem;color:#94a3b8;">_________________________<br>Head Teacher</div>
           </div>
@@ -2460,8 +2459,8 @@ async function saveTeacherProfile(e) {
   const password = getEl('teacherProfilePassword').value;
   const confirmPw = getEl('teacherProfileConfirmPassword').value;
 
-  if (!firstName || !surname) { showMessage('teacherProfileMessage', 'First Name and Surname are required.', 'error'); setLoading(btn, false, '💾 Save Profile'); return; }
-  if (!dob) { showMessage('teacherProfileMessage', 'Date of Birth is required.', 'error'); setLoading(btn, false, '💾 Save Profile'); return; }
+  if (!firstName || !surname) { showMessage('teacherProfileMessage', 'First Name and Surname are required.', 'error'); setLoading(btn, false, 'Save Profile'); return; }
+  if (!dob) { showMessage('teacherProfileMessage', 'Date of Birth is required.', 'error'); setLoading(btn, false, 'Save Profile'); return; }
 
   try {
     const { data: { user } } = await supabaseClient.auth.getUser();
@@ -2502,7 +2501,7 @@ async function saveTeacherProfile(e) {
       }
     }
 
-    if (!teacher) { showMessage('teacherProfileMessage', 'Teacher record not found. Please contact admin.', 'error'); setLoading(btn, false, '💾 Save Profile'); return; }
+    if (!teacher) { showMessage('teacherProfileMessage', 'Teacher record not found. Please contact admin.', 'error'); setLoading(btn, false, 'Save Profile'); return; }
 
     // Upload photo if provided
     let photoUrl = teacher.photo_url || null;
@@ -2514,8 +2513,8 @@ async function saveTeacherProfile(e) {
     // Upload certificate if provided
     const certFile = getEl('teacherProfileCertificateFile')?.files[0];
     if (certFile) {
-      if (certFile.type !== 'application/pdf') { showMessage('teacherProfileMessage', 'Certificate must be a PDF file.', 'error'); setLoading(btn, false, '💾 Save Profile'); return; }
-      if (certFile.size > 2 * 1024 * 1024) { showMessage('teacherProfileMessage', 'Certificate must be less than 2MB.', 'error'); setLoading(btn, false, '💾 Save Profile'); return; }
+      if (certFile.type !== 'application/pdf') { showMessage('teacherProfileMessage', 'Certificate must be a PDF file.', 'error'); setLoading(btn, false, 'Save Profile'); return; }
+      if (certFile.size > 2 * 1024 * 1024) { showMessage('teacherProfileMessage', 'Certificate must be less than 2MB.', 'error'); setLoading(btn, false, 'Save Profile'); return; }
       // Delete old certificate files (database records + storage) before uploading new one
       await deleteOldTeacherDocuments(teacher.id, 'certificate');
       const certUrl = await uploadTeacherFile(certFile, `cert_${teacher.id}`);
@@ -2535,8 +2534,8 @@ async function saveTeacherProfile(e) {
     // Upload appointment letter if provided
     const apptFile = getEl('teacherProfileAppointmentFile')?.files[0];
     if (apptFile) {
-      if (apptFile.type !== 'application/pdf') { showMessage('teacherProfileMessage', 'Appointment letter must be a PDF file.', 'error'); setLoading(btn, false, '💾 Save Profile'); return; }
-      if (apptFile.size > 2 * 1024 * 1024) { showMessage('teacherProfileMessage', 'Appointment letter must be less than 2MB.', 'error'); setLoading(btn, false, '💾 Save Profile'); return; }
+      if (apptFile.type !== 'application/pdf') { showMessage('teacherProfileMessage', 'Appointment letter must be a PDF file.', 'error'); setLoading(btn, false, 'Save Profile'); return; }
+      if (apptFile.size > 2 * 1024 * 1024) { showMessage('teacherProfileMessage', 'Appointment letter must be less than 2MB.', 'error'); setLoading(btn, false, 'Save Profile'); return; }
       // Delete old appointment letter files (database records + storage) before uploading new one
       await deleteOldTeacherDocuments(teacher.id, 'appointment_letter');
       const apptUrl = await uploadTeacherFile(apptFile, `appt_${teacher.id}`);
@@ -2613,12 +2612,12 @@ async function saveTeacherProfile(e) {
 
     // Update password if provided
     if (password) {
-      if (password.length < 6) { showMessage('teacherProfileMessage', 'Password must be at least 6 characters.', 'error'); setLoading(btn, false, '💾 Save Profile'); return; }
-      if (password !== confirmPw) { showMessage('teacherProfileMessage', 'Passwords do not match.', 'error'); setLoading(btn, false, '💾 Save Profile'); return; }
+      if (password.length < 6) { showMessage('teacherProfileMessage', 'Password must be at least 6 characters.', 'error'); setLoading(btn, false, 'Save Profile'); return; }
+      if (password !== confirmPw) { showMessage('teacherProfileMessage', 'Passwords do not match.', 'error'); setLoading(btn, false, 'Save Profile'); return; }
       await supabaseClient.auth.updateUser({ password });
     }
 
-    showMessage('teacherProfileMessage', '✅ Profile saved successfully.', 'success');
+    showMessage('teacherProfileMessage', 'Profile saved successfully.', 'success');
     getEl('teacherProfilePassword').value = '';
     getEl('teacherProfileConfirmPassword').value = '';
     getEl('teacherProfilePhoto').value = '';
@@ -2632,7 +2631,7 @@ async function saveTeacherProfile(e) {
   } catch (err) {
     showMessage('teacherProfileMessage', 'Error: ' + err.message, 'error');
   } finally {
-    setLoading(btn, false, '💾 Save Profile');
+    setLoading(btn, false, 'Save Profile');
   }
 }
 
@@ -2718,9 +2717,9 @@ export async function loadTeacherProfileForm(teacher) {
         certContainer.innerHTML = certDocs.map(d => {
           const name = d.file_name || 'Certificate.pdf';
           if (isUnservableCloudinaryDocument(d.file_url)) {
-            return `<span style="display:block;font-size:0.75rem;color:var(--danger);margin-bottom:0.25rem;">📄 ${name} — ⚠️ blocked by Cloudinary, please re-upload to restore the download</span>`;
+            return `<span style="display:block;font-size:0.75rem;color:var(--danger);margin-bottom:0.25rem;">${name} — blocked by Cloudinary, please re-upload to restore the download</span>`;
           }
-          return `<a href="${d.file_url}" target="_blank" rel="noopener" style="display:inline-block;padding:0.25rem 0.5rem;background:var(--primary-light);border:1px solid var(--primary);border-radius:4px;color:var(--primary);text-decoration:none;font-size:0.75rem;margin-bottom:0.25rem;">📄 Download: ${name}</a>`;
+          return `<a href="${d.file_url}" target="_blank" rel="noopener" style="display:inline-block;padding:0.25rem 0.5rem;background:var(--primary-light);border:1px solid var(--primary);border-radius:4px;color:var(--primary);text-decoration:none;font-size:0.75rem;margin-bottom:0.25rem;">Download: ${name}</a>`;
         }).join('<br>');
       } else {
         certContainer.innerHTML = '';
@@ -2732,9 +2731,9 @@ export async function loadTeacherProfileForm(teacher) {
         apptContainer.innerHTML = apptDocs.map(d => {
           const name = d.file_name || 'Appointment.pdf';
           if (isUnservableCloudinaryDocument(d.file_url)) {
-            return `<span style="display:block;font-size:0.75rem;color:var(--danger);margin-bottom:0.25rem;">📄 ${name} — ⚠️ blocked by Cloudinary, please re-upload to restore the download</span>`;
+            return `<span style="display:block;font-size:0.75rem;color:var(--danger);margin-bottom:0.25rem;">${name} — blocked by Cloudinary, please re-upload to restore the download</span>`;
           }
-          return `<a href="${d.file_url}" target="_blank" rel="noopener" style="display:inline-block;padding:0.25rem 0.5rem;background:var(--primary-light);border:1px solid var(--primary);border-radius:4px;color:var(--primary);text-decoration:none;font-size:0.75rem;margin-bottom:0.25rem;">📄 Download: ${name}</a>`;
+          return `<a href="${d.file_url}" target="_blank" rel="noopener" style="display:inline-block;padding:0.25rem 0.5rem;background:var(--primary-light);border:1px solid var(--primary);border-radius:4px;color:var(--primary);text-decoration:none;font-size:0.75rem;margin-bottom:0.25rem;">Download: ${name}</a>`;
         }).join('<br>');
       } else {
         apptContainer.innerHTML = '';

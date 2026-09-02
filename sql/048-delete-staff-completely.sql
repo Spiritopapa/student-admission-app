@@ -6,8 +6,8 @@
 --  Run this file in Supabase SQL Editor (or via 000-run-all.sql)
 -- ============================================================
 --  What this adds:
---  ✅ delete_teacher_completely(UUID)    — atomic teacher deletion
---  ✅ delete_accountant_completely(UUID) — atomic accountant deletion
+--  delete_teacher_completely(UUID)    — atomic teacher deletion
+--  delete_accountant_completely(UUID) — atomic accountant deletion
 --
 --  Each SECURITY DEFINER function:
 --   * Is scoped to the caller's own school (super_admin bypasses).
@@ -222,10 +222,10 @@ GRANT EXECUTE ON FUNCTION public.delete_accountant_completely(UUID) TO authentic
 --  MIGRATION COMPLETE
 -- ============================================================
 --  What this adds:
---  ✅ delete_teacher_completely()    — atomic teacher deletion
---  ✅ delete_accountant_completely() — atomic accountant deletion
---  ✅ Handles child rows + profile + auth.users in ONE transaction
---  ✅ SECURITY DEFINER so it bypasses RLS (with an internal
+--  delete_teacher_completely()    — atomic teacher deletion
+--  delete_accountant_completely() — atomic accountant deletion
+--  Handles child rows + profile + auth.users in ONE transaction
+--  SECURITY DEFINER so it bypasses RLS (with an internal
 --     school-scope check on every call)
---  ✅ Returns detailed deletion counts for the admin summary
+--  Returns detailed deletion counts for the admin summary
 -- ============================================================

@@ -232,7 +232,7 @@ function renderDaily() {
     const total = dayRecords.length;
     const pct = total > 0 ? ((present / total) * 100).toFixed(1) : '0.0';
 
-    html += `<tr class="day-head"><td colspan="6">📅 <strong>${esc(date)}</strong>
+    html += `<tr class="day-head"><td colspan="6"><strong>${esc(date)}</strong>
       <span style="font-weight:400;color:var(--muted);margin-left:0.5rem;">
         Present: ${present} | Absent: ${absent} | Total: ${total} | ${pct}%</span>
     </td></tr>`;
@@ -242,7 +242,7 @@ function renderDaily() {
       const name = app ? buildStudentName(app.first_name, app.middle_name, app.last_name) : r.student_id;
       const cls = app?.class_applying || r.class_name || '-';
       const statusCls = r.status === 'present' ? 'status-present' : 'status-absent';
-      const statusLabel = r.status === 'present' ? '✅ Present' : '❌ Absent';
+      const statusLabel = r.status === 'present' ? 'Present' : 'Absent';
       html += `<tr>
         <td>${esc(r.date)}</td>
         <td><strong>${esc(r.student_id)}</strong></td>
@@ -277,14 +277,14 @@ function showSummaryView() {
   el('btnDailyView').classList.remove('active');
   el('summaryWrap').style.display = 'block';
   el('dailyWrap').style.display = 'none';
-  el('reportType').textContent = '📊 Summary Report';
+  el('reportType').textContent = 'Summary Report';
 }
 function showDailyView() {
   el('btnDailyView').classList.add('active');
   el('btnSummaryView').classList.remove('active');
   el('summaryWrap').style.display = 'none';
   el('dailyWrap').style.display = 'block';
-  el('reportType').textContent = '📅 Daily Report';
+  el('reportType').textContent = 'Daily Report';
 }
 
 // ================================================================
@@ -302,7 +302,7 @@ async function initReport() {
   // Same-origin popup shares the persisted Supabase session.
   const { data: sessionData } = await supabaseClient.auth.getSession();
   if (!sessionData?.session) {
-    showMessage('⚠️ You are not signed in. Please close this window and open the report from the app.', 'error');
+    showMessage('You are not signed in. Please close this window and open the report from the app.', 'error');
     el('reportMeta').textContent = 'Not signed in';
     return;
   }
@@ -329,8 +329,8 @@ async function initReport() {
   document.title = schoolName + ' - Attendance Report';
 
   el('reportType').textContent = isTeacher
-    ? '📊 Teacher Attendance Report'
-    : (classFilter ? '📊 ' + classFilter + ' Attendance Report' : '📊 School Attendance Report');
+    ? 'Teacher Attendance Report'
+    : (classFilter ? '' + classFilter + ' Attendance Report' : 'School Attendance Report');
   el('reportToggle').style.display = 'flex';
   showSummaryView();
 

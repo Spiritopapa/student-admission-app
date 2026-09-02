@@ -89,7 +89,7 @@ import { showPage } from './modules/navigation.js';
 
 window.loadAdminDashboard = async function loadAdminDashboard() {
   const dashTitle = getEl('adminDashTitle');
-  if (dashTitle) dashTitle.textContent = '👑 Admin Dashboard';
+  if (dashTitle) dashTitle.textContent = 'Admin Dashboard';
 
   // Show the home overview and hide any previously active module panel,
   // so the sticky sidebar + dashboard shell stay in view.
@@ -369,7 +369,7 @@ async function loadAdminSubPage(page) {
   if (page === 'dashboard') {
     if (homeContent) homeContent.style.display = '';
     if (dashHeader) dashHeader.style.display = '';
-    if (titleEl) titleEl.textContent = '👑 Admin Dashboard';
+    if (titleEl) titleEl.textContent = 'Admin Dashboard';
     window.scrollTo({ top: 0, behavior: 'smooth' });
     await loadAdminDashboardHome();
     return;
@@ -380,23 +380,23 @@ async function loadAdminSubPage(page) {
   if (dashHeader) dashHeader.style.display = 'none';
 
   const map = {
-    students: { id: 'page-admin-students', title: '👥 All Students' },
-    classes: { id: 'page-admin-classes', title: '🏫 Classes' },
-    subjects: { id: 'page-admin-subjects', title: '📖 Subjects' },
-    teachers: { id: 'page-admin-teachers', title: '📚 Teachers' },
-    accountants: { id: 'page-admin-accountants', title: '🧾 Accountants' },
-    parents: { id: 'page-admin-parents', title: '👨‍👩‍👧 Parents / Guardians' },
-    admit: { id: 'page-admin-admit', title: '➕ Admit Student' },
-    announcements: { id: 'page-admin-announcements', title: '📢 Announcements' },
-    attendance: { id: 'page-admin-attendance', title: '📋 Attendance Management' },
-    exams: { id: 'page-admin-exams', title: '📝 Examinations' },
-    assessments: { id: 'page-admin-assessments', title: '❓ Multi-Choice Assessments' },
-    grading: { id: 'page-admin-grading', title: '📊 Grading System' },
-    fees: { id: 'page-admin-fees', title: '💰 Fees Management' },
-    'income-expenses': { id: 'page-admin-income-expenses', title: '📊 Income & Expenses' },
-    'sms-monitoring': { id: 'page-admin-sms-monitoring', title: '📨 SMS Monitoring' },
-    backup: { id: 'page-admin-backup', title: '💾 Backup & Restore' },
-    profile: { id: 'page-admin-profile', title: '🔑 Change Password' },
+    students: { id: 'page-admin-students', title: 'All Students' },
+    classes: { id: 'page-admin-classes', title: 'Classes' },
+    subjects: { id: 'page-admin-subjects', title: 'Subjects' },
+    teachers: { id: 'page-admin-teachers', title: 'Teachers' },
+    accountants: { id: 'page-admin-accountants', title: 'Accountants' },
+    parents: { id: 'page-admin-parents', title: 'Parents / Guardians' },
+    admit: { id: 'page-admin-admit', title: 'Admit Student' },
+    announcements: { id: 'page-admin-announcements', title: 'Announcements' },
+    attendance: { id: 'page-admin-attendance', title: 'Attendance Management' },
+    exams: { id: 'page-admin-exams', title: 'Examinations' },
+    assessments: { id: 'page-admin-assessments', title: 'Multi-Choice Assessments' },
+    grading: { id: 'page-admin-grading', title: 'Grading System' },
+    fees: { id: 'page-admin-fees', title: 'Fees Management' },
+    'income-expenses': { id: 'page-admin-income-expenses', title: 'Income & Expenses' },
+    'sms-monitoring': { id: 'page-admin-sms-monitoring', title: 'SMS Monitoring' },
+    backup: { id: 'page-admin-backup', title: 'Backup & Restore' },
+    profile: { id: 'page-admin-profile', title: 'Change Password' },
   };
   const targetPage = getEl(map[page]?.id);
   if (targetPage) targetPage.classList.add('active-page');

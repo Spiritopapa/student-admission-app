@@ -127,7 +127,7 @@ CREATE POLICY "School staff manage own school settings"
 -- ============================================================
 --  MIGRATION COMPLETE
 -- ============================================================
---  ✅ New schools auto-create school_settings rows
---  ✅ Existing schools backfilled
---  ✅ School name changes propagate to school_settings
+--  New schools auto-create school_settings rows
+--  Existing schools backfilled
+--  School name changes propagate to school_settings
 -- ============================================================

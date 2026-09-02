@@ -34,7 +34,7 @@ if (
   CLOUDINARY_UPLOAD_PRESET === 'YOUR_UNSIGNED_UPLOAD_PRESET'
 ) {
   console.warn(
-    '⚠️  Cloudinary not configured! Open js/cloudinary-config.js and set your ' +
+    ' Cloudinary not configured! Open js/cloudinary-config.js and set your ' +
       'CLOUDINARY_CLOUD_NAME and CLOUDINARY_UPLOAD_PRESET. The app will keep ' +
       'using Supabase Storage until then.'
   );

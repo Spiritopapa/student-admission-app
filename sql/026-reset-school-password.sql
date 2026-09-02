@@ -4,12 +4,12 @@
 --  to a custom password of their choice.
 -- ============================================================
 --  What this adds:
---  ✅ reset_school_password() function - SECURITY DEFINER RPC
---  ✅ Only super_admin can call it
---  ✅ Updates the auth.users password for the school's linked user
---  ✅ Returns JSON with success status and details
---  ✅ Fallback: finds admin user via profiles table if schools.user_id is NULL
---  ✅ Uses pgcrypto extension for bcrypt password hashing
+--  reset_school_password() function - SECURITY DEFINER RPC
+--  Only super_admin can call it
+--  Updates the auth.users password for the school's linked user
+--  Returns JSON with success status and details
+--  Fallback: finds admin user via profiles table if schools.user_id is NULL
+--  Uses pgcrypto extension for bcrypt password hashing
 -- ============================================================
 
 -- Ensure pgcrypto extension is available (Supabase installs it in extensions schema)

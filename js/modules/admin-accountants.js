@@ -37,12 +37,12 @@ export function setupAccountantForm() {
       if (editId) {
         const { error } = await supabaseClient.from('accountants').update(payload).eq('id', editId);
         if (error) throw error;
-        showMessage('accountantMessage', '✅ Accountant updated successfully.', 'success');
+        showMessage('accountantMessage', 'Accountant updated successfully.', 'success');
         logSubAdminActivity(`Updated accountant "${payload.full_name}"`, 'accountant', payload.full_name);
       } else {
         const { error } = await supabaseClient.from('accountants').insert([payload]);
         if (error) throw error;
-        showMessage('accountantMessage', '✅ Accountant added successfully.', 'success');
+        showMessage('accountantMessage', 'Accountant added successfully.', 'success');
         logSubAdminActivity(`Created accountant "${payload.full_name}"`, 'accountant', payload.full_name);
       }
       getEl('accountantForm').reset();
@@ -79,7 +79,7 @@ async function saveNewAccountant(e) {
   const email = getEl('newAccountantEmail').value.trim() || null;
   const phone = getEl('newAccountantPhone').value.trim() || null;
   const regId = getEl('newAccountantRegId').value.trim();
-  if (!fullName || !regId) { showMessage('newAccountantMessage', 'Name and Registration ID are required.', 'error'); setLoading(btn, false, '✅ Create Accountant & Generate ID'); return; }
+  if (!fullName || !regId) { showMessage('newAccountantMessage', 'Name and Registration ID are required.', 'error'); setLoading(btn, false, 'Create Accountant & Generate ID'); return; }
   try {
     const { data: { user } } = await supabaseClient.auth.getUser();
     const schoolId = await getCurrentSchoolId();
@@ -87,8 +87,8 @@ async function saveNewAccountant(e) {
       registration_id: regId, full_name: fullName, email, phone, school_id: schoolId,
       created_by: user?.id || null, is_approved: true,
     }]);
-    if (error) { showMessage('newAccountantMessage', 'Error: ' + error.message, 'error'); setLoading(btn, false, '✅ Create Accountant & Generate ID'); return; }
-    showMessage('newAccountantMessage', `✅ Accountant "${fullName}" created with ID: ${regId}. Provide this ID to them for registration.`, 'success');
+    if (error) { showMessage('newAccountantMessage', 'Error: ' + error.message, 'error'); setLoading(btn, false, 'Create Accountant & Generate ID'); return; }
+    showMessage('newAccountantMessage', `Accountant "${fullName}" created with ID: ${regId}. Provide this ID to them for registration.`, 'success');
     getEl('newAccountantName').value = '';
     getEl('newAccountantEmail').value = '';
     getEl('newAccountantPhone').value = '';
@@ -96,7 +96,7 @@ async function saveNewAccountant(e) {
     getEl('newAccountantSection').style.display = 'none';
     await renderAccountantsTable();
   } catch (err) { showMessage('newAccountantMessage', 'Error: ' + err.message, 'error'); }
-  finally { setLoading(btn, false, '✅ Create Accountant & Generate ID'); }
+  finally { setLoading(btn, false, 'Create Accountant & Generate ID'); }
 }
 
 // ================================================================
@@ -112,7 +112,7 @@ window.editAccountant = function (id, name, email, phone) {
 };
 
 window.deleteAccountant = async function (id) {
-  if (!confirm(`⚠️ PERMANENT DELETION\n\nDelete accountant and ALL associated records?\n\nThis will permanently remove:\n• Accountant profile\n• Auth account (accountant will NOT be able to sign in)\n\nThis action CANNOT be undone.`)) return;
+  if (!confirm(`PERMANENT DELETION\n\nDelete accountant and ALL associated records?\n\nThis will permanently remove:\n• Accountant profile\n• Auth account (accountant will NOT be able to sign in)\n\nThis action CANNOT be undone.`)) return;
   let accountantName = id;
   try {
     const { data: accountant } = await supabaseClient.from('accountants').select('full_name, user_id, registration_id').eq('id', id).single();
@@ -161,7 +161,7 @@ window.deleteAccountant = async function (id) {
       }
 
       await renderAccountantsTable();
-      alert(`✅ Accountant "${accountantName}" and all associated records permanently deleted.\nThe accountant can no longer sign in.`);
+      alert(`Accountant "${accountantName}" and all associated records permanently deleted.\nThe accountant can no longer sign in.`);
       logSubAdminActivity(`Deleted accountant "${accountantName}"`, 'accountant', `${id} - ${accountantName}`);
       return;
     }
@@ -178,11 +178,11 @@ window.deleteAccountant = async function (id) {
 
     await renderAccountantsTable();
 
-    let summary = `✅ Accountant ${result?.accountant_name || accountantName} permanently deleted.\n`;
+    let summary = `Accountant ${result?.accountant_name || accountantName} permanently deleted.\n`;
     summary += `The accountant can no longer sign in.\n\n`;
-    summary += `📋 Records removed:\n`;
+    summary += `Records removed:\n`;
     summary += `  • Profile: ${counts.profiles || 0}\n`;
-    summary += `  • Auth account: ${result?.user_id ? (result?.auth_deleted ? 'Yes' : '⚠️ No (may still be able to sign in)') : 'No portal account'}`;
+    summary += `  • Auth account: ${result?.user_id ? (result?.auth_deleted ? 'Yes' : 'No (may still be able to sign in)') : 'No portal account'}`;
 
     alert(summary);
     logSubAdminActivity(`Deleted accountant "${result?.accountant_name || accountantName}"`, 'accountant', `${id} - ${result?.accountant_name || accountantName}`);
@@ -224,25 +224,25 @@ export async function renderAccountantsTable() {
   if (noEl) noEl.style.display = 'none';
 
   tbody.innerHTML = items.map((t) => {
-    const regInfo = t.registration_id ? `<br><small style="color:var(--text-muted);font-size:0.75rem;">🔑 ${t.registration_id}</small>` : '';
+    const regInfo = t.registration_id ? `<br><small style="color:var(--text-muted);font-size:0.75rem;">${t.registration_id}</small>` : '';
     const regStatus = t.registration_id
       ? (t.user_id
-        ? '<span style="color:var(--success);font-size:0.75rem;">✅ Registered</span>'
-        : '<span style="color:var(--text-muted);font-size:0.75rem;">🔗 Not registered</span>')
+        ? '<span style="color:var(--success);font-size:0.75rem;">Registered</span>'
+        : '<span style="color:var(--text-muted);font-size:0.75rem;">Not registered</span>')
       : '';
     const approveBtn = t.registration_id
       ? (t.is_approved
         ? '<span class="action-btn" style="background:var(--bg);color:var(--text-muted);cursor:default;">Done</span>'
-        : `<button class="action-btn confirm" onclick="approveAccountant('${t.id}')">✅ Approve</button>`)
+        : `<button class="action-btn confirm" onclick="approveAccountant('${t.id}')">Approve</button>`)
       : '';
     const unlinkBtn = (t.registration_id && t.user_id)
-      ? `<button class="action-btn" onclick="unlinkAccountantUser('${t.id}')">🔗 Unlink</button>`
+      ? `<button class="action-btn" onclick="unlinkAccountantUser('${t.id}')">Unlink</button>`
       : '';
-    const resetPwBtn = `<button class="action-btn" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:none;" onclick="openAdminResetPassword('accountant','${t.id}','${t.full_name.replace(/'/g, "\\'")}')">🔑 Password</button>`;
+    const resetPwBtn = `<button class="action-btn" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:none;" onclick="openAdminResetPassword('accountant','${t.id}','${t.full_name.replace(/'/g, "\\'")}')">Password</button>`;
     const actionBtns = `<button class="action-btn confirm" onclick="editAccountant('${t.id}','${t.full_name.replace(/'/g, "\\'")}','${(t.email || '').replace(/'/g, "\\'")}','${(t.phone || '').replace(/'/g, "\\'")}')">Edit</button>${resetPwBtn}<button class="action-btn danger" onclick="deleteAccountant('${t.id}')">Delete</button>`;
-    const activityBtn = `<button class="action-btn" style="background:linear-gradient(135deg,#0ea5e9,#0284c7);color:#fff;border:none;" onclick="viewAccountantActivities('${t.id}')">📋 Activity</button>`;
+    const activityBtn = `<button class="action-btn" style="background:linear-gradient(135deg,#0ea5e9,#0284c7);color:#fff;border:none;" onclick="viewAccountantActivities('${t.id}')">Activity</button>`;
     return `<tr>
-      <td><span class="dash-photo-placeholder">🧾</span></td>
+      <td><span class="dash-photo-placeholder"></span></td>
       <td><strong>${t.full_name}</strong>${regInfo}</td>
       <td>${t.email || '-'}</td>
       <td>${t.phone || '-'}</td>
@@ -254,7 +254,7 @@ export async function renderAccountantsTable() {
 }
 
 // ================================================================
-// Accountant Activity Log (opened from the Accountants "📋 Activity" button)
+// Accountant Activity Log (opened from the Accountants "Activity" button)
 // ================================================================
 
 /**
@@ -282,9 +282,9 @@ window.viewAccountantActivities = async function (accountantId) {
     if (accountant) {
       getEl('staffActivitiesStaffName').textContent = accountant.full_name;
       getEl('staffActivitiesRegId').textContent = accountant.registration_id || '—';
-      getEl('staffActivitiesBadge').textContent = '🧾 Accountant';
+      getEl('staffActivitiesBadge').textContent = 'Accountant';
       getEl('staffActivitiesBadge').className = 'badge-confirmed';
-      getEl('staffActivitiesModalTitle').textContent = `📋 Activity Log: ${accountant.full_name}`;
+      getEl('staffActivitiesModalTitle').textContent = `Activity Log: ${accountant.full_name}`;
     }
 
     // Load the activity rows for this accountant

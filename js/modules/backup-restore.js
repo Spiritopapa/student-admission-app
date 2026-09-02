@@ -221,12 +221,12 @@ async function handleBackup() {
     const totalRecords = Object.values(backup.data).reduce((sum, arr) => sum + arr.length, 0);
     const tablesWithData = Object.entries(backup.data).filter(([, arr]) => arr.length > 0).length;
     showMessage('backupMessage', 
-      `✅ Backup complete! ${totalRecords} records exported from ${tablesWithData} tables.`, 'success');
+      `Backup complete! ${totalRecords} records exported from ${tablesWithData} tables.`, 'success');
   } catch (err) {
     showMessage('backupMessage', 'Error during backup: ' + err.message, 'error');
     console.error('Backup error:', err);
   } finally {
-    setLoading(btn, false, '📥 Backup Data');
+    setLoading(btn, false, 'Backup Data');
   }
 }
 
@@ -263,7 +263,7 @@ function downloadSchemaReference() {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 
-  showMessage('backupMessage', '📄 Schema reference downloaded. This shows the table structure and restore order.', 'success');
+  showMessage('backupMessage', 'Schema reference downloaded. This shows the table structure and restore order.', 'success');
 }
 
 // ================================================================
@@ -288,7 +288,7 @@ function handleFileSelect(e) {
       
       // Validate format
       if (!data.version || !data.data || typeof data.data !== 'object') {
-        showMessage('backupMessage', '❌ Invalid backup file format.', 'error');
+        showMessage('backupMessage', 'Invalid backup file format.', 'error');
         getEl('restorePreview').style.display = 'none';
         pendingRestoreData = null;
         return;
@@ -297,7 +297,7 @@ function handleFileSelect(e) {
       pendingRestoreData = data;
       showRestorePreview(data);
     } catch (err) {
-      showMessage('backupMessage', '❌ Could not parse backup file: ' + err.message, 'error');
+      showMessage('backupMessage', 'Could not parse backup file: ' + err.message, 'error');
       getEl('restorePreview').style.display = 'none';
       pendingRestoreData = null;
     }
@@ -325,7 +325,7 @@ function showRestorePreview(data) {
         <td>${table.name}</td>
         <td>${table.label}</td>
         <td>${records.length}</td>
-        <td>${records.length > 0 ? '✅ Will restore' : '—'}</td>
+        <td>${records.length > 0 ? 'Will restore' : '—'}</td>
       </tr>`;
     }
   }
@@ -351,15 +351,15 @@ function showRestorePreview(data) {
  */
 async function confirmRestore() {
   if (!pendingRestoreData) {
-    showMessage('backupMessage', '❌ No backup data loaded.', 'error');
+    showMessage('backupMessage', 'No backup data loaded.', 'error');
     return;
   }
 
-  if (!confirm('⚠️ WARNING: This will DELETE all existing data for the tables shown and REPLACE it with backup data. This cannot be undone! Are you sure?')) {
+  if (!confirm('WARNING: This will DELETE all existing data for the tables shown and REPLACE it with backup data. This cannot be undone! Are you sure?')) {
     return;
   }
 
-  if (!confirm('⚠️ FINAL CONFIRMATION: Are you ABSOLUTELY sure you want to restore this backup? All current data will be lost.')) {
+  if (!confirm('FINAL CONFIRMATION: Are you ABSOLUTELY sure you want to restore this backup? All current data will be lost.')) {
     return;
   }
 
@@ -693,17 +693,17 @@ async function confirmRestore() {
       const backupStudentCount = (pendingRestoreData.data.applications || []).length;
       
       if (studentCount !== backupStudentCount) {
-        verificationMsg = ` ⚠️ Verification: ${studentCount} students in DB vs ${backupStudentCount} in backup.`;
+        verificationMsg = ` Verification: ${studentCount} students in DB vs ${backupStudentCount} in backup.`;
       } else {
-        verificationMsg = ` ✅ Verified: ${studentCount} students restored correctly.`;
+        verificationMsg = ` Verified: ${studentCount} students restored correctly.`;
       }
     } catch (verifyErr) {
       console.warn('Verification failed:', verifyErr.message);
     }
 
     const msg = errorCount > 0
-      ? `⚠️ Restore completed with ${errorCount} errors. ${restoredCount} records restored.${verificationMsg} Check console for details.`
-      : `✅ Restore complete! ${restoredCount} records restored.${verificationMsg}`;
+      ? `Restore completed with ${errorCount} errors. ${restoredCount} records restored.${verificationMsg} Check console for details.`
+      : `Restore complete! ${restoredCount} records restored.${verificationMsg}`;
 
     showMessage('backupMessage', msg, errorCount > 0 ? 'warning' : 'success');
 
@@ -721,6 +721,6 @@ async function confirmRestore() {
     showMessage('backupMessage', 'Error during restore: ' + err.message, 'error');
     console.error('Restore error:', err);
   } finally {
-    setLoading(btn, false, '⚠️ Confirm & Restore');
+    setLoading(btn, false, 'Confirm & Restore');
   }
 }

@@ -182,7 +182,7 @@ function renderTeacherQuestionList() {
   if (noEl) noEl.style.display = 'none';
   listEl.innerHTML = `<div class="assessment-toolbar" style="justify-content:space-between;"><span style="font-size:0.85rem;color:var(--text-muted);">${view.length} question${view.length === 1 ? '' : 's'} in your bank</span></div>` +
     view.slice(0, 200).map((q, i) =>
-      `<div class="qa-card"><div class="qa-card-header"><div><strong>Q${i + 1}.</strong> <span class="qa-meta" style="display:inline;margin-top:0;">${esc(q.subject)}${q.class_name ? ' • ' + esc(q.class_name) : ''}${q.topic ? ' • ' + esc(q.topic) : ''}</span></div><div style="display:flex;gap:0.35rem;"><button class="action-btn confirm" onclick="editTeacherQuestion('${q.id}')">Edit</button><button class="action-btn danger" onclick="deleteTeacherQuestion('${q.id}')">Delete</button></div></div><div class="qa-card-body"><div class="question-text" style="font-size:0.9rem;">${esc(q.question_text)}</div><div class="qa-meta"><span class="correct-tag">✓ ${esc(q.correct_option)}</span>${q.explanation ? ' 💡 ' + esc(q.explanation) : ''}</div></div></div>`
+      `<div class="qa-card"><div class="qa-card-header"><div><strong>Q${i + 1}.</strong> <span class="qa-meta" style="display:inline;margin-top:0;">${esc(q.subject)}${q.class_name ? ' • ' + esc(q.class_name) : ''}${q.topic ? ' • ' + esc(q.topic) : ''}</span></div><div style="display:flex;gap:0.35rem;"><button class="action-btn confirm" onclick="editTeacherQuestion('${q.id}')">Edit</button><button class="action-btn danger" onclick="deleteTeacherQuestion('${q.id}')">Delete</button></div></div><div class="qa-card-body"><div class="question-text" style="font-size:0.9rem;">${esc(q.question_text)}</div><div class="qa-meta"><span class="correct-tag">✓ ${esc(q.correct_option)}</span>${q.explanation ? ' ' + esc(q.explanation) : ''}</div></div></div>`
     ).join('');
 }
 
@@ -234,17 +234,17 @@ async function saveTeacherQuestion(e) {
     if (editId) {
       const { error } = await supabaseClient.from('assessment_questions').update(payload).eq('id', editId);
       if (error) throw error;
-      showMessage('teacherQuestionFormMessage', '✅ Question updated.', 'success');
+      showMessage('teacherQuestionFormMessage', 'Question updated.', 'success');
     } else {
       const { error } = await supabaseClient.from('assessment_questions').insert([payload]);
       if (error) throw error;
-      showMessage('teacherQuestionFormMessage', '✅ Question added.', 'success');
+      showMessage('teacherQuestionFormMessage', 'Question added.', 'success');
     }
     getEl('teacherQuestionForm').reset();
     getEl('teacherQuestionEditId').value = '';
     await loadTeacherQuestions();
   } catch (err) { showMessage('teacherQuestionFormMessage', 'Error: ' + err.message, 'error'); }
-  finally { setLoading(btn, false, '💾 Save Question'); }
+  finally { setLoading(btn, false, 'Save Question'); }
 }
 
 // ================================================================
@@ -269,7 +269,7 @@ function previewTeacherBulk() {
     const valid = rows.filter((r) => r.question_text && ['A', 'B', 'C', 'D'].includes(r.correct_option));
     if (valid.length === 0) { previewEl.innerHTML = ''; showMessage('teacherAssessMessage', 'No valid question rows found.', 'error'); window._teacherBulkRows = null; return; }
     const invalid = rows.length - valid.length;
-    previewEl.innerHTML = `<div class="assessment-instructions">✅ ${valid.length} question${valid.length === 1 ? '' : 's'} ready${invalid ? ` (${invalid} skipped)` : ''}.</div>` +
+    previewEl.innerHTML = `<div class="assessment-instructions">${valid.length} question${valid.length === 1 ? '' : 's'} ready${invalid ? ` (${invalid} skipped)` : ''}.</div>` +
       valid.slice(0, 5).map((r) => `<div class="qa-card" style="margin-bottom:0.4rem;padding:0.6rem 0.8rem;"><strong>${esc(r.subject)}</strong>${r.class_name ? ' • ' + esc(r.class_name) : ''} — ${esc(r.question_text).slice(0, 80)} <span class="correct-tag">${esc(r.correct_option)}</span></div>`).join('');
     window._teacherBulkRows = valid;
   } catch (err) {
@@ -291,7 +291,7 @@ async function runTeacherBulk() {
   const payload = rows.map((r) => ({ ...r, school_id: teacher.school_id }));
   try {
     const inserted = await insertRowsChunked(supabaseClient, 'assessment_questions', payload);
-    showMessage('teacherAssessMessage', `✅ Imported ${inserted} question${inserted === 1 ? '' : 's'}.`, 'success');
+    showMessage('teacherAssessMessage', `Imported ${inserted} question${inserted === 1 ? '' : 's'}.`, 'success');
     getEl('teacherBulkImportText').value = '';
     getEl('teacherBulkImportFile').value = '';
     getEl('teacherBulkImportPreview').innerHTML = '';
@@ -299,7 +299,7 @@ async function runTeacherBulk() {
     getEl('teacherBulkImportSection').open = false;
     await loadTeacherQuestions();
   } catch (err) { showMessage('teacherAssessMessage', 'Import error: ' + err.message, 'error'); }
-  finally { setLoading(btn, false, '🚀 Import'); }
+  finally { setLoading(btn, false, 'Import'); }
 }
 // ================================================================
 // Assessments (teacher)
@@ -323,7 +323,7 @@ async function loadTeacherAssessments() {
   listEl.innerHTML = items.map((a) => `<div class="qa-card assessment-item">
     <div class="qa-card-header">
       <div><strong>${esc(a.title)}</strong> ${badge(a)}
-        <div class="qa-meta">${esc(a.subject)}${a.class_name ? ' • ' + esc(a.class_name) : ''} · 🎯 ${a.question_count} q · ⏱ ${a.duration_minutes || '—'} min · Pass ${a.pass_percentage}%</div>
+        <div class="qa-meta">${esc(a.subject)}${a.class_name ? ' • ' + esc(a.class_name) : ''} · ${a.question_count} q · ${a.duration_minutes || '—'} min · Pass ${a.pass_percentage}%</div>
       </div>
       <div style="display:flex;gap:0.35rem;flex-wrap:wrap;">
         <button class="action-btn confirm" onclick="editTeacherAssessment('${a.id}')">Edit</button>
@@ -393,19 +393,19 @@ async function saveTeacherAssessment(e) {
     if (editId) {
       const { error } = await supabaseClient.from('assessments').update(payload).eq('id', editId);
       if (error) throw error;
-      showMessage('teacherAssessmentConfigMessage', '✅ Assessment updated.', 'success');
+      showMessage('teacherAssessmentConfigMessage', 'Assessment updated.', 'success');
       try { await logStaffActivity(`Updated assessment "${payload.title}"`, { role: 'teacher', entityType: 'assessment', entityDetails: `${payload.subject} · ${payload.class_name || 'All classes'}` }); } catch (e) { /* noop */ }
     } else {
       const { error } = await supabaseClient.from('assessments').insert([payload]);
       if (error) throw error;
-      showMessage('teacherAssessmentConfigMessage', '✅ Assessment saved.', 'success');
+      showMessage('teacherAssessmentConfigMessage', 'Assessment saved.', 'success');
       try { await logStaffActivity(`Conducted assessment "${payload.title}"`, { role: 'teacher', entityType: 'assessment', entityDetails: `${payload.subject} · ${payload.class_name || 'All classes'} · ${payload.question_count} questions` }); } catch (e) { /* noop */ }
     }
     getEl('teacherAssessmentConfigForm').reset();
     getEl('teacherAssessmentConfigId').value = '';
     await loadTeacherAssessments();
   } catch (err) { showMessage('teacherAssessmentConfigMessage', 'Error: ' + err.message, 'error'); }
-  finally { setLoading(btn, false, '💾 Save Assessment'); }
+  finally { setLoading(btn, false, 'Save Assessment'); }
 }
 // ================================================================
 // Attempts (teacher)

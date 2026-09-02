@@ -149,7 +149,7 @@ export async function loadSmsMonitorPage(containerId = 'smsMonitorContainer') {
 
   container.innerHTML = `
     <div id="smsDisabledBanner" style="display:none;margin-bottom:0.75rem;padding:0.75rem 1rem;border-radius:var(--radius-sm);background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.35);color:#b91c1c;font-size:0.85rem;font-weight:600;line-height:1.5;">
-      📵 SMS is currently <strong>disabled</strong> for this school by the Super Admin. No new SMS can be sent and the Resend buttons are inactive. Contact the Super Administrator to re-enable SMS.
+      SMS is currently <strong>disabled</strong> for this school by the Super Admin. No new SMS can be sent and the Resend buttons are inactive. Contact the Super Administrator to re-enable SMS.
     </div>
 
     <div class="sms-stat-cards">
@@ -158,11 +158,11 @@ export async function loadSmsMonitorPage(containerId = 'smsMonitorContainer') {
         <div class="sms-stat-value" id="smsStatTotal">…</div>
       </div>
       <div class="sms-stat-card stat-sent">
-        <div class="sms-stat-label">Sent ✅</div>
+        <div class="sms-stat-label">Sent</div>
         <div class="sms-stat-value stat-sent-value" id="smsStatSent">…</div>
       </div>
       <div class="sms-stat-card stat-failed">
-        <div class="sms-stat-label">Unsent / Failed ❌</div>
+        <div class="sms-stat-label">Unsent / Failed</div>
         <div class="sms-stat-value stat-failed-value" id="smsStatFailed">…</div>
       </div>
       <div class="sms-stat-card stat-today">
@@ -172,16 +172,16 @@ export async function loadSmsMonitorPage(containerId = 'smsMonitorContainer') {
     </div>
 
     <div class="sms-filter-row">
-      <button type="button" class="btn btn-secondary sms-tab active" data-sms-tab="all">🗂️ All SMS</button>
-      <button type="button" class="btn btn-secondary sms-tab" data-sms-tab="sent">✅ Sent</button>
-      <button type="button" class="btn btn-secondary sms-tab" data-sms-tab="failed">❌ Unsent / Failed</button>
+      <button type="button" class="btn btn-secondary sms-tab active" data-sms-tab="all">All SMS</button>
+      <button type="button" class="btn btn-secondary sms-tab" data-sms-tab="sent">Sent</button>
+      <button type="button" class="btn btn-secondary sms-tab" data-sms-tab="failed">Unsent / Failed</button>
     </div>
 
     <div class="sms-filter-row">
-      <input type="text" id="smsMonitorSearch" placeholder="🔍 Search phone, student ID, receipt or message…" class="search-input" style="flex:1;min-width:200px;" />
+      <input type="text" id="smsMonitorSearch" placeholder="Search phone, student ID, receipt or message…" class="search-input" style="flex:1;min-width:200px;" />
       <input type="date" id="smsMonitorFrom" class="search-input" style="max-width:150px;" title="From date" />
       <input type="date" id="smsMonitorTo" class="search-input" style="max-width:150px;" title="To date" />
-      <button type="button" class="btn btn-secondary" id="smsMonitorRefreshBtn">🔄 Refresh</button>
+      <button type="button" class="btn btn-secondary" id="smsMonitorRefreshBtn">Refresh</button>
     </div>
 
     <div id="smsMonitorMessage" class="message" style="display:none;margin-bottom:0.75rem;"></div>
@@ -240,7 +240,7 @@ export async function renderSmsMonitorDashboard(showRefreshSpinner = false) {
   const btn = getEl('smsMonitorRefreshBtn');
   if (btn && showRefreshSpinner) {
     btn.disabled = true;
-    btn.textContent = '⏳ Refreshing…';
+    btn.textContent = 'Refreshing…';
   }
   try {
     _logs = await _fetchLogs();
@@ -248,13 +248,13 @@ export async function renderSmsMonitorDashboard(showRefreshSpinner = false) {
     renderSmsMonitorTable();
   } catch (err) {
     console.error('[SMS Monitor] Failed to load logs:', err);
-    showMessage('smsMonitorMessage', '❌ Failed to load SMS logs: ' + err.message, 'error');
+    showMessage('smsMonitorMessage', 'Failed to load SMS logs: ' + err.message, 'error');
     const body = getEl('smsMonitorBody');
     if (body) body.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:1.5rem;color:var(--danger);">Could not load SMS logs.</td></tr>';
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.textContent = '🔄 Refresh';
+      btn.textContent = 'Refresh';
     }
   }
 }
@@ -316,7 +316,7 @@ function renderSmsMonitorTable() {
         <td><span class="sms-msg-preview" title="${escapeHtml(log.message || '')}">${escapeHtml(truncate(log.message || '—', 70))}</span></td>
         <td>
           <div class="sms-row-actions">
-            <button type="button" class="action-btn confirm" onclick="smsViewDetail('${log.id}')">👁 View</button>
+            <button type="button" class="action-btn confirm" onclick="smsViewDetail('${log.id}')">View</button>
             ${resendBtn}
           </div>
         </td>
@@ -348,8 +348,8 @@ window.smsViewDetail = function (id) {
   modal.innerHTML = `
     <div class="modal-card" style="max-width:620px;max-height:90vh;overflow-y:auto;">
       <div class="modal-header">
-        <h3>📨 SMS Details</h3>
-        <button type="button" class="modal-close" onclick="document.getElementById('smsDetailModal').style.display='none'">✖</button>
+        <h3>SMS Details</h3>
+        <button type="button" class="modal-close" onclick="document.getElementById('smsDetailModal').style.display='none'">×</button>
       </div>
       <div class="modal-body" style="padding:1.25rem;">
         <div class="sms-detail-grid">
@@ -403,7 +403,7 @@ window.smsResend = async function (id) {
   const schoolId = await getCurrentSchoolId();
   // Per-school SMS control: refuse to resend when the Super Admin disabled SMS.
   if (!(await isSmsEnabledForSchool(schoolId))) {
-    showMessage('smsMonitorMessage', '⛔ SMS is disabled for this school by the Super Admin. Resending is not allowed until SMS is re-enabled.', 'error');
+    showMessage('smsMonitorMessage', 'SMS is disabled for this school by the Super Admin. Resending is not allowed until SMS is re-enabled.', 'error');
     return;
   }
 
@@ -435,13 +435,13 @@ window.smsResend = async function (id) {
 
     // Refresh the list so the new attempt shows immediately.
     await renderSmsMonitorDashboard();
-    showMessage('smsMonitorMessage', success ? '✅ SMS resent successfully.' : '❌ Resend failed — see the new row in the list.', success ? 'success' : 'error');
+    showMessage('smsMonitorMessage', success ? 'SMS resent successfully.' : 'Resend failed — see the new row in the list.', success ? 'success' : 'error');
     if (!success) {
       getEl('smsDetailModal')?.remove();
     }
   } catch (err) {
     console.error('[SMS Monitor] Resend error:', err.message);
-    showMessage('smsMonitorMessage', '❌ Resend error: ' + err.message, 'error');
+    showMessage('smsMonitorMessage', 'Resend error: ' + err.message, 'error');
   }
 };
 

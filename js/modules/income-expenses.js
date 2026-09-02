@@ -37,11 +37,11 @@ export async function loadIncomeExpensesPage(containerId = 'ieContainer') {
 
   container.innerHTML = `
     <div class="ie-tabs" style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1rem;">
-      <button type="button" class="btn btn-secondary ie-tab active" data-ie-tab="dashboard">📊 Dashboard</button>
-      <button type="button" class="btn btn-secondary ie-tab" data-ie-tab="income">📈 Income</button>
-      <button type="button" class="btn btn-secondary ie-tab" data-ie-tab="expense">📉 Expenses</button>
-      <button type="button" class="btn btn-secondary ie-tab" data-ie-tab="categories">🏷️ Categories</button>
-      <button type="button" class="btn btn-secondary ie-tab" data-ie-tab="reports">📋 Reports</button>
+      <button type="button" class="btn btn-secondary ie-tab active" data-ie-tab="dashboard">Dashboard</button>
+      <button type="button" class="btn btn-secondary ie-tab" data-ie-tab="income">Income</button>
+      <button type="button" class="btn btn-secondary ie-tab" data-ie-tab="expense">Expenses</button>
+      <button type="button" class="btn btn-secondary ie-tab" data-ie-tab="categories">Categories</button>
+      <button type="button" class="btn btn-secondary ie-tab" data-ie-tab="reports">Reports</button>
     </div>
 
     <!-- ===== DASHBOARD TAB ===== -->
@@ -70,16 +70,16 @@ export async function loadIncomeExpensesPage(containerId = 'ieContainer') {
         <label style="font-size:0.85rem;font-weight:600;">Filter by Date:</label>
         <input type="date" id="ieDashFrom" class="search-input" style="max-width:150px;" />
         <input type="date" id="ieDashTo" class="search-input" style="max-width:150px;" />
-        <button type="button" class="btn btn-sm btn-primary" id="ieDashFilterBtn">🔍 Apply</button>
-        <button type="button" class="btn btn-sm btn-secondary" id="ieDashResetBtn">🔄 Reset</button>
-        <button type="button" class="btn btn-sm btn-secondary" id="ieDashRefreshBtn">🔄 Refresh</button>
+        <button type="button" class="btn btn-sm btn-primary" id="ieDashFilterBtn">Apply</button>
+        <button type="button" class="btn btn-sm btn-secondary" id="ieDashResetBtn">Reset</button>
+        <button type="button" class="btn btn-sm btn-secondary" id="ieDashRefreshBtn">Refresh</button>
       </div>
 
       <!-- Category Breakdown -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
         <div class="acc-card">
           <div class="acc-card-header">
-            <h3>📈 Income by Category</h3>
+            <h3>Income by Category</h3>
           </div>
           <div id="ieDashIncomeBreakdown" class="ie-breakdown">
             <div style="text-align:center;padding:1rem;color:var(--text-muted);font-size:0.85rem;">Loading...</div>
@@ -87,7 +87,7 @@ export async function loadIncomeExpensesPage(containerId = 'ieContainer') {
         </div>
         <div class="acc-card">
           <div class="acc-card-header">
-            <h3>📉 Expenses by Category</h3>
+            <h3>Expenses by Category</h3>
           </div>
           <div id="ieDashExpenseBreakdown" class="ie-breakdown">
             <div style="text-align:center;padding:1rem;color:var(--text-muted);font-size:0.85rem;">Loading...</div>
@@ -98,7 +98,7 @@ export async function loadIncomeExpensesPage(containerId = 'ieContainer') {
       <!-- Recent Transactions -->
       <div class="acc-card" style="margin-top:1rem;">
         <div class="acc-card-header">
-          <h3>🕐 Recent Transactions</h3>
+          <h3>Recent Transactions</h3>
           <span class="acc-badge" id="ieDashRecentCount">0</span>
         </div>
         <div class="table-wrapper" style="max-height:350px;overflow-y:auto;">
@@ -115,13 +115,13 @@ export async function loadIncomeExpensesPage(containerId = 'ieContainer') {
     <!-- ===== INCOME TAB ===== -->
     <div id="ieTab-income" class="ie-content" style="display:none;">
       <div class="card-toolbar" style="flex-wrap:wrap;">
-        <h3 style="margin:0;">📈 Income Records</h3>
-        <button type="button" class="btn btn-primary" id="ieAddIncomeBtn">➕ Record Income</button>
-        <input type="text" id="ieIncomeSearch" placeholder="🔍 Search..." class="search-input" style="max-width:200px;" />
+        <h3 style="margin:0;">Income Records</h3>
+        <button type="button" class="btn btn-primary" id="ieAddIncomeBtn">Record Income</button>
+        <input type="text" id="ieIncomeSearch" placeholder="Search..." class="search-input" style="max-width:200px;" />
         <select id="ieIncomeCategory" class="filter-select" style="max-width:180px;"><option value="">All Categories</option></select>
         <input type="date" id="ieIncomeFrom" class="search-input" style="max-width:140px;" />
         <input type="date" id="ieIncomeTo" class="search-input" style="max-width:140px;" />
-        <button type="button" class="btn btn-sm btn-secondary" id="ieIncomeRefresh">🔄 Refresh</button>
+        <button type="button" class="btn btn-sm btn-secondary" id="ieIncomeRefresh">Refresh</button>
       </div>
       <div style="margin-bottom:0.75rem;display:flex;gap:1rem;flex-wrap:wrap;">
         <span style="font-size:0.85rem;font-weight:600;color:var(--success);">Total Income: <span id="ieIncomeTotal">GHC 0.00</span></span>
@@ -140,13 +140,13 @@ export async function loadIncomeExpensesPage(containerId = 'ieContainer') {
     <!-- ===== EXPENSE TAB ===== -->
     <div id="ieTab-expense" class="ie-content" style="display:none;">
       <div class="card-toolbar" style="flex-wrap:wrap;">
-        <h3 style="margin:0;">📉 Expense Records</h3>
-        <button type="button" class="btn btn-primary" id="ieAddExpenseBtn">➕ Record Expense</button>
-        <input type="text" id="ieExpenseSearch" placeholder="🔍 Search..." class="search-input" style="max-width:200px;" />
+        <h3 style="margin:0;">Expense Records</h3>
+        <button type="button" class="btn btn-primary" id="ieAddExpenseBtn">Record Expense</button>
+        <input type="text" id="ieExpenseSearch" placeholder="Search..." class="search-input" style="max-width:200px;" />
         <select id="ieExpenseCategory" class="filter-select" style="max-width:180px;"><option value="">All Categories</option></select>
         <input type="date" id="ieExpenseFrom" class="search-input" style="max-width:140px;" />
         <input type="date" id="ieExpenseTo" class="search-input" style="max-width:140px;" />
-        <button type="button" class="btn btn-sm btn-secondary" id="ieExpenseRefresh">🔄 Refresh</button>
+        <button type="button" class="btn btn-sm btn-secondary" id="ieExpenseRefresh">Refresh</button>
       </div>
       <div style="margin-bottom:0.75rem;display:flex;gap:1rem;flex-wrap:wrap;">
         <span style="font-size:0.85rem;font-weight:600;color:var(--danger);">Total Expenses: <span id="ieExpenseTotal">GHC 0.00</span></span>
@@ -165,16 +165,16 @@ export async function loadIncomeExpensesPage(containerId = 'ieContainer') {
     <!-- ===== CATEGORIES TAB ===== -->
     <div id="ieTab-categories" class="ie-content" style="display:none;">
       <div class="card-toolbar" style="flex-wrap:wrap;">
-        <h3 style="margin:0;">🏷️ Manage Categories</h3>
-        <button type="button" class="btn btn-primary" id="ieAddCategoryBtn">➕ Add Category</button>
+        <h3 style="margin:0;">Manage Categories</h3>
+        <button type="button" class="btn btn-primary" id="ieAddCategoryBtn">Add Category</button>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:1rem;">
         <div class="acc-card">
-          <div class="acc-card-header"><h3>📈 Income Categories</h3></div>
+          <div class="acc-card-header"><h3>Income Categories</h3></div>
           <div id="ieIncomeCategories" class="ie-category-list"></div>
         </div>
         <div class="acc-card">
-          <div class="acc-card-header"><h3>📉 Expense Categories</h3></div>
+          <div class="acc-card-header"><h3>Expense Categories</h3></div>
           <div id="ieExpenseCategories" class="ie-category-list"></div>
         </div>
       </div>
@@ -183,12 +183,12 @@ export async function loadIncomeExpensesPage(containerId = 'ieContainer') {
     <!-- ===== REPORTS TAB ===== -->
     <div id="ieTab-reports" class="ie-content" style="display:none;">
       <div class="card-toolbar" style="flex-wrap:wrap;">
-        <h3 style="margin:0;">📋 Financial Reports</h3>
+        <h3 style="margin:0;">Financial Reports</h3>
         <input type="date" id="ieReportFrom" class="search-input" style="max-width:150px;" />
         <input type="date" id="ieReportTo" class="search-input" style="max-width:150px;" />
-        <button type="button" class="btn btn-primary" id="ieReportGenerate">📊 Generate Report</button>
-        <button type="button" class="btn btn-secondary" id="ieReportPreview">👁️ Preview</button>
-        <button type="button" class="btn btn-secondary" id="ieReportPrint">🖨️ Print</button>
+        <button type="button" class="btn btn-primary" id="ieReportGenerate">Generate Report</button>
+        <button type="button" class="btn btn-secondary" id="ieReportPreview">Preview</button>
+        <button type="button" class="btn btn-secondary" id="ieReportPrint">Print</button>
       </div>
       <div id="ieReportContent" style="margin-top:1rem;">
         <div style="text-align:center;padding:2rem;color:var(--text-muted);">Select a date range and click "Generate Report" to view financial summary.</div>
@@ -342,7 +342,7 @@ async function _loadCategoryBreakdown(schoolId, type, containerId, fromDate, toD
       const pct = totalAmount > 0 ? Math.round((amount / totalAmount) * 100) : 0;
       return `<div class="ie-breakdown-item">
         <div class="ie-breakdown-header">
-          <span>${c.icon || '📌'} ${c.name}</span>
+          <span>${c.icon || ''} ${c.name}</span>
           <span style="font-weight:600;">GHC ${formatCurrency(amount)}</span>
         </div>
         <div class="ie-breakdown-track">
@@ -380,11 +380,10 @@ async function _loadRecentTransactions(schoolId, fromDate, toDate) {
 
     tbody.innerHTML = transactions.map(t => {
       const cat = t.income_expense_categories || {};
-      const typeIcon = t.type === 'income' ? '📈' : '📉';
       const typeClass = t.type === 'income' ? 'ie-income' : 'ie-expense';
       return `<tr>
         <td>${formatDate(t.transaction_date)}</td>
-        <td><span class="${typeClass}" style="font-weight:600;">${typeIcon} ${t.type === 'income' ? 'Income' : 'Expense'}</span></td>
+        <td><span class="${typeClass}" style="font-weight:600;">${t.type === 'income' ? 'Income' : 'Expense'}</span></td>
         <td>${cat.icon || ''} ${cat.name || 'Unknown'}</td>
         <td>${t.description || '-'}</td>
         <td style="font-weight:600;color:${t.type === 'income' ? 'var(--success)' : 'var(--danger)'};">GHC ${formatCurrency(t.amount)}</td>
@@ -498,8 +497,8 @@ function _applyIeFilters(type) {
       <td>${r.payment_method || '-'}</td>
       <td>${r.reference_number || '-'}</td>
       <td>
-        <button class="action-btn" onclick="ieEditRecord('${r.id}')" title="Edit">✏️</button>
-        <button class="action-btn" style="color:var(--danger);" onclick="ieDeleteRecord('${r.id}')" title="Delete">🗑️</button>
+        <button class="action-btn" onclick="ieEditRecord('${r.id}')" title="Edit"></button>
+        <button class="action-btn" style="color:var(--danger);" onclick="ieDeleteRecord('${r.id}')" title="Delete"></button>
       </td>
     </tr>`;
   }).join('');
@@ -511,7 +510,7 @@ function _applyIeFilters(type) {
 
 function _showIeForm(type, editRecord = null) {
   const isEdit = !!editRecord;
-  const title = isEdit ? `✏️ Edit ${type === 'income' ? 'Income' : 'Expense'} Record` : `➕ Record New ${type === 'income' ? 'Income' : 'Expense'}`;
+  const title = isEdit ? `Edit ${type === 'income' ? 'Income' : 'Expense'} Record` : `Record New ${type === 'income' ? 'Income' : 'Expense'}`;
 
   // Get categories for this type
   const categories = _categoriesCache.filter(c => c.type === type);
@@ -519,7 +518,7 @@ function _showIeForm(type, editRecord = null) {
   let catOptions = '<option value="">— Select Category —</option>';
   categories.forEach(c => {
     const selected = editRecord && editRecord.category_id === c.id ? 'selected' : '';
-    catOptions += `<option value="${c.id}" ${selected}>${c.icon || '📌'} ${c.name}</option>`;
+    catOptions += `<option value="${c.id}" ${selected}>${c.icon || ''} ${c.name}</option>`;
   });
 
   const modalHtml = `
@@ -527,7 +526,7 @@ function _showIeForm(type, editRecord = null) {
       <div class="modal-card" style="max-width:520px;max-height:90vh;overflow-y:auto;">
         <div class="modal-header">
           <h3>${title}</h3>
-          <button class="modal-close" onclick="closeIeFormModal()">✖</button>
+          <button class="modal-close" onclick="closeIeFormModal()">×</button>
         </div>
         <div class="modal-body" style="padding:1.5rem;">
           <form id="ieForm">
@@ -578,7 +577,7 @@ function _showIeForm(type, editRecord = null) {
               <textarea id="ieFormNotes" rows="2" placeholder="Optional notes">${editRecord ? editRecord.notes || '' : ''}</textarea>
             </div>
             <div id="ieFormMessage" class="message" style="display:none;"></div>
-            <button type="submit" class="btn btn-primary btn-full" id="ieFormSubmitBtn">${isEdit ? '💾 Update Record' : '💾 Save Record'}</button>
+            <button type="submit" class="btn btn-primary btn-full" id="ieFormSubmitBtn">${isEdit ? 'Update Record' : 'Save Record'}</button>
           </form>
         </div>
       </div>
@@ -647,7 +646,7 @@ async function _saveIeRecord() {
         .eq('school_id', schoolId);
 
       if (error) throw error;
-      showMessage('ieFormMessage', '✅ Record updated successfully!', 'success');
+      showMessage('ieFormMessage', 'Record updated successfully!', 'success');
       try { await logStaffActivity(`${type === 'income' ? 'Updated income record' : 'Updated expenditure record'}`, { entityType: type, entityDetails: `${description} — GHC ${formatCurrency(amount)}` }); } catch (e) { /* noop */ }
     } else {
       // Create new record
@@ -667,7 +666,7 @@ async function _saveIeRecord() {
         }]);
 
       if (error) throw error;
-      showMessage('ieFormMessage', '✅ Record saved successfully!', 'success');
+      showMessage('ieFormMessage', 'Record saved successfully!', 'success');
       try { await logStaffActivity(`${type === 'income' ? 'Recorded new income' : 'Recorded new expenditure'} — ${description}`, { entityType: type, entityDetails: `GH${formatCurrency(amount)} · ${method}` }); } catch (e) { /* noop */ }
     }
 
@@ -702,7 +701,7 @@ window.ieEditRecord = async function(id) {
 };
 
 window.ieDeleteRecord = async function(id) {
-  if (!confirm('⚠️ Are you sure you want to delete this record? This action cannot be undone.')) return;
+  if (!confirm('Are you sure you want to delete this record? This action cannot be undone.')) return;
 
   try {
     const { error } = await supabaseClient.from('income_expenses')
@@ -756,15 +755,15 @@ function _renderCategoryList(containerId, categories) {
   container.innerHTML = categories.map(c => `
     <div class="ie-category-item" style="border-left:4px solid ${c.color || '#6366f1'};">
       <div class="ie-category-info">
-        <span class="ie-category-icon">${c.icon || '📌'}</span>
+        <span class="ie-category-icon">${c.icon || ''}</span>
         <div>
           <div class="ie-category-name">${c.name}</div>
           <div class="ie-category-desc">${c.description || '-'}</div>
         </div>
       </div>
       <div class="ie-category-actions">
-        <button class="action-btn" onclick="ieEditCategory('${c.id}')" title="Edit">✏️</button>
-        <button class="action-btn" style="color:var(--danger);" onclick="ieDeleteCategory('${c.id}')" title="Delete">🗑️</button>
+        <button class="action-btn" onclick="ieEditCategory('${c.id}')" title="Edit"></button>
+        <button class="action-btn" style="color:var(--danger);" onclick="ieDeleteCategory('${c.id}')" title="Delete"></button>
       </div>
     </div>
   `).join('');
@@ -772,14 +771,14 @@ function _renderCategoryList(containerId, categories) {
 
 function _showCategoryForm(editCategory = null) {
   const isEdit = !!editCategory;
-  const title = isEdit ? `✏️ Edit Category` : `➕ Add New Category`;
+  const title = isEdit ? `Edit Category` : `Add New Category`;
 
   const modalHtml = `
     <div class="modal-overlay" id="ieCategoryFormModal" style="display:flex;">
       <div class="modal-card" style="max-width:480px;">
         <div class="modal-header">
           <h3>${title}</h3>
-          <button class="modal-close" onclick="closeIeCategoryFormModal()">✖</button>
+          <button class="modal-close" onclick="closeIeCategoryFormModal()">×</button>
         </div>
         <div class="modal-body" style="padding:1.5rem;">
           <form id="ieCategoryForm">
@@ -792,15 +791,15 @@ function _showCategoryForm(editCategory = null) {
               <div class="form-group">
                 <label>Type *</label>
                 <select id="ieCategoryFormType" required ${isEdit ? 'disabled' : ''}>
-                  <option value="income" ${editCategory && editCategory.type === 'income' ? 'selected' : ''}>📈 Income</option>
-                  <option value="expense" ${editCategory && editCategory.type === 'expense' ? 'selected' : ''}>📉 Expense</option>
+                  <option value="income" ${editCategory && editCategory.type === 'income' ? 'selected' : ''}>Income</option>
+                  <option value="expense" ${editCategory && editCategory.type === 'expense' ? 'selected' : ''}>Expense</option>
                 </select>
               </div>
             </div>
             <div class="form-row">
               <div class="form-group">
-                <label>Icon (emoji)</label>
-                <input type="text" id="ieCategoryFormIcon" value="${editCategory ? editCategory.icon || '' : ''}" placeholder="e.g. 💰" maxlength="10" />
+                <label>Icon (optional)</label>
+                <input type="text" id="ieCategoryFormIcon" value="${editCategory ? editCategory.icon || '' : ''}" placeholder="Short symbol" maxlength="10" />
               </div>
               <div class="form-group">
                 <label>Color (hex)</label>
@@ -812,7 +811,7 @@ function _showCategoryForm(editCategory = null) {
               <input type="text" id="ieCategoryFormDesc" value="${editCategory ? editCategory.description || '' : ''}" placeholder="Optional description" />
             </div>
             <div id="ieCategoryFormMessage" class="message" style="display:none;"></div>
-            <button type="submit" class="btn btn-primary btn-full" id="ieCategoryFormSubmitBtn">${isEdit ? '💾 Update Category' : '💾 Save Category'}</button>
+            <button type="submit" class="btn btn-primary btn-full" id="ieCategoryFormSubmitBtn">${isEdit ? 'Update Category' : 'Save Category'}</button>
           </form>
         </div>
       </div>
@@ -845,7 +844,7 @@ async function _saveCategory() {
     const id = getEl('ieCategoryFormId').value;
     const name = getEl('ieCategoryFormName').value.trim();
     const type = getEl('ieCategoryFormType').value;
-    const icon = getEl('ieCategoryFormIcon').value.trim() || '📌';
+    const icon = getEl('ieCategoryFormIcon').value.trim() || '';
     const color = getEl('ieCategoryFormColor').value || '#6366f1';
     const description = getEl('ieCategoryFormDesc').value.trim() || null;
 
@@ -859,7 +858,7 @@ async function _saveCategory() {
 
       if (error) {
         if (error.message?.includes('duplicate') || error.code === '23505') {
-          showMessage('ieCategoryFormMessage', '❌ A category with this name already exists.', 'error');
+          showMessage('ieCategoryFormMessage', 'A category with this name already exists.', 'error');
         } else {
           throw error;
         }
@@ -872,7 +871,7 @@ async function _saveCategory() {
 
       if (error) {
         if (error.message?.includes('duplicate') || error.code === '23505') {
-          showMessage('ieCategoryFormMessage', '❌ A category with this name already exists.', 'error');
+          showMessage('ieCategoryFormMessage', 'A category with this name already exists.', 'error');
         } else {
           throw error;
         }
@@ -881,7 +880,7 @@ async function _saveCategory() {
       }
     }
 
-    showMessage('ieCategoryFormMessage', '✅ Category saved successfully!', 'success');
+    showMessage('ieCategoryFormMessage', 'Category saved successfully!', 'success');
     setTimeout(() => {
       window.closeIeCategoryFormModal();
       _loadCategories();
@@ -901,7 +900,7 @@ window.ieEditCategory = async function(id) {
 };
 
 window.ieDeleteCategory = async function(id) {
-  if (!confirm('⚠️ Delete this category? Records using this category will not be deleted, but the category will be removed.')) return;
+  if (!confirm('Delete this category? Records using this category will not be deleted, but the category will be removed.')) return;
 
   try {
     const { error } = await supabaseClient.from('income_expense_categories')
@@ -910,7 +909,7 @@ window.ieDeleteCategory = async function(id) {
 
     if (error) {
       if (error.message?.includes('foreign key') || error.code === '23503') {
-        alert('❌ Cannot delete this category because it has associated records. Please reassign or delete those records first.');
+        alert('Cannot delete this category because it has associated records. Please reassign or delete those records first.');
       } else {
         throw error;
       }
@@ -981,7 +980,7 @@ async function _generateReport() {
       <div class="ie-report">
         <div style="text-align:center;border-bottom:2px solid #1e3a5f;padding-bottom:1rem;margin-bottom:1rem;">
           <h2 style="margin:0;color:#1e3a5f;">${schoolName}</h2>
-          <h3 style="margin:0.5rem 0;font-size:1.1rem;">📊 Financial Report</h3>
+          <h3 style="margin:0.5rem 0;font-size:1.1rem;">Financial Report</h3>
           <p style="margin:0;font-size:0.85rem;color:var(--text-muted);">Period: ${dateRangeStr}</p>
           <p style="margin:0;font-size:0.85rem;color:var(--text-muted);">Generated: ${new Date().toLocaleString()}</p>
         </div>
@@ -1018,7 +1017,7 @@ async function _generateReport() {
             <tbody>
               ${records.map((r, i) => {
                 const cat = r.income_expense_categories || {};
-                const typeLabel = r.type === 'income' ? '📈 Income' : '📉 Expense';
+                const typeLabel = r.type === 'income' ? 'Income' : 'Expense';
                 return `<tr>
                   <td>${i + 1}</td>
                   <td>${formatDate(r.transaction_date)}</td>
@@ -1070,8 +1069,8 @@ async function _previewReport() {
   modal.innerHTML = `
     <div class="modal-card" style="max-width:900px;max-height:90vh;overflow-y:auto;">
       <div class="modal-header">
-        <h3>👁️ Report Preview</h3>
-        <button class="modal-close" onclick="document.getElementById('ieReportPreviewModal').style.display='none';document.getElementById('ieReportPreviewModal').remove();">✖</button>
+        <h3>Report Preview</h3>
+        <button class="modal-close" onclick="document.getElementById('ieReportPreviewModal').style.display='none';document.getElementById('ieReportPreviewModal').remove();">×</button>
       </div>
       <div class="modal-body">${reportHtml}</div>
     </div>
@@ -1164,5 +1163,5 @@ function _populateSelect(elId, categories) {
   if (!el) return;
   const currentValue = el.value;
   el.innerHTML = '<option value="">All Categories</option>' +
-    categories.map(c => `<option value="${c.id}" ${c.id === currentValue ? 'selected' : ''}>${c.icon || '📌'} ${c.name}</option>`).join('');
+    categories.map(c => `<option value="${c.id}" ${c.id === currentValue ? 'selected' : ''}>${c.icon || ''} ${c.name}</option>`).join('');
 }

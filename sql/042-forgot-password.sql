@@ -8,13 +8,13 @@
 --  set a new password.
 --
 --  What this adds:
---  ✅ profiles.phone  - canonical mobile source for ALL roles
---  ✅ Backfills profiles.phone from role tables where a number already
+--  profiles.phone  - canonical mobile source for ALL roles
+--  Backfills profiles.phone from role tables where a number already
 --     exists (teacher/accountant/school-admin; student → parent contact;
 --     parent → ward's parent contact; sub_admin/super_admin need one set)
---  ✅ password_reset_otps  - hashed OTP storage (RLS locked; only the
+--  password_reset_otps  - hashed OTP storage (RLS locked; only the
 --     SECURITY DEFINER RPCs below touch it)
---  ✅ Public RPCs callable by logged-OUT users (granted to anon):
+--  Public RPCs callable by logged-OUT users (granted to anon):
 --       lookup_forgot_password_account(identifier) → {found, has_phone, role, phone_last3}
 --       request_forgot_password_otp(identifier, phone) → {success, otp, phone_last3}
 --       verify_forgot_password_otp(identifier, otp, new_password) → {success}

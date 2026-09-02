@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS public.income_expense_categories (
   type        TEXT NOT NULL CHECK (type IN ('income', 'expense')),
   description TEXT,
   color       TEXT DEFAULT '#6366f1',
-  icon        TEXT DEFAULT '💰',
+  icon        TEXT DEFAULT '',
   school_id   UUID REFERENCES public.schools(id) ON DELETE CASCADE,
   created_at  TIMESTAMPTZ DEFAULT now(),
   updated_at  TIMESTAMPTZ DEFAULT now()
@@ -99,23 +99,23 @@ AS $$
 BEGIN
   -- Income categories
   INSERT INTO public.income_expense_categories (name, type, description, color, icon, school_id) VALUES
-    ('School Fees', 'income', 'Student tuition and fee payments', '#10b981', '💰', p_school_id),
-    ('PTA Dues', 'income', 'Parent-Teacher Association contributions', '#6366f1', '🤝', p_school_id),
-    ('Donations', 'income', 'Donations from individuals and organizations', '#f59e0b', '🎁', p_school_id),
-    ('Grants', 'income', 'Government and private grants', '#8b5cf6', '📜', p_school_id),
-    ('Other Income', 'income', 'Miscellaneous income sources', '#06b6d4', '📊', p_school_id)
+    ('School Fees', 'income', 'Student tuition and fee payments', '#10b981', '', p_school_id),
+    ('PTA Dues', 'income', 'Parent-Teacher Association contributions', '#6366f1', '', p_school_id),
+    ('Donations', 'income', 'Donations from individuals and organizations', '#f59e0b', '', p_school_id),
+    ('Grants', 'income', 'Government and private grants', '#8b5cf6', '', p_school_id),
+    ('Other Income', 'income', 'Miscellaneous income sources', '#06b6d4', '', p_school_id)
   ON CONFLICT (school_id, name, type) DO NOTHING;
 
   -- Expense categories
   INSERT INTO public.income_expense_categories (name, type, description, color, icon, school_id) VALUES
-    ('Salaries', 'expense', 'Staff salaries and wages', '#ef4444', '👨‍🏫', p_school_id),
-    ('Utilities', 'expense', 'Electricity, water, internet, etc.', '#f97316', '⚡', p_school_id),
-    ('Supplies', 'expense', 'Teaching and office supplies', '#eab308', '📦', p_school_id),
-    ('Maintenance', 'expense', 'Building and equipment repairs', '#ec4899', '🔧', p_school_id),
-    ('Transport', 'expense', 'Transportation and fuel costs', '#14b8a6', '🚌', p_school_id),
-    ('Food & Catering', 'expense', 'Meals and catering services', '#f43f5e', '🍽️', p_school_id),
-    ('Events', 'expense', 'School events and activities', '#a855f7', '🎉', p_school_id),
-    ('Other Expense', 'expense', 'Miscellaneous expenses', '#64748b', '📋', p_school_id)
+    ('Salaries', 'expense', 'Staff salaries and wages', '#ef4444', '', p_school_id),
+    ('Utilities', 'expense', 'Electricity, water, internet, etc.', '#f97316', '', p_school_id),
+    ('Supplies', 'expense', 'Teaching and office supplies', '#eab308', '', p_school_id),
+    ('Maintenance', 'expense', 'Building and equipment repairs', '#ec4899', '', p_school_id),
+    ('Transport', 'expense', 'Transportation and fuel costs', '#14b8a6', '', p_school_id),
+    ('Food & Catering', 'expense', 'Meals and catering services', '#f43f5e', '', p_school_id),
+    ('Events', 'expense', 'School events and activities', '#a855f7', '', p_school_id),
+    ('Other Expense', 'expense', 'Miscellaneous expenses', '#64748b', '', p_school_id)
   ON CONFLICT (school_id, name, type) DO NOTHING;
 END;
 $$;

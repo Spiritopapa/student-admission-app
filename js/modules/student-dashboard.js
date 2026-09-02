@@ -28,7 +28,7 @@ export function setupStudentDashboard() {
           target.classList.add('active-subpage');
           document.querySelectorAll('[data-student-page]').forEach((b) => b.classList.remove('active'));
           btn.classList.add('active');
-          const titles = { profile: '🎓 My Profile', attendance: '📋 My Attendance', announcements: '📢 Announcements', exams: '📝 My Exam Report Cards', assessments: '❓ My Assessments', fees: '💰 My Fee Details' };
+          const titles = { profile: 'My Profile', attendance: 'My Attendance', announcements: 'Announcements', exams: 'My Exam Report Cards', assessments: 'My Assessments', fees: 'My Fee Details' };
           const titleEl = getEl('studentDashTitle');
           if (titleEl && titles[page]) titleEl.textContent = titles[page];
           // Show locked message
@@ -43,7 +43,7 @@ export function setupStudentDashboard() {
       document.querySelectorAll('.student-subpage').forEach((p) => p.classList.remove('active-subpage'));
       const target = getEl(`studentPage-${page}`);
       if (target) target.classList.add('active-subpage');
-      const titles = { profile: '🎓 My Profile', attendance: '📋 My Attendance', announcements: '📢 Announcements', exams: '📝 My Exam Report Cards', assessments: '❓ My Assessments', fees: '💰 My Fee Details' };
+      const titles = { profile: 'My Profile', attendance: 'My Attendance', announcements: 'Announcements', exams: 'My Exam Report Cards', assessments: 'My Assessments', fees: 'My Fee Details' };
       const titleEl = getEl('studentDashTitle');
       if (titleEl && titles[page]) titleEl.textContent = titles[page];
       if (page === 'attendance') loadStudentAttendance();
@@ -69,13 +69,6 @@ export function setupStudentDashboard() {
  * Returns HTML for a locked/blocked page when portal is not confirmed
  */
 function getLockedPageHTML(page) {
-  const icons = {
-    attendance: '📋',
-    announcements: '📢',
-    exams: '📝',
-    assessments: '❓',
-    fees: '💰'
-  };
   const names = {
     attendance: 'Attendance Records',
     announcements: 'Announcements',
@@ -83,19 +76,17 @@ function getLockedPageHTML(page) {
     assessments: 'Assessments',
     fees: 'Fee Details'
   };
-  const icon = icons[page] || '🔒';
   const name = names[page] || page;
   
   return `
     <div style="text-align:center;padding:3rem 1rem;">
-      <div style="font-size:3rem;margin-bottom:1rem;">🔒</div>
-      <h3 style="color:var(--text);margin-bottom:0.5rem;">${icon} ${name} Locked</h3>
+      <h3 style="color:var(--text);margin-bottom:0.5rem;">${name} Locked</h3>
       <p style="color:var(--text-muted);max-width:400px;margin:0 auto;line-height:1.6;">
         Your portal access is pending confirmation. 
         Please wait for the administrator to approve your account before accessing this section.
       </p>
       <div style="margin-top:1.5rem;padding:0.75rem;background:var(--warning-light);border-radius:var(--radius-sm);display:inline-block;">
-        <span style="font-size:0.85rem;color:var(--warning);font-weight:600;">⏳ Awaiting Admin Approval</span>
+        <span style="font-size:0.85rem;color:var(--warning);font-weight:600;">Awaiting Admin Approval</span>
       </div>
     </div>`;
 }
@@ -106,7 +97,7 @@ export async function loadStudentDashboard(user) {
   
   // Get profile for welcome message
   const { data: profile } = await supabaseClient.from('profiles').select('*').eq('id', user.id).single();
-  welcomeEl.textContent = `Welcome, ${profile?.full_name || 'Student'} | 🎓 Student`;
+  welcomeEl.textContent = `Welcome, ${profile?.full_name || 'Student'} | Student`;
   
   // TRI-LEVEL LOOKUP to find the correct student application record
   let app = null;
@@ -207,12 +198,12 @@ export async function loadStudentDashboard(user) {
     if (formContainer) {
       formContainer.innerHTML = `
         <div style="text-align:center;padding:2rem;">
-          <p style="font-size:2rem;">⏳</p>
+          <p style="font-size:2rem;"></p>
           <h3>Your portal access is pending confirmation</h3>
           <p style="color:var(--text-muted);margin-top:0.5rem;">Please wait for the administrator to confirm your access.</p>
           <p style="color:var(--text-muted);">Your Student ID: <strong>${app.student_id}</strong></p>
           <div style="margin-top:1.5rem;padding:0.75rem;background:var(--warning-light);border-radius:var(--radius-sm);display:inline-block;">
-            <span style="font-size:0.85rem;color:var(--warning);font-weight:600;">⏳ Awaiting Admin Approval</span>
+            <span style="font-size:0.85rem;color:var(--warning);font-weight:600;">Awaiting Admin Approval</span>
           </div>
         </div>`;
     }
@@ -250,7 +241,7 @@ function populateStudentProfile(app) {
     if (app.student_photo_url) {
       photoContainer.innerHTML = `<img src="${app.student_photo_url}" class="student-profile-photo" alt="Student photo" />`;
     } else {
-      photoContainer.innerHTML = '<span class="dash-photo-placeholder student-profile-photo-placeholder">📷</span>';
+      photoContainer.innerHTML = '<span class="dash-photo-placeholder student-profile-photo-placeholder"></span>';
     }
   }
 }
@@ -276,7 +267,7 @@ async function updateStudentProfile(e) {
   try {
     const { error } = await supabaseClient.from('applications').update(payload).eq('student_id', app.student_id);
     if (error) throw error;
-    showMessage('studentProfileMessage', '✅ Profile updated successfully.', 'success');
+    showMessage('studentProfileMessage', 'Profile updated successfully.', 'success');
     const { data: updatedApp } = await supabaseClient.from('applications').select('*').eq('student_id', app.student_id).single();
     if (updatedApp) populateStudentProfile(updatedApp);
   } catch (err) { showMessage('studentProfileMessage', 'Error: ' + err.message, 'error'); }
@@ -305,7 +296,7 @@ async function changeStudentPassword(e) {
   try {
     const { data, error } = await supabaseClient.auth.updateUser({ password: newPassword });
     if (error) throw error;
-    showMessage('studentPasswordMessage', '✅ Password changed successfully. Use your new password next time you sign in.', 'success');
+    showMessage('studentPasswordMessage', 'Password changed successfully. Use your new password next time you sign in.', 'success');
     e.target.reset();
   } catch (err) {
     showMessage('studentPasswordMessage', 'Error: ' + err.message, 'error');
@@ -335,26 +326,23 @@ function showStudentAnnouncementPopup(announcement) {
 
   const priority = announcement.priority || 'normal';
   const date = formatDate(announcement.created_at);
-  const iconMap = { urgent: '🔴', high: '🟠', normal: '🔵', low: '🟢' };
-  const icon = iconMap[priority] || '📢';
   const popup = document.createElement('div');
   popup.id = 'dashAnnouncementPopup';
   popup.innerHTML = `
     <div class="announcement-popup-overlay"></div>
     <div class="announcement-popup-card">
       <div class="announcement-popup-header" style="background:${priority === 'urgent' ? '#dc2626' : priority === 'high' ? '#f59e0b' : '#10b981'};">
-        <span class="announcement-popup-icon">${icon}</span>
         <span class="announcement-popup-badge">${priority.toUpperCase()}</span>
-        <button class="announcement-popup-close" onclick="this.closest('#dashAnnouncementPopup').remove()">✕</button>
+        <button class="announcement-popup-close" onclick="this.closest('#dashAnnouncementPopup').remove()">×</button>
       </div>
       <div class="announcement-popup-body">
         <h3 class="announcement-popup-title">${announcement.title || 'Announcement'}</h3>
         <p class="announcement-popup-text">${announcement.content || ''}</p>
         <div class="announcement-popup-footer">
-          <span class="announcement-popup-date">📅 ${date}</span>
+          <span class="announcement-popup-date">${date}</span>
           <div class="announcement-popup-actions">
             <button class="announcement-popup-dismiss" onclick="this.closest('#dashAnnouncementPopup').remove()">Dismiss</button>
-            <button class="announcement-popup-remind" onclick="this.closest('#dashAnnouncementPopup').remove(); sessionStorage.setItem('_remindLater_${announcement.id}', '1');">⏰ Remind Me Later</button>
+            <button class="announcement-popup-remind" onclick="this.closest('#dashAnnouncementPopup').remove(); sessionStorage.setItem('_remindLater_${announcement.id}', '1');">Remind Me Later</button>
           </div>
         </div>
       </div>
@@ -579,7 +567,7 @@ async function loadStudentFees() {
         </div>
       </div>
       <div class="fee-terms-section">
-        <div class="fee-terms-header">📋 Fee Records by Term</div>
+        <div class="fee-terms-header">Fee Records by Term</div>
         <div class="table-wrapper" style="overflow-x:auto;">
           <table class="app-table" style="min-width:900px;">
             <thead><tr><th>Student ID</th><th>Name</th><th>Class</th><th>Academic Year</th><th>Term</th><th style="text-align:right;">Total Amount</th><th style="text-align:right;">Amount Paid</th><th style="text-align:right;">Debt</th><th style="text-align:right;">Balance</th><th style="text-align:center;">Status</th><th>Last Payment</th></tr></thead>
@@ -593,7 +581,7 @@ async function loadStudentFees() {
         </div>
       </div>
       <div class="fee-receipts-section">
-        <div class="fee-receipts-header">📄 Receipt & Payment History</div>
+        <div class="fee-receipts-header">Receipt & Payment History</div>
         ${paymentHistory.length > 0 ? `
           <div class="table-wrapper" style="overflow-x:auto;">
             <table class="app-table" style="min-width:700px;">
@@ -604,8 +592,8 @@ async function loadStudentFees() {
                 const processorParam = (p.recorded_by_name || '').replace(/"/g, '&quot;');
                 const receiptActions = p.type === 'receipt' && p.receipt_number !== '-'
                   ? `<div style="display:inline-flex;gap:0.35rem;">
-                      <button class="fee-print-btn" style="padding:2px 7px;font-size:11px;background:var(--success-light);border-color:var(--success);" onclick='viewSavedReceipt(${escRow}, "${processorParam}")' title="View official receipt" aria-label="View receipt">👁 View</button>
-                      <button class="fee-print-btn" onclick='printSavedReceipt(${escRow}, "${processorParam}")' title="Print official receipt" aria-label="Print receipt">🖨️ Print</button>
+                      <button class="fee-print-btn" style="padding:2px 7px;font-size:11px;background:var(--success-light);border-color:var(--success);" onclick='viewSavedReceipt(${escRow}, "${processorParam}")' title="View official receipt" aria-label="View receipt">View</button>
+                      <button class="fee-print-btn" onclick='printSavedReceipt(${escRow}, "${processorParam}")' title="Print official receipt" aria-label="Print receipt">Print</button>
                     </div>`
                   : '<span style="color:var(--text-muted);font-size:0.75rem;">-</span>';
                 return `<tr><td><strong>${p.receipt_number}</strong></td><td>${getTermDisplay(p.term)} ${p.academic_year ? '- ' + p.academic_year : ''}</td><td style="text-align:right;">GHC ${p.amount.toFixed(2)}</td><td>${dateStr}</td><td style="text-align:center;">${receiptActions}</td></tr>`;
@@ -678,7 +666,7 @@ async function loadStudentAttendance() {
       getEl('stuAttTotal').textContent = total;
       getEl('stuAttPct').textContent = pct + '%';
     }
-    const statusIcons = { present: '✅ Present', absent: '❌ Absent' };
+    const statusIcons = { present: 'Present', absent: 'Absent' };
     const statusColors = { present: 'var(--success)', absent: 'var(--danger)' };
     tbody.innerHTML = records.map(r => `<tr><td>${formatDate(r.date)}</td><td><span style="color:${statusColors[r.status] || 'inherit'};font-weight:600;">${statusIcons[r.status] || r.status}</span></td><td>${r.remarks || '-'}</td></tr>`).join('');
   } catch (err) {
@@ -767,7 +755,7 @@ async function showStudentReportCard(examId, studentId) {
     schoolName = schoolName || 'My School';
     const schoolLogoHtml = schoolLogoUrl
       ? `<img src="${schoolLogoUrl}" alt="School Logo" style="width:56px;height:56px;object-fit:contain;border-radius:8px;background:#fff;padding:2px;border:1px solid #e2e8f0;" />`
-      : '<div class="rc-seal">🏫</div>';
+      : '<div class="rc-seal"></div>';
     const academicYear = exam.academic_year || '';
     const term = exam.term || '';
     const { data: studentDetails } = await supabaseClient.from('exam_student_details').select('*').eq('exam_id', examId).eq('student_id', studentId).maybeSingle();
@@ -823,7 +811,7 @@ async function showStudentReportCard(examId, studentId) {
     const reopeningDate = exam.reopening_date ? formatDate(exam.reopening_date) : '-';
     const photoHtml = app.student_photo_url
       ? `<img src="${app.student_photo_url}" class="rc-photo" alt="Student" />`
-      : `<div class="rc-photo rc-photo-placeholder">📷</div>`;
+      : `<div class="rc-photo rc-photo-placeholder"></div>`;
 
     const posSuffix = overallPosition === 1 ? 'st' : overallPosition === 2 ? 'nd' : overallPosition === 3 ? 'rd' : 'th';
     const posDisplay = overallPosition !== '-' ? `${overallPosition}${posSuffix}` : '-';
@@ -924,7 +912,7 @@ async function showStudentReportCard(examId, studentId) {
   </div>
   <div class="rc-remarks">
     <div class="rc-remarks-box rc-remarks-teacher">
-      <div class="rc-remarks-header">📚 Class Teacher's Remarks</div>
+      <div class="rc-remarks-header">Class Teacher's Remarks</div>
       <div class="rc-remarks-text">${remarks}</div>
       <div class="rc-remarks-signature">
         <span class="rc-sign-line">_________________________</span>
@@ -932,7 +920,7 @@ async function showStudentReportCard(examId, studentId) {
       </div>
     </div>
     <div class="rc-remarks-box rc-remarks-head">
-      <div class="rc-remarks-header">👨‍🏫 Head Teacher's Remarks</div>
+      <div class="rc-remarks-header">Head Teacher's Remarks</div>
       <div class="rc-remarks-text">${headTeacherRemarks || '___________________________________________________________'}</div>
       <div class="rc-remarks-signature">
         <span class="rc-sign-line">_________________________</span>

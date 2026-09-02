@@ -208,7 +208,7 @@ async function loadAccTodayReceipts() {
         <td style="text-align:right;font-weight:bold;">GHC ${formatCurrency(r.amount)}</td>
         <td>${r.payment_method}</td>
         <td>${time}</td>
-        <td><button class="action-btn confirm" style="font-size:11px;padding:2px 6px;" onclick="reprintReceipt('${r.id}')">🖨️</button></td>
+        <td><button class="action-btn confirm" style="font-size:11px;padding:2px 6px;" onclick="reprintReceipt('${r.id}')"></button></td>
       </tr>`;
     }).join('');
   } catch (err) {
@@ -382,7 +382,7 @@ async function previewAccTodayReceipts() {
     const today = new Date().toLocaleDateString('en-GB', {
       day: 'numeric', month: 'long', year: 'numeric'
     });
-    if (title) title.textContent = `👁️ Today's Receipts Preview - ${today}`;
+    if (title) title.textContent = `Today's Receipts Preview - ${today}`;
     modal.style.display = 'flex';
   }
 }
@@ -505,14 +505,14 @@ async function updateAccountantProfile(e) {
     const fn = getEl('accountantProfileName').value.trim();
     if (!fn) { showMessage('accountantProfileMessage', 'Name required.', 'error'); setLoading(btn, false, 'Update Name'); return; }
 
-    // ⛔ NAME LOCK: If the admin has generated an ID (registration_id) for this
+    // NAME LOCK: If the admin has generated an ID (registration_id) for this
     // accountant, they cannot change their own name. Only the admin can.
     const { data: accRecord } = await supabaseClient.from('accountants')
       .select('registration_id')
       .eq('user_id', user.id)
       .maybeSingle();
     if (accRecord?.registration_id) {
-      showMessage('accountantProfileMessage', '⛔ Your name is locked. Please contact the school admin to change your name.', 'error');
+      showMessage('accountantProfileMessage', 'Your name is locked. Please contact the school admin to change your name.', 'error');
       setLoading(btn, false, 'Update Name');
       // Revert the input to the original name
       await loadAccountantProfileData();
@@ -522,7 +522,7 @@ async function updateAccountantProfile(e) {
     const { error: pe } = await supabaseClient.from('profiles').update({ full_name: fn }).eq('id', user.id);
     if (pe) throw pe;
     await supabaseClient.from('accountants').update({ full_name: fn }).eq('user_id', user.id);
-    showMessage('accountantProfileMessage', '✅ Updated.', 'success');
+    showMessage('accountantProfileMessage', 'Updated.', 'success');
     getEl('accountantSidebarName').textContent = fn;
     try { await logStaffActivity('Updated accountant profile', { role: 'accountant', entityType: 'profile', entityDetails: `New name: ${fn}` }); } catch (e) { console.warn(e); }
   } catch (err) { showMessage('accountantProfileMessage', 'Error: ' + err.message, 'error'); }
@@ -547,7 +547,7 @@ async function changeAccountantPassword(e) {
   try {
     const { error } = await supabaseClient.auth.updateUser({ password: np });
     if (error) throw error;
-    showMessage('accountantProfileMessage', '✅ Changed.', 'success');
+    showMessage('accountantProfileMessage', 'Changed.', 'success');
     getEl('accountantNewPassword').value = '';
     getEl('accountantConfirmPassword').value = '';
     try { await logStaffActivity('Changed accountant password', { role: 'accountant', entityType: 'password' }); } catch (e) { /* noop */ }
@@ -563,7 +563,7 @@ async function changeAccountantPassword(e) {
 // ================================================================
 
 async function loadAccountantSubPage(page) {
-  const titles = { dashboard: '⭐ Dashboard', profile: '👤 Profile', fees: '💰 Fees Management', receipts: '🧾 Receipts', debtors: '⚠️ Debtors', 'income-expenses': '📊 Income & Expenses' };
+  const titles = { dashboard: 'Dashboard', profile: 'Profile', fees: 'Fees Management', receipts: 'Receipts', debtors: 'Debtors', 'income-expenses': 'Income & Expenses' };
   document.querySelectorAll('.accountant-subpage').forEach(p => p.style.display = 'none');
   const target = getEl(`accountantPage-${page}`);
   if (target) target.style.display = 'block';
@@ -601,7 +601,7 @@ async function loadAccountantProfileData() {
       getEl('accountantSidebarName').textContent = p.full_name;
     }
 
-    // ⛔ NAME LOCK: If the admin has generated an ID (registration_id) for this
+    // NAME LOCK: If the admin has generated an ID (registration_id) for this
     // accountant, disable the name input field so they cannot change it.
     const nameInput = getEl('accountantProfileName');
     const nameSubmitBtn = getEl('accountantProfileForm')?.querySelector('button[type="submit"]');
@@ -612,7 +612,7 @@ async function loadAccountantProfileData() {
       }
       if (nameSubmitBtn) {
         nameSubmitBtn.disabled = true;
-        nameSubmitBtn.textContent = '🔒 Name Locked';
+        nameSubmitBtn.textContent = 'Name Locked';
       }
       // Show a lock notice
       const lockNotice = getEl('accountantNameLockNotice');
@@ -657,13 +657,13 @@ async function loadAccountantFeesPage() {
 
   container.innerHTML = `
     <div class="fee-tabs" style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1rem;">
-      <button type="button" class="btn btn-secondary fee-tab active" data-acc-fee-tab="students">👥 Student Fees</button>
-      <button type="button" class="btn btn-secondary fee-tab" data-acc-fee-tab="payment">💰 Record Payment</button>
-      <button type="button" class="btn btn-secondary fee-tab" data-acc-fee-tab="debtors">⚠️ Debtors</button>
+      <button type="button" class="btn btn-secondary fee-tab active" data-acc-fee-tab="students">Student Fees</button>
+      <button type="button" class="btn btn-secondary fee-tab" data-acc-fee-tab="payment">Record Payment</button>
+      <button type="button" class="btn btn-secondary fee-tab" data-acc-fee-tab="debtors">Debtors</button>
     </div>
     <div id="accFeeTab-students" class="acc-fee-content">
       <div class="card-toolbar" style="flex-wrap:wrap;">
-        <input type="text" id="accFeeSearch" placeholder="🔍 Search student name or ID..." class="search-input" style="max-width:250px;" />
+        <input type="text" id="accFeeSearch" placeholder="Search student name or ID..." class="search-input" style="max-width:250px;" />
         <select id="accFeeClass" class="filter-select"><option value="">All Classes</option></select>
         <select id="accFeeSearchTerm" class="filter-select"><option value="">All Terms</option><option value="First">First Term</option><option value="Second">Second Term</option><option value="Third">Third Term</option></select>
         <select id="accFeeSearchStatus" class="filter-select"><option value="">All Status</option><option value="paid">Paid</option><option value="partial">Partial</option><option value="unpaid">Unpaid</option></select>
@@ -682,7 +682,7 @@ async function loadAccountantFeesPage() {
       </div>
       <div id="accFeeStudentInfo" style="margin:1rem 0;"><div style="text-align:center;padding:1rem;color:var(--text-muted);">Enter a student ID to begin.</div></div>
       <div class="acc-card" style="max-width:600px;">
-        <h3 style="margin:0 0 0.75rem 0;">💳 Record New Payment</h3>
+        <h3 style="margin:0 0 0.75rem 0;">Record New Payment</h3>
         <div class="form-row">
           <div class="form-group"><label>Academic Year</label><select id="accPayAcademicYear" class="filter-select">${generateAcademicYearOptions(null, null, getDefaultAcademicYear())}</select></div>
           <div class="form-group"><label>Term</label><select id="accPayTerm"><option value="First">First Term</option><option value="Second">Second Term</option><option value="Third">Third Term</option></select></div>
@@ -695,14 +695,14 @@ async function loadAccountantFeesPage() {
           <div class="form-group"><label>Reference Number</label><input type="text" id="accPayRef" placeholder="Optional: receipt/transaction ref" /></div>
           <div class="form-group"><label>Notes</label><input type="text" id="accPayNotes" placeholder="Optional notes" /></div>
         </div>
-        <button type="button" class="btn btn-primary btn-full" id="accPayBtn">💾 Record Payment</button>
+        <button type="button" class="btn btn-primary btn-full" id="accPayBtn">Record Payment</button>
         <div id="accPayMessage" class="message" style="display:none;margin-top:0.75rem;"></div>
       </div>
     </div>
     <div id="accFeeTab-debtors" class="acc-fee-content" style="display:none;">
       <div class="card-toolbar">
         <span id="accFeeDebtorsCount" style="font-size:0.9rem;font-weight:600;">Loading...</span>
-        <button type="button" class="btn btn-secondary" id="accFeeDebtorsRefresh">🔄 Refresh</button>
+        <button type="button" class="btn btn-secondary" id="accFeeDebtorsRefresh">Refresh</button>
       </div>
       <div class="table-wrapper">
         <table class="app-table">
@@ -800,7 +800,7 @@ async function loadAccStudentFees() {
     const name = `${s.first_name} ${s.middle_name || ''} ${s.last_name}`;
     const photoHtml = s.student_photo_url
       ? `<img src="${s.student_photo_url}" alt="Photo" class="student-photo-thumb" />`
-      : '<span class="dash-photo-placeholder">🎓</span>';
+      : '<span class="dash-photo-placeholder"></span>';
     const termDisplay = fees.sort((a, b) => {
       const terms = ['First', 'Second', 'Third'];
       return terms.indexOf(a.term) - terms.indexOf(b.term) || a.academic_year.localeCompare(b.academic_year);
@@ -827,7 +827,7 @@ async function loadAccStudentFees() {
       <td>${s.class_applying}</td>
       <td>${termDisplay}</td>
       <td><strong>GHC ${formatCurrency(totalBalance)}</strong></td>
-      <td><button class="action-btn confirm" onclick="accRecordPayment('${s.student_id}')">💰 Pay</button></td>
+      <td><button class="action-btn confirm" onclick="accRecordPayment('${s.student_id}')">Pay</button></td>
     </tr>`;
   }).join('');
 }
@@ -857,7 +857,7 @@ async function loadAccFeeStudentInfo() {
   const { data: student } = await supabaseClient.from('applications')
     .select('*').eq('student_id', studentId).maybeSingle();
   if (!student) {
-    infoEl.innerHTML = '<div style="text-align:center;padding:1rem;color:var(--danger);">❌ Student not found</div>';
+    infoEl.innerHTML = '<div style="text-align:center;padding:1rem;color:var(--danger);">Student not found</div>';
     return;
   }
 
@@ -948,7 +948,7 @@ async function loadAccFeeStudentInfo() {
     });
     if (allPaid) {
       statusHtml = `<div class="fee-payment-summary" style="margin-top:1rem;padding:0.75rem;background:#f0fdf4;border-radius:4px;font-size:0.85rem;color:#166534;">
-        <strong>✅ All current terms paid!</strong><br/>
+        <strong>All current terms paid!</strong><br/>
         Auto-selected next: <strong>${selectedTerm} Term ${selectedYear}</strong>
         ${outstanding > 0 ? ` — Outstanding: <strong>GHC ${formatCurrency(outstanding)}</strong>` : ' — Fee record not yet set.'}
       </div>`;
@@ -990,7 +990,7 @@ async function processAccPayment() {
 
   if (!currentFee) {
     showMessage('accPayMessage', 
-      `❌ No fee record found for ${studentId} for ${term} Term ${academicYear}.\n\nPlease ask the admin to set the fee structure first. Fee records are automatically created when the fee structure is set.`, 
+      `No fee record found for ${studentId} for ${term} Term ${academicYear}.\n\nPlease ask the admin to set the fee structure first. Fee records are automatically created when the fee structure is set.`, 
       'error');
     return;
   }
@@ -1001,7 +1001,7 @@ async function processAccPayment() {
 
   if (outstanding <= 0) {
     showMessage('accPayMessage', 
-      `✅ ${studentId} has already fully paid for ${term} Term ${academicYear}.\n\nTotal Due: GHC ${formatCurrency(totalDue)}\nAmount Paid: GHC ${formatCurrency(currentPaid)}\n\nNo further payment is needed for this term.`, 
+      `${studentId} has already fully paid for ${term} Term ${academicYear}.\n\nTotal Due: GHC ${formatCurrency(totalDue)}\nAmount Paid: GHC ${formatCurrency(currentPaid)}\n\nNo further payment is needed for this term.`, 
       'error');
     return;
   }
@@ -1010,22 +1010,22 @@ async function processAccPayment() {
   const priorBalance = await getPriorTermBalance(supabaseClient, studentId, academicYear, term);
   if (priorBalance) {
     showMessage('accPayMessage', 
-      `⛔ COMPULSORY: Cannot pay for ${term} Term ${academicYear} because there is an outstanding balance from a previous term.\n\n` +
+      `COMPULSORY: Cannot pay for ${term} Term ${academicYear} because there is an outstanding balance from a previous term.\n\n` +
       `Unpaid: ${priorBalance.term} Term ${priorBalance.academic_year}\n` +
       `Amount Due: GHC ${formatCurrency(priorBalance.balance)}\n\n` +
-      `💡 Please clear this previous balance first before paying the current term fees.`, 
+      `Please clear this previous balance first before paying the current term fees.`, 
       'error');
     return;
   }
 
-  // CHECK 3: ⛔ TOTALLY PREVENT OVERPAYMENT
+  // CHECK 3: TOTALLY PREVENT OVERPAYMENT
   if (amount > outstanding && outstanding > 0) {
     showMessage('accPayMessage',
-      `⛔ OVERPAYMENT PREVENTED\n\n` +
+      `OVERPAYMENT PREVENTED\n\n` +
       `Outstanding for ${term} Term ${academicYear}: GHC ${formatCurrency(outstanding)}\n` +
       `You attempted to pay: GHC ${formatCurrency(amount)}\n` +
       `Excess amount: GHC ${formatCurrency(amount - outstanding)}\n\n` +
-      `💡 Please enter an amount equal to or less than the outstanding balance of GHC ${formatCurrency(outstanding)}.\n` +
+      `Please enter an amount equal to or less than the outstanding balance of GHC ${formatCurrency(outstanding)}.\n` +
       `Overpayment is not allowed. If you need to pay for the next term, please use that term's payment form.`,
       'error');
     return;
@@ -1053,7 +1053,7 @@ async function processAccPayment() {
     if (error) throw error;
     if (!data.success) { showMessage('accPayMessage', 'Error: ' + (data.error || 'Failed'), 'error'); return; }
 
-    showMessage('accPayMessage', `✅ Paid! Receipt: ${data.receipt_number}`, 'success');
+    showMessage('accPayMessage', `Paid! Receipt: ${data.receipt_number}`, 'success');
     try { await logStaffActivity(`Recorded fee payment of GHC ${formatCurrency(amount)} for ${studentId} (Receipt: ${data.receipt_number})`, { role: 'accountant', entityType: 'payment', entityDetails: `${studentId} · ${term} Term ${academicYear} · GHC ${formatCurrency(amount)}` }); } catch (e) { console.warn(e); }
     // Notify the parent via SMS as soon as the payment is recorded
     sendFeePaymentSms({
@@ -1116,7 +1116,7 @@ async function processAccPayment() {
       }
     }
   } catch (err) { showMessage('accPayMessage', 'Error: ' + err.message, 'error'); }
-  finally { setLoading(btn, false, '💾 Record Payment'); }
+  finally { setLoading(btn, false, 'Record Payment'); }
 }
 
 // ================================================================
@@ -1139,7 +1139,7 @@ async function loadAccFeeDebtors() {
 
   const { data: debtors } = await query;
   if (!debtors || debtors.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--text-muted);">🎉 No debtors! All fees are up to date.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--text-muted);">No debtors! All fees are up to date.</td></tr>';
     const countEl = getEl('accFeeDebtorsCount');
     if (countEl) countEl.textContent = '0 debtors - All clear!';
     return;
@@ -1186,7 +1186,7 @@ async function loadAccFeeDebtors() {
       <td><strong>${s.student_id}</strong></td><td>${name}</td><td>${s.class}</td>
       <td>${feeDetails}</td>
       <td><strong class="fee-balance-unpaid">GHC ${formatCurrency(s.total_balance)}</strong></td>
-      <td><button class="action-btn confirm" onclick="accRecordPayment('${s.student_id}')">💰 Pay</button></td>
+      <td><button class="action-btn confirm" onclick="accRecordPayment('${s.student_id}')">Pay</button></td>
     </tr>`;
   }).join('');
 
@@ -1205,8 +1205,8 @@ async function loadAccountantReceiptsPage() {
 
   container.innerHTML = `
     <div class="card-toolbar">
-      <input type="text" id="accRecSearch" placeholder="🔍 Search by receipt # or student ID" class="search-input" style="max-width:300px;" />
-      <button type="button" class="btn btn-secondary" id="accRecRefresh">🔄 Refresh</button>
+      <input type="text" id="accRecSearch" placeholder="Search by receipt # or student ID" class="search-input" style="max-width:300px;" />
+      <button type="button" class="btn btn-secondary" id="accRecRefresh">Refresh</button>
     </div>
     <div class="table-wrapper">
       <table class="app-table">
@@ -1250,7 +1250,7 @@ async function loadAccReceipts() {
       <td>${r.term} ${r.academic_year}</td>
       <td>GHC ${formatCurrency(r.amount)}</td>
       <td>${r.payment_method}</td>
-      <td><button class="action-btn confirm" onclick="window.reprintReceipt && reprintReceipt('${r.id}')">🖨️ Reprint</button></td>
+      <td><button class="action-btn confirm" onclick="window.reprintReceipt && reprintReceipt('${r.id}')">Reprint</button></td>
     </tr>
   `).join('');
 }
@@ -1268,9 +1268,9 @@ async function loadAccountantDebtorsPage() {
     <div class="card-toolbar" style="flex-wrap:wrap;">
       <span id="accDebtorsCount" style="font-weight:600;">Loading...</span>
       <select id="accDebtorsClass" class="filter-select" style="max-width:180px;"><option value="">All Classes</option></select>
-      <button type="button" class="btn btn-secondary" id="accDebtorsRefresh">🔄 Refresh</button>
-      <button type="button" class="btn btn-secondary" id="accDebtorsPreview">👁 Preview</button>
-      <button type="button" class="btn btn-primary" id="accDebtorsPrint">🖨️ Print Debtors</button>
+      <button type="button" class="btn btn-secondary" id="accDebtorsRefresh">Refresh</button>
+      <button type="button" class="btn btn-secondary" id="accDebtorsPreview">Preview</button>
+      <button type="button" class="btn btn-primary" id="accDebtorsPrint">Print Debtors</button>
     </div>
     <div class="table-wrapper">
       <table class="app-table">
@@ -1315,7 +1315,7 @@ async function loadAccDebtorsData() {
 
   const { data: debtors } = await query;
   if (!debtors || debtors.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--text-muted);">🎉 No debtors!</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--text-muted);">No debtors!</td></tr>';
     const countEl = getEl('accDebtorsCount');
     if (countEl) countEl.textContent = '0 debtors - All clear!';
     return;
@@ -1376,7 +1376,7 @@ async function loadAccDebtorsData() {
       <td><strong>${s.student_id}</strong></td><td>${name}</td><td>${s.class}</td>
       <td>${feeDetails}</td>
       <td><strong class="fee-balance-unpaid">GHC ${formatCurrency(s.total_balance)}</strong></td>
-      <td><button class="action-btn confirm" onclick="accRecordPayment('${s.student_id}')">💰 Pay</button></td>
+      <td><button class="action-btn confirm" onclick="accRecordPayment('${s.student_id}')">Pay</button></td>
     </tr>`;
   }).join('');
 
@@ -1550,10 +1550,10 @@ function showAccDebtorsPreviewModal(html) {
   modal.innerHTML = `
     <div class="modal-card" style="max-width:1000px;max-height:90vh;overflow-y:auto;">
       <div class="modal-header">
-        <h3>🖨️ Debtors List Preview</h3>
+        <h3>Debtors List Preview</h3>
         <div>
-          <button type="button" class="btn btn-sm btn-primary" id="accDebtorsModalPrint" style="margin-right:0.5rem;">🖨️ Print</button>
-          <button type="button" class="modal-close" id="accDebtorsModalClose">✖</button>
+          <button type="button" class="btn btn-sm btn-primary" id="accDebtorsModalPrint" style="margin-right:0.5rem;">Print</button>
+          <button type="button" class="modal-close" id="accDebtorsModalClose">×</button>
         </div>
       </div>
       <div class="modal-body" id="accDebtorsModalContent">${html}</div>

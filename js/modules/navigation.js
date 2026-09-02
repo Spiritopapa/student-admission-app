@@ -189,7 +189,7 @@ function buildSidebarUI() {
       closeBtn.className = 'sidebar-close-btn';
       closeBtn.type = 'button';
       closeBtn.setAttribute('aria-label', 'Close navigation');
-      closeBtn.innerHTML = '✕';
+      closeBtn.innerHTML = '×';
       sidebar.prepend(closeBtn);
     }
 
@@ -328,9 +328,9 @@ function setupMobileBottomNav() {
 
   // Define bottom nav items - Home (dashboard), Logout, Sidebar
   const items = [
-    { icon: '🏠', label: 'Home', action: 'home' },
-    { icon: '🚪', label: 'Logout', action: 'logout' },
-    { icon: '☰', label: 'Sidebar', action: 'sidebar' }
+    { label: 'Home', action: 'home' },
+    { label: 'Logout', action: 'logout' },
+    { label: 'Sidebar', action: 'sidebar' }
   ];
 
   items.forEach((item) => {
@@ -338,10 +338,7 @@ function setupMobileBottomNav() {
     btn.type = 'button';
     btn.className = 'mobile-bottom-nav-item';
     btn.dataset.action = item.action;
-    btn.innerHTML = `
-      <span class="bottom-nav-icon">${item.icon}</span>
-      <span class="bottom-nav-label">${item.label}</span>
-    `;
+    btn.innerHTML = `<span class="bottom-nav-label">${item.label}</span>`;
     btn.addEventListener('click', () => {
       handleBottomNavAction(item.action);
     });

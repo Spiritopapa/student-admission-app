@@ -29,12 +29,12 @@ export function setupClassForm() {
       if (editId) {
         const { error } = await supabaseClient.from('classes').update(payload).eq('id', editId);
         if (error) throw error;
-        showMessage('classMessage', '✅ Class updated.', 'success');
+        showMessage('classMessage', 'Class updated.', 'success');
         logSubAdminActivity(`Updated class "${payload.name}"`, 'class', payload.name);
       } else {
         const { error } = await supabaseClient.from('classes').insert([payload]);
         if (error) throw error;
-        showMessage('classMessage', '✅ Class added.', 'success');
+        showMessage('classMessage', 'Class added.', 'success');
         logSubAdminActivity(`Created class "${payload.name}"`, 'class', payload.name);
       }
       getEl('classForm').reset();

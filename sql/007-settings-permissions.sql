@@ -113,17 +113,17 @@ CREATE POLICY "Super admins manage modules"
 
 -- Seed module data
 INSERT INTO public.modules (name, label, icon, is_core, sort_order) VALUES
-  ('students', 'Students', '👥', true, 1),
-  ('classes', 'Classes', '🏫', true, 2),
-  ('subjects', 'Subjects', '📖', true, 3),
-  ('teachers', 'Teachers', '📚', false, 4),
-  ('accountants', 'Accountants', '🧾', false, 5),
-  ('parents', 'Parents', '👨‍👩‍👧', false, 6),
-  ('admit', 'Admit Student', '➕', true, 7),
-  ('attendance', 'Attendance', '📋', false, 8),
-  ('exams', 'Exams', '📝', false, 9),
-  ('grading', 'Grading', '📊', false, 10),
-  ('fees', 'Fees Management', '💰', false, 11)
+  ('students', 'Students', '', true, 1),
+  ('classes', 'Classes', '', true, 2),
+  ('subjects', 'Subjects', '', true, 3),
+  ('teachers', 'Teachers', '', false, 4),
+  ('accountants', 'Accountants', '', false, 5),
+  ('parents', 'Parents', '', false, 6),
+  ('admit', 'Admit Student', '', true, 7),
+  ('attendance', 'Attendance', '', false, 8),
+  ('exams', 'Exams', '', false, 9),
+  ('grading', 'Grading', '', false, 10),
+  ('fees', 'Fees Management', '', false, 11)
 ON CONFLICT (name) DO NOTHING;
 
 -- ---------------------------------------------------

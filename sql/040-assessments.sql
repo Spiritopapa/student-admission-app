@@ -518,5 +518,5 @@ $$;
 --  REGISTER MODULE (for school-level lock/unlock control)
 -- ============================================================
 INSERT INTO public.modules (name, label, icon, is_core, sort_order)
-VALUES ('assessments', 'Assessments', '❓', false, 30)
+VALUES ('assessments', 'Assessments', '', false, 30)
 ON CONFLICT (name) DO NOTHING;

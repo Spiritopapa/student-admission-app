@@ -228,7 +228,6 @@ async function performSearch(query) {
     if (name.includes(qLower) || studentId.includes(qLower) || parentContact.includes(qLower)) {
       results.push({
         type: 'student',
-        icon: '🎓',
         title: buildStudentName(s.first_name, s.middle_name, s.last_name),
         subtitle: `${s.student_id} · ${s.class_applying || 'No Class'} · ${s.status || ''}`,
         data: s
@@ -245,7 +244,6 @@ async function performSearch(query) {
     if (name.includes(qLower) || staffId.includes(qLower) || regId.includes(qLower) || email.includes(qLower)) {
       results.push({
         type: 'teacher',
-        icon: '👨‍🏫',
         title: t.full_name || 'Unknown Teacher',
         subtitle: `${t.staff_id || t.registration_id || 'No ID'} · ${t.class_taught || 'No Class'} · ${t.subject || ''}`,
         data: t
@@ -261,7 +259,6 @@ async function performSearch(query) {
     if (name.includes(qLower) || regId.includes(qLower) || email.includes(qLower)) {
       results.push({
         type: 'accountant',
-        icon: '🧾',
         title: a.full_name || 'Unknown Accountant',
         subtitle: `${a.registration_id || 'No ID'} · ${a.email || ''}`,
         data: a
@@ -275,7 +272,6 @@ async function performSearch(query) {
     if (name.includes(qLower)) {
       results.push({
         type: 'class',
-        icon: '🏫',
         title: c.name || 'Unknown Class',
         subtitle: `Class · Level ${c.level || 'N/A'}`,
         data: c
@@ -289,7 +285,6 @@ async function performSearch(query) {
     if (name.includes(qLower)) {
       results.push({
         type: 'subject',
-        icon: '📖',
         title: s.name || 'Unknown Subject',
         subtitle: 'Subject',
         data: s
@@ -304,7 +299,6 @@ async function performSearch(query) {
     if (name.includes(qLower) || contact.includes(qLower)) {
       results.push({
         type: 'parent',
-        icon: '👨‍👩‍👧',
         title: p.parent_name || 'Unknown Parent',
         subtitle: `${p.parent_contact || ''} · Ward: ${p.student_id || ''}`,
         data: p
@@ -319,7 +313,6 @@ async function performSearch(query) {
     if (title.includes(qLower) || content.includes(qLower)) {
       results.push({
         type: 'announcement',
-        icon: '📢',
         title: a.title || 'Untitled Announcement',
         subtitle: `${a.priority || 'normal'} · ${formatDate(a.created_at)}`,
         data: a
@@ -333,7 +326,6 @@ async function performSearch(query) {
     if (name.includes(qLower)) {
       results.push({
         type: 'exam',
-        icon: '📝',
         title: e.name || 'Unknown Exam',
         subtitle: `${e.academic_year || ''} · ${getTermDisplay(e.term)}`,
         data: e
@@ -347,7 +339,7 @@ async function performSearch(query) {
   if (limited.length === 0) {
     searchResults.innerHTML = `
       <div class="deep-search-empty">
-        <span style="font-size:2rem;">🔍</span>
+        <span style="font-size:2rem;"></span>
         <p>No results found for "<strong>${escapeHtml(query)}</strong>"</p>
         <small>Try searching by name, ID, class, subject, or parent contact.</small>
       </div>
@@ -361,14 +353,14 @@ async function performSearch(query) {
     });
 
     const typeLabels = {
-      student: '🎓 Students',
-      teacher: '👨‍🏫 Teachers',
-      accountant: '🧾 Accountants',
-      class: '🏫 Classes',
-      subject: '📖 Subjects',
-      parent: '👨‍👩‍👧 Parents',
-      announcement: '📢 Announcements',
-      exam: '📝 Exams'
+      student: 'Students',
+      teacher: 'Teachers',
+      accountant: 'Accountants',
+      class: 'Classes',
+      subject: 'Subjects',
+      parent: 'Parents',
+      announcement: 'Announcements',
+      exam: 'Exams'
     };
 
     searchResults.innerHTML = Object.entries(grouped).map(([type, items]) => `
@@ -385,14 +377,13 @@ async function performSearch(query) {
           const quickActions = getContextMenuItems(item.type, itemId);
           return `
           <div class="deep-search-item" data-type="${item.type}" data-id="${escapeHtml(String(itemId))}" tabindex="0">
-            <span class="deep-search-item-icon">${item.icon}</span>
             <div class="deep-search-item-info">
               <span class="deep-search-item-title">${escapeHtml(item.title)}</span>
               <span class="deep-search-item-subtitle">${escapeHtml(item.subtitle)}</span>
             </div>
             <span class="deep-search-item-actions" role="group" aria-label="Quick actions">
               ${quickActions.map(a => `
-                <button type="button" class="deep-search-action-btn" title="${escapeHtml(a.label)}" aria-label="${escapeHtml(a.label)}" data-action="${escapeHtml(a.label)}">${a.icon}</button>
+                <button type="button" class="deep-search-action-btn" title="${escapeHtml(a.label)}" aria-label="${escapeHtml(a.label)}" data-action="${escapeHtml(a.label)}">${escapeHtml(a.label.charAt(0).toUpperCase())}</button>
               `).join('')}
             </span>
           </div>
@@ -517,24 +508,24 @@ function handleSearchItemClick(type, id) {
 function getContextMenuItems(type, id) {
   if (type === 'student') {
     return [
-      { icon: '👁️', label: 'View Student Profile', action: () => openStudentProfile(id) },
-      { icon: '🖨️', label: 'Print Student Profile', action: () => printStudentProfile(id) },
-      { icon: '💰', label: 'View Fees Details', action: () => viewStudentFees(id) },
-      { icon: '📋', label: 'View Attendance Records', action: () => viewStudentAttendance(id) },
-      { icon: '📝', label: 'View Examination Report Card', action: () => viewStudentReportCard(id) },
+      { icon: '', label: 'View Student Profile', action: () => openStudentProfile(id) },
+      { icon: '', label: 'Print Student Profile', action: () => printStudentProfile(id) },
+      { icon: '', label: 'View Fees Details', action: () => viewStudentFees(id) },
+      { icon: '', label: 'View Attendance Records', action: () => viewStudentAttendance(id) },
+      { icon: '', label: 'View Examination Report Card', action: () => viewStudentReportCard(id) },
     ];
   } else if (type === 'teacher') {
     return [
-      { icon: '👁️', label: 'View Teacher Profile', action: () => viewTeacherProfile(id) },
-      { icon: '🖨️', label: 'Print Teacher Profile', action: () => printTeacherProfile(id) },
+      { icon: '', label: 'View Teacher Profile', action: () => viewTeacherProfile(id) },
+      { icon: '', label: 'Print Teacher Profile', action: () => printTeacherProfile(id) },
     ];
   } else if (type === 'accountant') {
     return [
-      { icon: '👁️', label: 'View Accountant Profile', action: () => viewAccountantProfile(id) },
+      { icon: '', label: 'View Accountant Profile', action: () => viewAccountantProfile(id) },
     ];
   } else {
     return [
-      { icon: '👁️', label: `View ${type.charAt(0).toUpperCase() + type.slice(1)}`, action: () => handleSearchItemClick(type, id) },
+      { icon: '', label: `View ${type.charAt(0).toUpperCase() + type.slice(1)}`, action: () => handleSearchItemClick(type, id) },
     ];
   }
 }
@@ -554,7 +545,6 @@ function showContextMenu(x, y, type, id) {
     </div>
     ${menuItems.map(item => `
       <div class="deep-search-context-item" data-action="${item.label}">
-        <span class="deep-search-context-icon">${item.icon}</span>
         <span>${item.label}</span>
       </div>
     `).join('')}
@@ -641,7 +631,7 @@ function openStudentProfile(studentId) {
       <div class="modal-content" style="max-width:700px;">
         <div class="modal-header">
           <h3 id="deepSearchStudentModalName">Student Profile</h3>
-          <button class="modal-close" onclick="document.getElementById('deepSearchStudentModal').style.display='none'">✖</button>
+          <button class="modal-close" onclick="document.getElementById('deepSearchStudentModal').style.display='none'">×</button>
         </div>
         <div class="modal-body" id="deepSearchStudentModalContent"></div>
       </div>
@@ -657,7 +647,7 @@ function openStudentProfile(studentId) {
   
   const photoHtml = student.student_photo_url
     ? `<img src="${student.student_photo_url}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid #6366f1;display:block;margin:0 auto 1rem;" />`
-    : '<div style="font-size:3rem;text-align:center;margin-bottom:1rem;">🎓</div>';
+    : '<div style="font-size:3rem;text-align:center;margin-bottom:1rem;"></div>';
 
   const field = (label, val) => `<div class="detail-item"><span class="detail-label">${label}</span><span class="detail-value">${val || '-'}</span></div>`;
 
@@ -678,7 +668,7 @@ function openStudentProfile(studentId) {
       ${field('Place of Stay', student.place_of_stay)}
       ${field('Admission Date', formatDate(student.admission_date))}
       ${field('Previous School', student.previous_school)}
-      ${field('Portal Confirmed', student.portal_confirmed ? '✅ Yes' : '❌ No')}
+      ${field('Portal Confirmed', student.portal_confirmed ? 'Yes' : 'No')}
     </div>
   `;
 
@@ -693,7 +683,7 @@ function printStudentProfile(studentId) {
   
   const photoHtml = student.student_photo_url
     ? `<img src="${student.student_photo_url}" style="width:100px;height:100px;border-radius:50%;object-fit:cover;border:3px solid #6366f1;" />`
-    : '<div style="font-size:3rem;">🎓</div>';
+    : '<div style="font-size:3rem;"></div>';
 
   const field = (label, val) => `<tr><td style="padding:6px;border:1px solid #e2e8f0;font-weight:600;background:#f8fafc;width:200px;">${label}</td><td style="padding:6px;border:1px solid #e2e8f0;">${val || '-'}</td></tr>`;
 
@@ -767,8 +757,8 @@ async function viewStudentFees(studentId) {
     modal.innerHTML = `
       <div class="modal-content" style="max-width:800px;">
         <div class="modal-header">
-          <h3>💰 Fee Details</h3>
-          <button class="modal-close" onclick="document.getElementById('deepSearchFeesModal').style.display='none'">✖</button>
+          <h3>Fee Details</h3>
+          <button class="modal-close" onclick="document.getElementById('deepSearchFeesModal').style.display='none'">×</button>
         </div>
         <div class="modal-body" id="deepSearchFeesContent"></div>
       </div>
@@ -783,7 +773,7 @@ async function viewStudentFees(studentId) {
   
   if (!fees || fees.length === 0) {
     content.innerHTML = `<div style="text-align:center;padding:2rem;color:var(--text-muted);">
-      <span style="font-size:2rem;">💰</span>
+      <span style="font-size:2rem;"></span>
       <p>No fee records found for <strong>${name}</strong> (${studentId}).</p>
     </div>`;
   } else {
@@ -797,9 +787,9 @@ async function viewStudentFees(studentId) {
 
     const statusBadge = (status) => {
       const map = {
-        paid: '<span style="background:#dcfce7;color:#166534;padding:2px 8px;border-radius:12px;font-size:0.75rem;">✅ Paid</span>',
-        partial: '<span style="background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:12px;font-size:0.75rem;">⚠️ Partial</span>',
-        unpaid: '<span style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:12px;font-size:0.75rem;">❌ Unpaid</span>'
+        paid: '<span style="background:#dcfce7;color:#166534;padding:2px 8px;border-radius:12px;font-size:0.75rem;">Paid</span>',
+        partial: '<span style="background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:12px;font-size:0.75rem;">Partial</span>',
+        unpaid: '<span style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:12px;font-size:0.75rem;">Unpaid</span>'
       };
       return map[status] || status;
     };
@@ -897,8 +887,8 @@ async function viewStudentAttendance(studentId) {
     modal.innerHTML = `
       <div class="modal-content" style="max-width:800px;">
         <div class="modal-header">
-          <h3>📋 Attendance Records</h3>
-          <button class="modal-close" onclick="document.getElementById('deepSearchAttendanceModal').style.display='none'">✖</button>
+          <h3>Attendance Records</h3>
+          <button class="modal-close" onclick="document.getElementById('deepSearchAttendanceModal').style.display='none'">×</button>
         </div>
         <div class="modal-body" id="deepSearchAttendanceContent"></div>
       </div>
@@ -913,7 +903,7 @@ async function viewStudentAttendance(studentId) {
   
   if (!records || records.length === 0) {
     content.innerHTML = `<div style="text-align:center;padding:2rem;color:var(--text-muted);">
-      <span style="font-size:2rem;">📋</span>
+      <span style="font-size:2rem;"></span>
       <p>No attendance records found for <strong>${name}</strong> (${studentId}).</p>
     </div>`;
   } else {
@@ -925,8 +915,8 @@ async function viewStudentAttendance(studentId) {
 
     const statusBadge = (status) => {
       const map = {
-        present: '<span style="background:#dcfce7;color:#166534;padding:2px 8px;border-radius:12px;font-size:0.75rem;">✅ Present</span>',
-        absent: '<span style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:12px;font-size:0.75rem;">❌ Absent</span>'
+        present: '<span style="background:#dcfce7;color:#166534;padding:2px 8px;border-radius:12px;font-size:0.75rem;">Present</span>',
+        absent: '<span style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:12px;font-size:0.75rem;">Absent</span>'
       };
       return map[status] || status;
     };
@@ -966,7 +956,7 @@ async function viewStudentAttendance(studentId) {
         </table>
       </div>
       <div style="margin-top:1rem;text-align:right;">
-        <button class="btn btn-primary btn-sm" onclick="window.printDeepSearchAttendance()">🖨️ Print Attendance</button>
+        <button class="btn btn-primary btn-sm" onclick="window.printDeepSearchAttendance()">Print Attendance</button>
       </div>
     `;
 
@@ -984,7 +974,7 @@ window.printDeepSearchAttendance = function() {
   
   const { records, student, name, studentId } = data;
   
-  const statusMap = { present: '✅ Present', absent: '❌ Absent', late: '⏰ Late', excused: '📝 Excused' };
+  const statusMap = { present: 'Present', absent: 'Absent', late: 'Late', excused: 'Excused' };
   const rows = records.map(r => `
     <tr>
       <td style="padding:6px;border:1px solid #e2e8f0;">${formatDate(r.date)}</td>
@@ -1046,8 +1036,8 @@ async function viewStudentReportCard(studentId) {
     modal.innerHTML = `
       <div class="modal-content" style="max-width:900px;">
         <div class="modal-header">
-          <h3>📝 Examination Report Card</h3>
-          <button class="modal-close" onclick="document.getElementById('deepSearchReportCardModal').style.display='none'">✖</button>
+          <h3>Examination Report Card</h3>
+          <button class="modal-close" onclick="document.getElementById('deepSearchReportCardModal').style.display='none'">×</button>
         </div>
         <div class="modal-body">
           <div style="margin-bottom:1rem;display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
@@ -1055,8 +1045,8 @@ async function viewStudentReportCard(studentId) {
             <select id="deepSearchExamSelect" style="flex:1;min-width:200px;padding:0.5rem;border:1px solid var(--border);border-radius:8px;">
               ${exams.map(e => `<option value="${e.id}">${e.name} (${e.academic_year} - ${getTermDisplay(e.term)})</option>`).join('')}
             </select>
-            <button class="btn btn-primary btn-sm" id="deepSearchLoadReport">📊 Load Report</button>
-            <button class="btn btn-secondary btn-sm" id="deepSearchPrintReport">🖨️ Print</button>
+            <button class="btn btn-primary btn-sm" id="deepSearchLoadReport">Load Report</button>
+            <button class="btn btn-secondary btn-sm" id="deepSearchPrintReport">Print</button>
           </div>
           <div id="deepSearchReportCardContent" style="max-height:600px;overflow-y:auto;"></div>
         </div>
@@ -1143,7 +1133,7 @@ async function renderReportCard(examId, studentId, container) {
     schoolName = schoolName || 'My School';
     const schoolLogoHtml = schoolLogoUrl
       ? `<img src="${schoolLogoUrl}" alt="School Logo" style="width:56px;height:56px;object-fit:contain;border-radius:8px;background:#fff;padding:2px;border:1px solid #e2e8f0;" />`
-      : '<div class="rc-seal">🏫</div>';
+      : '<div class="rc-seal"></div>';
     
     const academicYear = exam.academic_year || '';
     const term = exam.term || '';
@@ -1209,7 +1199,7 @@ async function renderReportCard(examId, studentId, container) {
             <h2 style="margin:0;font-size:1.4rem;color:#1e293b;">${schoolName}</h2>
             <p style="margin:0.25rem 0 0 0;color:#64748b;font-size:0.85rem;">${exam.name} · ${academicYear} · ${getTermDisplay(term)}</p>
           </div>
-          <div class="rc-seal" style="font-size:2rem;">🏅</div>
+          <div class="rc-seal" style="font-size:2rem;"></div>
         </div>
         <div class="rc-student-info" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:0.5rem;margin-bottom:1rem;">
           <div><strong>Name:</strong> ${name}</div>
@@ -1254,11 +1244,11 @@ async function renderReportCard(examId, studentId, container) {
         </div>
         <div class="rc-remarks" style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
           <div style="background:#f0fdf4;border-radius:8px;padding:0.75rem;">
-            <strong style="color:#166534;">👨‍🏫 Teacher's Remark:</strong>
+            <strong style="color:#166534;">Teacher's Remark:</strong>
             <p style="margin:0.25rem 0 0 0;color:#166534;font-size:0.85rem;">${teacherRemark}</p>
           </div>
           <div style="background:#eff6ff;border-radius:8px;padding:0.75rem;">
-            <strong style="color:#1e40af;">🏫 Head Teacher's Remark:</strong>
+            <strong style="color:#1e40af;">Head Teacher's Remark:</strong>
             <p style="margin:0.25rem 0 0 0;color:#1e40af;font-size:0.85rem;">${headRemark}</p>
           </div>
         </div>
@@ -1288,7 +1278,7 @@ async function viewTeacherProfile(teacherId) {
       <div class="modal-content" style="max-width:700px;">
         <div class="modal-header">
           <h3 id="deepSearchTeacherModalName">Teacher Profile</h3>
-          <button class="modal-close" onclick="document.getElementById('deepSearchTeacherModal').style.display='none'">✖</button>
+          <button class="modal-close" onclick="document.getElementById('deepSearchTeacherModal').style.display='none'">×</button>
         </div>
         <div class="modal-body" id="deepSearchTeacherModalContent"></div>
       </div>
@@ -1303,7 +1293,7 @@ async function viewTeacherProfile(teacherId) {
   
   const photoHtml = teacher.photo_url
     ? `<img src="${teacher.photo_url}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid #6366f1;display:block;margin:0 auto 1rem;" />`
-    : '<div style="font-size:3rem;text-align:center;margin-bottom:1rem;">👨‍🏫</div>';
+    : '<div style="font-size:3rem;text-align:center;margin-bottom:1rem;"></div>';
 
   const field = (label, val) => `<div class="detail-item"><span class="detail-label">${label}</span><span class="detail-value">${val || '-'}</span></div>`;
 
@@ -1323,7 +1313,7 @@ async function viewTeacherProfile(teacherId) {
       ${field('Nationality', teacher.nationality)}
       ${field('Religion', teacher.religion)}
       ${field('Home Town', teacher.home_town)}
-      ${field('Status', teacher.is_active ? '✅ Active' : '❌ Inactive')}
+      ${field('Status', teacher.is_active ? 'Active' : 'Inactive')}
     </div>
   `;
 
@@ -1336,7 +1326,7 @@ function printTeacherProfile(teacherId) {
   
   const photoHtml = teacher.photo_url
     ? `<img src="${teacher.photo_url}" style="width:100px;height:100px;border-radius:50%;object-fit:cover;border:3px solid #6366f1;" />`
-    : '<div style="font-size:3rem;">👨‍🏫</div>';
+    : '<div style="font-size:3rem;"></div>';
 
   const field = (label, val) => `<tr><td style="padding:6px;border:1px solid #e2e8f0;font-weight:600;background:#f8fafc;width:200px;">${label}</td><td style="padding:6px;border:1px solid #e2e8f0;">${val || '-'}</td></tr>`;
 
@@ -1400,8 +1390,8 @@ async function viewAccountantProfile(accountantId) {
     modal.innerHTML = `
       <div class="modal-content" style="max-width:600px;">
         <div class="modal-header">
-          <h3>🧾 Accountant Profile</h3>
-          <button class="modal-close" onclick="document.getElementById('deepSearchAccountantModal').style.display='none'">✖</button>
+          <h3>Accountant Profile</h3>
+          <button class="modal-close" onclick="document.getElementById('deepSearchAccountantModal').style.display='none'">×</button>
         </div>
         <div class="modal-body" id="deepSearchAccountantContent"></div>
       </div>
@@ -1417,7 +1407,7 @@ async function viewAccountantProfile(accountantId) {
 
   content.innerHTML = `
     <div style="text-align:center;margin-bottom:1.5rem;">
-      <div style="font-size:3rem;">🧾</div>
+      <div style="font-size:3rem;"></div>
       <h3 style="margin:0.5rem 0 0.25rem 0;">${accountant.full_name}</h3>
       <p style="color:var(--text-muted);font-size:0.85rem;">${accountant.registration_id || ''}</p>
     </div>
@@ -1426,8 +1416,8 @@ async function viewAccountantProfile(accountantId) {
       ${field('Registration ID', accountant.registration_id)}
       ${field('Email', accountant.email)}
       ${field('Phone', accountant.phone)}
-      ${field('Status', accountant.is_approved ? '✅ Approved' : '⏳ Pending Approval')}
-      ${field('Registered', accountant.user_id ? '✅ Registered' : '🔗 Not Registered')}
+      ${field('Status', accountant.is_approved ? 'Approved' : 'Pending Approval')}
+      ${field('Registered', accountant.user_id ? 'Registered' : 'Not Registered')}
       ${field('Created', formatDate(accountant.created_at))}
     </div>
   `;

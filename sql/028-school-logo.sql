@@ -74,5 +74,5 @@ CREATE POLICY "Authenticated users can delete school logos"
 --  policy for SELECT, so logo_url is readable.
 
 -- ============================================================
---  ✅ Done
+--  Done
 -- ============================================================

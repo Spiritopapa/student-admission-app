@@ -15,8 +15,8 @@
  */
 
 // ===== CONFIGURE THESE ========================================
-const SUPABASE_URL = 'https://dxttgcikalethbeevwah.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_DFn2YtzAvuY1ptZN45vC8Q_SBuCuPpV';
+const SUPABASE_URL = 'https://rfsfkxplafwlmwncwduz.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_9iTTz6D1zvaEZIsauboxKQ__wyPfK5A';
 // ==============================================================
 
 // Public base URL used to build the secure QR verification link.
@@ -29,7 +29,7 @@ const RECEIPT_VERIFY_BASE_URL = '';
 
 if (!SUPABASE_URL || SUPABASE_URL.includes('YOUR_PROJECT')) {
   console.warn(
-    '⚠️  Supabase not configured! Open js/supabase-config.js and set your SUPABASE_URL and SUPABASE_ANON_KEY.'
+    ' Supabase not configured! Open js/supabase-config.js and set your SUPABASE_URL and SUPABASE_ANON_KEY.'
   );
 }
 

@@ -1,62 +1,78 @@
 -- ============================================================
---  Student Admission Portal — Per-School SMS Enable/Disable
+--  Student Admission Portal — Admin Assistance Phone in SMS
 --  ============================================================
---  Purpose:
---    1. Add schools.sms_enabled so the Super Admin can enable or
---       disable SMS messaging per school from the Super Admin
---       dashboard (Schools → SMS column).
---    2. Provide is_school_sms_enabled(p_school_id) (SECURITY
---       DEFINER) so ANY authenticated school staff member / super
---       admin can read the flag even when RLS would hide the
---       schools row from them.
---    3. Harden request_forgot_password_otp() so an OTP is NEVER
---       minted for an account whose school has SMS disabled —
---       otherwise a reset code could be generated that the SMS
---       delivery step would never be able to send.
+--  Goal: every SMS (fee-payment receipt, bulk fee reminder, and the
+--  password-reset OTP) tells the recipient to call the school
+--  administrator for any assistance.
 --
---  HOW TO APPLY:
---  1. Open Supabase Dashboard → SQL Editor → New Query
---  2. Copy the ENTIRE content of this file
---  3. Paste and Run
---  ============================================================
+--  The admin mobile already lives on schools.phone (captured during
+--  school registration/onboarding and used for the admin password
+--  reset), so no new column is required.
+--
+--  This migration:
+--    1. Adds _fp_get_assistance_phone(p_user_id) — resolves the school
+--       administrator's mobile for ANY role:
+--         - staff (admin/sub_admin/teacher/accountant) via profiles.school_id
+--         - student via applications.school_id
+--         - parent via their linked ward's applications row
+--    2. Extends request_forgot_password_otp() (last hardened by
+--       055-school-sms-toggle.sql) so its JSON result also carries the
+--       assistance_phone, which js/modules/forgot-password.js appends to
+--       the OTP SMS: "For any assistance, call …".
+--
+--  Apply in Supabase → SQL Editor (idempotent / safe to re-run).
+-- ============================================================
 
 -- -----------------------------------------------------------
--- 1. ADD sms_enabled COLUMN TO schools  (default = enabled)
+-- 1. Resolve the school admin's mobile for a given user.
 -- -----------------------------------------------------------
-ALTER TABLE public.schools
-  ADD COLUMN IF NOT EXISTS sms_enabled BOOLEAN NOT NULL DEFAULT true;
-
--- Safety backfill (in case a legacy column definition was NULL-able).
-UPDATE public.schools SET sms_enabled = true WHERE sms_enabled IS NULL;
-
--- -----------------------------------------------------------
--- 2. is_school_sms_enabled(p_school_id) — SECURITY DEFINER RPC
---    Returns TRUE when SMS is enabled (or the school is unknown),
---    FALSE when explicitly disabled.
---    Granted ONLY to authenticated users (never anon).
--- -----------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.is_school_sms_enabled(p_school_id UUID)
-RETURNS BOOLEAN
+CREATE OR REPLACE FUNCTION public._fp_get_assistance_phone(p_user_id UUID)
+RETURNS TEXT
 LANGUAGE plpgsql
-STABLE
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions, pg_catalog, pg_temp
 AS $$
+DECLARE
+  v_school_id UUID;
+  v_phone     TEXT;
 BEGIN
-  IF p_school_id IS NULL THEN
-    RETURN true;
+  -- 1) Staff (admin / sub_admin / teacher / accountant): the user's own
+  --    profile carries the school_id.
+  SELECT school_id INTO v_school_id
+  FROM public.profiles
+  WHERE id = p_user_id;
+
+  -- 2) Student: the application row is keyed by user_id.
+  IF v_school_id IS NULL THEN
+    SELECT school_id INTO v_school_id
+    FROM public.applications
+    WHERE user_id = p_user_id
+    LIMIT 1;
   END IF;
-  RETURN COALESCE((SELECT sms_enabled FROM public.schools WHERE id = p_school_id), true);
+
+  -- 3) Parent: via any linked ward's application.
+  IF v_school_id IS NULL THEN
+    SELECT a.school_id INTO v_school_id
+    FROM public.parent_links pl
+    JOIN public.applications a ON a.student_id = pl.student_id
+    WHERE pl.parent_user_id = p_user_id
+    LIMIT 1;
+  END IF;
+
+  IF v_school_id IS NOT NULL THEN
+    SELECT phone INTO v_phone
+    FROM public.schools
+    WHERE id = v_school_id
+      AND COALESCE(phone, '') <> '';
+  END IF;
+
+  RETURN v_phone;
 END;
 $$;
 
-REVOKE EXECUTE ON FUNCTION public.is_school_sms_enabled(UUID) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.is_school_sms_enabled(UUID) TO authenticated;
-
 -- -----------------------------------------------------------
--- 3. HARDEN request_forgot_password_otp()
---    (Mirrors sql/042-forgot-password.sql with the per-school
---     SMS-disabled guard added BEFORE the OTP is generated.)
+-- 2. Harden request_forgot_password_otp() — return assistance_phone
+--    (Mirrors sql/055-school-sms-toggle.sql + adds the admin number).
 -- -----------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.request_forgot_password_otp(p_identifier TEXT, p_phone TEXT)
 RETURNS JSONB
@@ -65,12 +81,13 @@ SECURITY DEFINER
 SET search_path = public, extensions, pg_catalog, pg_temp
 AS $$
 DECLARE
-  v_user_id     UUID;
-  v_phone       TEXT;
-  v_otp         TEXT;
-  v_now         TIMESTAMPTZ := now();
-  v_school_id   UUID;
-  v_sms_enabled BOOLEAN;
+  v_user_id          UUID;
+  v_phone            TEXT;
+  v_otp              TEXT;
+  v_now              TIMESTAMPTZ := now();
+  v_school_id        UUID;
+  v_sms_enabled      BOOLEAN;
+  v_assistance_phone TEXT;
 BEGIN
   v_user_id := public._fp_resolve_login_user(p_identifier);
   IF v_user_id IS NULL THEN
@@ -113,10 +130,15 @@ BEGIN
   INSERT INTO public.password_reset_otps (user_id, otp_hash, phone, expires_at)
   VALUES (v_user_id, crypt(v_otp, gen_salt('bf')), v_phone, v_now + interval '10 minutes');
 
+  -- School admin's mobile so the OTP SMS can offer "call for any assistance"
+  -- (empty for accounts with no school, e.g. the Super Admin).
+  v_assistance_phone := public._fp_get_assistance_phone(v_user_id);
+
   RETURN jsonb_build_object(
     'success', true,
     'otp', v_otp,
-    'phone_last3', right(regexp_replace(v_phone, '[^0-9]', '', 'g'), 3)
+    'phone_last3', right(regexp_replace(v_phone, '[^0-9]', '', 'g'), 3),
+    'assistance_phone', v_assistance_phone
   );
 END;
 $$;

@@ -37,12 +37,12 @@ export function setupAnnouncementForm() {
       if (editId) {
         const { error } = await supabaseClient.from('announcements').update(payload).eq('id', editId);
         if (error) throw error;
-        showMessage('announcementMessage', '✅ Announcement updated.', 'success');
+        showMessage('announcementMessage', 'Announcement updated.', 'success');
         logSubAdminActivity(`Updated announcement "${payload.title}"`, 'announcement', payload.title);
       } else {
         const { error } = await supabaseClient.from('announcements').insert([payload]);
         if (error) throw error;
-        showMessage('announcementMessage', '✅ Announcement created.', 'success');
+        showMessage('announcementMessage', 'Announcement created.', 'success');
         logSubAdminActivity(`Created announcement "${payload.title}"`, 'announcement', payload.title);
       }
       getEl('announcementForm').reset();

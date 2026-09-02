@@ -1467,24 +1467,24 @@ $$;
 --  MIGRATION COMPLETE
 -- ============================================================
 --  Security fixes applied:
---  ✅ 01. profiles RLS school-scoped
---  ✅ 02. exams RLS school-scoped for all roles
---  ✅ 03. exam_subjects RLS school-scoped
---  ✅ 04. exam_results RLS school-scoped
---  ✅ 05. exam_student_details RLS school-scoped
---  ✅ 06. announcements NULL school_id no longer leaked
---  ✅ 07. attendance RLS school-scoped
---  ✅ 08. settings → new school_settings per-school table
---  ✅ 09. link_school_to_user super_admin only
---  ✅ 10. link_sub_admin_to_user school admin only
---  ✅ 11. link_teacher_to_user school staff only
---  ✅ 12. link_accountant_to_user school staff only
---  ✅ 13. link_student_to_application school staff only
---  ✅ 14. delete_student_completely school-scoped
---  ✅ 15. process_fee_payment school-scoped
---  ✅ 16. carry_forward_balance school-scoped
---  ✅ 17. promote_student_fees school-scoped
---  ✅ 18. get_student_fee_summary school-scoped
---  ✅ 19. apply_overpaid_credit school-scoped
---  ✅ 20. teachers can only see own school class students
+--  01. profiles RLS school-scoped
+--  02. exams RLS school-scoped for all roles
+--  03. exam_subjects RLS school-scoped
+--  04. exam_results RLS school-scoped
+--  05. exam_student_details RLS school-scoped
+--  06. announcements NULL school_id no longer leaked
+--  07. attendance RLS school-scoped
+--  08. settings → new school_settings per-school table
+--  09. link_school_to_user super_admin only
+--  10. link_sub_admin_to_user school admin only
+--  11. link_teacher_to_user school staff only
+--  12. link_accountant_to_user school staff only
+--  13. link_student_to_application school staff only
+--  14. delete_student_completely school-scoped
+--  15. process_fee_payment school-scoped
+--  16. carry_forward_balance school-scoped
+--  17. promote_student_fees school-scoped
+--  18. get_student_fee_summary school-scoped
+--  19. apply_overpaid_credit school-scoped
+--  20. teachers can only see own school class students
 -- ============================================================

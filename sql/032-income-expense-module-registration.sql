@@ -7,5 +7,5 @@
 -- ============================================================
 
 INSERT INTO public.modules (name, label, icon, is_core, sort_order) VALUES
-  ('income-expenses', 'Income & Expenses', '📊', false, 12)
+  ('income-expenses', 'Income & Expenses', '', false, 12)
 ON CONFLICT (name) DO NOTHING;

@@ -193,7 +193,7 @@ const photoFile = document.getElementById('editPhoto').files[0];
     if (!validation.valid) {
       showMessage('editStudentWindowMessage', validation.error, 'error');
       document.getElementById('editPhoto').value = '';
-      setLoading(btn, false, '💾 Update Student');
+      setLoading(btn, false, 'Update Student');
       return;
     }
     pendingPhotoRemoval = false;
@@ -216,7 +216,7 @@ const photoFile = document.getElementById('editPhoto').files[0];
     }
     pendingPhotoRemoval = false;
 
-    showMessage('editStudentWindowMessage', '✅ Student updated.', 'success');
+    showMessage('editStudentWindowMessage', 'Student updated.', 'success');
     logSubAdminActivity(`Updated student "${currentStudentId}"`, 'student', currentStudentId);
 
     // Tell the opener dashboard to refresh its table, then close this popup.
@@ -227,7 +227,7 @@ const photoFile = document.getElementById('editPhoto').files[0];
   } catch (err) {
     showMessage('editStudentWindowMessage', 'Error: ' + err.message, 'error');
   } finally {
-    setLoading(btn, false, '💾 Update Student');
+    setLoading(btn, false, 'Update Student');
   }
 }
 /**
@@ -244,14 +244,14 @@ async function initEditStudentWindow() {
   // Same-origin popup shares the persisted Supabase session.
   const { data: sessionData } = await supabaseClient.auth.getSession();
   if (!sessionData?.session) {
-    showMessage('editStudentWindowMessage', '⚠️ Session expired. Close this window and use the app to sign back in.', 'error');
+    showMessage('editStudentWindowMessage', 'Session expired. Close this window and use the app to sign back in.', 'error');
     const subtitle = document.getElementById('editStudentWindowSubtitle');
     if (subtitle) subtitle.textContent = 'Not signed in';
     return;
   }
 
   if (!studentId) {
-    showMessage('editStudentWindowMessage', '⚠️ No student selected. Close this window and try again.', 'error');
+    showMessage('editStudentWindowMessage', 'No student selected. Close this window and try again.', 'error');
     return;
   }
 
@@ -262,7 +262,7 @@ async function initEditStudentWindow() {
     const { data: student, error } = await query.maybeSingle();
     if (error) throw error;
     if (!student) {
-      showMessage('editStudentWindowMessage', '❌ Student not found.', 'error');
+      showMessage('editStudentWindowMessage', 'Student not found.', 'error');
       return;
     }
 

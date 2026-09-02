@@ -57,7 +57,7 @@ export async function loadStudentAssessments() {
 
   const list = assessments || [];
   if (!list.length) {
-    container.innerHTML = '<div class="assessment-launch-hero"><div style="font-size:3rem;">🎯</div><h3>No Assessments Available</h3><p style="color:var(--text-muted);">Your teacher has not published any assessments for your class yet. Check back soon.</p></div>';
+    container.innerHTML = '<div class="assessment-launch-hero"><div style="font-size:3rem;"></div><h3>No Assessments Available</h3><p style="color:var(--text-muted);">Your teacher has not published any assessments for your class yet. Check back soon.</p></div>';
     return;
   }
 
@@ -78,13 +78,13 @@ export async function loadStudentAssessments() {
     } else {
       statusHtml = att.status === 'passed' ? '<span class="score-chip passed">Passed</span>' : '<span class="score-chip failed">Failed</span>';
       actionHtml = `<span style="font-size:0.9rem;font-weight:700;color:var(--text);">${att.score}/${att.total_marks} (${att.score_percentage}%)</span>
-        <button type="button" class="btn btn-secondary" onclick="viewStudentAssessmentResult('${a.id}')">📋 Review</button>`;
+        <button type="button" class="btn btn-secondary" onclick="viewStudentAssessmentResult('${a.id}')">Review</button>`;
     }
     return `<div class="qa-card assessment-item">
       <div class="qa-card-header">
         <div>
           <strong style="font-size:1.05rem;">${esc(a.title)}</strong>
-          <div class="qa-meta">${esc(a.subject)}${a.class_name ? ' • ' + esc(a.class_name) : ''} · 🎯 ${a.question_count} questions · ⏱ ${a.duration_minutes || '—'} min · Pass ${a.pass_percentage}%</div>
+          <div class="qa-meta">${esc(a.subject)}${a.class_name ? ' • ' + esc(a.class_name) : ''} · ${a.question_count} questions · ${a.duration_minutes || '—'} min · Pass ${a.pass_percentage}%</div>
           ${a.description ? `<div class="qa-meta">${esc(a.description)}</div>` : ''}
         </div>
         <div style="display:flex;gap:0.6rem;align-items:center;flex-wrap:wrap;">${statusHtml}${actionHtml}</div>
@@ -146,7 +146,7 @@ function renderTakingView() {
     <div style="height:8px;background:var(--border);border-radius:999px;overflow:hidden;margin-bottom:1rem;"><div id="studentAssessProgress" style="height:100%;width:${progress}%;background:var(--primary);transition:width .2s;"></div></div>
     <div class="assess-nav-pills" id="studentAssessPalette"></div>
     <div id="studentAssessQuestionArea">${c.questions.map((q, i) => questionBlock(q, i)).join('')}</div>
-    <div style="text-align:center;margin-top:1rem;"><button type="button" class="btn btn-primary btn-full" id="btnStudentAssessSubmit" onclick="submitStudentAssessment()">✅ Submit Assessment</button></div>`;
+    <div style="text-align:center;margin-top:1rem;"><button type="button" class="btn btn-primary btn-full" id="btnStudentAssessSubmit" onclick="submitStudentAssessment()">Submit Assessment</button></div>`;
 
   const palette = getEl('studentAssessPalette');
   if (palette) {
@@ -202,7 +202,7 @@ function startTimer(minutes) {
     if (!el) return;
     const m = Math.floor(remaining / 60);
     const s = remaining % 60;
-    el.textContent = '⏱ ' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+    el.textContent = '' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
     if (remaining <= 120) el.classList.add('warning');
     if (remaining <= 0) { clearTimer(); submitStudentAssessment(true); return; }
     remaining--;
@@ -268,7 +268,7 @@ async function reloadStudentAssessmentList() {
       actionHtml = `<button type="button" class="btn btn-primary" onclick="beginStudentAssessment('${a.id}')">▶ Resume</button>`;
     } else {
       statusHtml = att.status === 'passed' ? '<span class="score-chip passed">Passed</span>' : '<span class="score-chip failed">Failed</span>';
-      actionHtml = `<span style="font-weight:700;">${att.score}/${att.total_marks} (${att.score_percentage}%)</span><button type="button" class="btn btn-secondary" onclick="viewStudentAssessmentResult('${a.id}')">📋 Review</button>`;
+      actionHtml = `<span style="font-weight:700;">${att.score}/${att.total_marks} (${att.score_percentage}%)</span><button type="button" class="btn btn-secondary" onclick="viewStudentAssessmentResult('${a.id}')">Review</button>`;
     }
     return `<div class="qa-card assessment-item"><div class="qa-card-header"><div><strong>${esc(a.title)}</strong>${a.description ? '<div class="qa-meta">' + esc(a.description) + '</div>' : ''}</div><div style="display:flex;gap:0.6rem;align-items:center;flex-wrap:wrap;">${statusHtml}${actionHtml}</div></div></div>`;
   }).join('');
@@ -315,19 +315,18 @@ function renderTakenView(kind, data, existing, prev) {
     }).join('');
 
     const correctBadge = r.correct ? '<span class="correct-tag">✓ Correct</span>' : '<span class="pub-badge failed" style="background:rgba(239,68,68,0.15);color:#b91c1c;">✗ Wrong</span>';
-    return `<div class="question-block"><div class="question-text">${i + 1}. ${esc(r.question_text)}</div>${optionsHtml}<div class="qa-meta" style="margin-top:0.5rem;">${correctBadge}${r.chosen_text ? ' <span>Your answer: <strong>' + esc(r.chosen_text) + '</strong></span>' : '<span>Not answered</span>'} <span>Correct answer: <strong>' + esc(r.correct_text) + '</strong></span></div>${r.explanation ? '<div class="qa-meta">💡 ' + esc(r.explanation) + '</div>' : ''}</div>`;
+    return `<div class="question-block"><div class="question-text">${i + 1}. ${esc(r.question_text)}</div>${optionsHtml}<div class="qa-meta" style="margin-top:0.5rem;">${correctBadge}${r.chosen_text ? ' <span>Your answer: <strong>' + esc(r.chosen_text) + '</strong></span>' : '<span>Not answered</span>'} <span>Correct answer: <strong>' + esc(r.correct_text) + '</strong></span></div>${r.explanation ? '<div class="qa-meta">' + esc(r.explanation) + '</div>' : ''}</div>`;
   }).join('');
 
   results.innerHTML = `
     <div class="assessment-launch-hero" style="padding:1.5rem;">
-      <div style="font-size:3rem;">${passed ? '🎉' : '📖'}</div>
       <h3 style="color:var(--text);">${passed ? 'Congratulations! You passed.' : 'Assessment Complete'}</h3>
       <p class="subtitle">${esc(title)}</p>
       <div style="display:inline-block;margin-top:0.75rem;font-size:2rem;font-weight:800;color:${passed ? '#065f46' : '#b91c1c'};">${score}/${total} • ${pct}%</div>
       <div style="margin-top:0.5rem;">${scoreChip}</div>
     </div>
-    <div style="margin-top:1rem;"><h3 style="margin-bottom:0.5rem;">📋 Review your answers</h3>${reviewRows}</div>
-    <div style="text-align:center;margin-top:1rem;"><button type="button" class="btn btn-primary" onclick="printStudentAssessmentResult()">🖨️ Print Result</button> <button type="button" class="btn btn-secondary" onclick="loadStudentAssessments()">← Back to Assessments</button></div>`;
+    <div style="margin-top:1rem;"><h3 style="margin-bottom:0.5rem;">Review your answers</h3>${reviewRows}</div>
+    <div style="text-align:center;margin-top:1rem;"><button type="button" class="btn btn-primary" onclick="printStudentAssessmentResult()">Print Result</button> <button type="button" class="btn btn-secondary" onclick="loadStudentAssessments()">← Back to Assessments</button></div>`;
 }
 
 // ================================================================
@@ -374,7 +373,7 @@ window.printStudentAssessmentResult = function () {
     }).join('');
     const yourAnswer = q.chosen_text ? esc(q.chosen_text) : 'Not answered';
     const verdict = q.correct ? '<span class="right">Correct</span>' : '<span class="wrong">Wrong</span>';
-    return `<div class="answer-row"><div class="q">Q${i + 1}. ${esc(q.question_text)}</div>${opts}<div style="margin-top:0.4rem;font-size:0.85rem;">${verdict} &nbsp;·&nbsp; Your answer: <strong>${yourAnswer}</strong> &nbsp;·&nbsp; Correct: <strong>${esc(q.correct_text)}</strong></div>${q.explanation ? '<div style="margin-top:0.3rem;font-size:0.85rem;color:#475569;">💡 ' + esc(q.explanation) + '</div>' : ''}</div>`;
+    return `<div class="answer-row"><div class="q">Q${i + 1}. ${esc(q.question_text)}</div>${opts}<div style="margin-top:0.4rem;font-size:0.85rem;">${verdict} &nbsp;·&nbsp; Your answer: <strong>${yourAnswer}</strong> &nbsp;·&nbsp; Correct: <strong>${esc(q.correct_text)}</strong></div>${q.explanation ? '<div style="margin-top:0.3rem;font-size:0.85rem;color:#475569;">' + esc(q.explanation) + '</div>' : ''}</div>`;
   }).join('') || '<p style="color:#64748b;">No review available.</p>';
 
   const body = `

@@ -13,5 +13,5 @@
 -- ============================================================
 
 INSERT INTO public.modules (name, label, icon, is_core, sort_order) VALUES
-  ('sms-monitoring', 'SMS Monitoring', '📨', false, 13)
+  ('sms-monitoring', 'SMS Monitoring', '', false, 13)
 ON CONFLICT (name) DO NOTHING;

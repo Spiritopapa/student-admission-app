@@ -3,7 +3,7 @@
 --  Addendum to sql/051-staff-activity-log.sql and
 --  sql/007-settings-permissions.sql.
 --
---  Adds DELETE policies so the "🗑️ Clear All Logs" button in the
+--  Adds DELETE policies so the "Clear All Logs" button in the
 --  activity-log modals can remove every log row for one user:
 --    * staff_activities     (teacher / accountant logs)
 --    * sub_admin_activities (sub admin logs)

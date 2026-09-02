@@ -154,7 +154,7 @@ function renderAdminQuestionList() {
   listEl.innerHTML = totalHtml + slice.map((q, i) => {
     const idx = start + i + 1;
     const opts = btnList(q);
-    return `<div class="qa-card"><div class="qa-card-header"><div><strong>Q${idx}.</strong> <span class="qa-meta" style="display:inline;margin-top:0;">${esc(q.subject)}${q.class_name ? ' • ' + esc(q.class_name) : ''}${q.topic ? ' • ' + esc(q.topic) : ''}</span></div><div style="display:flex;gap:0.35rem;flex-wrap:wrap;"><button class="action-btn confirm" onclick="editAdminQuestion('${q.id}')">Edit</button><button class="action-btn danger" onclick="deleteAdminQuestion('${q.id}')">Delete</button></div></div><div class="qa-card-body"><div class="question-text" style="font-size:0.95rem;">${esc(q.question_text)}</div><div class="qa-options">${opts}</div><div class="qa-meta"><span class="correct-tag">✓ ${esc(q.correct_option)}</span>${q.explanation ? '<span>💡 ' + esc(q.explanation) + '</span>' : ''}</div></div></div>`;
+    return `<div class="qa-card"><div class="qa-card-header"><div><strong>Q${idx}.</strong> <span class="qa-meta" style="display:inline;margin-top:0;">${esc(q.subject)}${q.class_name ? ' • ' + esc(q.class_name) : ''}${q.topic ? ' • ' + esc(q.topic) : ''}</span></div><div style="display:flex;gap:0.35rem;flex-wrap:wrap;"><button class="action-btn confirm" onclick="editAdminQuestion('${q.id}')">Edit</button><button class="action-btn danger" onclick="deleteAdminQuestion('${q.id}')">Delete</button></div></div><div class="qa-card-body"><div class="question-text" style="font-size:0.95rem;">${esc(q.question_text)}</div><div class="qa-options">${opts}</div><div class="qa-meta"><span class="correct-tag">✓ ${esc(q.correct_option)}</span>${q.explanation ? '<span>' + esc(q.explanation) + '</span>' : ''}</div></div></div>`;
   }).join('');
 
   if (start + ADMIN_PAGE_SIZE < view.length) {
@@ -191,7 +191,7 @@ window.deleteAdminQuestion = async function (id) {
   if (!confirm('Delete this question? This cannot be undone.')) return;
   const { error } = await supabaseClient.from('assessment_questions').delete().eq('id', id);
   if (error) { alert('Error: ' + error.message); return; }
-  showMessage('adminQuestionMessage', '✅ Question deleted.', 'success');
+  showMessage('adminQuestionMessage', 'Question deleted.', 'success');
   await loadAdminQuestions();
 };
 async function saveAdminQuestion(e) {
@@ -218,17 +218,17 @@ async function saveAdminQuestion(e) {
     if (editId) {
       const { error } = await supabaseClient.from('assessment_questions').update(payload).eq('id', editId);
       if (error) throw error;
-      showMessage('assessmentQuestionFormMessage', '✅ Question updated.', 'success');
+      showMessage('assessmentQuestionFormMessage', 'Question updated.', 'success');
     } else {
       const { error } = await supabaseClient.from('assessment_questions').insert([payload]);
       if (error) throw error;
-      showMessage('assessmentQuestionFormMessage', '✅ Question added to the bank.', 'success');
+      showMessage('assessmentQuestionFormMessage', 'Question added to the bank.', 'success');
     }
     getEl('assessmentQuestionForm').reset();
     getEl('assessmentQuestionEditId').value = '';
     await loadAdminQuestions();
   } catch (err) { showMessage('assessmentQuestionFormMessage', 'Error: ' + err.message, 'error'); }
-  finally { setLoading(btn, false, '💾 Save Question'); }
+  finally { setLoading(btn, false, 'Save Question'); }
 }
 
 // ================================================================
@@ -260,7 +260,7 @@ function previewAdminBulkImport(overrideText) {
     if (rows.length === 0) { showMessage('adminBulkImportMessage', 'No valid question rows found.', 'error'); return; }
     const valid = rows.filter((r) => r.question_text && ['A', 'B', 'C', 'D'].includes(r.correct_option));
     const invalid = rows.length - valid.length;
-    previewEl.innerHTML = `<div class="assessment-instructions">✅ Ready to import <strong>${valid.length}</strong> question${valid.length === 1 ? '' : 's'}${invalid ? ` (${invalid} skipped)` : ''}. First 5 preview:</div>` +
+    previewEl.innerHTML = `<div class="assessment-instructions">Ready to import <strong>${valid.length}</strong> question${valid.length === 1 ? '' : 's'}${invalid ? ` (${invalid} skipped)` : ''}. First 5 preview:</div>` +
       valid.slice(0, 5).map((r) => `<div class="qa-card" style="margin-bottom:0.4rem;padding:0.6rem 0.8rem;"><strong>${esc(r.subject)}</strong>${r.class_name ? ' • ' + esc(r.class_name) : ''}${r.topic ? ' • ' + esc(r.topic) : ''} — ${esc(r.question_text).slice(0, 80)} <span class="correct-tag">${esc(r.correct_option)}</span></div>`).join('');
     window._adminBulkRows = valid;
   } catch (err) {
@@ -284,7 +284,7 @@ async function runAdminBulkImport() {
   const payload = rows.map((r) => ({ ...r, school_id: schoolId }));
   try {
     const inserted = await insertRowsChunked(supabaseClient, 'assessment_questions', payload);
-    showMessage('adminBulkImportMessage', `✅ Imported ${inserted} question${inserted === 1 ? '' : 's'} successfully.`, 'success');
+    showMessage('adminBulkImportMessage', `Imported ${inserted} question${inserted === 1 ? '' : 's'} successfully.`, 'success');
     getEl('adminBulkImportText').value = '';
     getEl('adminBulkImportFile').value = '';
     getEl('adminBulkImportPreview').innerHTML = '';
@@ -292,7 +292,7 @@ async function runAdminBulkImport() {
     getEl('adminBulkImportSection').open = false;
     await loadAdminQuestions();
   } catch (err) { showMessage('adminBulkImportMessage', 'Import error: ' + err.message, 'error'); }
-  finally { setLoading(btn, false, '🚀 Import Questions'); }
+  finally { setLoading(btn, false, 'Import Questions'); }
 }
 // ================================================================
 // Assessments (papers)
@@ -318,7 +318,7 @@ async function loadAdminAssessments() {
       <div>
         <strong style="font-size:1rem;">${esc(a.title)}</strong> ${badge(a)}
         <div class="qa-meta">${esc(a.subject)}${a.class_name ? ' • ' + esc(a.class_name) : ''}${a.topic ? ' • Topic: ' + esc(a.topic) : ''}</div>
-        <div class="qa-meta">🎯 ${a.question_count} questions · ⏱ ${a.duration_minutes || '—'} min · Pass ${a.pass_percentage}%</div>
+        <div class="qa-meta">${a.question_count} questions · ${a.duration_minutes || '—'} min · Pass ${a.pass_percentage}%</div>
         ${a.description ? `<div class="qa-meta">${esc(a.description)}</div>` : ''}
       </div>
       <div style="display:flex;gap:0.35rem;flex-wrap:wrap;">
@@ -352,7 +352,7 @@ window.editAdminAssessment = async function (id) {
 window.togglePublishAdminAssessment = async function (id, publish) {
   const { error } = await supabaseClient.from('assessments').update({ is_published: publish }).eq('id', id);
   if (error) { alert('Error: ' + error.message); return; }
-  showMessage('adminQuestionMessage', publish ? '📢 Assessment published to students.' : '🔒 Assessment unpublished.', 'success');
+  showMessage('adminQuestionMessage', publish ? 'Assessment published to students.' : 'Assessment unpublished.', 'success');
   await loadAdminAssessments();
 };
 
@@ -388,17 +388,17 @@ async function saveAdminAssessment(e) {
     if (editId) {
       const { error } = await supabaseClient.from('assessments').update(payload).eq('id', editId);
       if (error) throw error;
-      showMessage('assessmentConfigMessage', '✅ Assessment updated.', 'success');
+      showMessage('assessmentConfigMessage', 'Assessment updated.', 'success');
     } else {
       const { error } = await supabaseClient.from('assessments').insert([payload]);
       if (error) throw error;
-      showMessage('assessmentConfigMessage', '✅ Assessment created. Edit it to publish when ready.', 'success');
+      showMessage('assessmentConfigMessage', 'Assessment created. Edit it to publish when ready.', 'success');
     }
     getEl('assessmentConfigForm').reset();
     getEl('assessmentConfigId').value = '';
     await loadAdminAssessments();
   } catch (err) { showMessage('assessmentConfigMessage', 'Error: ' + err.message, 'error'); }
-  finally { setLoading(btn, false, '💾 Save Assessment'); }
+  finally { setLoading(btn, false, 'Save Assessment'); }
 }
 // ================================================================
 // Attempts / Results

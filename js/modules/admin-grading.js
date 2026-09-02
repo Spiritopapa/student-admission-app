@@ -49,7 +49,7 @@ async function populateGradingSubjectDropdown() {
     const { data } = await query;
     
     sel.innerHTML = '<option value="">— Overall Grading (All Subjects) —</option>' + 
-      (data || []).map(s => `<option value="${s.name}">📖 ${s.name}</option>`).join('');
+      (data || []).map(s => `<option value="${s.name}">${s.name}</option>`).join('');
   } catch (err) {
     console.error('Failed to load subjects for grading:', err);
   }
@@ -298,15 +298,15 @@ async function renderGradingTable() {
   container.innerHTML = sorted.map((g, idx) => {
     const range = `${g.min_score}${g.max_score && g.max_score < 100 ? ` - ${g.max_score}` : g.max_score >= 100 ? ' - 100' : ''}`;
     const cls = g.color_class || 'grade-f';
-    const subjectLabel = g.subject_name ? `<span style="font-size:0.75rem;color:var(--text-muted);">📖 ${g.subject_name}</span>` : '<span style="font-size:0.75rem;color:var(--text-muted);">📊 Overall</span>';
+    const subjectLabel = g.subject_name ? `<span style="font-size:0.75rem;color:var(--text-muted);">${g.subject_name}</span>` : '<span style="font-size:0.75rem;color:var(--text-muted);">Overall</span>';
     return `<tr>
       <td>${subjectLabel}</td>
       <td><span class="rc-grade-badge ${cls}" style="font-size:0.9rem;padding:0.25rem 0.75rem;">${g.grade_label}</span></td>
       <td>${range}%</td>
       <td>${g.description || '-'}</td>
       <td>
-        <button type="button" class="action-btn confirm" onclick="editGradeRow('${g.id}','${g.grade_label.replace(/'/g, "\\'")}','${g.min_score}','${g.max_score || 100}','${(g.description || '').replace(/'/g, "\\'")}','${g.color_class || ''}','${g.sort_order}','${(g.subject_name || '').replace(/'/g, "\\'")}')">✏️</button>
-        <button type="button" class="action-btn danger" onclick="deleteGradeRow('${g.id}')">🗑️</button>
+        <button type="button" class="action-btn confirm" onclick="editGradeRow('${g.id}','${g.grade_label.replace(/'/g, "\\'")}','${g.min_score}','${g.max_score || 100}','${(g.description || '').replace(/'/g, "\\'")}','${g.color_class || ''}','${g.sort_order}','${(g.subject_name || '').replace(/'/g, "\\'")}')"></button>
+        <button type="button" class="action-btn danger" onclick="deleteGradeRow('${g.id}')"></button>
       </td>
     </tr>`;
   }).join('');
@@ -328,7 +328,7 @@ function addGradeRow() {
   getEl('gradeSortOrder').value = '';
   getEl('gradeSubjectName').value = getEl('gradingSubjectFilter')?.value || '';
   getEl('gradingFormSection').open = true;
-  getEl('gradeSubmitBtn').textContent = '➕ Add Grade';
+  getEl('gradeSubmitBtn').textContent = 'Add Grade';
 }
 
 // Expose globally for onclick
@@ -344,7 +344,7 @@ window.editGradeRow = function(id, label, minScore, maxScore, desc, colorClass, 
   getEl('gradeSortOrder').value = sortOrder;
   getEl('gradeSubjectName').value = subjectName || '';
   getEl('gradingFormSection').open = true;
-  getEl('gradeSubmitBtn').textContent = '💾 Update Grade';
+  getEl('gradeSubmitBtn').textContent = 'Update Grade';
 };
 
 window.deleteGradeRow = async function(id) {
@@ -353,7 +353,7 @@ window.deleteGradeRow = async function(id) {
     const { error } = await supabaseClient.from('grading_systems').delete().eq('id', id);
     if (error) throw error;
     clearGradingCache();
-    showMessage('gradingMessage', '✅ Grade deleted.', 'success');
+    showMessage('gradingMessage', 'Grade deleted.', 'success');
     await renderGradingTable();
   } catch (err) {
     showMessage('gradingMessage', 'Error: ' + err.message, 'error');
@@ -389,11 +389,11 @@ async function saveGrade(e) {
     if (editId) {
       const { error } = await supabaseClient.from('grading_systems').update(payload).eq('id', editId);
       if (error) throw error;
-      showMessage('gradingMessage', '✅ Grade updated.', 'success');
+      showMessage('gradingMessage', 'Grade updated.', 'success');
     } else {
       const { error } = await supabaseClient.from('grading_systems').insert([payload]);
       if (error) throw error;
-      showMessage('gradingMessage', '✅ Grade added.', 'success');
+      showMessage('gradingMessage', 'Grade added.', 'success');
     }
 
     getEl('gradingForm').reset();
@@ -404,7 +404,7 @@ async function saveGrade(e) {
   } catch (err) {
     showMessage('gradingMessage', 'Error: ' + err.message, 'error');
   } finally {
-    setLoading(btn, false, editId ? '💾 Update Grade' : '➕ Add Grade');
+    setLoading(btn, false, editId ? 'Update Grade' : 'Add Grade');
   }
 }
 
@@ -443,11 +443,11 @@ async function resetToDefaultGrades() {
     if (insError) throw insError;
 
     clearGradingCache();
-    showMessage('gradingMessage', '✅ Grading system reset to defaults.', 'success');
+    showMessage('gradingMessage', 'Grading system reset to defaults.', 'success');
     await renderGradingTable();
   } catch (err) {
     showMessage('gradingMessage', 'Error: ' + err.message, 'error');
   } finally {
-    setLoading(btn, false, '🔄 Reset to Defaults');
+    setLoading(btn, false, 'Reset to Defaults');
   }
 }

@@ -82,9 +82,86 @@ export function normalizeGhanaPhone(raw) {
 }
 
 /**
+ * Format a Ghana mobile number for display inside an SMS (0XX XXX XXXX).
+ * Accepts normalized 233XXXXXXXXX, +233… or 0… input; returns the raw
+ * string unchanged when it can't be parsed into a familiar local form.
+ */
+export function formatGhanaPhoneDisplay(raw) {
+  if (raw == null) return '';
+  const original = String(raw).trim();
+  let digits = original.replace(/[^\d+]/g, '');
+  if (digits.startsWith('+')) digits = digits.slice(1);
+  if (!/^\d+$/.test(digits)) return original;
+  if (digits.startsWith('233') && digits.length === 12) digits = '0' + digits.slice(3);
+  if (/^0\d{9}$/.test(digits)) {
+    return `${digits.slice(0, 4)} ${digits.slice(4, 7)} ${digits.slice(7)}`;
+  }
+  return original;
+}
+
+/**
+ * The closing "call for assistance" line appended to every outgoing SMS.
+ * Returns '' when there is no admin number on record so the message stays
+ * clean instead of showing an empty "call" line.
+ */
+export function buildAssistanceLine(adminPhone) {
+  const display = formatGhanaPhoneDisplay(adminPhone);
+  return display ? ` For any assistance, call ${display}.` : '';
+}
+
+/** Cache of school_id → school admin mobile (display formatted). */
+const _adminPhoneCache = new Map();
+
+/**
+ * The mobile number parents/users should call for assistance — the school
+ * administrator's mobile stored on the `schools.phone` column (captured
+ * during school registration/onboarding and used for the admin password
+ * reset). Falls back to the linked admin profile's phone when the school
+ * row has no number. Results are cached per school for the session, so
+ * bulk sends only pay the lookup cost once.
+ */
+export async function getAdminContactForSchool(schoolId) {
+  if (!schoolId) return '';
+  if (_adminPhoneCache.has(schoolId)) return _adminPhoneCache.get(schoolId);
+
+  let raw = '';
+  try {
+    // schools.phone is readable by every signed-in role ("Anyone can check
+    // school ID" policy) and is the authoritative admin mobile.
+    const { data: school } = await supabaseClient
+      .from('schools')
+      .select('phone')
+      .eq('id', schoolId)
+      .maybeSingle();
+    raw = school?.phone || '';
+
+    if (!raw) {
+      // Best-effort fallback: any admin profile bound to this school.
+      const { data: adminProfile } = await supabaseClient
+        .from('profiles')
+        .select('phone')
+        .eq('school_id', schoolId)
+        .eq('role', 'admin')
+        .not('phone', 'is', null)
+        .limit(1)
+        .maybeSingle();
+      raw = adminProfile?.phone || '';
+    }
+  } catch (err) {
+    console.warn('[SMS] Failed to resolve school admin assistance phone:', err.message);
+  }
+
+  const display = formatGhanaPhoneDisplay(raw);
+  _adminPhoneCache.set(schoolId, display);
+  return display;
+}
+
+/**
  * Build the SMS that goes to the parent when a fee payment is recorded.
- * Kept compact (~160 chars max) so it stays a single SMS credit whenever
- * possible and skips the balance line once the term is fully paid.
+ * Kept compact so it stays a single SMS credit whenever possible and skips
+ * the balance line once the term is fully paid. Always closes with the
+ * school administrator's number so parents know who to call for help
+ * (info.adminPhone).
  */
 export function buildPaymentSmsMessage(info) {
   const school = String(info.schoolName || 'School').trim().slice(0, 45);
@@ -97,6 +174,7 @@ export function buildPaymentSmsMessage(info) {
     msg += ` Balance: GHC${formatCurrency(info.remainingBalance)}.`;
   }
   msg += ' Thank you.';
+  msg += buildAssistanceLine(info.adminPhone);
   return msg;
 }
 
@@ -191,7 +269,8 @@ export async function sendFeePaymentSms(info) {
       return null;
     }
 
-    const message = buildPaymentSmsMessage({ ...info, parentName: app?.parent_name });
+    const adminPhone = await getAdminContactForSchool(schoolId);
+    const message = buildPaymentSmsMessage({ ...info, parentName: app?.parent_name, adminPhone });
 
     // Send through the serverless gateway (must exist on the deployed site).
     let resp = null;

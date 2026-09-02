@@ -51,7 +51,7 @@
   <div class="verify-banner">✓ Digitally Verified Receipt</div>
   <div class="receipt" id="receipt"></div>
   <div class="actions">
-    <button class="btn" onclick="window.print()">🖨️ Print Receipt</button>
+    <button class="btn" onclick="window.print()">Print Receipt</button>
   </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -70,7 +70,7 @@ import supabaseClient from './js/supabase-config.js';
   function render(data) {
     var el = document.getElementById('receipt');
     if (!data || !data.receipt_number) {
-      el.innerHTML = '<div class="error"><h2>⚠️ Receipt Not Found</h2><p>This receipt could not be found or verified.</p></div>';
+      el.innerHTML = '<div class="error"><h2>Receipt Not Found</h2><p>This receipt could not be found or verified.</p></div>';
       return;
     }
     var status = (data.payment_status || 'paid').toUpperCase();
@@ -81,14 +81,14 @@ import supabaseClient from './js/supabase-config.js';
       : '';
     var notices = '';
     if (data.is_previous_term_payment) {
-      notices += '<div class="notice notice-prev"><strong>⏪ PREVIOUS TERM PAYMENT</strong><br/>' +
+      notices += '<div class="notice notice-prev"><strong>PREVIOUS TERM PAYMENT</strong><br/>' +
         'This payment is for <strong>' + esc(data.term) + ' Term ' + esc(data.academic_year) + '</strong> — an earlier term balance.</div>';
     } else if (Number(data.debt || 0) > 0 && Number(data.amount_now || 0) > 0) {
-      notices += '<div class="notice notice-arr">⏰ <strong>ARREARS PAYMENT</strong> — This payment includes GHC ' + money(data.debt) + ' towards an outstanding balance carried forward from a previous term.</div>';
+      notices += '<div class="notice notice-arr"><strong>ARREARS PAYMENT</strong> — This payment includes GHC ' + money(data.debt) + ' towards an outstanding balance carried forward from a previous term.</div>';
     }
     var isOverpaid = Number(data.overpaid_amount || 0) > 0;
     if (isOverpaid) {
-      notices += '<div class="notice notice-credit">💰 <strong>GHC ' + money(data.overpaid_amount) + '</strong> overpaid — this credit will be deducted from the next term\'s fees.</div>';
+      notices += '<div class="notice notice-credit"><strong>GHC ' + money(data.overpaid_amount) + '</strong> overpaid — this credit will be deducted from the next term\'s fees.</div>';
     }
     var balanceRow = isOverpaid
       ? '<tr><td>Remaining Balance</td><td><span style="color:#166534">-GHC ' + money(data.overpaid_amount) + ' (Credit)</span></td></tr>'

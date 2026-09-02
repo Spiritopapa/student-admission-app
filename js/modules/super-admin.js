@@ -84,21 +84,21 @@ export function setupSuperAdmin() {
       const target = getEl('superPage-' + page);
       if (target) target.classList.add('active-subpage');
       const titles = {
-        dashboard: '⭐ Dashboard Overview',
-        schools: '🏫 Schools Management',
-        'sub-admins': '👥 Sub Admins',
-        students: '👥 All Students',
-        classes: '🏫 Classes',
-        subjects: '📖 Subjects',
-        teachers: '📚 Teachers',
-        parents: '👨‍👩‍👧 Parents',
-        accountants: '🧾 Accountants',
-        announcements: '📢 Announcements',
-        attendance: '📋 Attendance',
-        fees: '💰 Fees',
-        exams: '📝 Exams',
-        settings: '⚙️ System Settings',
-        profile: '👤 My Profile'
+        dashboard: 'Dashboard Overview',
+        schools: 'Schools Management',
+        'sub-admins': 'Sub Admins',
+        students: 'All Students',
+        classes: 'Classes',
+        subjects: 'Subjects',
+        teachers: 'Teachers',
+        parents: 'Parents',
+        accountants: 'Accountants',
+        announcements: 'Announcements',
+        attendance: 'Attendance',
+        fees: 'Fees',
+        exams: 'Exams',
+        settings: 'System Settings',
+        profile: 'My Profile'
       };
       const titleEl = getEl('superAdminDashTitle');
       if (titleEl && titles[page]) titleEl.textContent = titles[page];
@@ -268,23 +268,8 @@ function renderSuperActivityFeed() {
   const countEl = document.getElementById('superActivityCount');
   if (countEl) countEl.textContent = _superActivityLog.length;
 
-  const iconMap = {
-    student_add: '🎓',
-    student_remove: '🗑️',
-    status_change: '🔄',
-    fee_add: '💰',
-    payment: '💳',
-    announcement: '📢',
-    refresh: '🔄',
-    fee_update: '📊',
-    school_add: '🏫',
-    sub_admin_add: '👥',
-    teacher_add: '📚',
-    info: '•',
-  };
-
   container.innerHTML = _superActivityLog.slice(0, 10).map((item) => {
-    const icon = iconMap[item.type] || '•';
+    const icon = '•';
     const time = formatTimeAgo(item.timestamp);
     return `
       <div class="dash-activity-item" data-type="${item.type}">
@@ -350,14 +335,14 @@ function renderTrialAlerts(schools) {
   const expiredHTML = expired.map(s => `
     <div style="display:flex;align-items:center;justify-content:space-between;gap:0.5rem;background:#fff;border:1px solid #fecaca;border-radius:8px;padding:0.5rem 0.7rem;">
       <div style="font-size:0.85rem;color:#7f1d1d;line-height:1.4;">
-        <strong style="color:#b91c1c;">🏫 ${s.name}</strong>
+        <strong style="color:#b91c1c;">${s.name}</strong>
         <span style="display:block;color:#991b1b;font-size:0.75rem;">${s.registration_id} — TRIAL EXPIRED on ${formatDate(s.end)}</span>
       </div>
       <button type="button" class="btn btn-sm btn-primary" onclick="openSchoolInfo('${s.id}')">View</button>
     </div>`).join('');
 
   const soonHTML = expiring.length > 0
-    ? '⏳ Expiring soon: ' + expiring.map(s =>
+    ? 'Expiring soon: ' + expiring.map(s =>
         `<strong style="color:#92400e;">${s.name}</strong> (${s.diffDays} day${s.diffDays === 1 ? '' : 's'} left)`).join(', ')
     : '';
 
@@ -368,7 +353,7 @@ function renderTrialAlerts(schools) {
   // Adjust title/panel styling for the "only expiring soon" case.
   const titleEl = getEl('superTrialAlertsTitle');
   if (titleEl) {
-    titleEl.textContent = expired.length > 0 ? '⚠️ Trial Expired' : '⏳ Trials Expiring Soon';
+    titleEl.textContent = expired.length > 0 ? 'Trial Expired' : 'Trials Expiring Soon';
   }
   if (expired.length > 0) {
     panel.style.borderColor = '#fecaca';
@@ -464,19 +449,19 @@ async function loadDashboardStats() {
         const lockedSet = lockedMap.get(s.id);
         const lockedCount = lockedSet ? lockedSet.size : 0;
         const lockBadge = lockedCount > 0
-          ? `<span style="position:absolute;top:0.25rem;right:0.25rem;background:var(--danger);color:#fff;font-size:0.6rem;padding:0.1rem 0.4rem;border-radius:20px;">🔒 ${lockedCount}</span>`
+          ? `<span style="position:absolute;top:0.25rem;right:0.25rem;background:var(--danger);color:#fff;font-size:0.6rem;padding:0.1rem 0.4rem;border-radius:20px;">${lockedCount}</span>`
           : '';
         const smsOffBadge = s.sms_enabled === false
-          ? '<span style="display:inline-block;background:rgba(239,68,68,0.12);color:#dc2626;font-size:0.65rem;padding:0.1rem 0.4rem;border-radius:20px;margin-left:0.25rem;border:1px solid rgba(239,68,68,0.35);">📵 SMS Off</span>'
+          ? '<span style="display:inline-block;background:rgba(239,68,68,0.12);color:#dc2626;font-size:0.65rem;padding:0.1rem 0.4rem;border-radius:20px;margin-left:0.25rem;border:1px solid rgba(239,68,68,0.35);">SMS Off</span>'
           : '';
         const tCount = teachersBySchool[s.id] || 0;
         const aCount = accountantsBySchool[s.id] || 0;
         return `
           <div class="quick-school-card" style="position:relative;flex-direction:column;align-items:flex-start;gap:0.3rem;padding:0.8rem;cursor:pointer;onclick="openSchoolInfo('${s.id}')">
-            <span style="font-size:0.85rem;font-weight:700;color:var(--text);line-height:1.3;">🏫 ${s.name}</span>${smsOffBadge}
+            <span style="font-size:0.85rem;font-weight:700;color:var(--text);line-height:1.3;">${s.name}</span>${smsOffBadge}
             <span style="font-size:0.7rem;color:var(--text-muted);">ID: <strong style="color:var(--primary);">${s.registration_id || '—'}</strong> · <strong>${s.school_type ? (s.school_type === 'private' ? 'Private' : 'Public') : '—'}</strong></span>
             <span style="font-size:0.7rem;color:var(--text-muted);">Admin: ${s.admin_name || 'Pending'} · Students: ${s.student_population != null ? Number(s.student_population).toLocaleString() : '—'}</span>
-            <span style="font-size:0.7rem;color:var(--text-muted);">👩‍🏫 ${tCount} teacher${tCount === 1 ? '' : 's'} · 🧾 ${aCount} accountant${aCount === 1 ? '' : 's'}</span>
+            <span style="font-size:0.7rem;color:var(--text-muted);">${tCount} teacher${tCount === 1 ? '' : 's'} · ${aCount} accountant${aCount === 1 ? '' : 's'}</span>
             <span style="font-size:0.7rem;color:var(--text-muted);">${(s.location || s.address) || ''} ${s.email ? '· ' + s.email : ''}</span>
             ${lockBadge}
           </div>
@@ -526,22 +511,22 @@ async function loadSchoolsList() {
 
     tbody.innerHTML = items.map(s => {
       const statusBadge = s.is_approved ? '<span class="badge-confirmed">Approved</span>' : '<span class="badge-unconfirmed">Pending</span>';
-      const userInfo = s.user_id ? '<span style="color:var(--success);font-size:0.75rem;">✅ Linked</span>' : '<span style="color:var(--text-muted);font-size:0.75rem;">🔗 Not linked</span>';
+      const userInfo = s.user_id ? '<span style="color:var(--success);font-size:0.75rem;">Linked</span>' : '<span style="color:var(--text-muted);font-size:0.75rem;">Not linked</span>';
       const approveBtn = s.is_approved
         ? '<span class="action-btn" style="background:var(--bg);color:var(--text-muted);cursor:default;">Done</span>'
-        : `<button class="action-btn confirm" onclick="approveSchool('${s.id}')">✅ Approve</button>`;
+        : `<button class="action-btn confirm" onclick="approveSchool('${s.id}')">Approve</button>`;
       const lockedSet = lockedMap.get(s.id);
       const lockedCount = lockedSet ? lockedSet.size : 0;
       const lockBadge = lockedCount > 0
-        ? `<span style="background:var(--danger);color:#fff;font-size:0.65rem;padding:0.15rem 0.5rem;border-radius:20px;margin-left:0.25rem;">🔒 ${lockedCount} locked</span>`
+        ? `<span style="background:var(--danger);color:#fff;font-size:0.65rem;padding:0.15rem 0.5rem;border-radius:20px;margin-left:0.25rem;">${lockedCount} locked</span>`
         : '';
-      const resetPwBtn = `<button class="btn btn-sm" onclick="openResetSchoolPassword('${s.id}', '${s.name.replace(/'/g, "\\'")}')" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:none;cursor:pointer;box-shadow:0 2px 8px rgba(245,158,11,0.3);">🔑 Reset Password</button>`;
+      const resetPwBtn = `<button class="btn btn-sm" onclick="openResetSchoolPassword('${s.id}', '${s.name.replace(/'/g, "\\'")}')" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:none;cursor:pointer;box-shadow:0 2px 8px rgba(245,158,11,0.3);">Reset Password</button>`;
       const adminName = s.admin_name || '-';
       const schoolType = s.school_type ? (s.school_type === 'private' ? '<span style="display:inline-block;padding:0.15rem 0.5rem;border-radius:99px;background:rgba(245,158,11,0.12);color:#d97706;font-size:0.72rem;font-weight:700;">Private</span>' : '<span style="display:inline-block;padding:0.15rem 0.5rem;border-radius:99px;background:rgba(16,185,129,0.12);color:#059669;font-size:0.72rem;font-weight:700;">Public</span>') : '-';
       const versionBadge = s.plan_version === 'trial'
         ? (s.trial_ends_at && new Date(s.trial_ends_at) < new Date()
-            ? '<span style="display:inline-block;padding:0.15rem 0.5rem;border-radius:99px;background:rgba(239,68,68,0.12);color:#dc2626;font-size:0.72rem;font-weight:700;">⏱ Trial · Expired</span>'
-            : `<span style="display:inline-block;padding:0.15rem 0.5rem;border-radius:99px;background:rgba(245,158,11,0.12);color:#d97706;font-size:0.72rem;font-weight:700;">⏱ Trial${s.trial_ends_at ? ' · ' + formatDate(s.trial_ends_at) : ''}</span>`)
+            ? '<span style="display:inline-block;padding:0.15rem 0.5rem;border-radius:99px;background:rgba(239,68,68,0.12);color:#dc2626;font-size:0.72rem;font-weight:700;">Trial · Expired</span>'
+            : `<span style="display:inline-block;padding:0.15rem 0.5rem;border-radius:99px;background:rgba(245,158,11,0.12);color:#d97706;font-size:0.72rem;font-weight:700;">Trial${s.trial_ends_at ? ' · ' + formatDate(s.trial_ends_at) : ''}</span>`)
         : '<span style="display:inline-block;padding:0.15rem 0.5rem;border-radius:99px;background:rgba(16,185,129,0.12);color:#059669;font-size:0.72rem;font-weight:700;">✓ Full</span>';
       const schoolLocation = s.location || s.address || '-';
       const population = s.student_population != null ? Number(s.student_population).toLocaleString() : '-';
@@ -551,10 +536,10 @@ async function loadSchoolsList() {
       const smsCell = `
         <div style="display:flex;flex-direction:column;gap:0.35rem;align-items:flex-start;">
           ${smsEnabled
-            ? '<span style="display:inline-block;padding:0.15rem 0.5rem;border-radius:99px;background:rgba(16,185,129,0.12);color:#059669;font-size:0.72rem;font-weight:700;">✅ On</span>'
-            : '<span style="display:inline-block;padding:0.15rem 0.5rem;border-radius:99px;background:rgba(239,68,68,0.12);color:#dc2626;font-size:0.72rem;font-weight:700;">⛔ Off</span>'}
+            ? '<span style="display:inline-block;padding:0.15rem 0.5rem;border-radius:99px;background:rgba(16,185,129,0.12);color:#059669;font-size:0.72rem;font-weight:700;">On</span>'
+            : '<span style="display:inline-block;padding:0.15rem 0.5rem;border-radius:99px;background:rgba(239,68,68,0.12);color:#dc2626;font-size:0.72rem;font-weight:700;">Off</span>'}
           <button class="btn btn-sm" title="${smsEnabled ? 'Disable SMS for this school' : 'Enable SMS for this school'}" onclick="toggleSchoolSms('${s.id}', '${s.name.replace(/'/g, "\\'")}', ${!smsEnabled})" style="background:${smsEnabled ? '#ef4444' : 'var(--success)'};color:#fff;border:none;cursor:pointer;white-space:nowrap;box-shadow:none;">
-            ${smsEnabled ? '📵 Disable' : '📱 Enable'}
+            ${smsEnabled ? 'Disable' : 'Enable'}
           </button>
         </div>`;
       return `<tr>
@@ -573,7 +558,7 @@ async function loadSchoolsList() {
         <td>${smsCell}</td>
         <td>${userInfo}</td>
         <td>${s.created_at ? formatDate(s.created_at) : '-'}</td>
-      <td><button class="action-btn" onclick="openSchoolInfo('${s.id}')" style="background:var(--purple);color:#fff;border:none;">👁️ Info</button> <button class="action-btn" onclick="openEditSchoolInfo('${s.id}')" style="background:var(--success);color:#fff;border:none;">✏️ Edit</button> ${approveBtn} <button class="action-btn" data-manage-modules="${s.id}" data-school-name="${s.name.replace(/'/g, "\\'")}" style="background:var(--primary);color:#fff;border:none;">🔒 Modules</button> ${resetPwBtn} <button class="action-btn danger" onclick="deleteSchool('${s.id}')">Delete</button></td>
+      <td><button class="action-btn" onclick="openSchoolInfo('${s.id}')" style="background:var(--purple);color:#fff;border:none;">Info</button> <button class="action-btn" onclick="openEditSchoolInfo('${s.id}')" style="background:var(--success);color:#fff;border:none;">Edit</button> ${approveBtn} <button class="action-btn" data-manage-modules="${s.id}" data-school-name="${s.name.replace(/'/g, "\\'")}" style="background:var(--primary);color:#fff;border:none;">Modules</button> ${resetPwBtn} <button class="action-btn danger" onclick="deleteSchool('${s.id}')">Delete</button></td>
       </tr>`;
     }).join('');
   } catch (err) { console.error('Failed to load schools:', err); }
@@ -596,7 +581,7 @@ window.toggleSchoolSms = async function (schoolId, schoolName, enable) {
   const enableMsg = enable
     ? 'The school will be able to send SMS messages again (fee reminders, payment alerts, password-reset codes).'
     : 'The school will NOT be able to send any SMS messages (fee reminders, payment alerts, password-reset codes) until SMS is re-enabled.';
-  if (!confirm(`⚠️ ${enable ? 'Enable' : 'Disable'} SMS for "${schoolName}"?\n\n${enableMsg}`)) return;
+  if (!confirm(`${enable ? 'Enable' : 'Disable'} SMS for "${schoolName}"?\n\n${enableMsg}`)) return;
   try {
     const { error } = await supabaseClient
       .from('schools')
@@ -608,7 +593,7 @@ window.toggleSchoolSms = async function (schoolId, schoolName, enable) {
     clearSmsEnabledCache(schoolId);
 
     recordSuperActivity(`SMS ${enable ? 'enabled' : 'disabled'} for ${schoolName}`, 'info');
-    alert(`✅ SMS ${enable ? 'enabled' : 'disabled'} for "${schoolName}".`);
+    alert(`SMS ${enable ? 'enabled' : 'disabled'} for "${schoolName}".`);
     await loadSchoolsList();
     await loadDashboardStats().catch(() => {});
   } catch (err) {
@@ -617,7 +602,7 @@ window.toggleSchoolSms = async function (schoolId, schoolName, enable) {
 };
 
 window.deleteSchool = async function (schoolId) {
-  if (!confirm('⚠️ PERMANENT DELETION\n\nDelete this school and all its data?\n\nThis action CANNOT be undone.')) return;
+  if (!confirm('PERMANENT DELETION\n\nDelete this school and all its data?\n\nThis action CANNOT be undone.')) return;
   try {
     const { data: school } = await supabaseClient.from('schools').select('user_id').eq('id', schoolId).single();
     const userId = school?.user_id;
@@ -628,7 +613,7 @@ window.deleteSchool = async function (schoolId) {
       await supabaseClient.from('profiles').delete().eq('id', userId);
     }
     await loadSchoolsList();
-    alert('✅ School and associated auth account permanently deleted.');
+    alert('School and associated auth account permanently deleted.');
   } catch (err) { alert('Error: ' + err.message); }
 };
 // ================================================================
@@ -647,7 +632,7 @@ window.openSchoolInfo = async function (schoolId) {
     const fmt = v => (v === null || v === undefined || v === '') ? '—' : v;
     const typeVal = s.school_type ? (s.school_type === 'private' ? 'Private' : 'Public') : '—';
     const popVal = s.student_population != null ? Number(s.student_population).toLocaleString() : '—';
-    const linked = s.user_id ? '✅ Linked' : '🔗 Not linked';
+    const linked = s.user_id ? 'Linked' : 'Not linked';
     const approved = s.is_approved ? 'Approved' : 'Pending';
     // Per-school teacher & accountant counts
     const { data: teachers } = await supabaseClient.from('teachers').select('school_id').eq('school_id', schoolId);
@@ -669,7 +654,7 @@ window.openSchoolInfo = async function (schoolId) {
       ['Email', s.email],
       ['Mobile (password change)', s.phone],
       ['Status', approved],
-      ['SMS Messaging', s.sms_enabled === false ? '⛔ Disabled' : '✅ Enabled'],
+      ['SMS Messaging', s.sms_enabled === false ? 'Disabled' : 'Enabled'],
       ['Linked Account', linked],
       ['Created', s.created_at ? formatDate(s.created_at) : '—'],
     ].map(([k, v]) => `<div class="school-info-row"><span class="si-label">${k}</span><span class="si-value">${fmt(v)}</span></div>`).join('');
@@ -773,7 +758,7 @@ window.saveEditSchoolInfo = async function () {
       plan_version: version,
       trial_ends_at: trialEndsAt,
     }).eq('id', schoolId);
-    if (error) { showMessage('editSchoolMessage', 'Error saving: ' + error.message, 'error'); setLoading(btn, false, '💾 Save Changes'); return; }
+    if (error) { showMessage('editSchoolMessage', 'Error saving: ' + error.message, 'error'); setLoading(btn, false, 'Save Changes'); return; }
     // School name changes auto-propagate to school_settings via the
     // trg_sync_school_settings trigger, but we also update school_settings
     // directly to cover any case where that trigger is missing.
@@ -781,7 +766,7 @@ window.saveEditSchoolInfo = async function () {
       await supabaseClient.from('school_settings').upsert({ school_id: schoolId, school_name: name });
     } catch (e) { console.warn('Could not sync school_settings name:', e.message); }
     recordSuperActivity(`School info edited: ${name}`, 'info');
-    showMessage('editSchoolMessage', '✅ School info updated successfully.', 'success');
+    showMessage('editSchoolMessage', 'School info updated successfully.', 'success');
     setTimeout(() => {
       modal.style.display = 'none';
       clearMessage('editSchoolMessage');
@@ -791,7 +776,7 @@ window.saveEditSchoolInfo = async function () {
   } catch (err) {
     showMessage('editSchoolMessage', 'Error saving: ' + err.message, 'error');
   } finally {
-    setLoading(btn, false, '💾 Save Changes');
+    setLoading(btn, false, 'Save Changes');
   }
 };
 
@@ -848,7 +833,7 @@ window.resetSchoolPassword = async function () {
   }
 
   // Confirm with the super admin
-  if (!confirm(`⚠️ RESET PASSWORD\n\nAre you sure you want to reset the password for "${schoolName}"?\n\nThe school admin will need to use the new password to log in.`)) {
+  if (!confirm(`RESET PASSWORD\n\nAre you sure you want to reset the password for "${schoolName}"?\n\nThe school admin will need to use the new password to log in.`)) {
     return;
   }
 
@@ -861,19 +846,19 @@ window.resetSchoolPassword = async function () {
 
     if (error) {
       showMessage('resetPwMessage', 'Error: ' + error.message, 'error');
-      setLoading(btn, false, '🔑 Reset Password');
+      setLoading(btn, false, 'Reset Password');
       return;
     }
 
     if (!data?.success) {
       showMessage('resetPwMessage', data?.error || 'Failed to reset password.', 'error');
-      setLoading(btn, false, '🔑 Reset Password');
+      setLoading(btn, false, 'Reset Password');
       return;
     }
 
-    showMessage('resetPwMessage', `✅ Password reset successfully for "${schoolName}". The school admin can now log in with the new password.`, 'success');
+    showMessage('resetPwMessage', `Password reset successfully for "${schoolName}". The school admin can now log in with the new password.`, 'success');
     recordSuperActivity(`Password reset for school: ${schoolName}`, 'info');
-    setLoading(btn, false, '🔑 Reset Password');
+    setLoading(btn, false, 'Reset Password');
 
     // Close the modal after a short delay
     setTimeout(() => {
@@ -881,7 +866,7 @@ window.resetSchoolPassword = async function () {
     }, 2000);
   } catch (err) {
     showMessage('resetPwMessage', 'Error: ' + err.message, 'error');
-    setLoading(btn, false, '🔑 Reset Password');
+    setLoading(btn, false, 'Reset Password');
   }
 };
 
@@ -933,7 +918,7 @@ function renderSchoolVersionSummary() {
   if (v === 'trial') {
     const days = parseInt(getEl('newSchoolTrialDaysInput')?.value || '14', 10) || 14;
     const end = new Date(Date.now() + days * 86400000);
-    summary.innerHTML = `<strong style="color:#d97706;">⏱ Trial Version</strong><br>
+    summary.innerHTML = `<strong style="color:#d97706;">Trial Version</strong><br>
       <span style="font-size:0.8rem;color:var(--text-muted);">Trial access for ${days} day(s) (ends ${end.toLocaleDateString()}) — the ID <strong>${regId}</strong> carries the <strong>TRIAL</strong> marker. Convert to Full at any time from the school's Edit info.</span>`;
   } else {
     summary.innerHTML = `<strong style="color:#059669;">✓ Full Version</strong><br>
@@ -992,14 +977,14 @@ async function saveNewSchool(e) {
   const version = getEl('newSchoolVersionInput')?.value || 'full';
   const trialDays = version === 'trial' ? (parseInt(getEl('newSchoolTrialDaysInput')?.value || '14', 10) || 14) : 0;
   const trialEndsAt = version === 'trial' ? new Date(Date.now() + trialDays * 86400000).toISOString() : null;
-  if (!name || !regId) { showMessage('newSchoolMessage', 'School name and generated School ID are required.', 'error'); setLoading(btn, false, '✅ Create School'); return; }
+  if (!name || !regId) { showMessage('newSchoolMessage', 'School name and generated School ID are required.', 'error'); setLoading(btn, false, 'Create School'); return; }
   try {
     const { data: { user } } = await supabaseClient.auth.getUser();
     const { data: newSchool, error } = await supabaseClient.from('schools').insert([{
       registration_id: regId, name, email, phone, address, location: address, created_by: user?.id || null, is_approved: true,
       plan_version: version, trial_ends_at: trialEndsAt,
     }]).select('id').single();
-    if (error) { showMessage('newSchoolMessage', 'Error: ' + error.message, 'error'); setLoading(btn, false, '✅ Create School'); return; }
+    if (error) { showMessage('newSchoolMessage', 'Error: ' + error.message, 'error'); setLoading(btn, false, 'Create School'); return; }
     
     // Upload school logo if provided
     let logoUrl = null;
@@ -1038,7 +1023,7 @@ async function saveNewSchool(e) {
       }
     }
     
-    showMessage('newSchoolMessage', `✅ School "${name}" created with ${version === 'trial' ? `TRIAL version (expires ${new Date(trialEndsAt).toLocaleDateString()})` : 'FULL version'} and ID: ${regId}. Provide this ID to the school admin for registration.`, 'success');
+    showMessage('newSchoolMessage', `School "${name}" created with ${version === 'trial' ? `TRIAL version (expires ${new Date(trialEndsAt).toLocaleDateString()})` : 'FULL version'} and ID: ${regId}. Provide this ID to the school admin for registration.`, 'success');
     getEl('newSchoolName').value = '';
     getEl('newSchoolEmail').value = '';
     getEl('newSchoolPhone').value = '';
@@ -1062,7 +1047,7 @@ async function saveNewSchool(e) {
     await loadSchoolsList();
     await loadDashboardStats();
   } catch (err) { showMessage('newSchoolMessage', 'Error: ' + err.message, 'error'); }
-  finally { setLoading(btn, false, '✅ Create School'); }
+  finally { setLoading(btn, false, 'Create School'); }
 }
 
 // Clear the new school logo preview
@@ -1097,10 +1082,10 @@ async function loadSubAdminsList() {
     if (noEl) noEl.style.display = 'none';
     tbody.innerHTML = items.map(sa => {
       const statusBadge = sa.is_approved ? '<span class="badge-confirmed">Approved</span>' : '<span class="badge-unconfirmed">Pending</span>';
-      const userInfo = sa.user_id ? '<span style="color:var(--success);font-size:0.75rem;">✅ Linked</span>' : '<span style="color:var(--text-muted);font-size:0.75rem;">🔗 Not linked</span>';
+      const userInfo = sa.user_id ? '<span style="color:var(--success);font-size:0.75rem;">Linked</span>' : '<span style="color:var(--text-muted);font-size:0.75rem;">Not linked</span>';
       const approveBtn = sa.is_approved
         ? '<span class="action-btn" style="background:var(--bg);color:var(--text-muted);cursor:default;">Done</span>'
-        : `<button class="action-btn confirm" onclick="approveSubAdmin('${sa.id}')">✅ Approve</button>`;
+        : `<button class="action-btn confirm" onclick="approveSubAdmin('${sa.id}')">Approve</button>`;
       const schoolName = sa.schools?.name || '—';
       return `<tr>
         <td><strong>${sa.registration_id}</strong></td>
@@ -1111,7 +1096,7 @@ async function loadSubAdminsList() {
         <td>${userInfo}</td>
         <td>${sa.created_at ? formatDate(sa.created_at) : '-'}</td>
         <td>${approveBtn} <button class="action-btn danger" onclick="deleteSubAdmin('${sa.id}')">Delete</button>
-        <button class="action-btn" onclick="viewSubAdminActivities('${sa.id}')">📋 Activities</button></td>
+        <button class="action-btn" onclick="viewSubAdminActivities('${sa.id}')">Activities</button></td>
       </tr>`;
     }).join('');
   } catch (err) { console.error('Failed to load sub admins:', err); }
@@ -1151,7 +1136,7 @@ window.viewSubAdminActivities = async function (subAdminId) {
     if (sa) {
       getEl('activitiesSubAdminName').textContent = sa.full_name;
       getEl('activitiesRegId').textContent = sa.registration_id;
-      getEl('activitiesModalTitle').textContent = `📋 Activities: ${sa.full_name}`;
+      getEl('activitiesModalTitle').textContent = `Activities: ${sa.full_name}`;
     }
     const { data: activities } = await supabaseClient.from('sub_admin_activities')
       .select('*')
@@ -1189,11 +1174,11 @@ window.clearSubAdminActivityLog = async function () {
   const subAdminId = modal.dataset.subAdminId;
   if (!subAdminId) return;
 
-  if (!confirm('⚠️ Delete ALL activity log entries for this sub admin?\n\nThis cannot be undone.')) return;
+  if (!confirm('Delete ALL activity log entries for this sub admin?\n\nThis cannot be undone.')) return;
 
   const btn = getEl('clearSubAdminActivitiesBtn');
   const originalText = btn ? btn.textContent : '';
-  if (btn) { btn.disabled = true; btn.textContent = '⏳ Clearing...'; }
+  if (btn) { btn.disabled = true; btn.textContent = 'Clearing...'; }
 
   try {
     const { error } = await supabaseClient
@@ -1205,7 +1190,7 @@ window.clearSubAdminActivityLog = async function () {
     // Reload the modal for that sub admin (shows the now-empty list)
     await viewSubAdminActivities(subAdminId);
 
-    showMessage('subAdminActivitiesClearMessage', '🗑️ All activity logs for this sub admin were cleared.', 'success');
+    showMessage('subAdminActivitiesClearMessage', 'All activity logs for this sub admin were cleared.', 'success');
   } catch (err) {
     console.error('clearSubAdminActivityLog error:', err);
     showMessage('subAdminActivitiesClearMessage', 'Failed to clear logs: ' + err.message, 'error');
@@ -1239,22 +1224,22 @@ async function saveNewSubAdmin(e) {
   const name = getEl('newSubAdminName').value.trim();
   const email = getEl('newSubAdminEmail').value.trim() || null;
   const regId = getEl('newSubAdminRegId').value.trim();
-  if (!name || !regId) { showMessage('newSubAdminMessage', 'Name and Registration ID are required.', 'error'); setLoading(btn, false, '✅ Create Sub Admin & Generate ID'); return; }
+  if (!name || !regId) { showMessage('newSubAdminMessage', 'Name and Registration ID are required.', 'error'); setLoading(btn, false, 'Create Sub Admin & Generate ID'); return; }
   try {
     const { data: { user } } = await supabaseClient.auth.getUser();
     const { error } = await supabaseClient.from('sub_admins').insert([{
       registration_id: regId, full_name: name, email,
       created_by: user?.id || null, is_approved: true,
     }]);
-    if (error) { showMessage('newSubAdminMessage', 'Error: ' + error.message, 'error'); setLoading(btn, false, '✅ Create Sub Admin & Generate ID'); return; }
-    showMessage('newSubAdminMessage', `✅ Sub Admin "${name}" created with ID: ${regId}. Provide this ID to them for registration.`, 'success');
+    if (error) { showMessage('newSubAdminMessage', 'Error: ' + error.message, 'error'); setLoading(btn, false, 'Create Sub Admin & Generate ID'); return; }
+    showMessage('newSubAdminMessage', `Sub Admin "${name}" created with ID: ${regId}. Provide this ID to them for registration.`, 'success');
     getEl('newSubAdminName').value = '';
     getEl('newSubAdminEmail').value = '';
     getEl('newSubAdminRegId').value = '';
     getEl('newSubAdminSection').style.display = 'none';
     await loadSubAdminsList();
   } catch (err) { showMessage('newSubAdminMessage', 'Error: ' + err.message, 'error'); }
-  finally { setLoading(btn, false, '✅ Create Sub Admin & Generate ID'); }
+  finally { setLoading(btn, false, 'Create Sub Admin & Generate ID'); }
 }
 
 // ================================================================
@@ -1294,13 +1279,13 @@ async function loadAllStudents() {
     tbody.innerHTML = items.map(s => {
       const photoHtml = s.student_photo_url
         ? `<img src="${s.student_photo_url}" alt="Photo" class="student-photo-thumb" />`
-        : '<span class="dash-photo-placeholder">🎓</span>';
+        : '<span class="dash-photo-placeholder"></span>';
       const statusHtml = s.status === 'admitted' 
         ? '<span class="badge-confirmed">Admitted</span>' 
         : '<span class="badge-unconfirmed">Pending</span>';
       const portalHtml = s.portal_confirmed 
-        ? '<span class="badge-confirmed">✅ Confirmed</span>' 
-        : '<span class="badge-unconfirmed">⏳ Pending</span>';
+        ? '<span class="badge-confirmed">Confirmed</span>' 
+        : '<span class="badge-unconfirmed">Pending</span>';
       const schoolName = s.schools?.name || '—';
       return `<tr>
         <td><strong>${s.student_id}</strong></td>
@@ -1407,12 +1392,12 @@ async function loadAllTeachers() {
       const activeBadge = t.is_active 
         ? '<span class="badge-confirmed">Active</span>' 
         : '<span class="badge-unconfirmed">Inactive</span>';
-      const regInfo = t.registration_id ? `<br><small style="color:var(--text-muted);font-size:0.75rem;">🔑 ${t.registration_id}</small>` : '';
+      const regInfo = t.registration_id ? `<br><small style="color:var(--text-muted);font-size:0.75rem;">${t.registration_id}</small>` : '';
       const regStatus = t.user_id
-        ? '<span style="color:var(--success);font-size:0.75rem;">✅ Registered</span>'
-        : '<span style="color:var(--text-muted);font-size:0.75rem;">🔗 Not registered</span>';
+        ? '<span style="color:var(--success);font-size:0.75rem;">Registered</span>'
+        : '<span style="color:var(--text-muted);font-size:0.75rem;">Not registered</span>';
       return `<tr>
-        <td><span class="dash-photo-placeholder">📚</span></td>
+        <td><span class="dash-photo-placeholder"></span></td>
         <td><strong>${t.full_name}</strong>${regInfo}</td>
         <td>${t.email || '-'}</td>
         <td>${t.phone || '-'}</td>
@@ -1491,12 +1476,12 @@ async function loadAllAccountants() {
     if (items.length === 0) { tbody.innerHTML = ''; if (noEl) noEl.style.display = 'block'; return; }
     if (noEl) noEl.style.display = 'none';
     tbody.innerHTML = items.map(a => {
-      const regInfo = a.registration_id ? `<br><small style="color:var(--text-muted);font-size:0.75rem;">🔑 ${a.registration_id}</small>` : '';
+      const regInfo = a.registration_id ? `<br><small style="color:var(--text-muted);font-size:0.75rem;">${a.registration_id}</small>` : '';
       const regStatus = a.user_id
-        ? '<span style="color:var(--success);font-size:0.75rem;">✅ Registered</span>'
-        : '<span style="color:var(--text-muted);font-size:0.75rem;">🔗 Not registered</span>';
+        ? '<span style="color:var(--success);font-size:0.75rem;">Registered</span>'
+        : '<span style="color:var(--text-muted);font-size:0.75rem;">Not registered</span>';
       return `<tr>
-        <td><span class="dash-photo-placeholder">🧾</span></td>
+        <td><span class="dash-photo-placeholder"></span></td>
         <td><strong>${a.full_name}</strong>${regInfo}</td>
         <td>${a.email || '-'}</td>
         <td>${a.phone || '-'}</td>
@@ -1539,9 +1524,9 @@ async function loadAllAnnouncements() {
         </div>
         <p>${a.content}</p>
         <div class="announcement-meta">
-          <span>🏫 ${a.schools?.name || '—'}</span>
-          <span>👤 ${a.profiles?.full_name || '—'}</span>
-          <span>📅 ${formatDate(a.created_at)}</span>
+          <span>${a.schools?.name || '—'}</span>
+          <span>${a.profiles?.full_name || '—'}</span>
+          <span>${formatDate(a.created_at)}</span>
           <span>${a.is_active ? '<span class="badge-confirmed">Active</span>' : '<span class="badge-unconfirmed">Inactive</span>'}</span>
         </div>
       </div>
@@ -1691,7 +1676,7 @@ async function saveSystemSettings(e) {
       current_term: getEl('superSettingCurrentTerm').value,
     });
     if (error) throw error;
-    showMessage('superSettingsMessage', '✅ System settings updated successfully.', 'success');
+    showMessage('superSettingsMessage', 'System settings updated successfully.', 'success');
     // Update sidebar
     const schoolNameEl = getEl('superSidebarSchoolName');
     if (schoolNameEl) schoolNameEl.textContent = getEl('superSettingSchoolName').value.trim();
@@ -1723,7 +1708,7 @@ async function saveSuperAdminName(e) {
     const fullName = getEl('superProfileName').value.trim();
     const { error: profileErr } = await supabaseClient.from('profiles').update({ full_name: fullName }).eq('id', user.id);
     if (profileErr) throw profileErr;
-    showMessage('superProfileMessage', '✅ Name updated successfully.', 'success');
+    showMessage('superProfileMessage', 'Name updated successfully.', 'success');
     const sidebarName = getEl('superSidebarName');
     if (sidebarName) sidebarName.textContent = fullName;
     const welcomeEl = getEl('superAdminWelcome');
@@ -1744,7 +1729,7 @@ async function saveSuperAdminPassword(e) {
   try {
     const { error: pwErr } = await supabaseClient.auth.updateUser({ password: newPw });
     if (pwErr) throw pwErr;
-    showMessage('superProfileMessage', '✅ Password changed successfully.', 'success');
+    showMessage('superProfileMessage', 'Password changed successfully.', 'success');
     getEl('superProfilePassword').value = '';
     getEl('superProfileConfirmPassword').value = '';
   } catch (err) { showMessage('superProfileMessage', 'Error: ' + err.message, 'error'); }
@@ -1827,7 +1812,6 @@ function renderModuleToggles(modules, listEl, schoolId, msgEl) {
     const isLocked = m.is_locked;
     const isCore = m.is_core;
     const lockBtnClass = isLocked ? 'btn-danger' : 'btn-secondary';
-    const lockIcon = isLocked ? '🔒' : '🔓';
     const lockLabel = isLocked ? 'Locked' : 'Active';
     const coreLabel = isCore ? '<span style="font-size:0.65rem;color:var(--text-muted);margin-left:0.5rem;">(core)</span>' : '';
     
@@ -1839,7 +1823,7 @@ function renderModuleToggles(modules, listEl, schoolId, msgEl) {
           <div style="font-size:0.75rem;color:var(--text-muted);">${m.module_name}</div>
         </div>
         <button type="button" class="btn btn-sm ${lockBtnClass}" onclick="toggleSchoolModuleLock('${schoolId}', '${m.module_name}', ${isLocked})" ${isCore ? 'disabled' : ''}>
-          ${lockIcon} ${lockLabel}
+          ${lockLabel}
         </button>
       </div>
     `;
@@ -1870,7 +1854,7 @@ window.toggleSchoolModuleLock = async function(schoolId, moduleName, isCurrently
       return;
     }
     
-    showMessage('schoolModulesMessage', `✅ Module "${moduleName}" ${action} for this school.`, 'success');
+    showMessage('schoolModulesMessage', `Module "${moduleName}" ${action} for this school.`, 'success');
     
     // Clear the locked modules cache so the dashboard reflects the change
     clearLockedModulesCache();
