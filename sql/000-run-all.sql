@@ -373,6 +373,19 @@
 --          js/modules/super-admin.js (clearSubAdminActivityLog).
 \i 053-clear-activity-logs.sql
 
+-- Step 48: Per-School SMS Enable/Disable
+-- Adds: schools.sms_enabled column (default true), the
+--       is_school_sms_enabled() SECURITY DEFINER RPC, and hardens
+--       request_forgot_password_otp() so an OTP is never generated
+--       for an account whose school has SMS disabled.
+-- Used by: js/modules/super-admin.js (Enable/Disable SMS button and
+--          "SMS" column in the Schools table) and enforced by
+--          js/modules/sms-gateway.js (fee-payment SMS),
+--          js/modules/admin-fees.js (bulk fee reminders),
+--          js/modules/admin-sms-monitor.js (resend) and
+--          js/modules/forgot-password.js (OTP).
+\i 055-school-sms-toggle.sql
+
 -- ============================================================
 --  SCHEMA DEPLOYMENT COMPLETE
 -- ============================================================

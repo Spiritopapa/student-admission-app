@@ -6,7 +6,7 @@
 
 import { getEl, showMessage, clearMessage, setLoading, getCurrentSchoolId, formatCurrency, formatDate, logSubAdminActivity, logStaffActivity, generateAcademicYearOptions, getDefaultAcademicYear, openPrintWindow, getNextTerm, getNextAcademicYear } from './utils.js';
 import { RECEIPT_VERIFY_BASE_URL } from '../supabase-config.js';
-import { sendFeePaymentSms, normalizeGhanaPhone } from './sms-gateway.js';
+import { sendFeePaymentSms, normalizeGhanaPhone, isSmsEnabledForSchool } from './sms-gateway.js';
 
 let supabaseClient = null;
 
@@ -2068,6 +2068,17 @@ async function loadDebtorsList() {
   const tbody = getEl('feeDebtorsBody');
   if (!tbody) return;
 
+  // Per-school SMS control: disable the bulk-reminder button when the Super
+  // Admin has switched SMS off for this school.
+  const smsEnabled = await isSmsEnabledForSchool(schoolId);
+  const smsBtn = getEl('feeSendSmsBtn');
+  if (smsBtn) {
+    smsBtn.disabled = !smsEnabled;
+    smsBtn.title = smsEnabled
+      ? 'Send a fee reminder SMS to the parents/guardians of the selected debtors (uses the Nalo SMS gateway)'
+      : 'SMS is disabled for this school by the Super Admin — no fee reminder messages can be sent.';
+  }
+
   tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--text-muted);">Loading...</td></tr>';
   const selAll = getEl('feeDebtorsSelectAll');
   if (selAll) selAll.checked = false;
@@ -2278,6 +2289,11 @@ function buildDebtorReminderSms(schoolName, studentName, className, balance) {
  * returned by /api/send-sms (e.g. "Nalo SMS is not configured ...").
  */
 async function sendDebtorReminderSms(recipient, studentId, message, schoolId) {
+  // Per-school SMS control: refuse when the Super Admin disabled SMS.
+  if (!(await isSmsEnabledForSchool(schoolId))) {
+    return { ok: false, error: 'SMS is disabled for this school by the Super Admin.' };
+  }
+
   // 1) Send
   let res = null;
   let resp = null;
@@ -2324,6 +2340,14 @@ async function sendDebtorReminderSms(recipient, studentId, message, schoolId) {
 window.sendBulkFeeReminderSms = async function () {
   clearMessage('feeDebtorsSmsMessage');
 
+  // Per-school SMS control: block the whole bulk send when the Super Admin
+  // has disabled SMS for this school.
+  const schoolId = await getCurrentSchoolId();
+  if (!(await isSmsEnabledForSchool(schoolId))) {
+    showMessage('feeDebtorsSmsMessage', '⛔ SMS is currently disabled for this school by the Super Admin. Fee reminder messages cannot be sent until SMS is re-enabled — please contact your Super Administrator.', 'error');
+    return;
+  }
+
   const boxes = Array.from(document.querySelectorAll('.debtor-sms-check:checked'));
   if (boxes.length === 0) {
     showMessage('feeDebtorsSmsMessage', '⚠️ Please select at least one debtor first — tick the checkboxes (or the Select All box) and try again.', 'error');
@@ -2362,7 +2386,6 @@ window.sendBulkFeeReminderSms = async function () {
     (noPhone.length ? `\n(${noPhone.length} already excluded — no valid phone on record.)` : '');
   if (!confirm(confirmText)) return;
 
-  const schoolId = await getCurrentSchoolId();
   const schoolName = await getSchoolNameForSms(schoolId);
 
   const btn = getEl('feeSendSmsBtn');

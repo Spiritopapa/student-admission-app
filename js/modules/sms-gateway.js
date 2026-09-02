@@ -17,6 +17,55 @@ import { formatCurrency, getCurrentSchoolId } from './utils.js';
 
 const SMS_ENDPOINT = '/api/send-sms';
 
+/** Cache of school_id → sms_enabled (per school, cleared on toggle). */
+let _smsEnabledCache = new Map();
+
+/**
+ * True when the given school currently has SMS messaging enabled.
+ *
+ * Uses the is_school_sms_enabled() SECURITY DEFINER RPC so ANY authenticated
+ * staff member (admin / sub-admin / accountant / teacher) and the super admin
+ * can read the flag — even though RLS hides the `schools` row from most staff.
+ * Falls back to a direct SELECT on `schools` (works for the super admin and
+ * the school admin) and finally to `true`, so SMS keeps working until a
+ * school is explicitly switched off by the Super Admin.
+ */
+export async function isSmsEnabledForSchool(schoolId) {
+  if (!schoolId) return true;
+  if (_smsEnabledCache.has(schoolId)) return _smsEnabledCache.get(schoolId);
+
+  let enabled = true;
+  try {
+    const { data, error } = await supabaseClient.rpc('is_school_sms_enabled', { p_school_id: schoolId });
+    if (!error) {
+      enabled = data !== false;
+    } else {
+      // RPC not deployed yet → direct read (allowed for super admin / school admin).
+      const { data: school } = await supabaseClient
+        .from('schools')
+        .select('sms_enabled')
+        .eq('id', schoolId)
+        .maybeSingle();
+      enabled = school ? school.sms_enabled !== false : true;
+    }
+  } catch (err) {
+    enabled = true;
+  }
+
+  _smsEnabledCache.set(schoolId, enabled);
+  return enabled;
+}
+
+/**
+ * Clears the cached sms_enabled value for one school — or for all schools
+ * when no school_id is passed. Call after the Super Admin toggles SMS so the
+ * very next check reflects the DB.
+ */
+export function clearSmsEnabledCache(schoolId) {
+  if (schoolId) _smsEnabledCache.delete(schoolId);
+  else _smsEnabledCache.clear();
+}
+
 /**
  * Normalize a Ghana phone number to international 233XXXXXXXXX form.
  * Accepts "0244...", "+23324...", "23324...", dashes/spaces stripped.
@@ -96,6 +145,22 @@ async function logSms(info) {
 export async function sendFeePaymentSms(info) {
   try {
     if (!info || !info.studentId || !info.receiptNumber || !info.amount) return null;
+
+    // Per-school SMS control: never send (or even attempt) when the Super
+    // Admin has disabled SMS for this school. Audit the skip so admins can
+    // see exactly why no SMS went out.
+    const schoolId = info.schoolId || (await getCurrentSchoolId());
+    if (!(await isSmsEnabledForSchool(schoolId))) {
+      await logSms({
+        ...info,
+        schoolId,
+        recipient: '',
+        success: false,
+        error: 'SMS is disabled for this school by the Super Admin.',
+      });
+      console.warn('[SMS] Fee payment SMS skipped — SMS disabled for school', schoolId);
+      return null;
+    }
 
     // Duplicate guard: only one successful SMS per receipt.
     const { data: existing } = await supabaseClient

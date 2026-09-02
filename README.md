@@ -190,6 +190,20 @@ School admins can send a single fee-reminder SMS to every debtor's parent/guardi
 
 > Requires the same Nalo gateway as above: set `NALO_SMS_AUTH_KEY` (or username/password) as a **Vercel environment variable** and deploy. Without it `/api/send-sms` returns `500 "Nalo SMS is not configured ..."` and the app now shows that exact reason in the result message.
 
+### 📵 Per-School SMS Enable / Disable (Super Admin)
+
+The Super Admin can switch SMS messaging **on/off per school** from **Super Admin Dashboard → Schools**:
+
+- Each school row shows an **SMS** badge (✅ On / ⛔ Off) with a **📵 Disable / 📱 Enable** button.
+- The Dashboard quick-school cards also flag schools that have SMS off with a **📵 SMS Off** badge.
+- Disabling SMS blocks **every** SMS path for that school:
+  - fee-payment receipts (`sendFeePaymentSms`),
+  - bulk fee-reminder SMS (Admin → Fees → Debtors — the button is disabled with an explanation),
+  - SMS Monitoring **↻ Resend** (buttons hidden + a warning banner),
+  - forgot-password SMS OTPs (`request_forgot_password_otp` refuses to issue a code).
+
+Apply with `sql/055-school-sms-toggle.sql` (included in `sql/000-run-all.sql`). It adds the `schools.sms_enabled` column (default `true`), an `is_school_sms_enabled()` RPC readable by all authenticated staff, and hardens `request_forgot_password_otp()`.
+
 
 ## 🔑 Forgot Password (SMS OTP)
 

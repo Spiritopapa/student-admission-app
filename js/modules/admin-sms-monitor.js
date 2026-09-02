@@ -19,6 +19,7 @@
  */
 
 import { getEl, showMessage, clearMessage, formatDateTime, getCurrentSchoolId } from './utils.js';
+import { isSmsEnabledForSchool } from './sms-gateway.js';
 
 let supabaseClient = null;
 
@@ -30,6 +31,7 @@ let _logs = [];
 let _studentMap = {};
 let _activeTab = 'all'; // all | sent | failed
 let _limit = 200;
+let _smsEnabled = true; // per-school SMS control (set on loadSmsMonitorPage)
 
 // ================================================================
 // Init
@@ -146,6 +148,10 @@ export async function loadSmsMonitorPage(containerId = 'smsMonitorContainer') {
   if (!container) return;
 
   container.innerHTML = `
+    <div id="smsDisabledBanner" style="display:none;margin-bottom:0.75rem;padding:0.75rem 1rem;border-radius:var(--radius-sm);background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.35);color:#b91c1c;font-size:0.85rem;font-weight:600;line-height:1.5;">
+      📵 SMS is currently <strong>disabled</strong> for this school by the Super Admin. No new SMS can be sent and the Resend buttons are inactive. Contact the Super Administrator to re-enable SMS.
+    </div>
+
     <div class="sms-stat-cards">
       <div class="sms-stat-card">
         <div class="sms-stat-label">Total SMS</div>
@@ -217,6 +223,12 @@ export async function loadSmsMonitorPage(containerId = 'smsMonitorContainer') {
     renderSmsMonitorDashboard(true);
   });
 
+  // Per-school SMS control: show a banner + disable resending when SMS is off.
+  const schoolId = await getCurrentSchoolId();
+  _smsEnabled = await isSmsEnabledForSchool(schoolId);
+  const banner = getEl('smsDisabledBanner');
+  if (banner) banner.style.display = _smsEnabled ? 'none' : 'block';
+
   await renderSmsMonitorDashboard();
 }
 // ================================================================
@@ -287,7 +299,7 @@ function renderSmsMonitorTable() {
     const errorNote = failed && log.error
       ? `<div class="sms-error-note" title="${escapeHtml(log.error)}">${escapeHtml(truncate(log.error, 60))}</div>`
       : '';
-    const resendBtn = failed
+    const resendBtn = failed && _smsEnabled
       ? `<button type="button" class="action-btn" onclick="smsResend('${log.id}')">↻ Resend</button>`
       : '';
 
@@ -368,7 +380,7 @@ window.smsViewDetail = function (id) {
           <div class="sms-detail-message">${escapeHtml(log.provider_response)}</div>
         ` : ''}
 
-        ${isFailed(log) ? `
+        ${isFailed(log) && _smsEnabled ? `
           <div style="margin-top:1rem;">
             <button type="button" class="btn btn-primary" onclick="smsResend('${log.id}')">↻ Resend SMS</button>
           </div>
@@ -389,6 +401,12 @@ window.smsResend = async function (id) {
   if (!confirm('Resend this SMS to ' + (log.recipient || 'the recipient') + '?')) return;
 
   const schoolId = await getCurrentSchoolId();
+  // Per-school SMS control: refuse to resend when the Super Admin disabled SMS.
+  if (!(await isSmsEnabledForSchool(schoolId))) {
+    showMessage('smsMonitorMessage', '⛔ SMS is disabled for this school by the Super Admin. Resending is not allowed until SMS is re-enabled.', 'error');
+    return;
+  }
+
   clearMessage('smsMonitorMessage');
   try {
     const res = await fetch('/api/send-sms', {

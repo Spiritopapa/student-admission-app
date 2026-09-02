@@ -15,6 +15,7 @@
  */
 
 import { getEl, showMessage, clearMessage, setLoading, formatDate, formatDateTime, formatCurrency, statusBadge, validateImageFile, previewFile, uploadPhoto, getCurrentAcademicYear, getSchoolInitialsFromName } from './utils.js';
+import { clearSmsEnabledCache } from './sms-gateway.js';
 
 let supabaseClient = null;
 let _lockedModulesCache = null;
@@ -402,7 +403,7 @@ async function loadDashboardStats() {
       supabaseClient.from('classes').select('*', { count: 'exact', head: true }),
       supabaseClient.from('subjects').select('*', { count: 'exact', head: true }),
       supabaseClient.from('announcements').select('*', { count: 'exact', head: true }),
-      supabaseClient.from('schools').select('id, name, registration_id, admin_name, school_type, student_population, location, address, email, phone, plan_version, trial_ends_at').order('name')
+      supabaseClient.from('schools').select('id, name, registration_id, admin_name, school_type, student_population, location, address, email, phone, plan_version, trial_ends_at, sms_enabled').order('name')
     ]);
 
     // Fetch locked modules to filter counts
@@ -465,11 +466,14 @@ async function loadDashboardStats() {
         const lockBadge = lockedCount > 0
           ? `<span style="position:absolute;top:0.25rem;right:0.25rem;background:var(--danger);color:#fff;font-size:0.6rem;padding:0.1rem 0.4rem;border-radius:20px;">🔒 ${lockedCount}</span>`
           : '';
+        const smsOffBadge = s.sms_enabled === false
+          ? '<span style="display:inline-block;background:rgba(239,68,68,0.12);color:#dc2626;font-size:0.65rem;padding:0.1rem 0.4rem;border-radius:20px;margin-left:0.25rem;border:1px solid rgba(239,68,68,0.35);">📵 SMS Off</span>'
+          : '';
         const tCount = teachersBySchool[s.id] || 0;
         const aCount = accountantsBySchool[s.id] || 0;
         return `
           <div class="quick-school-card" style="position:relative;flex-direction:column;align-items:flex-start;gap:0.3rem;padding:0.8rem;cursor:pointer;onclick="openSchoolInfo('${s.id}')">
-            <span style="font-size:0.85rem;font-weight:700;color:var(--text);line-height:1.3;">🏫 ${s.name}</span>
+            <span style="font-size:0.85rem;font-weight:700;color:var(--text);line-height:1.3;">🏫 ${s.name}</span>${smsOffBadge}
             <span style="font-size:0.7rem;color:var(--text-muted);">ID: <strong style="color:var(--primary);">${s.registration_id || '—'}</strong> · <strong>${s.school_type ? (s.school_type === 'private' ? 'Private' : 'Public') : '—'}</strong></span>
             <span style="font-size:0.7rem;color:var(--text-muted);">Admin: ${s.admin_name || 'Pending'} · Students: ${s.student_population != null ? Number(s.student_population).toLocaleString() : '—'}</span>
             <span style="font-size:0.7rem;color:var(--text-muted);">👩‍🏫 ${tCount} teacher${tCount === 1 ? '' : 's'} · 🧾 ${aCount} accountant${aCount === 1 ? '' : 's'}</span>
@@ -543,6 +547,16 @@ async function loadSchoolsList() {
       const population = s.student_population != null ? Number(s.student_population).toLocaleString() : '-';
       const teacherCount = teachersBySchool[s.id] || 0;
       const accountantCount = accountantsBySchool[s.id] || 0;
+      const smsEnabled = s.sms_enabled !== false;
+      const smsCell = `
+        <div style="display:flex;flex-direction:column;gap:0.35rem;align-items:flex-start;">
+          ${smsEnabled
+            ? '<span style="display:inline-block;padding:0.15rem 0.5rem;border-radius:99px;background:rgba(16,185,129,0.12);color:#059669;font-size:0.72rem;font-weight:700;">✅ On</span>'
+            : '<span style="display:inline-block;padding:0.15rem 0.5rem;border-radius:99px;background:rgba(239,68,68,0.12);color:#dc2626;font-size:0.72rem;font-weight:700;">⛔ Off</span>'}
+          <button class="btn btn-sm" title="${smsEnabled ? 'Disable SMS for this school' : 'Enable SMS for this school'}" onclick="toggleSchoolSms('${s.id}', '${s.name.replace(/'/g, "\\'")}', ${!smsEnabled})" style="background:${smsEnabled ? '#ef4444' : 'var(--success)'};color:#fff;border:none;cursor:pointer;white-space:nowrap;box-shadow:none;">
+            ${smsEnabled ? '📵 Disable' : '📱 Enable'}
+          </button>
+        </div>`;
       return `<tr>
         <td><strong style="color:var(--primary);">${s.registration_id}</strong></td>
         <td>${s.name} ${lockBadge}</td>
@@ -556,6 +570,7 @@ async function loadSchoolsList() {
         <td>${s.email || '-'}</td>
         <td>${s.phone || '-'}</td>
         <td>${statusBadge}</td>
+        <td>${smsCell}</td>
         <td>${userInfo}</td>
         <td>${s.created_at ? formatDate(s.created_at) : '-'}</td>
       <td><button class="action-btn" onclick="openSchoolInfo('${s.id}')" style="background:var(--purple);color:#fff;border:none;">👁️ Info</button> <button class="action-btn" onclick="openEditSchoolInfo('${s.id}')" style="background:var(--success);color:#fff;border:none;">✏️ Edit</button> ${approveBtn} <button class="action-btn" data-manage-modules="${s.id}" data-school-name="${s.name.replace(/'/g, "\\'")}" style="background:var(--primary);color:#fff;border:none;">🔒 Modules</button> ${resetPwBtn} <button class="action-btn danger" onclick="deleteSchool('${s.id}')">Delete</button></td>
@@ -570,6 +585,35 @@ window.approveSchool = async function (schoolId) {
     if (error) { alert('Error: ' + error.message); return; }
     await loadSchoolsList();
   } catch (err) { alert('Error: ' + err.message); }
+};
+
+/**
+ * Enables or disables SMS messaging for a single school.
+ * Updates schools.sms_enabled, clears the SMS-status cache and refreshes
+ * both the schools list and the dashboard stats.
+ */
+window.toggleSchoolSms = async function (schoolId, schoolName, enable) {
+  const enableMsg = enable
+    ? 'The school will be able to send SMS messages again (fee reminders, payment alerts, password-reset codes).'
+    : 'The school will NOT be able to send any SMS messages (fee reminders, payment alerts, password-reset codes) until SMS is re-enabled.';
+  if (!confirm(`⚠️ ${enable ? 'Enable' : 'Disable'} SMS for "${schoolName}"?\n\n${enableMsg}`)) return;
+  try {
+    const { error } = await supabaseClient
+      .from('schools')
+      .update({ sms_enabled: enable })
+      .eq('id', schoolId);
+    if (error) { alert('Error: ' + error.message); return; }
+
+    // Make the very next SMS-status check reflect the change immediately.
+    clearSmsEnabledCache(schoolId);
+
+    recordSuperActivity(`SMS ${enable ? 'enabled' : 'disabled'} for ${schoolName}`, 'info');
+    alert(`✅ SMS ${enable ? 'enabled' : 'disabled'} for "${schoolName}".`);
+    await loadSchoolsList();
+    await loadDashboardStats().catch(() => {});
+  } catch (err) {
+    alert('Error: ' + err.message);
+  }
 };
 
 window.deleteSchool = async function (schoolId) {
@@ -625,6 +669,7 @@ window.openSchoolInfo = async function (schoolId) {
       ['Email', s.email],
       ['Mobile (password change)', s.phone],
       ['Status', approved],
+      ['SMS Messaging', s.sms_enabled === false ? '⛔ Disabled' : '✅ Enabled'],
       ['Linked Account', linked],
       ['Created', s.created_at ? formatDate(s.created_at) : '—'],
     ].map(([k, v]) => `<div class="school-info-row"><span class="si-label">${k}</span><span class="si-value">${fmt(v)}</span></div>`).join('');
