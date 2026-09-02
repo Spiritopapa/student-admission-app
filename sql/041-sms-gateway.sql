@@ -29,15 +29,37 @@ CREATE TABLE IF NOT EXISTS public.sms_logs (
 
 ALTER TABLE public.sms_logs ENABLE ROW LEVEL SECURITY;
 
--- School staff (admins / sub-admins / accountants) manage logs for their school
-CREATE POLICY "School staff manage sms logs"
-  ON public.sms_logs FOR ALL
-  USING (public.can_access_school_data(sms_logs.school_id));
+-- School staff (admins / sub-admins / accountants) manage logs for their school.
+-- Guarded so this file is SAFE TO RE-RUN (each policy is created only if it
+-- does not already exist) — same convention as 053-clear-activity-logs.sql.
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename  = 'sms_logs'
+      AND policyname = 'School staff manage sms logs'
+  ) THEN
+    CREATE POLICY "School staff manage sms logs"
+      ON public.sms_logs FOR ALL
+      USING (public.can_access_school_data(sms_logs.school_id));
+  END IF;
+END $$;
 
 -- Staff read access (kept explicit alongside the FOR ALL policy)
-CREATE POLICY "School staff view sms logs"
-  ON public.sms_logs FOR SELECT
-  USING (public.can_access_school_data(sms_logs.school_id));
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename  = 'sms_logs'
+      AND policyname = 'School staff view sms logs'
+  ) THEN
+    CREATE POLICY "School staff view sms logs"
+      ON public.sms_logs FOR SELECT
+      USING (public.can_access_school_data(sms_logs.school_id));
+  END IF;
+END $$;
 
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_sms_logs_school_created
