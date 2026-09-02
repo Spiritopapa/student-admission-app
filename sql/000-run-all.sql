@@ -396,6 +396,17 @@
 --          js/modules/forgot-password.js (OTP).
 \i 056-sms-admin-assistance.sql
 
+-- Step 50: Admin & Accountant Photos (with Frame)
+-- Adds: schools.admin_photo_url, accountants.photo_url and the
+--       public `staff-photos` storage bucket. The registration forms
+--       apply a decorative frame to the selected picture (canvas) then
+--       upload the FRAMED image and store its URL in these columns so it
+--       shows in the sidebar avatar.
+-- Used by: js/modules/auth.js (school + accountant registration),
+--          js/modules/admin-students.js and js/modules/accountant-dashboard.js
+--          (sidebar avatar display).
+\i 057-admin-accountant-photos.sql
+
 -- ============================================================
 --  SCHEMA DEPLOYMENT COMPLETE
 -- ============================================================

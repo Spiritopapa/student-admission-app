@@ -70,6 +70,19 @@ export async function loadAdminDashboard() {
   if (welcomeEl) welcomeEl.textContent = `Welcome back, ${profile?.full_name || 'Admin'}!`;
   const sidebarName = getEl('sidebarAdminName');
   if (sidebarName) sidebarName.textContent = profile?.full_name || 'Admin';
+  // Show the administrator's framed picture in the sidebar avatar (if uploaded)
+  try {
+    const schoolRes = await supabaseClient.from('schools').select('admin_photo_url').eq('user_id', (await supabaseClient.auth.getUser()).data.user?.id).maybeSingle();
+    const adminPhotoUrl = schoolRes?.data?.admin_photo_url;
+    const avatarEl = document.querySelector('#adminSidebar .dash-avatar');
+    if (adminPhotoUrl && avatarEl) {
+      avatarEl.innerHTML = `<img src="${adminPhotoUrl}" alt="Administrator" />`;
+    } else if (avatarEl && avatarEl.querySelector('img')) {
+      avatarEl.innerHTML = '';
+    }
+  } catch (err) {
+    console.warn('Could not load administrator picture for avatar:', err.message);
+  }
   await loadAllStudents();
 }
 

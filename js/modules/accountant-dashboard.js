@@ -592,13 +592,20 @@ async function loadAccountantProfileData() {
     if (p) { getEl('accountantProfileName').value = p.full_name || ''; getEl('accountantProfileEmail').value = p.email || ''; }
     // Try accountants table first for the most up-to-date name, fallback to profiles
     let accountantName = null;
-    const { data: a } = await supabaseClient.from('accountants').select('full_name, registration_id').eq('user_id', user.id).maybeSingle();
+    const { data: a } = await supabaseClient.from('accountants').select('full_name, registration_id, photo_url').eq('user_id', user.id).maybeSingle();
     if (a?.full_name) {
       accountantName = a.full_name;
       getEl('accountantSidebarName').textContent = a.full_name;
     } else if (p?.full_name) {
       accountantName = p.full_name;
       getEl('accountantSidebarName').textContent = p.full_name;
+    }
+    // Show the accountant's framed picture in the sidebar avatar (if uploaded)
+    const accAvatarEl = document.querySelector('#accountantSidebar .dash-avatar');
+    if (a?.photo_url && accAvatarEl) {
+      accAvatarEl.innerHTML = `<img src="${a.photo_url}" alt="Accountant" />`;
+    } else if (accAvatarEl && accAvatarEl.querySelector('img')) {
+      accAvatarEl.innerHTML = '';
     }
 
     // NAME LOCK: If the admin has generated an ID (registration_id) for this

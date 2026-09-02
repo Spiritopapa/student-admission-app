@@ -58,6 +58,7 @@ export async function loadAdminDashboardHome() {
       fetchTodayAttendance(),
       fetchSchoolName(),
       fetchTrialStatus(),
+      applyAdminAvatar(),
     ]);
     renderDashboard();
     renderTrialBanner();
@@ -69,6 +70,30 @@ export async function loadAdminDashboardHome() {
   } catch (err) {
     console.error('Dashboard load error:', err);
     updateConnectionStatus('error');
+  }
+}
+
+/**
+ * Shows the administrator's framed picture (uploaded during school
+ * registration) in the admin sidebar avatar when one exists.
+ */
+async function applyAdminAvatar() {
+  try {
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    if (!user) return;
+    const schoolRes = await supabaseClient.from('schools')
+      .select('admin_photo_url')
+      .eq('user_id', user.id)
+      .maybeSingle();
+    const avatarEl = document.querySelector('#adminSidebar .dash-avatar');
+    if (!avatarEl) return;
+    if (schoolRes?.data?.admin_photo_url) {
+      avatarEl.innerHTML = `<img src="${schoolRes.data.admin_photo_url}" alt="Administrator" />`;
+    } else if (avatarEl.querySelector('img')) {
+      avatarEl.innerHTML = '';
+    }
+  } catch (err) {
+    console.warn('Could not load administrator picture for avatar:', err.message);
   }
 }
 

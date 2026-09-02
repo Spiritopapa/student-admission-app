@@ -7,7 +7,7 @@
  *   sub_admin → students, teachers, accountants, parents (each registers with their ID)
  */
 
-import { getEl, showMessage, clearMessage, getRoleDisplay, clearSchoolIdCache, logStaffActivity } from './utils.js';
+import { getEl, showMessage, clearMessage, getRoleDisplay, clearSchoolIdCache, logStaffActivity, uploadPhoto, framedPhotoPreview } from './utils.js';
 
 // ================================================================
 // State
@@ -16,7 +16,10 @@ import { getEl, showMessage, clearMessage, getRoleDisplay, clearSchoolIdCache, l
 let supabaseClient = null;
 
 // School registration wizard state
-let _schoolWizard = { regId: '', schoolName: '', schoolId: null, stage: 1 };
+let _schoolWizard = { regId: '', schoolName: '', schoolId: null, stage: 1, photoFile: null };
+
+// Accountant registration: framed picture to upload after sign-up
+let _accountantPhotoFile = null;
 
 export function initAuth(supabase) {
   supabaseClient = supabase;
@@ -304,6 +307,48 @@ function schoolWizardSetMsg(msg, cls) {
 export function setupRegisterSchoolForm() {
   const form = getEl('registerSchoolForm');
   if (!form) return;
+
+  // ---- Administrator picture (with frame) ======================
+  const adminPhotoInput = getEl('regAdminPhoto');
+  const adminPhotoClear = getEl('regAdminClearPhoto');
+  if (adminPhotoInput) {
+    adminPhotoInput.addEventListener('change', async () => {
+      const file = adminPhotoInput.files[0];
+      if (!file) return;
+      try {
+        // Frame colours match the SchoolRunner admin theme (navy + gold).
+        const framed = await framedPhotoPreview(
+          file,
+          getEl('regAdminPhotoPreviewImg'),
+          getEl('regAdminPhotoPlaceholder'),
+          adminPhotoClear,
+          { primary: '#1e3a5f', accent: '#d4af37' }
+        );
+        _schoolWizard.photoFile = framed;
+      } catch (err) {
+        console.warn('Admin photo framing failed:', err.message);
+        alert('Could not frame the selected picture: ' + err.message);
+        adminPhotoInput.value = '';
+        _schoolWizard.photoFile = null;
+      }
+    });
+  }
+  if (adminPhotoClear) {
+    adminPhotoClear.addEventListener('click', () => {
+      if (adminPhotoInput) adminPhotoInput.value = '';
+      const previewImg = getEl('regAdminPhotoPreviewImg');
+      if (previewImg) {
+        if (previewImg._framedUrl) URL.revokeObjectURL(previewImg._framedUrl);
+        previewImg._framedUrl = null;
+        previewImg.style.display = 'none';
+      }
+      const placeholder = getEl('regAdminPhotoPlaceholder');
+      if (placeholder) placeholder.style.display = '';
+      adminPhotoClear.style.display = 'none';
+      _schoolWizard.photoFile = null;
+    });
+  }
+
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     clearMessage('schoolRegisterMessage');
@@ -401,11 +446,35 @@ export function setupRegisterSchoolForm() {
             school_id: schoolId, school_name: schoolName, academic_year: '2025/2026', current_term: 'First',
           });
         }
+        // Upload the framed administrator picture (if provided) and save the
+        // URL on the school record so the sidebar avatar can display it.
+        if (_schoolWizard.photoFile) {
+          try {
+            const photoUrl = await uploadPhoto(supabaseClient, 'staff-photos', _schoolWizard.photoFile, `admin_${schoolId || regId}`);
+            if (photoUrl) {
+              await supabaseClient.from('schools')
+                .update({ admin_photo_url: photoUrl })
+                .eq('registration_id', regId);
+            }
+          } catch (photoErr) {
+            console.warn('Could not upload administrator picture:', photoErr.message);
+          }
+        }
       }
       showMessage('schoolRegisterMessage', 'School account created! You can now sign in with your School Registration ID.', 'success');
       form.reset();
       // Reset wizard to stage 1 for a fresh registration.
-      _schoolWizard = { regId: '', schoolName: '', schoolId: null, stage: 1 };
+      _schoolWizard = { regId: '', schoolName: '', schoolId: null, stage: 1, photoFile: null };
+      const regAdminImg = getEl('regAdminPhotoPreviewImg');
+      if (regAdminImg) {
+        if (regAdminImg._framedUrl) URL.revokeObjectURL(regAdminImg._framedUrl);
+        regAdminImg._framedUrl = null;
+        regAdminImg.style.display = 'none';
+      }
+      const regAdminPlaceholder = getEl('regAdminPhotoPlaceholder');
+      if (regAdminPlaceholder) regAdminPlaceholder.style.display = '';
+      const regAdminClear = getEl('regAdminClearPhoto');
+      if (regAdminClear) regAdminClear.style.display = 'none';
       schoolWizardShow(1);
     } catch (err) {
       showMessage('schoolRegisterMessage', 'Unexpected error: ' + err.message, 'error');
@@ -627,6 +696,48 @@ export function setupRegisterTeacherForm() {
 export function setupRegisterAccountantForm() {
   const form = getEl('registerAccountantForm');
   if (!form) return;
+
+  // ---- Accountant picture (with frame) =========================
+  const accPhotoInput = getEl('regAccountantPhoto');
+  const accPhotoClear = getEl('regAccountantClearPhoto');
+  if (accPhotoInput) {
+    accPhotoInput.addEventListener('change', async () => {
+      const file = accPhotoInput.files[0];
+      if (!file) return;
+      try {
+        // Frame colours match the accountant theme (emerald + gold).
+        const framed = await framedPhotoPreview(
+          file,
+          getEl('regAccountantPhotoPreviewImg'),
+          getEl('regAccountantPhotoPlaceholder'),
+          accPhotoClear,
+          { primary: '#065f46', accent: '#d4af37' }
+        );
+        _accountantPhotoFile = framed;
+      } catch (err) {
+        console.warn('Accountant photo framing failed:', err.message);
+        alert('Could not frame the selected picture: ' + err.message);
+        accPhotoInput.value = '';
+        _accountantPhotoFile = null;
+      }
+    });
+  }
+  if (accPhotoClear) {
+    accPhotoClear.addEventListener('click', () => {
+      if (accPhotoInput) accPhotoInput.value = '';
+      const previewImg = getEl('regAccountantPhotoPreviewImg');
+      if (previewImg) {
+        if (previewImg._framedUrl) URL.revokeObjectURL(previewImg._framedUrl);
+        previewImg._framedUrl = null;
+        previewImg.style.display = 'none';
+      }
+      const placeholder = getEl('regAccountantPhotoPlaceholder');
+      if (placeholder) placeholder.style.display = '';
+      accPhotoClear.style.display = 'none';
+      _accountantPhotoFile = null;
+    });
+  }
+
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     clearMessage('registerMessage');
@@ -683,9 +794,35 @@ export function setupRegisterAccountantForm() {
         await supabaseClient.from('profiles').upsert({
           id: data.user.id, full_name: fullName, email: regId.toLowerCase() + '@accountant.local', role: 'accountant', school_id: schoolId, phone,
         });
+        // Upload the framed accountant picture (if provided) and save the
+        // URL on the accountant record so the sidebar avatar can display it.
+        if (_accountantPhotoFile) {
+          try {
+            const photoUrl = await uploadPhoto(supabaseClient, 'staff-photos', _accountantPhotoFile, `acc_${regId}`);
+            if (photoUrl) {
+              await supabaseClient.from('accountants')
+                .update({ photo_url: photoUrl })
+                .eq('registration_id', regId);
+            }
+          } catch (photoErr) {
+            console.warn('Could not upload accountant picture:', photoErr.message);
+          }
+        }
       }
       showMessage('registerMessage', 'Accountant account created! You can now sign in with your Accountant ID.', 'success');
       form.reset();
+      // Reset the accountant photo state + preview for a fresh registration.
+      _accountantPhotoFile = null;
+      const accPreviewImg = getEl('regAccountantPhotoPreviewImg');
+      if (accPreviewImg) {
+        if (accPreviewImg._framedUrl) URL.revokeObjectURL(accPreviewImg._framedUrl);
+        accPreviewImg._framedUrl = null;
+        accPreviewImg.style.display = 'none';
+      }
+      const accPlaceholder = getEl('regAccountantPhotoPlaceholder');
+      if (accPlaceholder) accPlaceholder.style.display = '';
+      const accClear = getEl('regAccountantClearPhoto');
+      if (accClear) accClear.style.display = 'none';
     } catch (err) {
       showMessage('registerMessage', 'Unexpected error: ' + err.message, 'error');
     }

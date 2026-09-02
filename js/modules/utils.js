@@ -454,6 +454,214 @@ export function previewFile(file, imgElement, placeholderElement, clearBtn, maxS
   reader.readAsDataURL(file);
 }
 
+// ================================================================
+// Photo Frame Helpers (school admin & accountant registration)
+// ================================================================
+// `applyPhotoFrame` draws the selected picture onto a canvas, wraps it
+// in a decorative passport-style frame and resolves with a JPEG `File`
+// that can be uploaded & stored directly. `framedPhotoPreview` combines
+// validation + framing + a live preview, and returns the framed file so
+// the caller can hold onto it for upload after sign-up.
+// ================================================================
+
+/**
+ * Applies a decorative frame around a picture and returns the framed image
+ * as a JPEG `File` (ready for upload). Non-destructive — the original file
+ * is never modified.
+ *
+ * @param {File} file             - The selected image file
+ * @param {Object} [opts]
+ * @param {string} [opts.primary] - Inner frame color (default navy #1e3a5f)
+ * @param {string} [opts.accent]  - Outer gold frame color (default #d4af37)
+ * @param {string} [opts.cream]   - Middle inset line color (default #fbf3df)
+ * @param {number} [opts.width]   - Canvas width in px (default 600)
+ * @param {number} [opts.height]  - Canvas height in px (default 740)
+ * @returns {Promise<File>}       - The framed JPEG file
+ */
+export function applyPhotoFrame(file, opts = {}) {
+  return new Promise((resolve, reject) => {
+    if (!file) {
+      reject(new Error('No file selected.'));
+      return;
+    }
+    if (!file.type.startsWith('image/')) {
+      reject(new Error('Please select an image file.'));
+      return;
+    }
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Could not read the selected image.'));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('Could not load the selected image.'));
+      img.onload = () => {
+        try {
+          const W = opts.width || 600;
+          const H = opts.height || 740;
+          const primary = opts.primary || '#1e3a5f';   // navy inner frame
+          const accent = opts.accent || '#d4af37';     // gold outer frame
+          const cream = opts.cream || '#fbf3df';       // cream inner line
+
+          const canvas = document.createElement('canvas');
+          canvas.width = W;
+          canvas.height = H;
+          const ctx = canvas.getContext('2d');
+
+          // ---- 1. Outer gold frame --------------------------------
+          ctx.fillStyle = accent;
+          ctx.fillRect(0, 0, W, H);
+
+          // ---- 2. Thin cream inset line ---------------------------
+          ctx.fillStyle = cream;
+          ctx.fillRect(14, 14, W - 28, H - 28);
+
+          // ---- 3. Navy inner frame with rounded corners -----------
+          roundedRectPath(ctx, 24, 24, W - 48, H - 48, 10);
+          ctx.fillStyle = primary;
+          ctx.fill();
+
+          // ---- 4. Photo inside the rounded photo window -----------
+          roundedRectPath(ctx, 42, 42, W - 84, H - 84, 6);
+          ctx.save();
+          ctx.clip();
+          ctx.fillStyle = '#0b1220';
+          ctx.fillRect(0, 0, W, H);
+          const scale = Math.max((W - 84) / img.width, (H - 84) / img.height);
+          const dw = img.width * scale;
+          const dh = img.height * scale;
+          ctx.drawImage(img, 42 + (W - 84 - dw) / 2, 42 + (H - 84 - dh) / 2, dw, dh);
+          // soft vignette for a classic studio look
+          const vig = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.35, W / 2, H / 2, Math.max(W, H) * 0.75);
+          vig.addColorStop(0, 'rgba(0,0,0,0)');
+          vig.addColorStop(1, 'rgba(0,0,0,0.28)');
+          ctx.fillStyle = vig;
+          ctx.fillRect(0, 0, W, H);
+          // subtle inner shadow at the top of the window
+          const shade = ctx.createLinearGradient(0, 42, 0, 42 + (H - 84) * 0.25);
+          shade.addColorStop(0, 'rgba(0,0,0,0.35)');
+          shade.addColorStop(1, 'rgba(0,0,0,0)');
+          ctx.fillStyle = shade;
+          ctx.fillRect(42, 42, W - 84, (H - 84) * 0.25);
+          ctx.restore();
+
+          // ---- 7. Gold twin inner lines --------------------------
+          ctx.strokeStyle = accent;
+          ctx.lineWidth = 3;
+          roundedRectPath(ctx, 40, 40, W - 80, H - 80, 6);
+          ctx.stroke();
+          ctx.strokeStyle = cream;
+          ctx.lineWidth = 2;
+          roundedRectPath(ctx, 48, 48, W - 96, H - 96, 5);
+          ctx.stroke();
+
+          // ---- 8. Corner ornaments (gold L-shaped accents) -------
+          ctx.fillStyle = accent;
+          drawFrameCorner(ctx, 22, 22, 18, 1);   // top-left
+          drawFrameCorner(ctx, W - 22, 22, 18, 2);   // top-right
+          drawFrameCorner(ctx, 22, H - 22, 18, 3);   // bottom-left
+          drawFrameCorner(ctx, W - 22, H - 22, 18, 4); // bottom-right
+
+          canvas.toBlob((blob) => {
+            if (!blob) {
+              reject(new Error('Could not render the framed picture on this device.'));
+              return;
+            }
+            const base = (file.name || 'photo').replace(/\.[^.]+$/, '');
+            const framedFile = new File([blob], `${base}_framed.jpg`, { type: 'image/jpeg' });
+            resolve(framedFile);
+          }, 'image/jpeg', 0.92);
+        } catch (err) {
+          reject(err);
+        }
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// Helper: trace a rounded-rectangle path on `ctx`.
+function roundedRectPath(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+// Helper: draw a gold L-shaped corner accent (corner 1=TL,2=TR,3=BL,4=BR).
+function drawFrameCorner(ctx, cx, cy, size, corner) {
+  const inset = Math.round(size * 0.55);
+  ctx.beginPath();
+  if (corner === 1) {
+    ctx.moveTo(cx, cy + size);
+    ctx.lineTo(cx + size, cy + size);
+    ctx.lineTo(cx + size, cy + inset);
+    ctx.lineTo(cx + inset, cy + inset);
+    ctx.lineTo(cx + inset, cy);
+    ctx.lineTo(cx, cy);
+  } else if (corner === 2) {
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx - inset, cy);
+    ctx.lineTo(cx - inset, cy + inset);
+    ctx.lineTo(cx - size, cy + inset);
+    ctx.lineTo(cx - size, cy + size);
+    ctx.lineTo(cx, cy + size);
+  } else if (corner === 3) {
+    ctx.moveTo(cx, cy - size);
+    ctx.lineTo(cx - size, cy - size);
+    ctx.lineTo(cx - size, cy - inset);
+    ctx.lineTo(cx - inset, cy - inset);
+    ctx.lineTo(cx - inset, cy);
+    ctx.lineTo(cx, cy);
+  } else {
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + inset, cy);
+    ctx.lineTo(cx + inset, cy - inset);
+    ctx.lineTo(cx + size, cy - inset);
+    ctx.lineTo(cx + size, cy - size);
+    ctx.lineTo(cx, cy - size);
+  }
+  ctx.closePath();
+  ctx.fill();
+}
+
+/**
+ * Validates a picture, applies the decorative frame and shows the result in
+ * the supplied preview `<img>`. Resolves with the framed `File` (or null when
+ * the user picked an invalid/cleared file) so callers can upload it later.
+ *
+ * @param {File} file               - The selected image file
+ * @param {HTMLElement} imgElement  - Preview <img> element
+ * @param {HTMLElement} placeholder - Placeholder span to hide once framed
+ * @param {HTMLElement} clearBtn    - "Remove" button to reveal
+ * @param {Object} [opts]           - Frame options passed to applyPhotoFrame
+ * @returns {Promise<File|null>}    - The framed JPEG file, or null
+ */
+export async function framedPhotoPreview(file, imgElement, placeholderElement, clearBtn, opts = {}) {
+  if (!file) return null;
+  const validation = validateImageFile(file, 5);
+  if (!validation.valid) {
+    alert(validation.error);
+    return null;
+  }
+  const framedFile = await applyPhotoFrame(file, opts);
+  if (imgElement) {
+    if (imgElement._framedUrl) URL.revokeObjectURL(imgElement._framedUrl);
+    imgElement._framedUrl = URL.createObjectURL(framedFile);
+    imgElement.src = imgElement._framedUrl;
+    imgElement.style.display = 'block';
+  }
+  if (placeholderElement) placeholderElement.style.display = 'none';
+  if (clearBtn) clearBtn.style.display = 'inline-block';
+  return framedFile;
+}
+
 /**
  * Uploads a file (image or document) and returns the public URL to store in the
  * database. Cloudinary is the PRIMARY store when it is configured — the returned
@@ -473,6 +681,7 @@ export async function uploadPhoto(supabaseClient, bucket, file, prefix) {
       'student-photos': 'student_photos',
       'school-logos': 'school_logos',
       'teacher-documents': 'teacher_documents',
+      'staff-photos': 'staff_photos',
     };
     const cloudinaryUrl = await uploadToCloudinary(file, {
       prefix: `${bucket || 'uploads'}_${prefix || 'file'}`,

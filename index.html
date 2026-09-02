@@ -284,6 +284,18 @@
         <div id="regSchoolStage3" style="display:none;">
           <p class="subtitle" style="color:var(--text-muted);font-size:0.8rem;margin-bottom:4px;">Step 3 of 4 — complete the school and administrator details.</p>
           <div class="form-group"><label for="regAdminName">School Administrator Name *</label><input type="text" id="regAdminName" required placeholder="e.g. John Doe" /></div>
+          <div class="form-group photo-upload-group">
+            <label>Administrator Picture <span style="color:var(--text-muted);font-weight:400;">(a decorative frame will be added)</span></label>
+            <div class="photo-upload-wrapper">
+              <div class="photo-preview" id="regAdminPhotoPreview" style="width:140px;height:172px;"><img id="regAdminPhotoPreviewImg" src="#" alt="Admin preview" style="display:none;width:100%;height:100%;object-fit:contain;" /><span id="regAdminPhotoPlaceholder">No picture</span></div>
+              <div class="photo-actions">
+                <input type="file" id="regAdminPhoto" accept="image/*" />
+                <label for="regAdminPhoto" class="btn btn-secondary btn-sm">Choose File</label>
+                <button type="button" class="btn btn-sm btn-clear" id="regAdminClearPhoto" style="display:none;">Remove</button>
+              </div>
+            </div>
+            <small style="color:var(--text-muted);font-size:0.75rem;">JPG/PNG up to 5MB. The picture is framed and uploaded with your account.</small>
+          </div>
           <div class="form-group"><label for="regSchoolType">School Type *</label>
             <select id="regSchoolType" required>
               <option value="" disabled selected>Select school type</option>
@@ -340,6 +352,18 @@
       </form>
       <form id="registerAccountantForm" class="auth-form register-form">
         <div class="form-group"><label for="regAccountantID">Accountant ID * (provided by Sub Administrator)</label><input type="text" id="regAccountantID" required placeholder="e.g. ACC-0001" /></div>
+        <div class="form-group photo-upload-group">
+          <label>Accountant Picture <span style="color:var(--text-muted);font-weight:400;">(a decorative frame will be added)</span></label>
+          <div class="photo-upload-wrapper">
+            <div class="photo-preview" id="regAccountantPhotoPreview"><img id="regAccountantPhotoPreviewImg" src="#" alt="Accountant preview" style="display:none;width:100%;height:100%;object-fit:cover;" /><span id="regAccountantPhotoPlaceholder">No picture</span></div>
+            <div class="photo-actions">
+              <input type="file" id="regAccountantPhoto" accept="image/*" />
+              <label for="regAccountantPhoto" class="btn btn-secondary btn-sm">Choose File</label>
+              <button type="button" class="btn btn-sm btn-clear" id="regAccountantClearPhoto" style="display:none;">Remove</button>
+            </div>
+          </div>
+          <small style="color:var(--text-muted);font-size:0.75rem;">JPG/PNG up to 5MB. The picture is framed and uploaded with your account.</small>
+        </div>
         <div class="form-group"><label for="regAccountantPhone">Mobile Number * (for password reset)</label><input type="tel" id="regAccountantPhone" required placeholder="e.g. 0244 000 000" /></div>
         <div class="form-group"><label for="regAccountantPassword">Password * (min 6 chars)</label><input type="password" id="regAccountantPassword" required minlength="6" /></div>
         <button type="submit" class="btn btn-primary btn-full">Register as Accountant</button>
