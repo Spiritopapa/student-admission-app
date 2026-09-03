@@ -153,6 +153,10 @@ const NAV_KEY_ATTRS = [
  * the array is sorted longest-first so precise phrases win.
  */
 const PHRASE_ICONS = [
+  ['update student', 'save'],
+  ['summary view', 'chart'],
+  ['daily view', 'calendar'],
+  ['upload logo', 'camera'],
   ['multi-choice assessments', 'clipboard-check'],
   ['today\'s receipts & transactions', 'receipt'],
   ['today\'s receipts processed by you', 'clipboard'],
@@ -329,6 +333,11 @@ export function injectAppIcons() {
     el.insertAdjacentHTML('afterbegin', svgIcon(icon));
   });
 
+  const homeBadge = document.querySelector('.home-badge');
+  if (homeBadge && !homeBadge.querySelector('.app-icon')) {
+    homeBadge.insertAdjacentHTML('afterbegin', svgIcon('graduation'));
+  }
+
   document.querySelectorAll('.home-feature-icon').forEach((el, i) => {
     if (el.querySelector('.app-icon')) return;
     const icons = ['lock', 'id-card', 'chart', 'clipboard', 'coins', 'file-text'];
@@ -422,6 +431,17 @@ export function injectAppIcons() {
       el.insertAdjacentHTML('afterbegin', svgIcon('printer'));
     }
   });
+
+  // ----- 8. Standalone report page toggles -----
+  document.querySelectorAll('#btnSummaryView, #btnDailyView').forEach((el) => {
+    if (el.querySelector('.app-icon')) return;
+    el.insertAdjacentHTML('afterbegin', svgIcon(el.id === 'btnSummaryView' ? 'chart' : 'calendar'));
+  });
+  const reportTypeEl = document.getElementById('reportType');
+  if (reportTypeEl && !reportTypeEl.querySelector('.app-icon')) {
+    const chartIcon = reportTypeEl.textContent || '';
+    reportTypeEl.insertAdjacentHTML('afterbegin', svgIcon(/daily/i.test(chartIcon) ? 'calendar' : 'chart'));
+  }
 }
 
 /** Starts a debounced MutationObserver that keeps icons applied. */
