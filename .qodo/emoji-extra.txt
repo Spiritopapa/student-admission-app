@@ -1,0 +1,7 @@
+﻿-      <button type="button" class="btn btn-primary" id="btnPrintReport">🖨️ Print / Save PDF</button>
+-      <div class="report-type" id="reportType">📊 Summary Report</div>
+-      <button type="button" id="btnSummaryView" class="active">📊 Summary View</button>
+-      <button type="button" id="btnDailyView">📅 Daily View</button>
+-        <button type="submit" class="btn btn-primary" id="editStudentWindowSubmitBtn">💾 Update Student</button>
+-    <button class="btn" onclick="window.print()">🖨️ Print Receipt</button>
+-      notices += '<div class="notice notice-credit">💰 <strong>GHC ' + money(data.overpaid_amount) + '</strong> overpaid — this credit will be deducted from the next term\'s fees.</div>';

@@ -1,0 +1,61 @@
+﻿-  if (dashTitle) dashTitle.textContent = '👑 Admin Dashboard';
+-    if (titleEl) titleEl.textContent = '👑 Admin Dashboard';
+-    students: { id: 'page-admin-students', title: '👥 All Students' },
+-    classes: { id: 'page-admin-classes', title: '🏫 Classes' },
+-    subjects: { id: 'page-admin-subjects', title: '📖 Subjects' },
+-    teachers: { id: 'page-admin-teachers', title: '📚 Teachers' },
+-    accountants: { id: 'page-admin-accountants', title: '🧾 Accountants' },
+-    parents: { id: 'page-admin-parents', title: '👨‍👩‍👧 Parents / Guardians' },
+-    announcements: { id: 'page-admin-announcements', title: '📢 Announcements' },
+-    attendance: { id: 'page-admin-attendance', title: '📋 Attendance Management' },
+-    exams: { id: 'page-admin-exams', title: '📝 Examinations' },
+-    grading: { id: 'page-admin-grading', title: '📊 Grading System' },
+-    fees: { id: 'page-admin-fees', title: '💰 Fees Management' },
+-    'income-expenses': { id: 'page-admin-income-expenses', title: '📊 Income & Expenses' },
+-    'sms-monitoring': { id: 'page-admin-sms-monitoring', title: '📨 SMS Monitoring' },
+-    backup: { id: 'page-admin-backup', title: '💾 Backup & Restore' },
+-    profile: { id: 'page-admin-profile', title: '🔑 Change Password' },
+-    adminWelcome.innerHTML = `<span style="font-size:1.6rem;font-weight:800;color:var(--primary-dark);letter-spacing:0.5px;">🏫 ${schoolName}</span>`;
+-      student_add: '🎓',
+-      student_remove: '🗑️',
+-      status_change: '🔄',
+-      fee_add: '💰',
+-      payment: '💳',
+-      announcement: '📢',
+-      refresh: '🔄',
+-      fee_update: '📊',
+-      exam_score: '📝',
+-          <h2 class="dash-realtime-title">📊 Dashboard Overview</h2>
+-          🔄 Refresh
+-        <div class="dash-overview-icon">👥</div>
+-        <div class="dash-overview-icon">👩‍🎓</div>
+-        <div class="dash-overview-icon">👨‍🎓</div>
+-        <div class="dash-overview-icon">🔐</div>
+-        <h3>📋 Today's Attendance</h3>
+-          <h3>📊 Student Population by Class</h3>
+-          <h3>💰 Fee Overview</h3>
+-        <h3>📊 Fees by Class</h3>
+-          <h3>📢 Latest Announcements</h3>
+-          <h3>🆕 Recent Admitted Students</h3>
+-        refreshBtn.textContent = '🔄 Refresh';
+-  const iconMap = { urgent: '🔴', high: '🟠', normal: '🔵', low: '🟢' };
+-  const icon = iconMap[priority] || '📢';
+-          <span class="announcement-popup-date">📅 ${date}</span>
+-      : '<span class="dash-recent-photo-placeholder">📷</span>';
+-  return { admin: '👑 Admin', student: '🎓 Student', parent: '👨‍👩‍👧 Parent', sub_admin: '🔧 Sub Admin', super_admin: '⭐ Super Admin', teacher: '📚 Teacher', accountant: '🧾 Accountant' }[role] || 'User';
+- *   • pairs the preview with the Web Share API — 📤 Share hands the PDF Blob
+- *   • 🖨️ Print / Save as PDF still uses the platform's own native print dialog
+- *   • 💾 Download PDF saves the same Blob to Downloads / Files (on iOS Safari
+-        '<span class="__adh-preview-title">🗎 ' + escapeHtml(title || 'Print') + '</span>' +
+-      '<button type="button" class="__adh-preview-btn __adh-preview-share" id="__adhPreviewShare">📤 Share</button>' +
+-      '<button type="button" class="__adh-preview-btn" id="__adhPreviewDownload">💾 Download</button>' +
+-      '<button type="button" class="__adh-preview-btn __adh-preview-primary" id="__adhPreviewPrint">🖨️ Print / Save</button>' +
+-      if (!w) setStatus('Pop-up blocked — use 📤 Share instead.', false);
+-  // the modal's own 🖨️ Print / Save button opens the native dialog once.
+- *     • 📤 Share — the Web Share API hands the PDF Blob to the device's
+- *     • 💾 Download PDF — saves the same Blob to Downloads / Files;
+- *     • 🖨️ Print / Save as PDF — opens the platform's own print dialog on the
+-      setLoading(btn, false, '🔑 Reset Password');
+-      setLoading(btn, false, '🔑 Reset Password');
+-    setLoading(btn, false, '🔑 Reset Password');
+-    setLoading(btn, false, '🔑 Reset Password');

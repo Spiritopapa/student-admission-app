@@ -1,0 +1,296 @@
+﻿-          <div class="home-badge">🎓 School Management Platform</div>
+-            <div class="home-glass-icon">📊</div>
+-            <div class="home-glass-icon">🔐</div>
+-            <div class="home-glass-icon">📱</div>
+-            <div class="home-feature-icon" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);">🔐</div>
+-            <div class="home-feature-icon" style="background:linear-gradient(135deg,#10b981,#34d399);">🆔</div>
+-            <div class="home-feature-icon" style="background:linear-gradient(135deg,#f59e0b,#d97706);">📊</div>
+-            <div class="home-feature-icon" style="background:linear-gradient(135deg,#ec4899,#f472b6);">📋</div>
+-            <div class="home-feature-icon" style="background:linear-gradient(135deg,#8b5cf6,#a78bfa);">💰</div>
+-            <div class="home-feature-icon" style="background:linear-gradient(135deg,#06b6d4,#22d3ee);">📝</div>
+-              <span class="login-logo-icon">🏫</span>
+-                <span class="login-input-icon">👤</span>
+-                <span class="login-input-icon">🔒</span>
+-          <h3>🔑 Forgot Password</h3>
+-            <div id="fpStudentNote" class="message info" style="display:none;padding:0.6rem;font-size:0.85rem;">📱 For students, the verification code is sent to the parent / guardian mobile number on file.</div>
+-            <div class="sidebar-logo-circle">🏫</div>
+-            <div class="dash-avatar">👑</div>
+-            <button type="button" class="dash-nav-link active" data-admin-page="dashboard"><span class="dash-nav-icon">📊</span> Dashboard</button>
+-            <button type="button" class="dash-nav-link" data-admin-page="students"><span class="dash-nav-icon">👥</span> Students</button>
+-            <button type="button" class="dash-nav-link" data-admin-page="classes"><span class="dash-nav-icon">🏫</span> Classes</button>
+-            <button type="button" class="dash-nav-link" data-admin-page="subjects"><span class="dash-nav-icon">📖</span> Subjects</button>
+-            <button type="button" class="dash-nav-link" data-admin-page="teachers"><span class="dash-nav-icon">👥</span> Staff</button>
+-            <button type="button" class="dash-nav-link" data-admin-page="accountants"><span class="dash-nav-icon">🧾</span> Accountants</button>
+-            <button type="button" class="dash-nav-link" data-admin-page="parents"><span class="dash-nav-icon">👨‍👩‍👧</span> Parents</button>
+-            <button type="button" class="dash-nav-link" data-admin-page="announcements"><span class="dash-nav-icon">📢</span> Announcements</button>
+-            <button type="button" class="dash-nav-link" data-admin-page="attendance"><span class="dash-nav-icon">📋</span> Attendance</button>
+-            <button type="button" class="dash-nav-link" data-admin-page="exams"><span class="dash-nav-icon">📝</span> Exams</button>
+-            <button type="button" class="dash-nav-link" data-admin-page="grading"><span class="dash-nav-icon">📊</span> Grading System</button>
+-            <button type="button" class="dash-nav-link" data-admin-page="fees"><span class="dash-nav-icon">💰</span> Fees Management</button>
+-            <button type="button" class="dash-nav-link" data-admin-page="income-expenses"><span class="dash-nav-icon">📊</span> Income & Expenses</button>
+-            <button type="button" class="dash-nav-link" data-admin-page="sms-monitoring"><span class="dash-nav-icon">📨</span> SMS Monitoring</button>
+-            <button type="button" class="dash-nav-link" data-admin-page="backup"><span class="dash-nav-icon">💾</span> Backup & Restore</button>
+-            <button type="button" class="dash-nav-link" data-admin-page="profile"><span class="dash-nav-icon">🔑</span> Change Password</button>
+-            <button type="button" class="dash-nav-link" onclick="handleLogout()"><span class="dash-nav-icon">🚪</span> Logout</button>
+-            <div class="dash-welcome-icon">👋</div>
+-            <div class="school-banner-icon">🏫</div>
+-            <h2 id="adminDashTitle">👑 Admin Dashboard</h2>
+-              <span class="deep-search-icon">🔍</span>
+-      <h2>👥 All Students</h2>
+-        <button type="button" class="btn btn-primary" id="btnPrintPreview">🖨️ Print Class List</button>
+-        <button type="button" class="btn btn-secondary" id="btnExportStudentsCSV">📥 Export CSV</button>
+-        <button type="button" class="btn btn-secondary" id="btnImportStudentsCSV">📤 Import CSV</button>
+-          <h3>🔑 Reset Password</h3>
+-            <button type="button" class="btn btn-primary" id="adminResetPwSubmitBtn" onclick="submitAdminResetPassword()">🔑 Reset Password</button>
+-      <h2>🏫 Classes</h2>
+-        <summary class="btn btn-secondary" style="cursor:pointer;">🏫 Add / Edit Class</summary>
+-      <h2>📖 Subjects</h2>
+-        <summary class="btn btn-secondary" style="cursor:pointer;">📖 Add / Edit Subject</summary>
+-      <h2>👥 Staff</h2>
+-        <button type="button" class="btn btn-secondary" id="btnGenerateTeacherId">🔑 Generate Staff ID</button>
+-        <button type="button" class="btn btn-secondary" id="btnExportTeachersCSV">📥 Export Staff CSV</button>
+-        <button type="button" class="btn btn-secondary" id="btnImportTeachersCSV">📤 Import Staff CSV</button>
+-        <summary class="btn btn-secondary" style="cursor:pointer;">📝 Add / Edit Staff</summary>
+-          <h4 style="margin-top:1rem;color:var(--primary);">👤 Personal Information</h4>
+-          <h4 style="margin-top:1rem;color:var(--primary);">🆔 Identification</h4>
+-          <h4 style="margin-top:1rem;color:var(--primary);">📅 Appointment Dates</h4>
+-          <h4 style="margin-top:1rem;color:var(--primary);">📚 Education & Additional Info</h4>
+-      <h2>👨‍👩‍👧 Parents / Guardians</h2>
+-      <h2>🧾 Accountants</h2>
+-        <button type="button" class="btn btn-secondary" id="btnGenerateAccountantId">🔑 Generate Accountant ID</button>
+-        <summary class="btn btn-secondary" style="cursor:pointer;">🧾 Add / Edit Accountant</summary>
+-          <h3 id="staffActivitiesModalTitle">📋 Activity Log</h3>
+-              <button type="button" class="btn btn-sm btn-danger" id="clearStaffActivitiesBtn" onclick="clearStaffActivityLog()">🗑️ Clear All Logs</button>
+-      <h2>📢 Announcements</h2>
+-      <h2>📋 Attendance Management</h2>
+-        <button type="button" class="att-mode-btn active" data-att-mode="daily" id="adminAttModeDaily">📅 Daily Mode</button>
+-        <button type="button" class="att-mode-btn" data-att-mode="monthly" id="adminAttModeMonthly">📆 30-Day Checkbox Mode</button>
+-        <button type="button" class="btn btn-primary" id="btnLoadAttendance">📋 Load Attendance</button>
+-        <button type="button" class="btn btn-secondary" id="btnSaveAttendance">💾 Save Attendance</button>
+-        <button type="button" class="btn btn-secondary" id="btnViewAttReport">📊 View Reports</button>
+-        <strong>📌 Instructions:</strong> Select a date, class, and click <strong>"Load Attendance"</strong> to begin marking. Click the status buttons to toggle between Present ✓ and Absent ✗. Click <strong>"Save Attendance"</strong> to persist all changes.
+-          <h3>📊 Attendance Report</h3>
+-          <button type="button" class="btn btn-secondary" id="btnRefreshReport">🔄 Refresh</button>
+-          <button type="button" class="btn btn-secondary" id="btnPrintAttReport">🖨️ Print Report</button>
+-          <button type="button" class="btn btn-secondary" id="btnPrintAttDailyReport">📅 Print Daily Report</button>
+-          <button type="button" class="btn btn-sm btn-secondary att-report-mode active" data-mode="summary" id="btnAttReportSummary">📊 Summary View</button>
+-          <button type="button" class="btn btn-sm btn-secondary att-report-mode" data-mode="daily" id="btnAttReportDaily">📅 Daily View</button>
+-          <button type="button" class="btn btn-primary" id="btnLoadMonthlyAttendance">📋 Load 30-Day Grid</button>
+-          <button type="button" class="btn btn-secondary" id="btnSaveMonthlyAttendance">💾 Save All Changes</button>
+-          <button type="button" class="btn btn-sm btn-danger" id="btnResetMonthlyAttendance">🔄 Reset All</button>
+-          <button type="button" class="btn btn-sm btn-secondary" id="btnPrintMonthlyAttendance">🖨️ Print 30-Day Grid</button>
+-          <strong>📌 Instructions:</strong> Select a start date and class, then click <strong>"Load 30-Day Grid"</strong>.
+-      <h2>📝 Examinations</h2>
+-        <button type="button" class="btn btn-secondary" id="btnLoadExamResults">📊 Manage Scores & Rankings</button>
+-        <summary class="btn btn-secondary" style="cursor:pointer;">📝 Add / Edit Exam</summary>
+-          <button type="button" class="btn btn-secondary" id="btnLoadScoreSheet">📥 Load Students for Score Entry</button>
+-          <button type="button" class="btn btn-secondary" id="btnAutoRank">🏆 Auto Rank Subjects</button>
+-          <button type="button" class="btn btn-primary" id="btnSaveAllResults">💾 Save All Scores</button>
+-          <button type="button" class="btn btn-secondary" id="btnExportCSV">📥 Export CSV</button>
+-          <button type="button" class="btn btn-secondary" id="btnImportCSV">📤 Import CSV</button>
+-          <button type="button" class="btn btn-secondary" id="btnPrintReportCards">🖨️ Print Report Cards</button>
+-          <button type="button" class="btn btn-secondary exam-tab active" data-etab="subjects">📖 Exam Subjects</button>
+-          <button type="button" class="btn btn-secondary exam-tab" data-etab="scoresheet">📝 Score Sheet</button>
+-          <button type="button" class="btn btn-secondary exam-tab" data-etab="rankings">🏆 Rankings</button>
+-          <button type="button" class="btn btn-secondary exam-tab" data-etab="reportcard">📄 Report Cards</button>
+-          <button type="button" class="btn btn-secondary exam-tab" data-etab="overallscores">📊 Overall Scores</button>
+-            <h3>📖 Subjects for Selected Exam</h3>
+-            <h3>📝 Score Entry</h3>
+-              <input type="text" id="scoreSheetSearch" placeholder="🔍 Search student by name or ID..." class="search-input" style="max-width:320px;" />
+-            <h3>🏆 Subject Rankings (1st, 2nd, 3rd...)</h3>
+-            <h3>📄 Student Report Cards</h3>
+-              <button type="button" class="btn btn-primary" id="btnPreviewReport">👁 Preview Report Card</button>
+-              <button type="button" class="btn btn-secondary" id="btnPrintReport">🖨️ Print Single</button>
+-              <button type="button" class="btn btn-secondary" id="btnBatchPrintCards">🖨️🖨️ Batch Print All (by Class)</button>
+-            <h3>📊 Overall Exam Scores Sheet</h3>
+-              <button type="button" class="btn btn-secondary" id="btnRefreshOverallScores">🔄 Refresh</button>
+-              <button type="button" class="btn btn-secondary" id="btnPrintOverallScores">🖨️ Print</button>
+-          <button type="button" class="active" data-atab="questions">🗂️ Question Bank</button>
+-          <button type="button" data-atab="assessments">📝 Assessments</button>
+-          <button type="button" data-atab="attempts">📈 Attempts &amp; Results</button>
+-            <button type="button" class="btn btn-secondary" id="btnBulkImportQuestions">📤 Bulk Import (CSV / Paste)</button>
+-            <button type="submit" class="btn btn-primary btn-full" id="assessmentQuestionSubmitBtn">💾 Save Question</button>
+-          <summary class="btn btn-secondary" style="cursor:pointer;">📤 Bulk Import Questions (thousands at a time)</summary>
+-                <button type="button" class="btn btn-secondary" id="btnPreviewBulkImport">🔍 Preview</button>
+-                <button type="button" class="btn btn-primary" id="btnRunBulkImport">🚀 Import Questions</button>
+-          <summary class="btn btn-secondary" style="cursor:pointer;">📝 Add / Edit Assessment</summary>
+-              <button type="submit" class="btn btn-primary" id="assessmentConfigSubmitBtn">💾 Save Assessment</button>
+-          <button type="button" class="btn btn-secondary" id="btnRefreshAdminAttempts">🔄 Refresh</button>
+-          <button type="button" class="btn btn-primary" id="btnPrintAdminAttempts">🖨️ Print Results</button>
+-      <h2>📊 Grading System</h2>
+-        <button type="button" class="btn btn-secondary" id="btnResetDefaultGrades">🔄 Reset to Defaults</button>
+-        <summary class="btn btn-secondary" style="cursor:pointer;">📊 Add / Edit Grade Level</summary>
+-      <h2>💰 Fees Management</h2>
+-        <button type="button" class="btn btn-secondary fee-tab active" data-fee-tab="structure">📋 Fee Structure</button>
+-        <button type="button" class="btn btn-secondary fee-tab" data-fee-tab="students">👥 Student Fees</button>
+-        <button type="button" class="btn btn-secondary fee-tab" data-fee-tab="payment">💰 Record Payment</button>
+-        <button type="button" class="btn btn-secondary fee-tab" data-fee-tab="holiday">🏖️ Holiday Statements</button>
+-        <button type="button" class="btn btn-danger fee-tab" data-fee-tab="delete-receipts">🗑️ Delete Receipts</button>
+-          <summary class="btn btn-secondary" style="cursor:pointer;">💰 Set / Update Class Fee</summary>
+-            <button type="button" class="btn btn-primary" id="feeSetStructureBtn">💾 Set Fee</button>
+-          <input type="text" id="feeSearchStudent" placeholder="🔍 Search student name or ID..." class="search-input" style="max-width:250px;" />
+-          <button type="button" class="btn btn-primary" id="feePrintRemindersBtn" style="white-space:nowrap;margin-left:auto;" title="Print A5 fees reminder notes for all students in the selected class (or all students)">🖨️ Bulk Print A5 Reminders</button>
+-          <h3 style="margin:0 0 0.75rem 0;">💳 Record New Payment</h3>
+-          <button type="button" class="btn btn-primary btn-full" id="feeRecordPaymentBtn">💾 Record Payment</button>
+-          <button type="button" class="btn btn-secondary" id="feeRefreshDebtors">🔄 Refresh</button>
+-          <button type="button" class="btn btn-secondary" id="feePreviewDebtors">👁 Preview</button>
+-          <button type="button" class="btn btn-primary" id="feePrintDebtors">🖨️ Print Debtors</button>
+-          <button type="button" class="btn btn-secondary" id="feeTodayReceipts">📋 Today's Receipts</button>
+-            📨 Send Fee Reminder SMS
+-          <h3 style="margin:0 0 0.5rem 0;font-size:1.05rem;">🏖️ Bulk Holiday Fee Statements</h3>
+-            <button type="button" class="btn btn-secondary" id="feePreviewHoliday">👁 Preview Statements</button>
+-            <button type="button" class="btn btn-primary" id="feePrintHoliday">🖨️ Print All Fee Statements</button>
+-          <h3 style="margin:0 0 0.75rem 0;font-size:1.1rem;color:#b91c1c;">🗑️ Delete Receipts by Class & Date</h3>
+-            <button type="button" class="btn btn-secondary" id="feePreviewDeleteReceipts">👁 Preview Receipts</button>
+-            <button type="button" class="btn btn-danger" id="feeDeleteReceiptsBtn">🗑️ Delete Receipts</button>
+-      <h2>📊 Income & Expenditure Tracking</h2>
+-      <h2>📨 SMS Monitoring</h2>
+-      <h2>💾 Backup & Restore</h2>
+-        <h3 style="margin:0 0 0.75rem 0;font-size:1.1rem;">📥 Create Backup</h3>
+-          <button type="button" class="btn btn-primary" id="btnBackupData">📥 Backup Data</button>
+-          <button type="button" class="btn btn-secondary" id="btnDownloadSchema">📄 Download Schema Reference</button>
+-          <strong>💡 Tip:</strong> Keep this backup file safe. After re-running the schema from scratch, you can restore this backup to get back to a perfect state.
+-        <h3 style="margin:0 0 0.75rem 0;font-size:1.1rem;">📤 Restore Backup</h3>
+-      <h2>🔑 Change Password</h2>
+-        <h3 style="margin:0 0 0.75rem 0;font-size:1.1rem;">🔑 Change Password</h3>
+-      <h2>📝 Exam Results Summary</h2>
+-        <button type="button" class="btn btn-secondary" id="btnPrintResultSummary">🖨️ Print Results</button>
+-          <div class="sidebar-brand"><div class="sidebar-logo-circle">🎓</div><span class="sidebar-school-name">Student Portal</span><span class="sidebar-school-sub">My Learning Hub</span></div>
+-            <div class="dash-avatar">🎓</div>
+-            <button type="button" class="dash-nav-link" data-student-page="attendance"><span class="dash-nav-icon">📋</span> Attendance</button>
+-            <button type="button" class="dash-nav-link" data-student-page="announcements"><span class="dash-nav-icon">📢</span> Announcements</button>
+-            <button type="button" class="dash-nav-link" data-student-page="exams"><span class="dash-nav-icon">📝</span> Exams</button>
+-            <button type="button" class="dash-nav-link" data-student-page="fees"><span class="dash-nav-icon">💰</span> Fees</button>
+-          <div class="sidebar-logout"><button type="button" class="dash-nav-link" onclick="handleLogout()"><span class="dash-nav-icon">🚪</span> Logout</button></div>
+-            <div class="dash-welcome-icon">👋</div>
+-          <div class="dash-header"><h2 id="studentDashTitle">🎓 My Profile</h2><p class="subtitle">Manage your personal information</p></div>
+-                <h3 style="margin:0 0 0.75rem 0;font-size:1.1rem;">🔑 Change Password</h3>
+-            <h3>📋 My Attendance Records</h3>
+-            <h3>📢 Announcements</h3>
+-            <h3>📝 My Exam Report Cards</h3>
+-              <button type="button" class="btn btn-primary" id="btnStudentViewReport">👁 View Report Card</button>
+-              <button type="button" class="btn btn-secondary" id="btnStudentPrintReport">🖨️ Print</button>
+-            <h3>💰 My Fee Details</h3>
+-          <div class="sidebar-brand"><div class="sidebar-logo-circle">👨‍👩‍👧</div><span class="sidebar-school-name">Parent Portal</span><span class="sidebar-school-sub">My Ward's Progress</span></div>
+-            <div class="dash-avatar">👨‍👩‍👧</div>
+-            <button type="button" class="dash-nav-link active" onclick="document.getElementById('page-parent-dashboard').querySelector('.dash-welcome-card').scrollIntoView()"><span class="dash-nav-icon">👨‍👩‍👧</span> My Ward</button>
+-          <div class="sidebar-logout"><button type="button" class="dash-nav-link" onclick="handleLogout()"><span class="dash-nav-icon">🚪</span> Logout</button></div>
+-            <div class="dash-welcome-icon">👋</div>
+-          <div class="dash-header"><h2>👨‍👩‍👧‍👦 My Ward</h2><p class="subtitle">View your child's school information</p></div>
+-          <div class="sidebar-brand"><div class="sidebar-logo-circle">📚</div><span class="sidebar-school-name">Teacher Portal</span><span class="sidebar-school-sub">My Classroom</span></div>
+-            <div class="dash-avatar">👨‍🏫</div>
+-            <button type="button" class="dash-nav-link" data-teacher-page="students"><span class="dash-nav-icon">👥</span> My Students</button>
+-            <button type="button" class="dash-nav-link" data-teacher-page="attendance"><span class="dash-nav-icon">📋</span> Attendance</button>
+-            <button type="button" class="dash-nav-link" data-teacher-page="exams"><span class="dash-nav-icon">📝</span> Exams</button>
+-            <button type="button" class="dash-nav-link" data-teacher-page="profile"><span class="dash-nav-icon">👤</span> My Profile</button>
+-          <div class="sidebar-logout"><button type="button" class="dash-nav-link" onclick="handleLogout()"><span class="dash-nav-icon">🚪</span> Logout</button></div>
+-            <div class="dash-welcome-icon">👋</div>
+-              <a href="#" class="btn btn-primary" style="padding:1rem;font-size:1rem;" onclick='document.querySelector("[data-teacher-page=students]").click();return false;'>👥 View My Students</a>
+-              <a href="#" class="btn btn-secondary" style="padding:1rem;font-size:1rem;" onclick='document.querySelector("[data-teacher-page=attendance]").click();return false;'>📋 Mark Attendance</a>
+-              <a href="#" class="btn btn-secondary" style="padding:1rem;font-size:1rem;" onclick='document.querySelector("[data-teacher-page=exams]").click();return false;'>📝 Manage Exams</a>
+-              🔒 <strong>Note:</strong> Attendance records that have already been marked are <strong>locked</strong> and can only be edited by the school administrator.
+-              <button type="button" class="att-mode-btn active" data-teacher-att-mode="daily" id="teacherAttModeDaily">📅 Daily Mode</button>
+-              <button type="button" class="att-mode-btn" data-teacher-att-mode="monthly" id="teacherAttModeMonthly">📆 30-Day Checkbox Mode</button>
+-              <button type="button" class="btn btn-primary" id="teacherBtnLoadAttendance">📋 Load Attendance</button>
+-              <button type="button" class="btn btn-secondary" id="teacherBtnSaveAttendance">💾 Save Attendance</button>
+-              <button type="button" class="btn btn-secondary" id="teacherBtnViewReport">📊 View Reports</button>
+-              <strong>📌 Instructions:</strong> Select date and click <strong>"Load Attendance"</strong>. Click status buttons to toggle: ✓ Present, ✗ Absent. Click <strong>"Save Attendance"</strong> to persist.
+-              <h3>📊 Attendance Report</h3>
+-                <button type="button" class="btn btn-secondary" id="teacherBtnPrintAttDailyReport">📅 Print Daily Report</button>
+-                <button type="button" class="btn btn-sm btn-secondary teacher-att-report-mode active" data-mode="summary" id="teacherBtnAttReportSummary">📊 Summary View</button>
+-                <button type="button" class="btn btn-sm btn-secondary teacher-att-report-mode" data-mode="daily" id="teacherBtnAttReportDaily">📅 Daily View</button>
+-                <button type="button" class="btn btn-primary" id="teacherBtnLoadMonthlyAttendance">📋 Load 30-Day Grid</button>
+-                <button type="button" class="btn btn-secondary" id="teacherBtnSaveMonthlyAttendance">💾 Save All Changes</button>
+-                <button type="button" class="btn btn-sm btn-danger" id="teacherBtnResetMonthlyAttendance">🔄 Reset All</button>
+-                <strong>📌 Instructions:</strong> Select a start date and class, then click <strong>"Load 30-Day Grid"</strong>.
+-              <button type="button" class="btn btn-primary" id="teacherBtnLoadExamStudents">📥 Load Students</button>
+-              <button type="button" class="btn btn-secondary" id="teacherBtnSaveScores">💾 Save All Scores</button>
+-              <button type="button" class="btn btn-secondary" id="teacherBtnAutoRank">🏆 Auto Rank</button>
+-              <button type="button" class="btn btn-secondary" id="teacherBtnPrintReportCards">🖨️ Print Report Cards</button>
+-                <button type="button" class="active" data-tatab="questions">🗂️ Question Bank</button>
+-                <button type="button" data-tatab="assessments">📝 My Assessments</button>
+-                <button type="button" data-tatab="attempts">📈 Results</button>
+-                <button type="button" class="btn btn-secondary" id="btnTeacherBulkImport">📤 Bulk Import</button>
+-                <button type="button" class="btn btn-primary" style="margin-left:auto;" id="btnPrintTeacherAttempts">🖨️ Print Results</button>
+-                <button type="submit" class="btn btn-primary btn-full" id="teacherQuestionSubmitBtn">💾 Save Question</button>
+-              <summary class="btn btn-secondary" style="cursor:pointer;">📤 Bulk Import (thousands at a time)</summary>
+-                    <button type="button" class="btn btn-secondary" id="btnTeacherPreviewBulk">🔍 Preview</button>
+-                    <button type="button" class="btn btn-primary" id="btnTeacherRunBulk">🚀 Import</button>
+-              <summary class="btn btn-secondary" style="cursor:pointer;">📝 Create / Edit Assessment</summary>
+-                  <button type="submit" class="btn btn-primary" id="teacherAssessmentConfigSubmitBtn">💾 Save Assessment</button>
+-            <h3>👤 My Profile</h3>
+-                    <span id="teacherProfilePhotoPlaceholder" style="font-size:2.5rem;color:var(--text-muted);">👤</span>
+-              <button type="submit" class="btn btn-primary btn-full">💾 Save Profile</button>
+-            <button type="button" class="dash-nav-link" data-super-page="schools"><span class="dash-nav-icon">🏫</span> Schools</button>
+-            <button type="button" class="dash-nav-link" data-super-page="sub-admins"><span class="dash-nav-icon">👥</span> Sub Admins</button>
+-            <button type="button" class="dash-nav-link" data-super-page="students"><span class="dash-nav-icon">👥</span> Students</button>
+-            <button type="button" class="dash-nav-link" data-super-page="teachers"><span class="dash-nav-icon">📚</span> Teachers</button>
+-            <button type="button" class="dash-nav-link" data-super-page="parents"><span class="dash-nav-icon">👨‍👩‍👧</span> Parents</button>
+-            <button type="button" class="dash-nav-link" data-super-page="accountants"><span class="dash-nav-icon">🧾</span> Accountants</button>
+-            <button type="button" class="dash-nav-link" data-super-page="classes"><span class="dash-nav-icon">🏫</span> Classes</button>
+-            <button type="button" class="dash-nav-link" data-super-page="subjects"><span class="dash-nav-icon">📖</span> Subjects</button>
+-            <button type="button" class="dash-nav-link" data-super-page="announcements"><span class="dash-nav-icon">📢</span> Announcements</button>
+-            <button type="button" class="dash-nav-link" data-super-page="attendance"><span class="dash-nav-icon">📋</span> Attendance</button>
+-            <button type="button" class="dash-nav-link" data-super-page="exams"><span class="dash-nav-icon">📝</span> Exams</button>
+-            <button type="button" class="dash-nav-link" data-super-page="profile"><span class="dash-nav-icon">👤</span> My Profile</button>
+-            <button type="button" class="dash-nav-link" onclick="handleLogout()"><span class="dash-nav-icon">🚪</span> Logout</button>
+-            <h3 style="margin-top:1.5rem;">🏫 Quick School Access</h3>
+-            <h3>🏫 Manage Schools</h3>
+-                      <button type="button" class="btn btn-sm btn-secondary" onclick="document.getElementById('newSchoolLogoInput').click()" style="margin-top:0.5rem;">📷 Upload Logo</button>
+-              <h3>🔒 Module Locks for: <span id="schoolModulesSchoolName" style="font-weight:700;"></span></h3>
+-                  <h3>🔑 Reset School Admin Password</h3>
+-                    <button type="button" class="btn btn-primary" id="resetPwSubmitBtn" onclick="resetSchoolPassword()">🔑 Reset Password</button>
+-            <h3>👥 Manage Sub Admins</h3>
+-              <button type="button" class="btn btn-primary" id="btnGenerateSubAdminId">🔑 Generate New Sub Admin ID</button>
+-                  <h3 id="activitiesModalTitle">📋 Sub Admin Activities</h3>
+-                      <button type="button" class="btn btn-sm btn-danger" id="clearSubAdminActivitiesBtn" onclick="clearSubAdminActivityLog()">🗑️ Clear All Logs</button>
+-            <h3>👥 All Students (All Schools)</h3>
+-            <h3>🏫 All Classes (All Schools)</h3>
+-            <h3>📖 All Subjects (All Schools)</h3>
+-            <h3>📚 All Teachers (All Schools)</h3>
+-            <h3>👨‍👩‍👧 All Parents (All Schools)</h3>
+-            <h3>🧾 All Accountants (All Schools)</h3>
+-            <h3>📢 All Announcements (All Schools)</h3>
+-            <h3>📋 Attendance Oversight</h3>
+-            <h3>📝 Exams Oversight</h3>
+-            <h2>👤 My Profile</h2>
+-              <h3 style="margin:0 0 0.75rem 0;font-size:1.1rem;">🔑 Change Password</h3>
+-            <div class="sidebar-logo-circle">🧾</div>
+-            <div class="dash-avatar">🧾</div>
+-            <button type="button" class="dash-nav-link" data-accountant-page="fees"><span class="dash-nav-icon">💰</span> Fees Management</button>
+-            <button type="button" class="dash-nav-link" data-accountant-page="receipts"><span class="dash-nav-icon">🧾</span> Receipts</button>
+-            <button type="button" class="dash-nav-link" data-accountant-page="income-expenses"><span class="dash-nav-icon">📊</span> Income & Expenses</button>
+-            <button type="button" class="dash-nav-link" data-accountant-page="profile"><span class="dash-nav-icon">👤</span> My Profile</button>
+-            <button type="button" class="dash-nav-link" onclick="handleLogout()"><span class="dash-nav-icon">🚪</span> Logout</button>
+-            <div class="dash-welcome-icon">🧾</div>
+-                <h3>💰 Fee Overview</h3>
+-                  <h3>📊 Payment Distribution</h3>
+-                  <h3>🕐 Recent Payments</h3>
+-                <h3>🧾 Today's Receipts & Transactions</h3>
+-                <span style="font-size:0.8rem;font-weight:600;color:#0369a1;margin-right:0.5rem;">📋 Today's receipts processed by you:</span>
+-                <button type="button" class="btn btn-sm btn-primary" id="accTodayRefresh" style="min-width:100px;padding:0.45rem 0.8rem;font-size:0.85rem;">🔄 Refresh</button>
+-                <button type="button" class="btn btn-sm" id="accTodayPreview" style="min-width:100px;padding:0.45rem 0.8rem;font-size:0.85rem;background:linear-gradient(135deg,#4f46e5,#6366f1);color:#fff;border:1px solid #4338ca;border-radius:6px;cursor:pointer;font-weight:600;">👁️ Preview</button>
+-                <button type="button" class="btn btn-sm" id="accTodayPrint" style="min-width:100px;padding:0.45rem 0.8rem;font-size:0.85rem;background:linear-gradient(135deg,#0ea5e9,#06b6d4);color:#fff;border:1px solid #0284c7;border-radius:6px;cursor:pointer;font-weight:600;">🖨️ Print</button>
+-                <h3>📊 Fees by Class</h3>
+-                <h3>📈 Fee Summary by Class</h3>
+-                <button type="button" class="btn btn-sm btn-secondary" id="accRefreshSummary">🔄 Refresh</button>
+-            <h2>💰 Fees Management</h2>
+-            <h2>🧾 Receipts</h2>
+-            <h2>📊 Income & Expenditure Tracking</h2>
+-            <h2>👤 My Profile</h2>
+-                🔒 <strong>Name Locked:</strong> Your name was set by the school admin when your ID was generated. Please contact the school admin to change your name.
+-                <button type="submit" class="btn btn-primary btn-full" disabled>🔒 Name Locked</button>
+-              <h3 style="margin:0 0 0.75rem 0;font-size:1.1rem;">🔑 Change Password</h3>
+-          <button type="button" class="btn btn-primary" id="saveEditSchoolBtn" onclick="saveEditSchoolInfo()">💾 Save Changes</button>
+-        <h3>🏫 School Details</h3>
+-          <button type="button" class="btn btn-sm btn-secondary" onclick="printTeacherProfile()" style="margin-right:0.5rem;">🖨️ Print</button>
+-          <p style="margin:0 0 0.5rem 0;font-weight:600;color:#b91c1c;font-size:1rem;">🚨 WARNING: This action is IRREVERSIBLE!</p>
+-          <button type="button" class="btn btn-danger" id="deleteClassFeeConfirmBtn" disabled style="opacity:0.5;cursor:not-allowed;">🗑️ Delete Fee Record</button>
+-        <h3>🧾 Payment Receipt</h3>
+-          <button type="button" class="btn btn-sm btn-secondary" onclick="printReceipt()" style="margin-right:0.5rem;">🖨️ Print</button>
+-        <h3>🖨️ Debtors List Preview</h3>
+-          <button type="button" class="btn btn-sm btn-primary" onclick="printDebtorsList()" style="margin-right:0.5rem;">🖨️ Print</button>
+-        <h3>🏖️ Holiday Fee Statements Preview</h3>
+-          <button type="button" class="btn btn-sm btn-primary" onclick="printHolidayFeesFromModal()" style="margin-right:0.5rem;">🖨️ Print All</button>
+-        <h3>🧾 Student Receipts</h3>
+-          <button type="button" class="btn btn-sm btn-secondary" onclick="printReceiptList()" style="margin-right:0.5rem;">🖨️ Print</button>

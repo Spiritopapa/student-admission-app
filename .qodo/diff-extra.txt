@@ -1,0 +1,161 @@
+﻿commit e5859baecf0472218156e5e9442a6e3f4969981f
+Author: Spiritopapa <Spiritopapa@users.noreply.github.com>
+Date:   Wed Sep 2 20:29:30 2026 +0000
+
+    modified
+
+diff --git a/attendance-report.html b/attendance-report.html
+index eeeef27..58f6e80 100644
+--- a/attendance-report.html
++++ b/attendance-report.html
+@@ -126,14 +126,14 @@
+ 
+     <!-- Toolbar (hidden when printing) -->
+     <div class="report-toolbar">
+-      <button type="button" class="btn btn-primary" id="btnPrintReport">🖨️ Print / Save PDF</button>
++      <button type="button" class="btn btn-primary" id="btnPrintReport">Print / Save PDF</button>
+       <button type="button" class="btn" id="btnBack">← Back to Dashboard</button>
+     </div>
+ 
+     <!-- Report Header -->
+     <div class="report-header">
+       <h1 id="reportSchoolName">Attendance Report</h1>
+-      <div class="report-type" id="reportType">📊 Summary Report</div>
++      <div class="report-type" id="reportType">Summary Report</div>
+       <div class="report-meta" id="reportMeta">Loading…</div>
+     </div>
+ 
+@@ -150,8 +150,8 @@
+ 
+     <!-- Summary / Daily toggle -->
+     <div class="report-toggle" id="reportToggle" style="display:none;">
+-      <button type="button" id="btnSummaryView" class="active">📊 Summary View</button>
+-      <button type="button" id="btnDailyView">📅 Daily View</button>
++      <button type="button" id="btnSummaryView" class="active">Summary View</button>
++      <button type="button" id="btnDailyView">Daily View</button>
+     </div>
+ 
+     <!-- Summary View -->
+diff --git a/css/announcements.css b/css/announcements.css
+index 4bfb363..081b329 100644
+--- a/css/announcements.css
++++ b/css/announcements.css
+@@ -211,10 +211,6 @@
+   letter-spacing: 0.05em;
+ }
+ 
+-#dashAnnouncementPopup .announcement-popup-icon {
+-  font-size: 1.2rem;
+-}
+-
+ #dashAnnouncementPopup .announcement-popup-badge {
+   background: rgba(255, 255, 255, 0.2);
+   padding: 0.15rem 0.5rem;
+diff --git a/css/dashboard.css b/css/dashboard.css
+index 3486b6f..d3299d7 100644
+--- a/css/dashboard.css
++++ b/css/dashboard.css
+@@ -132,18 +132,6 @@
+   border-left-color: var(--primary);
+ }
+ 
+-.deep-search-item-icon {
+-  font-size: 1.3rem;
+-  flex-shrink: 0;
+-  width: 36px;
+-  height: 36px;
+-  display: flex;
+-  align-items: center;
+-  justify-content: center;
+-  background: var(--bg);
+-  border-radius: 10px;
+-}
+-
+ .deep-search-item-info {
+   flex: 1;
+   min-width: 0;
+@@ -307,13 +295,6 @@
+   background: var(--primary-light);
+ }
+ 
+-.deep-search-context-icon {
+-  font-size: 1rem;
+-  width: 24px;
+-  text-align: center;
+-  flex-shrink: 0;
+-}
+-
+ /* Responsive */
+ @media (max-width: 768px) {
+   .deep-search-item-hint {
+@@ -630,7 +611,7 @@
+ }
+ 
+ .dash-fee-stat-grand::before {
+-  content: '⚠️';
++  content: '';
+   position: absolute;
+   top: 4px;
+   right: 6px;
+diff --git a/edit-student.html b/edit-student.html
+index fe3f981..7f5df47 100644
+--- a/edit-student.html
++++ b/edit-student.html
+@@ -52,7 +52,7 @@
+   <div class="edit-popup-wrap">
+     <div class="edit-popup-header">
+       <div>
+-        <h2>✏️ Edit Student</h2>
++        <h2>Edit Student</h2>
+         <p id="editStudentWindowSubtitle">Loading student details…</p>
+       </div>
+       <button type="button" class="modal-close" onclick="window.close()" title="Close window"
+@@ -112,7 +112,7 @@
+ 
+       <div class="action-row">
+         <button type="button" class="btn btn-secondary" onclick="window.close()">Cancel</button>
+-        <button type="submit" class="btn btn-primary" id="editStudentWindowSubmitBtn">💾 Update Student</button>
++        <button type="submit" class="btn btn-primary" id="editStudentWindowSubmitBtn">Update Student</button>
+       </div>
+     </form>
+ 
+diff --git a/verify-receipt.html b/verify-receipt.html
+index cdf5c45..e66f2a4 100644
+--- a/verify-receipt.html
++++ b/verify-receipt.html
+@@ -51,7 +51,7 @@
+   <div class="verify-banner">✓ Digitally Verified Receipt</div>
+   <div class="receipt" id="receipt"></div>
+   <div class="actions">
+-    <button class="btn" onclick="window.print()">🖨️ Print Receipt</button>
++    <button class="btn" onclick="window.print()">Print Receipt</button>
+   </div>
+ </div>
+ <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+@@ -70,7 +70,7 @@ import supabaseClient from './js/supabase-config.js';
+   function render(data) {
+     var el = document.getElementById('receipt');
+     if (!data || !data.receipt_number) {
+-      el.innerHTML = '<div class="error"><h2>⚠️ Receipt Not Found</h2><p>This receipt could not be found or verified.</p></div>';
++      el.innerHTML = '<div class="error"><h2>Receipt Not Found</h2><p>This receipt could not be found or verified.</p></div>';
+       return;
+     }
+     var status = (data.payment_status || 'paid').toUpperCase();
+@@ -81,14 +81,14 @@ import supabaseClient from './js/supabase-config.js';
+       : '';
+     var notices = '';
+     if (data.is_previous_term_payment) {
+-      notices += '<div class="notice notice-prev"><strong>⏪ PREVIOUS TERM PAYMENT</strong><br/>' +
++      notices += '<div class="notice notice-prev"><strong>PREVIOUS TERM PAYMENT</strong><br/>' +
+         'This payment is for <strong>' + esc(data.term) + ' Term ' + esc(data.academic_year) + '</strong> — an earlier term balance.</div>';
+     } else if (Number(data.debt || 0) > 0 && Number(data.amount_now || 0) > 0) {
+-      notices += '<div class="notice notice-arr">⏰ <strong>ARREARS PAYMENT</strong> — This payment includes GHC ' + money(data.debt) + ' towards an outstanding balance carried forward from a previous term.</div>';
++      notices += '<div class="notice notice-arr"><strong>ARREARS PAYMENT</strong> — This payment includes GHC ' + money(data.debt) + ' towards an outstanding balance carried forward from a previous term.</div>';
+     }
+     var isOverpaid = Number(data.overpaid_amount || 0) > 0;
+     if (isOverpaid) {
+-      notices += '<div class="notice notice-credit">💰 <strong>GHC ' + money(data.overpaid_amount) + '</strong> overpaid — this credit will be deducted from the next term\'s fees.</div>';
++      notices += '<div class="notice notice-credit"><strong>GHC ' + money(data.overpaid_amount) + '</strong> overpaid — this credit will be deducted from the next term\'s fees.</div>';
+     }
+     var balanceRow = isOverpaid
+       ? '<tr><td>Remaining Balance</td><td><span style="color:#166534">-GHC ' + money(data.overpaid_amount) + ' (Credit)</span></td></tr>'

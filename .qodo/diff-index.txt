@@ -1,0 +1,2208 @@
+﻿commit e5859baecf0472218156e5e9442a6e3f4969981f
+Author: Spiritopapa <Spiritopapa@users.noreply.github.com>
+Date:   Wed Sep 2 20:29:30 2026 +0000
+
+    modified
+
+diff --git a/index.html b/index.html
+index 6a4c37e..7bb7a93 100644
+--- a/index.html
++++ b/index.html
+@@ -111,7 +111,7 @@
+ 
+       <div class="home-hero">
+         <div class="home-hero-content">
+-          <div class="home-badge">🎓 School Management Platform</div>
++          <div class="home-badge">School Management Platform</div>
+           <h1 class="home-title">
+             Welcome to the<br />
+             <span class="home-title-gradient">Admission Portal</span>
+@@ -144,21 +144,21 @@
+         </div>
+         <div class="home-hero-visual">
+           <div class="home-glass-card home-glass-card-1">
+-            <div class="home-glass-icon">📊</div>
++            <div class="home-glass-icon"></div>
+             <div class="home-glass-text">
+               <strong>Real-time Analytics</strong>
+               <span>Track performance</span>
+             </div>
+           </div>
+           <div class="home-glass-card home-glass-card-2">
+-            <div class="home-glass-icon">🔐</div>
++            <div class="home-glass-icon"></div>
+             <div class="home-glass-text">
+               <strong>Multi-Role Access</strong>
+               <span>Admin, Teacher, Student</span>
+             </div>
+           </div>
+           <div class="home-glass-card home-glass-card-3">
+-            <div class="home-glass-icon">📱</div>
++            <div class="home-glass-icon"></div>
+             <div class="home-glass-text">
+               <strong>Mobile Friendly</strong>
+               <span>Works on any device</span>
+@@ -189,32 +189,32 @@
+         <p class="home-section-desc">Powerful tools designed to simplify school administration and enhance the learning experience.</p>
+         <div class="home-features-grid">
+           <div class="home-feature-card" style="--delay:0s;">
+-            <div class="home-feature-icon" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);">🔐</div>
++            <div class="home-feature-icon" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);"></div>
+             <h3>Multi-Role System</h3>
+             <p>Separate dashboards for admins, teachers, students, and parents with role-based access control.</p>
+           </div>
+           <div class="home-feature-card" style="--delay:0.1s;">
+-            <div class="home-feature-icon" style="background:linear-gradient(135deg,#10b981,#34d399);">🆔</div>
++            <div class="home-feature-icon" style="background:linear-gradient(135deg,#10b981,#34d399);"></div>
+             <h3>Auto-Generated IDs</h3>
+             <p>Student IDs are automatically generated on admission with a unique, trackable format.</p>
+           </div>
+           <div class="home-feature-card" style="--delay:0.2s;">
+-            <div class="home-feature-icon" style="background:linear-gradient(135deg,#f59e0b,#d97706);">📊</div>
++            <div class="home-feature-icon" style="background:linear-gradient(135deg,#f59e0b,#d97706);"></div>
+             <h3>Track Status</h3>
+             <p>Students and parents can view admission status, attendance, fees, and exam results instantly.</p>
+           </div>
+           <div class="home-feature-card" style="--delay:0.3s;">
+-            <div class="home-feature-icon" style="background:linear-gradient(135deg,#ec4899,#f472b6);">📋</div>
++            <div class="home-feature-icon" style="background:linear-gradient(135deg,#ec4899,#f472b6);"></div>
+             <h3>Attendance Management</h3>
+             <p>Mark daily attendance, view reports, and track student attendance records with ease.</p>
+           </div>
+           <div class="home-feature-card" style="--delay:0.4s;">
+-            <div class="home-feature-icon" style="background:linear-gradient(135deg,#8b5cf6,#a78bfa);">💰</div>
++            <div class="home-feature-icon" style="background:linear-gradient(135deg,#8b5cf6,#a78bfa);"></div>
+             <h3>Fee Management</h3>
+             <p>Track payments, generate receipts, manage debtors, and view fee records per term.</p>
+           </div>
+           <div class="home-feature-card" style="--delay:0.5s;">
+-            <div class="home-feature-icon" style="background:linear-gradient(135deg,#06b6d4,#22d3ee);">📝</div>
++            <div class="home-feature-icon" style="background:linear-gradient(135deg,#06b6d4,#22d3ee);"></div>
+             <h3>Exams & Report Cards</h3>
+             <p>Create exams, input scores, auto-rank students, and print professional report cards.</p>
+           </div>
+@@ -239,7 +239,7 @@
+       <h2>Create Account</h2>
+       <p class="subtitle">Select your role and fill in the details.</p>
+       <div class="role-tabs">
+-        <button type="button" class="role-tab active" data-role="super_admin">⭐ Super Admin</button>
++        <button type="button" class="role-tab active" data-role="super_admin">Super Admin</button>
+         <button type="button" class="role-tab" data-role="school">School</button>
+         <button type="button" class="role-tab" data-role="sub_admin">Sub Admin</button>
+         <button type="button" class="role-tab" data-role="student">Student</button>
+@@ -372,7 +372,7 @@
+           <!-- Brand Logo Area -->
+           <div class="login-brand">
+             <div class="login-logo-circle">
+-              <span class="login-logo-icon">🏫</span>
++              <span class="login-logo-icon"></span>
+             </div>
+             <h1 class="login-app-name">SchoolRunner</h1>
+             <p class="login-tagline">Streamline. Manage. Excel.</p>
+@@ -381,7 +381,7 @@
+           <!-- Divider -->
+           <div class="login-divider">
+             <span class="login-divider-line"></span>
+-            <span class="login-divider-dot">✦</span>
++            <span class="login-divider-dot"></span>
+             <span class="login-divider-line"></span>
+           </div>
+ 
+@@ -390,14 +390,14 @@
+             <div class="login-input-group">
+               <label for="loginIdentifier" class="login-label">Email or Student ID</label>
+               <div class="login-input-wrapper">
+-                <span class="login-input-icon">👤</span>
++                <span class="login-input-icon"></span>
+                 <input type="text" id="loginIdentifier" required placeholder="email or student ID (e.g. 2026-0001)" class="login-input" />
+               </div>
+             </div>
+             <div class="login-input-group">
+               <label for="loginPassword" class="login-label">Password</label>
+               <div class="login-input-wrapper">
+-                <span class="login-input-icon">🔒</span>
++                <span class="login-input-icon"></span>
+                 <input type="password" id="loginPassword" required placeholder="Enter your password" class="login-input" />
+                 <button type="button" id="loginPasswordToggle" class="login-password-toggle" aria-label="Show password" aria-pressed="false" title="Show password">
+                   <svg class="login-eye-icon icon-eye-on" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+@@ -420,7 +420,7 @@
+     <div id="forgotPasswordModal" class="modal-overlay" style="display:none;">
+       <div class="modal-card" style="max-width:440px;">
+         <div class="modal-header">
+-          <h3>🔑 Forgot Password</h3>
++          <h3>Forgot Password</h3>
+           <button type="button" class="modal-close" onclick="closeForgotPasswordModal()" style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--text-muted);">&times;</button>
+         </div>
+         <div class="modal-body" style="padding:1.5rem;">
+@@ -440,7 +440,7 @@
+           <!-- STEP 2: phone number + hint -->
+           <div id="fpStep2" style="display:none;">
+             <p class="subtitle" style="margin-bottom:0.5rem;">Type the <strong>full mobile number</strong> registered for this account. The number ends in <strong id="fpPhoneLast3" style="color:var(--primary);letter-spacing:0.1rem;">---</strong>.</p>
+-            <div id="fpStudentNote" class="message info" style="display:none;padding:0.6rem;font-size:0.85rem;">📱 For students, the verification code is sent to the parent / guardian mobile number on file.</div>
++            <div id="fpStudentNote" class="message info" style="display:none;padding:0.6rem;font-size:0.85rem;">For students, the verification code is sent to the parent / guardian mobile number on file.</div>
+             <div class="form-group" style="margin-top:0.5rem;">
+               <label for="fpPhone">Full mobile number *</label>
+               <input type="tel" id="fpPhone" required inputmode="tel" placeholder="e.g. 0244 000 000" style="width:100%;padding:0.6rem;" />
+@@ -478,44 +478,44 @@
+       <div class="dashboard-layout">
+         <aside class="dash-sidebar admin-brand" id="adminSidebar">
+           <div class="sidebar-brand">
+-            <div class="sidebar-logo-circle">🏫</div>
++            <div class="sidebar-logo-circle"></div>
+             <span class="sidebar-school-name" id="sidebarSchoolName">My School</span>
+             <span class="sidebar-school-sub">Administrator Portal</span>
+           </div>
+           <div class="dash-profile">
+-            <div class="dash-avatar">👑</div>
++            <div class="dash-avatar"></div>
+             <div class="dash-avatar-info">
+               <span id="sidebarAdminName" class="dash-sidebar-name">Admin</span>
+               <span class="dash-sidebar-role-badge">Administrator</span>
+             </div>
+           </div>
+           <nav class="dash-nav">
+-            <button type="button" class="dash-nav-link active" data-admin-page="dashboard"><span class="dash-nav-icon">📊</span> Dashboard</button>
+-            <button type="button" class="dash-nav-link" data-admin-page="students"><span class="dash-nav-icon">👥</span> Students</button>
+-            <button type="button" class="dash-nav-link" data-admin-page="classes"><span class="dash-nav-icon">🏫</span> Classes</button>
+-            <button type="button" class="dash-nav-link" data-admin-page="subjects"><span class="dash-nav-icon">📖</span> Subjects</button>
+-            <button type="button" class="dash-nav-link" data-admin-page="teachers"><span class="dash-nav-icon">👥</span> Staff</button>
+-            <button type="button" class="dash-nav-link" data-admin-page="accountants"><span class="dash-nav-icon">🧾</span> Accountants</button>
+-            <button type="button" class="dash-nav-link" data-admin-page="parents"><span class="dash-nav-icon">👨‍👩‍👧</span> Parents</button>
+-            <button type="button" class="dash-nav-link" data-admin-page="admit"><span class="dash-nav-icon">➕</span> Admit Student</button>
+-            <button type="button" class="dash-nav-link" data-admin-page="announcements"><span class="dash-nav-icon">📢</span> Announcements</button>
+-            <button type="button" class="dash-nav-link" data-admin-page="attendance"><span class="dash-nav-icon">📋</span> Attendance</button>
+-            <button type="button" class="dash-nav-link" data-admin-page="exams"><span class="dash-nav-icon">📝</span> Exams</button>
+-            <button type="button" class="dash-nav-link" data-admin-page="assessments"><span class="dash-nav-icon">❓</span> Assessments</button>
+-            <button type="button" class="dash-nav-link" data-admin-page="grading"><span class="dash-nav-icon">📊</span> Grading System</button>
+-            <button type="button" class="dash-nav-link" data-admin-page="fees"><span class="dash-nav-icon">💰</span> Fees Management</button>
+-            <button type="button" class="dash-nav-link" data-admin-page="income-expenses"><span class="dash-nav-icon">📊</span> Income & Expenses</button>
+-            <button type="button" class="dash-nav-link" data-admin-page="sms-monitoring"><span class="dash-nav-icon">📨</span> SMS Monitoring</button>
+-            <button type="button" class="dash-nav-link" data-admin-page="backup"><span class="dash-nav-icon">💾</span> Backup & Restore</button>
+-            <button type="button" class="dash-nav-link" data-admin-page="profile"><span class="dash-nav-icon">🔑</span> Change Password</button>
++            <button type="button" class="dash-nav-link active" data-admin-page="dashboard">Dashboard</button>
++            <button type="button" class="dash-nav-link" data-admin-page="students">Students</button>
++            <button type="button" class="dash-nav-link" data-admin-page="classes">Classes</button>
++            <button type="button" class="dash-nav-link" data-admin-page="subjects">Subjects</button>
++            <button type="button" class="dash-nav-link" data-admin-page="teachers">Staff</button>
++            <button type="button" class="dash-nav-link" data-admin-page="accountants">Accountants</button>
++            <button type="button" class="dash-nav-link" data-admin-page="parents">Parents</button>
++            <button type="button" class="dash-nav-link" data-admin-page="admit">Admit Student</button>
++            <button type="button" class="dash-nav-link" data-admin-page="announcements">Announcements</button>
++            <button type="button" class="dash-nav-link" data-admin-page="attendance">Attendance</button>
++            <button type="button" class="dash-nav-link" data-admin-page="exams">Exams</button>
++            <button type="button" class="dash-nav-link" data-admin-page="assessments">Assessments</button>
++            <button type="button" class="dash-nav-link" data-admin-page="grading">Grading System</button>
++            <button type="button" class="dash-nav-link" data-admin-page="fees">Fees Management</button>
++            <button type="button" class="dash-nav-link" data-admin-page="income-expenses">Income & Expenses</button>
++            <button type="button" class="dash-nav-link" data-admin-page="sms-monitoring">SMS Monitoring</button>
++            <button type="button" class="dash-nav-link" data-admin-page="backup">Backup & Restore</button>
++            <button type="button" class="dash-nav-link" data-admin-page="profile">Change Password</button>
+           </nav>
+           <div class="sidebar-logout">
+-            <button type="button" class="dash-nav-link" onclick="handleLogout()"><span class="dash-nav-icon">🚪</span> Logout</button>
++            <button type="button" class="dash-nav-link" onclick="handleLogout()">Logout</button>
+           </div>
+         </aside>
+         <div class="dash-main admin-main">
+           <div class="dash-welcome-card">
+-            <div class="dash-welcome-icon">👋</div>
++            <div class="dash-welcome-icon"></div>
+             <div class="dash-welcome-text"><h3 id="adminWelcome">Welcome back!</h3><p>Manage all student admissions, classes, and more.</p></div>
+             <a href="https://mail.google.com/mail/?view=cm&fs=1&to=boahengeeman@gmail.com"
+                target="_blank" rel="noopener noreferrer"
+@@ -532,7 +532,7 @@
+           </div>
+           <!-- School Name Banner - Shows on all admin pages -->
+           <div class="school-banner" id="adminSchoolBanner">
+-            <div class="school-banner-icon">🏫</div>
++            <div class="school-banner-icon"></div>
+             <div class="school-banner-info">
+               <span class="school-banner-name" id="adminSchoolBannerName">My School</span>
+               <span class="school-banner-subtitle">Administrator Dashboard</span>
+@@ -541,7 +541,7 @@
+           <!-- Trial Version Countdown Banner (only visible while the school is on TRIAL) -->
+           <div id="adminTrialBanner" style="display:none;margin-top:0.85rem;padding:0.85rem 1rem;border:1px solid #fde68a;border-radius:12px;background:linear-gradient(135deg,#fffbeb,#fef3c7);flex-wrap:wrap;gap:0.85rem;align-items:center;justify-content:space-between;">
+             <div style="display:flex;align-items:center;gap:0.65rem;min-width:220px;">
+-              <span style="font-size:1.4rem;line-height:1;">⏱️</span>
++              <span style="font-size:1.4rem;line-height:1;"></span>
+               <div>
+                 <div style="font-weight:800;color:#92400e;"><span id="adminTrialDays">0</span> day<span id="adminTrialDaysPlural">s</span> left in your Trial</div>
+                 <div style="font-size:0.8rem;color:#a16207;line-height:1.35;">Contact the Super Administrator to upgrade to the Full Version before your trial ends.</div>
+@@ -553,15 +553,15 @@
+             </div>
+           </div>
+           <div class="dash-header" id="adminDashHeader">
+-            <h2 id="adminDashTitle">👑 Admin Dashboard</h2>
++            <h2 id="adminDashTitle">Admin Dashboard</h2>
+             <p class="subtitle">Overview of your institution</p>
+           </div>
+           <!-- Deep Search Bar -->
+           <div class="deep-search-bar" id="adminDeepSearchBar">
+             <div class="deep-search-input-wrap">
+-              <span class="deep-search-icon">🔍</span>
++              <span class="deep-search-icon"></span>
+               <input type="text" id="adminDeepSearchInput" class="deep-search-input" placeholder="Instant deep search: students, teachers, accountants, classes, subjects, parents, announcements, exams..." autocomplete="off" />
+-              <button type="button" class="deep-search-clear" id="adminDeepSearchClear" title="Clear search">✕</button>
++              <button type="button" class="deep-search-clear" id="adminDeepSearchClear" title="Clear search">×</button>
+             </div>
+             <div class="deep-search-results" id="adminDeepSearchResults" style="display:none;"></div>
+           </div>
+@@ -578,7 +578,7 @@
+             <select id="adminClassFilter" class="filter-select"><option value="">All Classes</option></select>
+           </div>
+       <details class="admit-section" id="editStudentSection" style="margin-top:1rem;display:none;">
+-        <summary class="btn btn-secondary" style="cursor:pointer;">✏️ Edit Student</summary>
++        <summary class="btn btn-secondary" style="cursor:pointer;">Edit Student</summary>
+         <form id="editStudentForm" class="admission-form" style="margin-top:1rem;max-width:100%;">
+           <input type="hidden" id="editStudentIdDash" />
+           <div class="form-row three-col">
+@@ -639,7 +639,7 @@
+ 
+     <!-- ==================== ADMIN ADMIT STUDENT ==================== -->
+     <section id="page-admin-admit" class="page">
+-      <h2>➕ Admit New Student</h2>
++      <h2>Admit New Student</h2>
+       <p class="subtitle">Fill in the details below to admit a new student. Student ID will be auto-generated.</p>
+       <form id="admitForm" class="admission-form" style="max-width:800px;margin:0 auto;">
+         <div class="form-row three-col">
+@@ -681,23 +681,23 @@
+           </div>
+           <small style="color:var(--text-muted);font-size:0.75rem;">JPG/PNG up to 500KB. Photos larger than 500KB will be rejected.</small>
+         </div>
+-        <button type="submit" class="btn btn-primary btn-full" id="admitBtn" style="margin-top:1rem;">✅ Admit Student & Generate ID</button>
++        <button type="submit" class="btn btn-primary btn-full" id="admitBtn" style="margin-top:1rem;">Admit Student & Generate ID</button>
+       </form>
+       <div id="admitMessage" class="message" style="display:none;margin-top:1rem;max-width:800px;margin-left:auto;margin-right:auto;"></div>
+     </section>
+ 
+     <!-- ==================== ADMIN STUDENTS ==================== -->
+     <section id="page-admin-students" class="page">
+-      <h2>👥 All Students</h2>
++      <h2>All Students</h2>
+       <p id="adminStudentsWelcome" class="subtitle"></p>
+       <div class="search-filter-row">
+         <input type="text" id="adminStudentsSearch" placeholder="Search..." class="search-input" />
+         <select id="adminStudentsClassFilter" class="filter-select"><option value="">All Classes</option></select>
+         <select id="adminStudentsGenderFilter" class="filter-select"><option value="">All Genders</option><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option></select>
+-        <button type="button" class="btn btn-primary" id="btnPrintPreview">🖨️ Print Class List</button>
+-        <button type="button" class="btn btn-secondary" id="btnPromoteClass" style="margin-left:0.5rem;">⬆️ Promote Class</button>
+-        <button type="button" class="btn btn-secondary" id="btnExportStudentsCSV">📥 Export CSV</button>
+-        <button type="button" class="btn btn-secondary" id="btnImportStudentsCSV">📤 Import CSV</button>
++        <button type="button" class="btn btn-primary" id="btnPrintPreview">Print Class List</button>
++        <button type="button" class="btn btn-secondary" id="btnPromoteClass" style="margin-left:0.5rem;">Promote Class</button>
++        <button type="button" class="btn btn-secondary" id="btnExportStudentsCSV">Export CSV</button>
++        <button type="button" class="btn btn-secondary" id="btnImportStudentsCSV">Import CSV</button>
+         <input type="file" id="csvStudentsImportInput" accept=".csv" style="display:none;" />
+       </div>
+       <div class="table-wrapper">
+@@ -708,7 +708,7 @@
+       </div>
+       <input type="file" id="replaceStudentPhotoInput" accept="image/*" style="display:none;" />
+       <details class="admit-section" id="editStudentSectionStudents" style="margin-top:1rem;display:none;">
+-        <summary class="btn btn-secondary" style="cursor:pointer;">✏️ Edit Student</summary>
++        <summary class="btn btn-secondary" style="cursor:pointer;">Edit Student</summary>
+         <form id="editStudentFormStudents" class="admission-form" style="margin-top:1rem;max-width:100%;">
+           <input type="hidden" id="editStudentId" />
+           <div class="form-row three-col">
+@@ -762,7 +762,7 @@
+     <div id="adminResetPasswordModal" class="modal-overlay" style="display:none;">
+       <div class="modal-card" style="max-width:480px;">
+         <div class="modal-header">
+-          <h3>🔑 Reset Password</h3>
++          <h3>Reset Password</h3>
+           <button type="button" class="modal-close" onclick="closeAdminResetPasswordModal()" style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--text-muted);">&times;</button>
+         </div>
+         <div class="modal-body" style="padding:1.5rem;">
+@@ -780,7 +780,7 @@
+           <div id="adminResetPwMessage" class="message" style="display:none;margin-bottom:1rem;"></div>
+           <div style="display:flex;gap:0.75rem;justify-content:flex-end;">
+             <button type="button" class="btn btn-secondary" onclick="closeAdminResetPasswordModal()">Cancel</button>
+-            <button type="button" class="btn btn-primary" id="adminResetPwSubmitBtn" onclick="submitAdminResetPassword()">🔑 Reset Password</button>
++            <button type="button" class="btn btn-primary" id="adminResetPwSubmitBtn" onclick="submitAdminResetPassword()">Reset Password</button>
+           </div>
+         </div>
+       </div>
+@@ -788,11 +788,11 @@
+ 
+     <!-- ==================== ADMIN CLASSES ==================== -->
+     <section id="page-admin-classes" class="page">
+-      <h2>🏫 Classes</h2>
++      <h2>Classes</h2>
+       <p class="subtitle">Manage school classes.</p>
+       <div class="card-toolbar">
+         <input type="text" id="adminClassesSearch" placeholder="Search classes..." class="search-input" />
+-        <button type="button" class="btn btn-primary" id="addClassBtn">➕ Add Class</button>
++        <button type="button" class="btn btn-primary" id="addClassBtn">Add Class</button>
+       </div>
+       <div class="table-wrapper">
+         <table class="app-table">
+@@ -802,7 +802,7 @@
+       </div>
+       <p id="adminNoClasses" style="display:none;text-align:center;color:var(--text-muted);padding:2rem;">No classes found.</p>
+       <details class="admit-section" id="classFormSection" style="margin-top:1.5rem;">
+-        <summary class="btn btn-secondary" style="cursor:pointer;">🏫 Add / Edit Class</summary>
++        <summary class="btn btn-secondary" style="cursor:pointer;">Add / Edit Class</summary>
+         <form id="classForm" class="admission-form" style="margin-top:1rem;max-width:100%;">
+           <input type="hidden" id="classEditId" />
+           <div class="form-row">
+@@ -817,11 +817,11 @@
+ 
+     <!-- ==================== ADMIN SUBJECTS ==================== -->
+     <section id="page-admin-subjects" class="page">
+-      <h2>📖 Subjects</h2>
++      <h2>Subjects</h2>
+       <p class="subtitle">Manage school subjects.</p>
+       <div class="card-toolbar">
+         <input type="text" id="adminSubjectsSearch" placeholder="Search subjects..." class="search-input" />
+-        <button type="button" class="btn btn-primary" id="addSubjectBtn">➕ Add Subject</button>
++        <button type="button" class="btn btn-primary" id="addSubjectBtn">Add Subject</button>
+       </div>
+       <div class="table-wrapper">
+         <table class="app-table">
+@@ -831,7 +831,7 @@
+       </div>
+       <p id="adminNoSubjects" style="display:none;text-align:center;color:var(--text-muted);padding:2rem;">No subjects found.</p>
+       <details class="admit-section" id="subjectFormSection" style="margin-top:1.5rem;">
+-        <summary class="btn btn-secondary" style="cursor:pointer;">📖 Add / Edit Subject</summary>
++        <summary class="btn btn-secondary" style="cursor:pointer;">Add / Edit Subject</summary>
+         <form id="subjectForm" class="admission-form" style="margin-top:1rem;max-width:100%;">
+           <input type="hidden" id="subjectEditId" />
+           <div class="form-row" style="max-width:400px;"><div class="form-group"><label>Subject Name *</label><input type="text" id="subjectName" required placeholder="e.g. Mathematics" /></div></div>
+@@ -843,21 +843,21 @@
+ 
+     <!-- ==================== ADMIN STAFF ==================== -->
+     <section id="page-admin-teachers" class="page">
+-      <h2>👥 Staff</h2>
++      <h2>Staff</h2>
+       <p class="subtitle">Manage all staff members (teaching and non-teaching). Generate registration IDs for staff to register on the portal.</p>
+       
+       <div class="card-toolbar">
+         <input type="text" id="adminTeachersSearch" placeholder="Search all staff fields..." class="search-input" />
+-        <button type="button" class="btn btn-primary" id="addTeacherBtn">➕ Add Staff</button>
+-        <button type="button" class="btn btn-secondary" id="btnGenerateTeacherId">🔑 Generate Staff ID</button>
+-        <button type="button" class="btn btn-secondary" id="btnExportTeachersCSV">📥 Export Staff CSV</button>
+-        <button type="button" class="btn btn-secondary" id="btnImportTeachersCSV">📤 Import Staff CSV</button>
++        <button type="button" class="btn btn-primary" id="addTeacherBtn">Add Staff</button>
++        <button type="button" class="btn btn-secondary" id="btnGenerateTeacherId">Generate Staff ID</button>
++        <button type="button" class="btn btn-secondary" id="btnExportTeachersCSV">Export Staff CSV</button>
++        <button type="button" class="btn btn-secondary" id="btnImportTeachersCSV">Import Staff CSV</button>
+         <input type="file" id="csvTeachersImportInput" accept=".csv" style="display:none;" />
+       </div>
+ 
+       <!-- New Staff Registration ID Form -->
+       <details class="admit-section" id="newTeacherSection" style="margin-top:1rem;display:none;">
+-        <summary class="btn btn-secondary" style="cursor:pointer;">➕ Create Staff with Registration ID</summary>
++        <summary class="btn btn-secondary" style="cursor:pointer;">Create Staff with Registration ID</summary>
+         <form id="newTeacherForm" class="admission-form" style="margin-top:1rem;max-width:100%;">
+           <div class="form-row">
+             <div class="form-group"><label>Full Name *</label><input type="text" id="newTeacherName" required placeholder="e.g. Jane Smith" /></div>
+@@ -882,7 +882,7 @@
+             <div class="form-group"><label>Generated Registration ID</label><input type="text" id="newTeacherRegId" readonly style="background:var(--bg);font-weight:700;font-size:1.1rem;letter-spacing:1px;text-align:center;" /></div>
+           </div>
+           <p class="subtitle" style="color:var(--text-muted);font-size:0.8rem;">Provide this Registration ID to the staff member so they can register on the portal. They will set their own password.</p>
+-          <button type="submit" class="btn btn-primary btn-full" id="saveTeacherBtn">✅ Create Staff &amp; Generate ID</button>
++          <button type="submit" class="btn btn-primary btn-full" id="saveTeacherBtn">Create Staff &amp; Generate ID</button>
+         </form>
+         <div id="newTeacherMessage" class="message" style="display:none;"></div>
+       </details>
+@@ -895,7 +895,7 @@
+       </div>
+       <p id="adminNoTeachers" style="display:none;text-align:center;color:var(--text-muted);padding:2rem;">No staff found.</p>
+       <details class="admit-section" id="teacherFormSection" style="margin-top:1.5rem;">
+-        <summary class="btn btn-secondary" style="cursor:pointer;">📝 Add / Edit Staff</summary>
++        <summary class="btn btn-secondary" style="cursor:pointer;">Add / Edit Staff</summary>
+         <form id="teacherForm" class="admission-form" style="margin-top:1rem;max-width:100%;">
+           <input type="hidden" id="teacherEditId" />
+           <div class="form-row">
+@@ -929,7 +929,7 @@
+           <div class="form-row">
+             <div class="form-group"><label>Qualification</label><input type="text" id="teacherQualification" /></div>
+           </div>
+-          <h4 style="margin-top:1rem;color:var(--primary);">👤 Personal Information</h4>
++          <h4 style="margin-top:1rem;color:var(--primary);">Personal Information</h4>
+           <div class="form-row">
+             <div class="form-group"><label>First Name</label><input type="text" id="teacherFirstName" /></div>
+             <div class="form-group"><label>Middle Name</label><input type="text" id="teacherMiddleName" /></div>
+@@ -949,7 +949,7 @@
+             <div class="form-group"><label>Nationality</label><input type="text" id="teacherNationality" /></div>
+             <div class="form-group"><label>Religion</label><input type="text" id="teacherReligion" /></div>
+           </div>
+-          <h4 style="margin-top:1rem;color:var(--primary);">🆔 Identification</h4>
++          <h4 style="margin-top:1rem;color:var(--primary);">Identification</h4>
+           <div class="form-row">
+             <div class="form-group"><label>Staff ID</label><input type="text" id="teacherStaffId" /></div>
+             <div class="form-group"><label>Mobile Number</label><input type="tel" id="teacherMobileNumber" /></div>
+@@ -975,7 +975,7 @@
+             <div class="form-group"><label>Circuit</label><input type="text" id="teacherCircuit" /></div>
+             <div class="form-group"><label>District</label><input type="text" id="teacherDistrict" /></div>
+           </div>
+-          <h4 style="margin-top:1rem;color:var(--primary);">📅 Appointment Dates</h4>
++          <h4 style="margin-top:1rem;color:var(--primary);">Appointment Dates</h4>
+           <div class="form-row">
+             <div class="form-group"><label>Date of First Appointment</label><input type="date" id="teacherDateFirstAppointment" /></div>
+             <div class="form-group"><label>Date of Transfer</label><input type="date" id="teacherDateTransfer" /></div>
+@@ -984,7 +984,7 @@
+           <div class="form-row">
+             <div class="form-group"><label>Date of Last Upgrading</label><input type="date" id="teacherDateUpgrading" /></div>
+           </div>
+-          <h4 style="margin-top:1rem;color:var(--primary);">📚 Education & Additional Info</h4>
++          <h4 style="margin-top:1rem;color:var(--primary);">Education & Additional Info</h4>
+           <div class="form-row">
+             <div class="form-group"><label>Date of Assumption in District</label><input type="date" id="teacherDateAssumptionDistrict" /></div>
+             <div class="form-group"><label>Date of Assumption in Present Station</label><input type="date" id="teacherDateAssumptionStation" /></div>
+@@ -1014,7 +1014,7 @@
+ 
+     <!-- ==================== ADMIN PARENTS ==================== -->
+     <section id="page-admin-parents" class="page">
+-      <h2>👨‍👩‍👧 Parents / Guardians</h2>
++      <h2>Parents / Guardians</h2>
+       <p class="subtitle">View registered parent accounts and linked wards.</p>
+       <div class="search-filter-row">
+         <input type="text" id="adminParentsSearch" placeholder="Search parent name, email..." class="search-input" />
+@@ -1028,18 +1028,18 @@
+ 
+     <!-- ==================== ADMIN ACCOUNTANTS ==================== -->
+     <section id="page-admin-accountants" class="page">
+-      <h2>🧾 Accountants</h2>
++      <h2>Accountants</h2>
+       <p class="subtitle">Manage accountants assigned to the school. Generate registration IDs for accountants to register on the portal.</p>
+       
+       <div class="card-toolbar">
+         <input type="text" id="adminAccountantsSearch" placeholder="Search accountants..." class="search-input" />
+-        <button type="button" class="btn btn-primary" id="addAccountantBtn">➕ Add Accountant</button>
+-        <button type="button" class="btn btn-secondary" id="btnGenerateAccountantId">🔑 Generate Accountant ID</button>
++        <button type="button" class="btn btn-primary" id="addAccountantBtn">Add Accountant</button>
++        <button type="button" class="btn btn-secondary" id="btnGenerateAccountantId">Generate Accountant ID</button>
+       </div>
+ 
+       <!-- New Accountant Registration ID Form -->
+       <details class="admit-section" id="newAccountantSection" style="margin-top:1rem;display:none;">
+-        <summary class="btn btn-secondary" style="cursor:pointer;">➕ Create Accountant with Registration ID</summary>
++        <summary class="btn btn-secondary" style="cursor:pointer;">Create Accountant with Registration ID</summary>
+         <form id="newAccountantForm" class="admission-form" style="margin-top:1rem;max-width:100%;">
+           <div class="form-row">
+             <div class="form-group"><label>Full Name *</label><input type="text" id="newAccountantName" required placeholder="e.g. John Doe" /></div>
+@@ -1050,7 +1050,7 @@
+             <div class="form-group"><label>Generated Registration ID</label><input type="text" id="newAccountantRegId" readonly style="background:var(--bg);font-weight:700;font-size:1.1rem;letter-spacing:1px;text-align:center;" /></div>
+           </div>
+           <p class="subtitle" style="color:var(--text-muted);font-size:0.8rem;">Provide this Registration ID to the accountant so they can register on the portal. They will set their own password.</p>
+-          <button type="submit" class="btn btn-primary btn-full" id="saveAccountantBtn">✅ Create Accountant & Generate ID</button>
++          <button type="submit" class="btn btn-primary btn-full" id="saveAccountantBtn">Create Accountant & Generate ID</button>
+         </form>
+         <div id="newAccountantMessage" class="message" style="display:none;"></div>
+       </details>
+@@ -1063,7 +1063,7 @@
+       </div>
+       <p id="adminNoAccountants" style="display:none;text-align:center;color:var(--text-muted);padding:2rem;">No accountants found.</p>
+       <details class="admit-section" id="accountantFormSection" style="margin-top:1.5rem;">
+-        <summary class="btn btn-secondary" style="cursor:pointer;">🧾 Add / Edit Accountant</summary>
++        <summary class="btn btn-secondary" style="cursor:pointer;">Add / Edit Accountant</summary>
+         <form id="accountantForm" class="admission-form" style="margin-top:1rem;max-width:100%;">
+           <input type="hidden" id="accountantEditId" />
+           <div class="form-row">
+@@ -1081,8 +1081,8 @@
+     <div id="staffActivitiesModal" class="modal-overlay" style="display:none;">
+       <div class="modal-card" style="max-width:950px;max-height:90vh;overflow-y:auto;">
+         <div class="modal-header">
+-          <h3 id="staffActivitiesModalTitle">📋 Activity Log</h3>
+-          <button class="modal-close" onclick="document.getElementById('staffActivitiesModal').style.display='none'">✖</button>
++          <h3 id="staffActivitiesModalTitle">Activity Log</h3>
++          <button class="modal-close" onclick="document.getElementById('staffActivitiesModal').style.display='none'">×</button>
+         </div>
+         <div class="modal-body" id="staffActivitiesModalBody">
+           <div id="staffActivitiesLoading" style="text-align:center;padding:2rem;color:var(--text-muted);">Loading activities...</div>
+@@ -1104,7 +1104,7 @@
+             </div>
+             <div style="display:flex;justify-content:space-between;align-items:center;gap:0.75rem;flex-wrap:wrap;margin-bottom:0.75rem;">
+               <div id="staffActivitiesClearMessage" class="message" style="display:none;margin:0;"></div>
+-              <button type="button" class="btn btn-sm btn-danger" id="clearStaffActivitiesBtn" onclick="clearStaffActivityLog()">🗑️ Clear All Logs</button>
++              <button type="button" class="btn btn-sm btn-danger" id="clearStaffActivitiesBtn" onclick="clearStaffActivityLog()">Clear All Logs</button>
+             </div>
+             <div class="table-wrapper">
+               <table class="app-table">
+@@ -1118,16 +1118,16 @@
+       </div>
+     </div>
+     <section id="page-admin-announcements" class="page">
+-      <h2>📢 Announcements</h2>
++      <h2>Announcements</h2>
+       <p class="subtitle">Create and manage announcements visible to the school community.</p>
+       <div class="card-toolbar">
+         <input type="text" id="adminAnnouncementsSearch" placeholder="Search announcements..." class="search-input" />
+-        <button type="button" class="btn btn-primary" id="addAnnouncementBtn">➕ New Announcement</button>
++        <button type="button" class="btn btn-primary" id="addAnnouncementBtn">New Announcement</button>
+       </div>
+       <div id="adminAnnouncementsList" class="announcement-list"></div>
+       <p id="adminNoAnnouncements" style="display:none;text-align:center;color:var(--text-muted);padding:2rem;">No announcements found.</p>
+       <details class="admit-section" id="announcementFormSection" style="margin-top:1.5rem;">
+-        <summary class="btn btn-secondary" style="cursor:pointer;">✏️ Create / Edit Announcement</summary>
++        <summary class="btn btn-secondary" style="cursor:pointer;">Create / Edit Announcement</summary>
+         <form id="announcementForm" class="admission-form" style="margin-top:1rem;max-width:100%;">
+           <input type="hidden" id="announcementEditId" />
+           <div class="form-row">
+@@ -1144,13 +1144,13 @@
+ 
+     <!-- ==================== ADMIN ATTENDANCE ==================== -->
+     <section id="page-admin-attendance" class="page">
+-      <h2>📋 Attendance Management</h2>
++      <h2>Attendance Management</h2>
+       <p class="subtitle">Mark daily attendance, view reports, and track student attendance records.</p>
+ 
+       <!-- Mode Toggle -->
+       <div class="att-mode-tabs">
+-        <button type="button" class="att-mode-btn active" data-att-mode="daily" id="adminAttModeDaily">📅 Daily Mode</button>
+-        <button type="button" class="att-mode-btn" data-att-mode="monthly" id="adminAttModeMonthly">📆 30-Day Checkbox Mode</button>
++        <button type="button" class="att-mode-btn active" data-att-mode="daily" id="adminAttModeDaily">Daily Mode</button>
++        <button type="button" class="att-mode-btn" data-att-mode="monthly" id="adminAttModeMonthly">30-Day Checkbox Mode</button>
+       </div>
+ 
+       <!-- ===== DAILY MODE ===== -->
+@@ -1160,9 +1160,9 @@
+         <input type="text" id="adminAttSearch" placeholder="Search student name or ID..." class="search-input" />
+         <select id="adminAttClassFilter" class="filter-select"><option value="">All Classes</option></select>
+         <input type="date" id="adminAttDate" class="search-input" style="max-width:160px;" />
+-        <button type="button" class="btn btn-primary" id="btnLoadAttendance">📋 Load Attendance</button>
+-        <button type="button" class="btn btn-secondary" id="btnSaveAttendance">💾 Save Attendance</button>
+-        <button type="button" class="btn btn-secondary" id="btnViewAttReport">📊 View Reports</button>
++        <button type="button" class="btn btn-primary" id="btnLoadAttendance">Load Attendance</button>
++        <button type="button" class="btn btn-secondary" id="btnSaveAttendance">Save Attendance</button>
++        <button type="button" class="btn btn-secondary" id="btnViewAttReport">View Reports</button>
+       </div>
+ 
+       <div class="attendance-summary-row" id="attendanceStats" style="display:none;">
+@@ -1172,7 +1172,7 @@
+       </div>
+ 
+       <div class="attendance-instructions" style="background:var(--primary-light);border-radius:var(--radius-sm);padding:0.75rem 1rem;margin-bottom:1rem;font-size:0.85rem;color:var(--text);">
+-        <strong>📌 Instructions:</strong> Select a date, class, and click <strong>"Load Attendance"</strong> to begin marking. Click the status buttons to toggle between Present ✓ and Absent ✗. Click <strong>"Save Attendance"</strong> to persist all changes.
++        <strong>Instructions:</strong> Select a date, class, and click <strong>"Load Attendance"</strong> to begin marking. Click the status buttons to toggle between Present ✓ and Absent ✗. Click <strong>"Save Attendance"</strong> to persist all changes.
+       </div>
+ 
+       <div id="attendanceMessage" class="message" style="display:none;"></div>
+@@ -1199,20 +1199,20 @@
+       <!-- Attendance Report Section -->
+       <div id="attendanceReportSection" style="display:none;margin-top:2rem;padding-top:1.5rem;border-top:2px solid var(--border);">
+         <div class="card-toolbar" style="flex-wrap:wrap;">
+-          <h3>📊 Attendance Report</h3>
++          <h3>Attendance Report</h3>
+           <input type="text" id="attReportSearch" placeholder="Search report..." class="search-input" style="max-width:200px;" />
+           <select id="attReportClass" class="filter-select"><option value="">All Classes</option></select>
+           <select id="attReportTerm" class="filter-select"><option value="">All Terms</option><option value="First">First Term</option><option value="Second">Second Term</option><option value="Third">Third Term</option></select>
+           <input type="date" id="attReportDateFrom" class="search-input" style="max-width:150px;" title="From Date" />
+           <input type="date" id="attReportDateTo" class="search-input" style="max-width:150px;" title="To Date" />
+-          <button type="button" class="btn btn-secondary" id="btnRefreshReport">🔄 Refresh</button>
+-          <button type="button" class="btn btn-secondary" id="btnPrintAttReport">🖨️ Print Report</button>
+-          <button type="button" class="btn btn-secondary" id="btnPrintAttDailyReport">📅 Print Daily Report</button>
++          <button type="button" class="btn btn-secondary" id="btnRefreshReport">Refresh</button>
++          <button type="button" class="btn btn-secondary" id="btnPrintAttReport">Print Report</button>
++          <button type="button" class="btn btn-secondary" id="btnPrintAttDailyReport">Print Daily Report</button>
+         </div>
+         <!-- Report Type Toggle -->
+         <div class="card-toolbar" style="margin-top:0.5rem;gap:0.5rem;">
+-          <button type="button" class="btn btn-sm btn-secondary att-report-mode active" data-mode="summary" id="btnAttReportSummary">📊 Summary View</button>
+-          <button type="button" class="btn btn-sm btn-secondary att-report-mode" data-mode="daily" id="btnAttReportDaily">📅 Daily View</button>
++          <button type="button" class="btn btn-sm btn-secondary att-report-mode active" data-mode="summary" id="btnAttReportSummary">Summary View</button>
++          <button type="button" class="btn btn-sm btn-secondary att-report-mode" data-mode="daily" id="btnAttReportDaily">Daily View</button>
+           <span style="font-size:0.75rem;color:var(--text-muted);margin-left:auto;">Showing records for: <strong id="attReportDateLabel">All Dates</strong></span>
+         </div>
+         <!-- Summary View Table -->
+@@ -1259,16 +1259,16 @@
+         <div class="att-monthly-toolbar">
+           <input type="date" id="adminAttMonthlyStart" class="search-input" style="max-width:160px;" />
+           <select id="adminAttMonthlyClass" class="filter-select"><option value="">All Classes</option></select>
+-          <button type="button" class="btn btn-primary" id="btnLoadMonthlyAttendance">📋 Load 30-Day Grid</button>
+-          <button type="button" class="btn btn-secondary" id="btnSaveMonthlyAttendance">💾 Save All Changes</button>
+-          <button type="button" class="btn btn-sm btn-secondary" id="btnSetAllPresent">✅ All Present</button>
+-          <button type="button" class="btn btn-sm btn-secondary" id="btnSetAllAbsent">❌ All Absent</button>
+-          <button type="button" class="btn btn-sm btn-danger" id="btnResetMonthlyAttendance">🔄 Reset All</button>
+-          <button type="button" class="btn btn-sm btn-secondary" id="btnPrintMonthlyAttendance">🖨️ Print 30-Day Grid</button>
++          <button type="button" class="btn btn-primary" id="btnLoadMonthlyAttendance">Load 30-Day Grid</button>
++          <button type="button" class="btn btn-secondary" id="btnSaveMonthlyAttendance">Save All Changes</button>
++          <button type="button" class="btn btn-sm btn-secondary" id="btnSetAllPresent">All Present</button>
++          <button type="button" class="btn btn-sm btn-secondary" id="btnSetAllAbsent">All Absent</button>
++          <button type="button" class="btn btn-sm btn-danger" id="btnResetMonthlyAttendance">Reset All</button>
++          <button type="button" class="btn btn-sm btn-secondary" id="btnPrintMonthlyAttendance">Print 30-Day Grid</button>
+         </div>
+ 
+         <div class="att-monthly-instructions" style="background:var(--primary-light);border-radius:var(--radius-sm);padding:0.75rem 1rem;margin-bottom:1rem;font-size:0.85rem;color:var(--text);">
+-          <strong>📌 Instructions:</strong> Select a start date and class, then click <strong>"Load 30-Day Grid"</strong>.
++          <strong>Instructions:</strong> Select a start date and class, then click <strong>"Load 30-Day Grid"</strong>.
+           Click any cell to toggle between <span style="color:#991b1b;">Absent</span> and <span style="color:#065f46;">Present</span>.
+           Click column headers to toggle all students for that day. Click <strong>"Save All Changes"</strong> to persist.
+         </div>
+@@ -1301,13 +1301,13 @@
+ 
+     <!-- ==================== ADMIN EXAMS ==================== -->
+     <section id="page-admin-exams" class="page">
+-      <h2>📝 Examinations</h2>
++      <h2>Examinations</h2>
+       <p class="subtitle">Create exams, manage subjects, input scores, generate rankings, and print report cards.</p>
+ 
+       <div class="card-toolbar">
+         <input type="text" id="adminExamsSearch" placeholder="Search exams..." class="search-input" />
+-        <button type="button" class="btn btn-primary" id="addExamBtn">➕ New Exam</button>
+-        <button type="button" class="btn btn-secondary" id="btnLoadExamResults">📊 Manage Scores & Rankings</button>
++        <button type="button" class="btn btn-primary" id="addExamBtn">New Exam</button>
++        <button type="button" class="btn btn-secondary" id="btnLoadExamResults">Manage Scores & Rankings</button>
+       </div>
+       <div class="table-wrapper">
+         <table class="app-table">
+@@ -1317,7 +1317,7 @@
+       </div>
+       <p id="adminNoExams" style="display:none;text-align:center;color:var(--text-muted);padding:2rem;">No exams found.</p>
+         <details class="admit-section" id="examFormSection" style="margin-top:1.5rem;">
+-        <summary class="btn btn-secondary" style="cursor:pointer;">📝 Add / Edit Exam</summary>
++        <summary class="btn btn-secondary" style="cursor:pointer;">Add / Edit Exam</summary>
+         <form id="examForm" class="admission-form" style="margin-top:1rem;max-width:100%;">
+           <input type="hidden" id="examEditId" />
+           <div class="form-row">
+@@ -1342,29 +1342,29 @@
+         <div class="card-toolbar">
+           <select id="examSelect" class="filter-select" style="min-width:220px;"><option value="">— Select Exam —</option></select>
+           <select id="examSubjectClass" class="filter-select" style="min-width:180px;"><option value="">— Select Class —</option></select>
+-          <button type="button" class="btn btn-secondary" id="btnLoadScoreSheet">📥 Load Students for Score Entry</button>
+-          <button type="button" class="btn btn-secondary" id="btnAutoRank">🏆 Auto Rank Subjects</button>
+-          <button type="button" class="btn btn-primary" id="btnSaveAllResults">💾 Save All Scores</button>
+-          <button type="button" class="btn btn-secondary" id="btnExportCSV">📥 Export CSV</button>
+-          <button type="button" class="btn btn-secondary" id="btnImportCSV">📤 Import CSV</button>
++          <button type="button" class="btn btn-secondary" id="btnLoadScoreSheet">Load Students for Score Entry</button>
++          <button type="button" class="btn btn-secondary" id="btnAutoRank">Auto Rank Subjects</button>
++          <button type="button" class="btn btn-primary" id="btnSaveAllResults">Save All Scores</button>
++          <button type="button" class="btn btn-secondary" id="btnExportCSV">Export CSV</button>
++          <button type="button" class="btn btn-secondary" id="btnImportCSV">Import CSV</button>
+           <input type="file" id="csvImportInput" accept=".csv" style="display:none;" />
+-          <button type="button" class="btn btn-secondary" id="btnPrintReportCards">🖨️ Print Report Cards</button>
++          <button type="button" class="btn btn-secondary" id="btnPrintReportCards">Print Report Cards</button>
+         </div>
+ 
+         <div class="exams-tabs" style="margin-top:1rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
+-          <button type="button" class="btn btn-secondary exam-tab active" data-etab="subjects">📖 Exam Subjects</button>
+-          <button type="button" class="btn btn-secondary exam-tab" data-etab="scoresheet">📝 Score Sheet</button>
+-          <button type="button" class="btn btn-secondary exam-tab" data-etab="rankings">🏆 Rankings</button>
+-          <button type="button" class="btn btn-secondary exam-tab" data-etab="reportcard">📄 Report Cards</button>
+-          <button type="button" class="btn btn-secondary exam-tab" data-etab="overallscores">📊 Overall Scores</button>
++          <button type="button" class="btn btn-secondary exam-tab active" data-etab="subjects">Exam Subjects</button>
++          <button type="button" class="btn btn-secondary exam-tab" data-etab="scoresheet">Score Sheet</button>
++          <button type="button" class="btn btn-secondary exam-tab" data-etab="rankings">Rankings</button>
++          <button type="button" class="btn btn-secondary exam-tab" data-etab="reportcard">Report Cards</button>
++          <button type="button" class="btn btn-secondary exam-tab" data-etab="overallscores">Overall Scores</button>
+         </div>
+ 
+         <div class="table-wrapper" style="margin-top:1rem;">
+           <div id="examTab-subjects" class="exam-tab-content active-subpage">
+-            <h3>📖 Subjects for Selected Exam</h3>
++            <h3>Subjects for Selected Exam</h3>
+             <div class="card-toolbar">
+               <select id="subjectSelect" class="filter-select"><option value="">— Select Subject —</option></select>
+-              <button type="button" class="btn btn-primary" id="btnAddExamSubject">➕ Add Subject to Exam</button>
++              <button type="button" class="btn btn-primary" id="btnAddExamSubject">Add Subject to Exam</button>
+             </div>
+             <div class="table-wrapper">
+               <table class="app-table"><thead><tr><th>Subject</th><th>Class</th><th>Action</th></tr></thead><tbody id="examSubjectsBody"></tbody></table>
+@@ -1373,10 +1373,10 @@
+           </div>
+ 
+           <div id="examTab-scoresheet" class="exam-tab-content" style="display:none;">
+-            <h3>📝 Score Entry</h3>
++            <h3>Score Entry</h3>
+             <p class="subtitle">Enter <strong>Class Score (max 50)</strong> and <strong>Exam Score (max 50)</strong>. The system calculates total and class ranking for each subject.</p>
+             <div class="card-toolbar" style="margin-bottom:0.75rem;">
+-              <input type="text" id="scoreSheetSearch" placeholder="🔍 Search student by name or ID..." class="search-input" style="max-width:320px;" />
++              <input type="text" id="scoreSheetSearch" placeholder="Search student by name or ID..." class="search-input" style="max-width:320px;" />
+               <span style="font-size:0.85rem;color:var(--text-muted);" id="scoreSheetCount"></span>
+             </div>
+             <div style="overflow-x:auto;">
+@@ -1388,30 +1388,30 @@
+           </div>
+ 
+           <div id="examTab-rankings" class="exam-tab-content" style="display:none;">
+-            <h3>🏆 Subject Rankings (1st, 2nd, 3rd...)</h3>
++            <h3>Subject Rankings (1st, 2nd, 3rd...)</h3>
+             <p class="subtitle">Automatically generated from current score sheet by subject and class.</p>
+             <div id="rankingsContainer"></div>
+           </div>
+ 
+           <div id="examTab-reportcard" class="exam-tab-content" style="display:none;">
+-            <h3>📄 Student Report Cards</h3>
++            <h3>Student Report Cards</h3>
+             <p class="subtitle">Preview and print full report cards with scores, ranks, and class averages.</p>
+             <div class="card-toolbar">
+               <select id="reportStudent" class="filter-select"><option value="">— Select Student —</option></select>
+-              <button type="button" class="btn btn-primary" id="btnPreviewReport">👁 Preview Report Card</button>
+-              <button type="button" class="btn btn-secondary" id="btnPrintReport">🖨️ Print Single</button>
++              <button type="button" class="btn btn-primary" id="btnPreviewReport">Preview Report Card</button>
++              <button type="button" class="btn btn-secondary" id="btnPrintReport">Print Single</button>
+               <select id="reportClassFilter" class="filter-select" style="min-width:160px;"><option value="">— Select Class —</option></select>
+-              <button type="button" class="btn btn-secondary" id="btnBatchPrintCards">🖨️🖨️ Batch Print All (by Class)</button>
++              <button type="button" class="btn btn-secondary" id="btnBatchPrintCards">Batch Print All (by Class)</button>
+             </div>
+             <div id="reportPreview" style="margin-top:1rem;"></div>
+           </div>
+ 
+           <div id="examTab-overallscores" class="exam-tab-content" style="display:none;">
+-            <h3>📊 Overall Exam Scores Sheet</h3>
++            <h3>Overall Exam Scores Sheet</h3>
+             <p class="subtitle">View all students' scores across all subjects in a comprehensive table. Filter by class using the dropdown above.</p>
+             <div class="card-toolbar">
+-              <button type="button" class="btn btn-secondary" id="btnRefreshOverallScores">🔄 Refresh</button>
+-              <button type="button" class="btn btn-secondary" id="btnPrintOverallScores">🖨️ Print</button>
++              <button type="button" class="btn btn-secondary" id="btnRefreshOverallScores">Refresh</button>
++              <button type="button" class="btn btn-secondary" id="btnPrintOverallScores">Print</button>
+             </div>
+             <div id="overallScoresMessage" class="message" style="display:none;"></div>
+             <div style="overflow-x:auto;">
+@@ -1429,14 +1429,14 @@
+ 
+     <!-- ==================== ADMIN ASSESSMENTS ==================== -->
+     <section id="page-admin-assessments" class="page">
+-      <h2>❓ Multi-Choice Assessments</h2>
++      <h2>Multi-Choice Assessments</h2>
+       <p class="subtitle">Build a question bank, create auto-marking assessments, and review student attempts. Questions are drawn randomly so every student gets a different arrangement.</p>
+ 
+       <div class="card-toolbar" style="flex-wrap:wrap;">
+         <div class="assess-nav-pills" id="adminAssessTabs" style="margin:0;">
+-          <button type="button" class="active" data-atab="questions">🗂️ Question Bank</button>
+-          <button type="button" data-atab="assessments">📝 Assessments</button>
+-          <button type="button" data-atab="attempts">📈 Attempts &amp; Results</button>
++          <button type="button" class="active" data-atab="questions">Question Bank</button>
++          <button type="button" data-atab="assessments">Assessments</button>
++          <button type="button" data-atab="attempts">Attempts &amp; Results</button>
+         </div>
+       </div>
+ 
+@@ -1447,16 +1447,16 @@
+           <select id="adminQuestionSubjectFilter" class="filter-select" style="max-width:180px;"><option value="">— All Subjects —</option></select>
+           <select id="adminQuestionClassFilter" class="filter-select" style="max-width:160px;"><option value="">— All Classes —</option></select>
+           <span style="margin-left:auto;display:flex;gap:0.5rem;flex-wrap:wrap;">
+-            <button type="button" class="btn btn-primary" id="btnAddAssessmentQuestion">➕ Add Question</button>
+-            <button type="button" class="btn btn-secondary" id="btnBulkImportQuestions">📤 Bulk Import (CSV / Paste)</button>
+-            <button type="button" class="btn btn-secondary" id="btnDownloadQuestionTemplate">⬇️ Template</button>
++            <button type="button" class="btn btn-primary" id="btnAddAssessmentQuestion">Add Question</button>
++            <button type="button" class="btn btn-secondary" id="btnBulkImportQuestions">Bulk Import (CSV / Paste)</button>
++            <button type="button" class="btn btn-secondary" id="btnDownloadQuestionTemplate">Template</button>
+           </span>
+         </div>
+ 
+         <div id="adminQuestionMessage" class="message" style="display:none;"></div>
+ 
+         <details class="admit-section" id="assessmentQuestionFormSection" style="margin-bottom:1rem;">
+-          <summary class="btn btn-secondary" style="cursor:pointer;">✏️ Add / Edit Assessment Question</summary>
++          <summary class="btn btn-secondary" style="cursor:pointer;">Add / Edit Assessment Question</summary>
+           <form id="assessmentQuestionForm" class="admission-form" style="margin-top:1rem;max-width:100%;">
+             <input type="hidden" id="assessmentQuestionEditId" />
+             <div class="form-row">
+@@ -1475,13 +1475,13 @@
+               <div class="form-group"><label>Correct Option *</label><select id="assessmentQuestionCorrect" required><option value="">— Select —</option><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option></select></div>
+               <div class="form-group" style="flex:2;"><label>Explanation (shown after submit)</label><input type="text" id="assessmentQuestionExplanation" placeholder="Optional explanation for the correct answer" /></div>
+             </div>
+-            <button type="submit" class="btn btn-primary btn-full" id="assessmentQuestionSubmitBtn">💾 Save Question</button>
++            <button type="submit" class="btn btn-primary btn-full" id="assessmentQuestionSubmitBtn">Save Question</button>
+           </form>
+           <div id="assessmentQuestionFormMessage" class="message" style="display:none;"></div>
+         </details>
+ 
+ <details class="admit-section" id="adminBulkImportSection" style="margin-bottom:1rem;">
+-          <summary class="btn btn-secondary" style="cursor:pointer;">📤 Bulk Import Questions (thousands at a time)</summary>
++          <summary class="btn btn-secondary" style="cursor:pointer;">Bulk Import Questions (thousands at a time)</summary>
+           <div style="margin-top:1rem;">
+             <div class="assessment-instructions">
+               <strong>CSV format:</strong> paste rows or upload a CSV. Header row optional. Each row is
+@@ -1493,8 +1493,8 @@
+             <div class="form-row" style="align-items:center;margin-top:0.75rem;">
+               <input type="file" id="adminBulkImportFile" accept=".csv,.txt" style="max-width:260px;" />
+               <span style="display:flex;gap:0.5rem;margin-left:auto;">
+-                <button type="button" class="btn btn-secondary" id="btnPreviewBulkImport">🔍 Preview</button>
+-                <button type="button" class="btn btn-primary" id="btnRunBulkImport">🚀 Import Questions</button>
++                <button type="button" class="btn btn-secondary" id="btnPreviewBulkImport">Preview</button>
++                <button type="button" class="btn btn-primary" id="btnRunBulkImport">Import Questions</button>
+               </span>
+             </div>
+             <div id="adminBulkImportPreview" style="margin-top:0.75rem;"></div>
+@@ -1508,14 +1508,14 @@
+       <!-- ASSESSMENTS TAB -->
+       <div id="adminAssessTab-assessments" class="assess-tab-content" style="display:none;">
+ <div class="assessment-toolbar">
+-          <button type="button" class="btn btn-primary" id="btnAddAssessment">➕ Create Assessment</button>
++          <button type="button" class="btn btn-primary" id="btnAddAssessment">Create Assessment</button>
+           <span class="assessment-instructions" style="margin:0;">Create a paper that randomly draws a set number of questions from your bank for a subject/class.</span>
+         </div>
+         <div id="adminAssessmentList"></div>
+         <p id="adminNoAssessments" style="display:none;text-align:center;color:var(--text-muted);padding:2rem;">No assessments created yet.</p>
+ 
+         <details class="admit-section" id="assessmentConfigSection" style="margin-top:1rem;">
+-          <summary class="btn btn-secondary" style="cursor:pointer;">📝 Add / Edit Assessment</summary>
++          <summary class="btn btn-secondary" style="cursor:pointer;">Add / Edit Assessment</summary>
+           <form id="assessmentConfigForm" class="admission-form" style="margin-top:1rem;max-width:100%;">
+             <input type="hidden" id="assessmentConfigId" />
+             <div class="form-row">
+@@ -1536,7 +1536,7 @@
+             <div class="form-group"><label>Description</label><input type="text" id="assessmentDescription" placeholder="Instructions or notes shown to students" /></div>
+             <div class="form-row" style="gap:1.5rem;align-items:center;">
+               <label style="display:flex;gap:0.4rem;align-items:center;"><input type="checkbox" id="assessmentActive" checked /> Active (available to students)</label>
+-              <button type="submit" class="btn btn-primary" id="assessmentConfigSubmitBtn">💾 Save Assessment</button>
++              <button type="submit" class="btn btn-primary" id="assessmentConfigSubmitBtn">Save Assessment</button>
+               <span id="assessmentConfigMessage" class="message" style="display:none;"></span>
+             </div>
+           </form>
+@@ -1548,8 +1548,8 @@
+         <div class="assessment-toolbar">
+           <select id="adminAttemptAssessmentFilter" class="filter-select" style="min-width:260px;"><option value="">— All Assessments —</option></select>
+           <select id="adminAttemptClassFilter" class="filter-select" style="max-width:160px;"><option value="">— All Classes —</option></select>
+-          <button type="button" class="btn btn-secondary" id="btnRefreshAdminAttempts">🔄 Refresh</button>
+-          <button type="button" class="btn btn-primary" id="btnPrintAdminAttempts">🖨️ Print Results</button>
++          <button type="button" class="btn btn-secondary" id="btnRefreshAdminAttempts">Refresh</button>
++          <button type="button" class="btn btn-primary" id="btnPrintAdminAttempts">Print Results</button>
+         </div>
+         <div class="table-wrapper">
+           <table class="app-table">
+@@ -1563,13 +1563,13 @@
+ 
+     <!-- ==================== ADMIN GRADING SYSTEM ==================== -->
+     <section id="page-admin-grading" class="page">
+-      <h2>📊 Grading System</h2>
++      <h2>Grading System</h2>
+       <p class="subtitle">Configure your school's grading scale. Define grade labels, score ranges, and descriptions for report cards. You can set <strong>overall grading</strong> (applies to all subjects) or <strong>per-subject grading</strong> (overrides overall for specific subjects).</p>
+ 
+       <div class="card-toolbar">
+         <select id="gradingSubjectFilter" class="filter-select" style="min-width:220px;"><option value="">— Overall Grading (All Subjects) —</option></select>
+-        <button type="button" class="btn btn-primary" id="btnAddGradeRow">➕ Add Grade Level</button>
+-        <button type="button" class="btn btn-secondary" id="btnResetDefaultGrades">🔄 Reset to Defaults</button>
++        <button type="button" class="btn btn-primary" id="btnAddGradeRow">Add Grade Level</button>
++        <button type="button" class="btn btn-secondary" id="btnResetDefaultGrades">Reset to Defaults</button>
+       </div>
+ 
+       <div class="table-wrapper">
+@@ -1589,7 +1589,7 @@
+       <p id="noGradingConfig" style="display:none;text-align:center;color:var(--text-muted);padding:2rem;">No grading levels configured. Click "Add Grade Level" to create one or "Reset to Defaults" to use the standard system.</p>
+ 
+       <details class="admit-section" id="gradingFormSection" style="margin-top:1.5rem;">
+-        <summary class="btn btn-secondary" style="cursor:pointer;">📊 Add / Edit Grade Level</summary>
++        <summary class="btn btn-secondary" style="cursor:pointer;">Add / Edit Grade Level</summary>
+         <form id="gradingForm" class="admission-form" style="margin-top:1rem;max-width:100%;">
+           <input type="hidden" id="gradeEditId" />
+           <div class="form-row">
+@@ -1613,7 +1613,7 @@
+             </select></div>
+             <div class="form-group"><label>Sort Order</label><input type="number" id="gradeSortOrder" min="1" max="99" placeholder="e.g. 1" /></div>
+           </div>
+-          <button type="submit" class="btn btn-primary btn-full" id="gradeSubmitBtn">➕ Add Grade</button>
++          <button type="submit" class="btn btn-primary btn-full" id="gradeSubmitBtn">Add Grade</button>
+         </form>
+         <div id="gradingMessage" class="message" style="display:none;"></div>
+       </details>
+@@ -1621,16 +1621,16 @@
+ 
+     <!-- ==================== ADMIN FEES MANAGEMENT ==================== -->
+     <section id="page-admin-fees" class="page">
+-      <h2>💰 Fees Management</h2>
++      <h2>Fees Management</h2>
+       <p class="subtitle">Comprehensive fee management for all 3 terms. Set fee structures, record payments, print receipts, and manage debtors.</p>
+ 
+       <div class="fee-tabs" style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1rem;">
+-        <button type="button" class="btn btn-secondary fee-tab active" data-fee-tab="structure">📋 Fee Structure</button>
+-        <button type="button" class="btn btn-secondary fee-tab" data-fee-tab="students">👥 Student Fees</button>
+-        <button type="button" class="btn btn-secondary fee-tab" data-fee-tab="payment">💰 Record Payment</button>
+-        <button type="button" class="btn btn-secondary fee-tab" data-fee-tab="debtors">⚠️ Debtors</button>
+-        <button type="button" class="btn btn-secondary fee-tab" data-fee-tab="holiday">🏖️ Holiday Statements</button>
+-        <button type="button" class="btn btn-danger fee-tab" data-fee-tab="delete-receipts">🗑️ Delete Receipts</button>
++        <button type="button" class="btn btn-secondary fee-tab active" data-fee-tab="structure">Fee Structure</button>
++        <button type="button" class="btn btn-secondary fee-tab" data-fee-tab="students">Student Fees</button>
++        <button type="button" class="btn btn-secondary fee-tab" data-fee-tab="payment">Record Payment</button>
++        <button type="button" class="btn btn-secondary fee-tab" data-fee-tab="debtors">Debtors</button>
++        <button type="button" class="btn btn-secondary fee-tab" data-fee-tab="holiday">Holiday Statements</button>
++        <button type="button" class="btn btn-danger fee-tab" data-fee-tab="delete-receipts">Delete Receipts</button>
+       </div>
+ 
+       <!-- ===== TAB 1: FEE STRUCTURE ===== -->
+@@ -1648,7 +1648,7 @@
+         </div>
+ 
+         <details class="admit-section" style="margin-top:1.5rem;">
+-          <summary class="btn btn-secondary" style="cursor:pointer;">💰 Set / Update Class Fee</summary>
++          <summary class="btn btn-secondary" style="cursor:pointer;">Set / Update Class Fee</summary>
+           <div style="margin-top:1rem;">
+             <div class="form-row">
+               <div class="form-group"><label>Class *</label><select id="feeSetClass" class="filter-select" required><option value="">— Select —</option></select></div>
+@@ -1656,7 +1656,7 @@
+               <div class="form-group"><label>Term *</label><select id="feeSetTerm" required><option value="First">First Term</option><option value="Second">Second Term</option><option value="Third">Third Term</option></select></div>
+               <div class="form-group"><label>Fee Amount (GHC) *</label><input type="number" id="feeSetAmount" step="0.01" min="0" placeholder="0.00" /></div>
+             </div>
+-            <button type="button" class="btn btn-primary" id="feeSetStructureBtn">💾 Set Fee</button>
++            <button type="button" class="btn btn-primary" id="feeSetStructureBtn">Set Fee</button>
+           </div>
+         </details>
+         <div id="feeStructureMessage" class="message" style="display:none;margin-top:1rem;"></div>
+@@ -1665,11 +1665,11 @@
+       <!-- ===== TAB 2: STUDENT FEES ===== -->
+       <div id="feeTab-students" class="fee-tab-content" style="display:none;">
+         <div class="card-toolbar" style="flex-wrap:wrap;">
+-          <input type="text" id="feeSearchStudent" placeholder="🔍 Search student name or ID..." class="search-input" style="max-width:250px;" />
++          <input type="text" id="feeSearchStudent" placeholder="Search student name or ID..." class="search-input" style="max-width:250px;" />
+           <select id="feeSearchClass" class="filter-select"><option value="">All Classes</option></select>
+           <select id="feeSearchTerm" class="filter-select"><option value="">All Terms</option><option value="First">First Term</option><option value="Second">Second Term</option><option value="Third">Third Term</option></select>
+           <select id="feeSearchStatus" class="filter-select"><option value="">All Status</option><option value="paid">Paid</option><option value="partial">Partial</option><option value="unpaid">Unpaid</option></select>
+-          <button type="button" class="btn btn-primary" id="feePrintRemindersBtn" style="white-space:nowrap;margin-left:auto;" title="Print A5 fees reminder notes for all students in the selected class (or all students)">🖨️ Bulk Print A5 Reminders</button>
++          <button type="button" class="btn btn-primary" id="feePrintRemindersBtn" style="white-space:nowrap;margin-left:auto;" title="Print A5 fees reminder notes for all students in the selected class (or all students)">Bulk Print A5 Reminders</button>
+         </div>
+         <div class="table-wrapper">
+           <table class="app-table">
+@@ -1694,7 +1694,7 @@
+         </div>
+ 
+         <div class="acc-card" style="max-width:600px;">
+-          <h3 style="margin:0 0 0.75rem 0;">💳 Record New Payment</h3>
++          <h3 style="margin:0 0 0.75rem 0;">Record New Payment</h3>
+           <div class="form-row">
+             <div class="form-group"><label>Academic Year</label><select id="feePayAcademicYear" class="filter-select"></select></div>
+             <div class="form-group"><label>Term</label><select id="feePayTerm"><option value="First">First Term</option><option value="Second">Second Term</option><option value="Third">Third Term</option></select></div>
+@@ -1707,7 +1707,7 @@
+             <div class="form-group"><label>Reference Number</label><input type="text" id="feePayReference" placeholder="Optional: receipt/transaction ref" /></div>
+             <div class="form-group"><label>Notes</label><input type="text" id="feePayNotes" placeholder="Optional notes" /></div>
+           </div>
+-          <button type="button" class="btn btn-primary btn-full" id="feeRecordPaymentBtn">💾 Record Payment</button>
++          <button type="button" class="btn btn-primary btn-full" id="feeRecordPaymentBtn">Record Payment</button>
+           <div id="feePaymentMessage" class="message" style="display:none;margin-top:0.75rem;"></div>
+         </div>
+ 
+@@ -1721,13 +1721,13 @@
+           <select id="feeDebtorsTerm" class="filter-select" style="max-width:140px;"><option value="">All Terms</option><option value="First">First Term</option><option value="Second">Second Term</option><option value="Third">Third Term</option></select>
+           <input type="date" id="feeDebtorsDateFrom" class="search-input" style="max-width:150px;" title="From Date" />
+           <input type="date" id="feeDebtorsDateTo" class="search-input" style="max-width:150px;" title="To Date" />
+-          <button type="button" class="btn btn-secondary" id="feeRefreshDebtors">🔄 Refresh</button>
+-          <button type="button" class="btn btn-secondary" id="feePreviewDebtors">👁 Preview</button>
+-          <button type="button" class="btn btn-primary" id="feePrintDebtors">🖨️ Print Debtors</button>
+-          <button type="button" class="btn btn-secondary" id="feeTodayReceipts">📋 Today's Receipts</button>
++          <button type="button" class="btn btn-secondary" id="feeRefreshDebtors">Refresh</button>
++          <button type="button" class="btn btn-secondary" id="feePreviewDebtors">Preview</button>
++          <button type="button" class="btn btn-primary" id="feePrintDebtors">Print Debtors</button>
++          <button type="button" class="btn btn-secondary" id="feeTodayReceipts">Today's Receipts</button>
+           <span id="feeSmsSelectedCount" style="font-size:0.85rem;color:var(--text-muted);white-space:nowrap;">0 selected</span>
+           <button type="button" class="btn btn-primary" id="feeSendSmsBtn" style="white-space:nowrap;" title="Send a fee reminder SMS to the parents/guardians of the selected debtors (uses the Nalo SMS gateway)">
+-            📨 Send Fee Reminder SMS
++            Send Fee Reminder SMS
+           </button>
+         </div>
+         <div class="table-wrapper">
+@@ -1745,7 +1745,7 @@
+       <!-- ===== TAB 5: HOLIDAY FEE STATEMENTS (BULK PRINT) ===== -->
+       <div id="feeTab-holiday" class="fee-tab-content" style="display:none;">
+         <div class="status-card" style="padding:1.5rem;margin-bottom:1rem;">
+-          <h3 style="margin:0 0 0.5rem 0;font-size:1.05rem;">🏖️ Bulk Holiday Fee Statements</h3>
++          <h3 style="margin:0 0 0.5rem 0;font-size:1.05rem;">Bulk Holiday Fee Statements</h3>
+           <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:1rem;">
+             Generate and print a <strong>holiday fee statement</strong> for <strong>every student in a class</strong>.
+             Each slip shows the <strong>balance brought forward</strong>, the <strong>next term fees</strong> and the
+@@ -1776,8 +1776,8 @@
+             </div>
+           </div>
+           <div style="display:flex;gap:0.75rem;flex-wrap:wrap;margin-top:0.75rem;">
+-            <button type="button" class="btn btn-secondary" id="feePreviewHoliday">👁 Preview Statements</button>
+-            <button type="button" class="btn btn-primary" id="feePrintHoliday">🖨️ Print All Fee Statements</button>
++            <button type="button" class="btn btn-secondary" id="feePreviewHoliday">Preview Statements</button>
++            <button type="button" class="btn btn-primary" id="feePrintHoliday">Print All Fee Statements</button>
+           </div>
+           <div id="feeHolidayMessage" class="message" style="display:none;margin-top:0.75rem;"></div>
+         </div>
+@@ -1797,9 +1797,9 @@
+       <!-- ===== TAB 6: DELETE RECEIPTS ===== -->
+       <div id="feeTab-delete-receipts" class="fee-tab-content" style="display:none;">
+         <div class="status-card" style="padding:1.5rem;border:2px solid #fecaca;background:#fef2f2;">
+-          <h3 style="margin:0 0 0.75rem 0;font-size:1.1rem;color:#b91c1c;">🗑️ Delete Receipts by Class & Date</h3>
++          <h3 style="margin:0 0 0.75rem 0;font-size:1.1rem;color:#b91c1c;">Delete Receipts by Class & Date</h3>
+           <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:1rem;">
+-            <strong style="color:#b91c1c;">⚠️ DANGER ZONE:</strong> This will permanently delete receipts (and their associated payment transactions) for all students in the selected class within the specified date range. 
++            <strong style="color:#b91c1c;">DANGER ZONE:</strong> This will permanently delete receipts (and their associated payment transactions) for all students in the selected class within the specified date range. 
+             The corresponding fee records will be recalculated (amount paid and payment status will be updated). This action <strong>CANNOT be undone</strong>.
+           </p>
+           <div class="form-row" style="flex-wrap:wrap;gap:0.75rem;">
+@@ -1817,8 +1817,8 @@
+             </div>
+           </div>
+           <div style="display:flex;gap:0.75rem;flex-wrap:wrap;margin-top:0.5rem;">
+-            <button type="button" class="btn btn-secondary" id="feePreviewDeleteReceipts">👁 Preview Receipts</button>
+-            <button type="button" class="btn btn-danger" id="feeDeleteReceiptsBtn">🗑️ Delete Receipts</button>
++            <button type="button" class="btn btn-secondary" id="feePreviewDeleteReceipts">Preview Receipts</button>
++            <button type="button" class="btn btn-danger" id="feeDeleteReceiptsBtn">Delete Receipts</button>
+           </div>
+           <div id="feeDeleteReceiptsMessage" class="message" style="display:none;margin-top:1rem;"></div>
+         </div>
+@@ -1837,42 +1837,42 @@
+ 
+     <!-- ==================== ADMIN INCOME & EXPENSES ==================== -->
+     <section id="page-admin-income-expenses" class="page">
+-      <h2>📊 Income & Expenditure Tracking</h2>
++      <h2>Income & Expenditure Tracking</h2>
+       <p class="subtitle">Track school income, expenses, and generate financial reports.</p>
+       <div id="ieContainer"></div>
+     </section>
+ 
+     <!-- ==================== ADMIN SMS MONITORING ==================== -->
+     <section id="page-admin-sms-monitoring" class="page">
+-      <h2>📨 SMS Monitoring</h2>
++      <h2>SMS Monitoring</h2>
+       <p class="subtitle">Monitor every SMS sent to parents/guardians — view sent messages and investigate unsent or failed deliveries.</p>
+       <div id="smsMonitorContainer"></div>
+     </section>
+ 
+     <!-- ==================== ADMIN BACKUP & RESTORE ==================== -->
+     <section id="page-admin-backup" class="page">
+-      <h2>💾 Backup & Restore</h2>
++      <h2>Backup & Restore</h2>
+       <p class="subtitle">Create comprehensive database backups and restore your school data to a perfect state even after re-running the schema from scratch.</p>
+ 
+       <div id="backupMessage" class="message" style="display:none;"></div>
+ 
+       <div class="status-card" style="margin-bottom:1.5rem;padding:1.5rem;">
+-        <h3 style="margin:0 0 0.75rem 0;font-size:1.1rem;">📥 Create Backup</h3>
++        <h3 style="margin:0 0 0.75rem 0;font-size:1.1rem;">Create Backup</h3>
+         <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:1rem;">
+           Downloads a complete JSON snapshot of <strong>all your school data</strong> — students, teachers, exams, scores, attendance, fees, receipts, grading systems, and more.
+           This file contains everything needed to restore your school to its exact current state.
+         </p>
+         <div style="display:flex;gap:0.75rem;flex-wrap:wrap;">
+-          <button type="button" class="btn btn-primary" id="btnBackupData">📥 Backup Data</button>
+-          <button type="button" class="btn btn-secondary" id="btnDownloadSchema">📄 Download Schema Reference</button>
++          <button type="button" class="btn btn-primary" id="btnBackupData">Backup Data</button>
++          <button type="button" class="btn btn-secondary" id="btnDownloadSchema">Download Schema Reference</button>
+         </div>
+         <div style="margin-top:0.75rem;font-size:0.8rem;color:var(--text-muted);">
+-          <strong>💡 Tip:</strong> Keep this backup file safe. After re-running the schema from scratch, you can restore this backup to get back to a perfect state.
++          <strong>Tip:</strong> Keep this backup file safe. After re-running the schema from scratch, you can restore this backup to get back to a perfect state.
+         </div>
+       </div>
+ 
+       <div class="status-card" style="margin-bottom:1.5rem;padding:1.5rem;">
+-        <h3 style="margin:0 0 0.75rem 0;font-size:1.1rem;">📤 Restore Backup</h3>
++        <h3 style="margin:0 0 0.75rem 0;font-size:1.1rem;">Restore Backup</h3>
+         <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:1rem;">
+           Restore your school data from a backup file. This will <strong>delete all existing data</strong> for the tables in the backup and replace them with the backed-up records.
+           IDs are preserved so all relationships (exams → results, teachers → classes, fees → receipts, etc.) remain intact.
+@@ -1892,12 +1892,12 @@
+           <div style="margin-top:1rem;font-weight:600;">
+             Total Records: <span id="restoreTotalRecords">0</span>
+           </div>
+-          <button type="button" class="btn btn-danger" id="btnConfirmRestore" style="margin-top:1rem;width:100%;" disabled>⚠️ Confirm & Restore</button>
++          <button type="button" class="btn btn-danger" id="btnConfirmRestore" style="margin-top:1rem;width:100%;" disabled>Confirm & Restore</button>
+         </div>
+       </div>
+ 
+       <div class="status-card" style="padding:1.5rem;">
+-        <h3 style="margin:0 0 0.75rem 0;font-size:1.1rem;">ℹ️ About Backup & Restore</h3>
++        <h3 style="margin:0 0 0.75rem 0;font-size:1.1rem;">ℹ About Backup & Restore</h3>
+         <div style="font-size:0.85rem;color:var(--text-muted);line-height:1.6;">
+           <p><strong>What is backed up?</strong> All school data tables including: students (applications), teachers, accountants, classes, subjects, exams, exam results, exam subjects, exam student details, attendance, announcements, parent links, fee categories, class fees, student fees, payment transactions, receipts, teacher class-subject assignments, teacher documents, grading systems, settings, sub admins, sub admin activities, school module locks, and more.</p>
+           <p style="margin-top:0.5rem;"><strong>How does restore work?</strong> The restore process:</p>
+@@ -1914,12 +1914,12 @@
+ 
+     <!-- ==================== ADMIN PROFILE & PASSWORD CHANGE ==================== -->
+     <section id="page-admin-profile" class="page">
+-      <h2>🔑 Change Password</h2>
++      <h2>Change Password</h2>
+       <p class="subtitle">Manage your administrator account password.</p>
+ 
+       <!-- Change Password Section -->
+       <div class="status-card" style="padding:1.5rem;max-width:600px;margin:0 auto;">
+-        <h3 style="margin:0 0 0.75rem 0;font-size:1.1rem;">🔑 Change Password</h3>
++        <h3 style="margin:0 0 0.75rem 0;font-size:1.1rem;">Change Password</h3>
+         <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:1rem;">Enter your new password below. Minimum 6 characters.</p>
+         <form id="adminPasswordForm" class="auth-form" style="max-width:520px;box-shadow:none;border:none;padding:0;">
+           <div class="form-group"><label>New Password *</label><input type="password" id="adminNewPassword" required minlength="6" placeholder="Enter new password" /></div>
+@@ -1932,12 +1932,12 @@
+ 
+     <!-- ==================== ADMIN EXAMINATION DETAIL / RESULTS VIEW ==================== -->
+     <section id="page-admin-exam-detail" class="page">
+-      <h2>📝 Exam Results Summary</h2>
++      <h2>Exam Results Summary</h2>
+       <p class="subtitle">View saved exam results.</p>
+       <div class="search-filter-row">
+         <select id="adminResultExam" class="filter-select"><option value="">— Select Exam —</option></select>
+         <select id="adminResultClass" class="filter-select"><option value="">— All Classes —</option></select>
+-        <button type="button" class="btn btn-secondary" id="btnPrintResultSummary">🖨️ Print Results</button>
++        <button type="button" class="btn btn-secondary" id="btnPrintResultSummary">Print Results</button>
+       </div>
+       <div class="table-wrapper">
+         <table class="app-table" id="adminResultsTable">
+@@ -1952,27 +1952,27 @@
+     <section id="page-student-dashboard" class="page page-dashboard">
+       <div class="dashboard-layout">
+         <aside class="dash-sidebar student-brand" id="studentSidebar">
+-          <div class="sidebar-brand"><div class="sidebar-logo-circle">🎓</div><span class="sidebar-school-name">Student Portal</span><span class="sidebar-school-sub">My Learning Hub</span></div>
++          <div class="sidebar-brand"><div class="sidebar-logo-circle"></div><span class="sidebar-school-name">Student Portal</span><span class="sidebar-school-sub">My Learning Hub</span></div>
+           <div class="dash-profile">
+-            <div class="dash-avatar">🎓</div>
++            <div class="dash-avatar"></div>
+             <div class="dash-avatar-info"><span id="sidebarStudentName" class="dash-sidebar-name">Student</span><span class="dash-sidebar-role-badge">Student</span></div>
+           </div>
+           <nav class="dash-nav">
+-            <button type="button" class="dash-nav-link active" data-student-page="profile"><span class="dash-nav-icon">⚙️</span> Profile</button>
+-            <button type="button" class="dash-nav-link" data-student-page="attendance"><span class="dash-nav-icon">📋</span> Attendance</button>
+-            <button type="button" class="dash-nav-link" data-student-page="announcements"><span class="dash-nav-icon">📢</span> Announcements</button>
+-            <button type="button" class="dash-nav-link" data-student-page="exams"><span class="dash-nav-icon">📝</span> Exams</button>
+-            <button type="button" class="dash-nav-link" data-student-page="assessments"><span class="dash-nav-icon">❓</span> Assessments</button>
+-            <button type="button" class="dash-nav-link" data-student-page="fees"><span class="dash-nav-icon">💰</span> Fees</button>
++            <button type="button" class="dash-nav-link active" data-student-page="profile">Profile</button>
++            <button type="button" class="dash-nav-link" data-student-page="attendance">Attendance</button>
++            <button type="button" class="dash-nav-link" data-student-page="announcements">Announcements</button>
++            <button type="button" class="dash-nav-link" data-student-page="exams">Exams</button>
++            <button type="button" class="dash-nav-link" data-student-page="assessments">Assessments</button>
++            <button type="button" class="dash-nav-link" data-student-page="fees">Fees</button>
+           </nav>
+-          <div class="sidebar-logout"><button type="button" class="dash-nav-link" onclick="handleLogout()"><span class="dash-nav-icon">🚪</span> Logout</button></div>
++          <div class="sidebar-logout"><button type="button" class="dash-nav-link" onclick="handleLogout()">Logout</button></div>
+         </aside>
+         <div class="dash-main student-main">
+           <div class="dash-welcome-card">
+-            <div class="dash-welcome-icon">👋</div>
++            <div class="dash-welcome-icon"></div>
+             <div class="dash-welcome-text"><h3 id="studentWelcome">Welcome!</h3><p>View your profile, announcements, and fee details.</p></div>
+           </div>
+-          <div class="dash-header"><h2 id="studentDashTitle">🎓 My Profile</h2><p class="subtitle">Manage your personal information</p></div>
++          <div class="dash-header"><h2 id="studentDashTitle">My Profile</h2><p class="subtitle">Manage your personal information</p></div>
+           <div id="studentPage-profile" class="student-subpage active-subpage">
+             <div id="studentProfileCard" class="status-card">
+               <div id="studentProfilePhoto" style="text-align:center;margin-bottom:1rem;"></div>
+@@ -2000,7 +2000,7 @@
+ 
+               <!-- Password Change Section -->
+               <div class="password-change-section" style="margin-top:1.5rem;padding-top:1.5rem;border-top:2px solid var(--border);">
+-                <h3 style="margin:0 0 0.75rem 0;font-size:1.1rem;">🔑 Change Password</h3>
++                <h3 style="margin:0 0 0.75rem 0;font-size:1.1rem;">Change Password</h3>
+                 <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:1rem;">Enter your new password below. Minimum 6 characters.</p>
+                 <form id="studentPasswordForm" class="auth-form" style="max-width:520px;box-shadow:none;border:none;padding:0;">
+                   <div class="form-group"><label>New Password *</label><input type="password" id="studentNewPassword" required minlength="6" placeholder="Enter new password" /></div>
+@@ -2023,7 +2023,7 @@
+             </div>
+           </div>
+           <div id="studentPage-attendance" class="student-subpage">
+-            <h3>📋 My Attendance Records</h3>
++            <h3>My Attendance Records</h3>
+             <p class="subtitle">View your daily attendance history for the current academic year and term.</p>
+             <div class="attendance-summary-row" id="studentAttStats" style="margin-bottom:1rem;">
+               <div class="att-stat-card present"><span class="att-stat-number" id="stuAttPresent">0</span><span>Present</span></div>
+@@ -2040,29 +2040,29 @@
+             <p id="studentNoAttendance" style="display:none;text-align:center;color:var(--text-muted);padding:2rem;">No attendance records found.</p>
+           </div>
+           <div id="studentPage-announcements" class="student-subpage">
+-            <h3>📢 Announcements</h3>
++            <h3>Announcements</h3>
+             <div id="studentAnnouncementsList" class="announcement-list"></div>
+             <p id="studentNoAnnouncements" style="display:none;text-align:center;color:var(--text-muted);padding:2rem;">No announcements at this time.</p>
+           </div>
+           <div id="studentPage-exams" class="student-subpage">
+-            <h3>📝 My Exam Report Cards</h3>
++            <h3>My Exam Report Cards</h3>
+             <p class="subtitle">View your examination results and report cards.</p>
+             <div id="studentExamSelectors" style="display:flex;gap:0.75rem;flex-wrap:wrap;margin-bottom:1rem;">
+               <select id="studentExamSelect" class="filter-select" style="min-width:220px;"><option value="">— Select Exam —</option></select>
+-              <button type="button" class="btn btn-primary" id="btnStudentViewReport">👁 View Report Card</button>
+-              <button type="button" class="btn btn-secondary" id="btnStudentPrintReport">🖨️ Print</button>
++              <button type="button" class="btn btn-primary" id="btnStudentViewReport">View Report Card</button>
++              <button type="button" class="btn btn-secondary" id="btnStudentPrintReport">Print</button>
+             </div>
+             <div id="studentNoExams" style="display:none;text-align:center;color:var(--text-muted);padding:2rem;">No exam records found for your account.</div>
+             <div id="studentExamReportContainer" style="margin-top:1rem;"></div>
+           </div>
+ <div id="studentPage-assessments" class="student-subpage">
+-            <h3>❓ My Assessments</h3>
++            <h3>My Assessments</h3>
+             <p class="subtitle">Take auto-marked multiple-choice assessments. Every student gets a different randomised question arrangement.</p>
+             <div id="studentAssessmentsList"></div>
+             <div id="studentAssessResults" style="margin-top:1.25rem;"></div>
+           </div>
+           <div id="studentPage-fees" class="student-subpage">
+-            <h3>💰 My Fee Details</h3>
++            <h3>My Fee Details</h3>
+             <p class="subtitle">View your fee balances, payment history, and receipts.</p>
+             <div id="studentNoFees" style="display:none;text-align:center;color:var(--text-muted);padding:2rem;">No fee records found for your account.</div>
+             <div id="studentFeeSummary"></div>
+@@ -2075,22 +2075,22 @@
+     <section id="page-parent-dashboard" class="page page-dashboard">
+       <div class="dashboard-layout">
+         <aside class="dash-sidebar parent-brand" id="parentSidebar">
+-          <div class="sidebar-brand"><div class="sidebar-logo-circle">👨‍👩‍👧</div><span class="sidebar-school-name">Parent Portal</span><span class="sidebar-school-sub">My Ward's Progress</span></div>
++          <div class="sidebar-brand"><div class="sidebar-logo-circle"></div><span class="sidebar-school-name">Parent Portal</span><span class="sidebar-school-sub">My Ward's Progress</span></div>
+           <div class="dash-profile">
+-            <div class="dash-avatar">👨‍👩‍👧</div>
++            <div class="dash-avatar"></div>
+             <div class="dash-avatar-info"><span id="sidebarParentName" class="dash-sidebar-name">Parent</span><span class="dash-sidebar-role-badge">Parent</span></div>
+           </div>
+           <nav class="dash-nav">
+-            <button type="button" class="dash-nav-link active" onclick="document.getElementById('page-parent-dashboard').querySelector('.dash-welcome-card').scrollIntoView()"><span class="dash-nav-icon">👨‍👩‍👧</span> My Ward</button>
++            <button type="button" class="dash-nav-link active" onclick="document.getElementById('page-parent-dashboard').querySelector('.dash-welcome-card').scrollIntoView()">My Ward</button>
+           </nav>
+-          <div class="sidebar-logout"><button type="button" class="dash-nav-link" onclick="handleLogout()"><span class="dash-nav-icon">🚪</span> Logout</button></div>
++          <div class="sidebar-logout"><button type="button" class="dash-nav-link" onclick="handleLogout()">Logout</button></div>
+         </aside>
+         <div class="dash-main">
+           <div class="dash-welcome-card">
+-            <div class="dash-welcome-icon">👋</div>
++            <div class="dash-welcome-icon"></div>
+             <div class="dash-welcome-text"><h3 id="parentWelcome">Welcome!</h3><p>View your ward's academic progress and information.</p></div>
+           </div>
+-          <div class="dash-header"><h2>👨‍👩‍👧‍👦 My Ward</h2><p class="subtitle">View your child's school information</p></div>
++          <div class="dash-header"><h2>My Ward</h2><p class="subtitle">View your child's school information</p></div>
+           <div id="parentProfileCard"><div id="parentProfileContent" class="parent-ward-cards"><p style="color:var(--text-muted);">Loading your ward's information...</p></div></div>
+         </div>
+       </div>
+@@ -2100,24 +2100,24 @@
+     <section id="page-teacher-dashboard" class="page page-dashboard">
+       <div class="dashboard-layout">
+         <aside class="dash-sidebar teacher-brand" id="teacherSidebar">
+-          <div class="sidebar-brand"><div class="sidebar-logo-circle">📚</div><span class="sidebar-school-name">Teacher Portal</span><span class="sidebar-school-sub">My Classroom</span></div>
++          <div class="sidebar-brand"><div class="sidebar-logo-circle"></div><span class="sidebar-school-name">Teacher Portal</span><span class="sidebar-school-sub">My Classroom</span></div>
+           <div class="dash-profile">
+-            <div class="dash-avatar">👨‍🏫</div>
++            <div class="dash-avatar"></div>
+             <div class="dash-avatar-info"><span id="teacherSidebarName" class="dash-sidebar-name">Teacher</span><span class="dash-sidebar-role-badge">Teacher</span></div>
+           </div>
+           <nav class="dash-nav">
+-            <button type="button" class="dash-nav-link active" data-teacher-page="dashboard"><span class="dash-nav-icon">⭐</span> Dashboard</button>
+-            <button type="button" class="dash-nav-link" data-teacher-page="students"><span class="dash-nav-icon">👥</span> My Students</button>
+-            <button type="button" class="dash-nav-link" data-teacher-page="attendance"><span class="dash-nav-icon">📋</span> Attendance</button>
+-            <button type="button" class="dash-nav-link" data-teacher-page="exams"><span class="dash-nav-icon">📝</span> Exams</button>
+-            <button type="button" class="dash-nav-link" data-teacher-page="assessments"><span class="dash-nav-icon">❓</span> Assessments</button>
+-            <button type="button" class="dash-nav-link" data-teacher-page="profile"><span class="dash-nav-icon">👤</span> My Profile</button>
++            <button type="button" class="dash-nav-link active" data-teacher-page="dashboard">Dashboard</button>
++            <button type="button" class="dash-nav-link" data-teacher-page="students">My Students</button>
++            <button type="button" class="dash-nav-link" data-teacher-page="attendance">Attendance</button>
++            <button type="button" class="dash-nav-link" data-teacher-page="exams">Exams</button>
++            <button type="button" class="dash-nav-link" data-teacher-page="assessments">Assessments</button>
++            <button type="button" class="dash-nav-link" data-teacher-page="profile">My Profile</button>
+           </nav>
+-          <div class="sidebar-logout"><button type="button" class="dash-nav-link" onclick="handleLogout()"><span class="dash-nav-icon">🚪</span> Logout</button></div>
++          <div class="sidebar-logout"><button type="button" class="dash-nav-link" onclick="handleLogout()">Logout</button></div>
+         </aside>
+         <div class="dash-main teacher-main">
+           <div class="dash-welcome-card">
+-            <div class="dash-welcome-icon">👋</div>
++            <div class="dash-welcome-icon"></div>
+             <div class="dash-welcome-text"><h3 id="teacherWelcome">Welcome, Teacher!</h3><p id="teacherClassInfo">Manage your class students, attendance, and exams.</p></div>
+             <a href="https://mail.google.com/mail/?view=cm&fs=1&to=boahengeeman@gmail.com"
+                target="_blank" rel="noopener noreferrer"
+@@ -2132,7 +2132,7 @@
+               <span>Email Super Admin</span>
+             </a>
+           </div>
+-          <div class="dash-header"><h2 id="teacherDashTitle">⭐ Dashboard</h2><p class="subtitle">Your classroom at a glance</p></div>
++          <div class="dash-header"><h2 id="teacherDashTitle">Dashboard</h2><p class="subtitle">Your classroom at a glance</p></div>
+ 
+           <!-- ===== DASHBOARD STATS ===== -->
+           <div id="teacherPage-dashboard" class="teacher-subpage active-subpage">
+@@ -2144,9 +2144,9 @@
+               <div class="stat-card" style="border-left:3px solid #06b6d4;"><span class="stat-number" id="teacherStatFemale">0</span><span>Female</span></div>
+             </div>
+             <div style="margin-top:1rem;display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.75rem;">
+-              <a href="#" class="btn btn-primary" style="padding:1rem;font-size:1rem;" onclick='document.querySelector("[data-teacher-page=students]").click();return false;'>👥 View My Students</a>
+-              <a href="#" class="btn btn-secondary" style="padding:1rem;font-size:1rem;" onclick='document.querySelector("[data-teacher-page=attendance]").click();return false;'>📋 Mark Attendance</a>
+-              <a href="#" class="btn btn-secondary" style="padding:1rem;font-size:1rem;" onclick='document.querySelector("[data-teacher-page=exams]").click();return false;'>📝 Manage Exams</a>
++              <a href="#" class="btn btn-primary" style="padding:1rem;font-size:1rem;" onclick='document.querySelector("[data-teacher-page=students]").click();return false;'>View My Students</a>
++              <a href="#" class="btn btn-secondary" style="padding:1rem;font-size:1rem;" onclick='document.querySelector("[data-teacher-page=attendance]").click();return false;'>Mark Attendance</a>
++              <a href="#" class="btn btn-secondary" style="padding:1rem;font-size:1rem;" onclick='document.querySelector("[data-teacher-page=exams]").click();return false;'>Manage Exams</a>
+             </div>
+ 
+             <!-- ===== TODAY'S ATTENDANCE BY CLASS ===== -->
+@@ -2177,13 +2177,13 @@
+ 
+             <!-- Lock Notice -->
+             <div id="teacherAttLockNotice" style="display:none;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:var(--radius-sm);padding:0.65rem 0.85rem;margin-bottom:0.75rem;font-size:0.8rem;color:#92400e;">
+-              🔒 <strong>Note:</strong> Attendance records that have already been marked are <strong>locked</strong> and can only be edited by the school administrator.
++              <strong>Note:</strong> Attendance records that have already been marked are <strong>locked</strong> and can only be edited by the school administrator.
+             </div>
+ 
+             <!-- Mode Toggle -->
+             <div class="att-mode-tabs">
+-              <button type="button" class="att-mode-btn active" data-teacher-att-mode="daily" id="teacherAttModeDaily">📅 Daily Mode</button>
+-              <button type="button" class="att-mode-btn" data-teacher-att-mode="monthly" id="teacherAttModeMonthly">📆 30-Day Checkbox Mode</button>
++              <button type="button" class="att-mode-btn active" data-teacher-att-mode="daily" id="teacherAttModeDaily">Daily Mode</button>
++              <button type="button" class="att-mode-btn" data-teacher-att-mode="monthly" id="teacherAttModeMonthly">30-Day Checkbox Mode</button>
+             </div>
+ 
+             <!-- ===== DAILY MODE ===== -->
+@@ -2192,9 +2192,9 @@
+             <div class="attendance-toolbar card-toolbar">
+               <input type="date" id="teacherAttDate" class="search-input" style="max-width:160px;" />
+               <select id="teacherAttClass" class="filter-select" style="max-width:180px;"><option value="">— Class —</option></select>
+-              <button type="button" class="btn btn-primary" id="teacherBtnLoadAttendance">📋 Load Attendance</button>
+-              <button type="button" class="btn btn-secondary" id="teacherBtnSaveAttendance">💾 Save Attendance</button>
+-              <button type="button" class="btn btn-secondary" id="teacherBtnViewReport">📊 View Reports</button>
++              <button type="button" class="btn btn-primary" id="teacherBtnLoadAttendance">Load Attendance</button>
++              <button type="button" class="btn btn-secondary" id="teacherBtnSaveAttendance">Save Attendance</button>
++              <button type="button" class="btn btn-secondary" id="teacherBtnViewReport">View Reports</button>
+             </div>
+ 
+             <div class="attendance-summary-row" id="teacherAttStats" style="display:none;">
+@@ -2204,7 +2204,7 @@
+             </div>
+ 
+             <div class="attendance-instructions" style="background:var(--primary-light);border-radius:var(--radius-sm);padding:0.75rem 1rem;margin-bottom:1rem;font-size:0.85rem;color:var(--text);">
+-              <strong>📌 Instructions:</strong> Select date and click <strong>"Load Attendance"</strong>. Click status buttons to toggle: ✓ Present, ✗ Absent. Click <strong>"Save Attendance"</strong> to persist.
++              <strong>Instructions:</strong> Select date and click <strong>"Load Attendance"</strong>. Click status buttons to toggle: ✓ Present, ✗ Absent. Click <strong>"Save Attendance"</strong> to persist.
+             </div>
+ 
+             <div id="teacherAttMessage" class="message" style="display:none;"></div>
+@@ -2219,18 +2219,18 @@
+ 
+             <!-- Attendance Report Section -->
+             <div id="teacherAttReportSection" style="display:none;margin-top:2rem;padding-top:1.5rem;border-top:2px solid var(--border);">
+-              <h3>📊 Attendance Report</h3>
++              <h3>Attendance Report</h3>
+               <div class="card-toolbar" style="flex-wrap:wrap;">
+                 <input type="text" id="teacherAttReportSearch" placeholder="Search report..." class="search-input" style="max-width:200px;" />
+                 <select id="teacherAttReportTerm" class="filter-select"><option value="">All Terms</option><option value="First">First Term</option><option value="Second">Second Term</option><option value="Third">Third Term</option></select>
+                 <input type="date" id="teacherAttReportDateFrom" class="search-input" style="max-width:150px;" title="From Date" />
+                 <input type="date" id="teacherAttReportDateTo" class="search-input" style="max-width:150px;" title="To Date" />
+-                <button type="button" class="btn btn-secondary" id="teacherBtnPrintAttDailyReport">📅 Print Daily Report</button>
++                <button type="button" class="btn btn-secondary" id="teacherBtnPrintAttDailyReport">Print Daily Report</button>
+               </div>
+               <!-- Report Type Toggle -->
+               <div class="card-toolbar" style="margin-top:0.5rem;gap:0.5rem;">
+-                <button type="button" class="btn btn-sm btn-secondary teacher-att-report-mode active" data-mode="summary" id="teacherBtnAttReportSummary">📊 Summary View</button>
+-                <button type="button" class="btn btn-sm btn-secondary teacher-att-report-mode" data-mode="daily" id="teacherBtnAttReportDaily">📅 Daily View</button>
++                <button type="button" class="btn btn-sm btn-secondary teacher-att-report-mode active" data-mode="summary" id="teacherBtnAttReportSummary">Summary View</button>
++                <button type="button" class="btn btn-sm btn-secondary teacher-att-report-mode" data-mode="daily" id="teacherBtnAttReportDaily">Daily View</button>
+                 <span style="font-size:0.75rem;color:var(--text-muted);margin-left:auto;">Showing records for: <strong id="teacherAttReportDateLabel">All Dates</strong></span>
+               </div>
+               <!-- Summary View -->
+@@ -2258,15 +2258,15 @@
+               <div class="att-monthly-toolbar">
+                 <input type="date" id="teacherAttMonthlyStart" class="search-input" style="max-width:160px;" />
+                 <select id="teacherAttMonthlyClass" class="filter-select" style="max-width:180px;"><option value="">— Class —</option></select>
+-                <button type="button" class="btn btn-primary" id="teacherBtnLoadMonthlyAttendance">📋 Load 30-Day Grid</button>
+-                <button type="button" class="btn btn-secondary" id="teacherBtnSaveMonthlyAttendance">💾 Save All Changes</button>
+-                <button type="button" class="btn btn-sm btn-secondary" id="teacherBtnSetAllPresent">✅ All Present</button>
+-                <button type="button" class="btn btn-sm btn-secondary" id="teacherBtnSetAllAbsent">❌ All Absent</button>
+-                <button type="button" class="btn btn-sm btn-danger" id="teacherBtnResetMonthlyAttendance">🔄 Reset All</button>
++                <button type="button" class="btn btn-primary" id="teacherBtnLoadMonthlyAttendance">Load 30-Day Grid</button>
++                <button type="button" class="btn btn-secondary" id="teacherBtnSaveMonthlyAttendance">Save All Changes</button>
++                <button type="button" class="btn btn-sm btn-secondary" id="teacherBtnSetAllPresent">All Present</button>
++                <button type="button" class="btn btn-sm btn-secondary" id="teacherBtnSetAllAbsent">All Absent</button>
++                <button type="button" class="btn btn-sm btn-danger" id="teacherBtnResetMonthlyAttendance">Reset All</button>
+               </div>
+ 
+               <div class="att-monthly-instructions" style="background:var(--primary-light);border-radius:var(--radius-sm);padding:0.75rem 1rem;margin-bottom:1rem;font-size:0.85rem;color:var(--text);">
+-                <strong>📌 Instructions:</strong> Select a start date and class, then click <strong>"Load 30-Day Grid"</strong>.
++                <strong>Instructions:</strong> Select a start date and class, then click <strong>"Load 30-Day Grid"</strong>.
+                 Click any cell to toggle between <span style="color:#991b1b;">Absent</span> and <span style="color:#065f46;">Present</span>.
+                 Click column headers to toggle all students for that day. Click <strong>"Save All Changes"</strong> to persist.
+               </div>
+@@ -2304,15 +2304,15 @@
+               <select id="teacherExamSelect" class="filter-select" style="min-width:220px;"><option value="">— Select Exam —</option></select>
+               <select id="teacherExamClass" class="filter-select" style="min-width:160px;"><option value="">— All Classes —</option></select>
+               <select id="teacherExamSubject" class="filter-select" style="min-width:160px;"><option value="">— All Subjects —</option></select>
+-              <button type="button" class="btn btn-primary" id="teacherBtnLoadExamStudents">📥 Load Students</button>
++              <button type="button" class="btn btn-primary" id="teacherBtnLoadExamStudents">Load Students</button>
+             </div>
+ 
+             <div id="teacherExamMessage" class="message" style="display:none;"></div>
+ 
+             <div class="card-toolbar" style="margin-top:0.5rem;">
+-              <button type="button" class="btn btn-secondary" id="teacherBtnSaveScores">💾 Save All Scores</button>
+-              <button type="button" class="btn btn-secondary" id="teacherBtnAutoRank">🏆 Auto Rank</button>
+-              <button type="button" class="btn btn-secondary" id="teacherBtnPrintReportCards">🖨️ Print Report Cards</button>
++              <button type="button" class="btn btn-secondary" id="teacherBtnSaveScores">Save All Scores</button>
++              <button type="button" class="btn btn-secondary" id="teacherBtnAutoRank">Auto Rank</button>
++              <button type="button" class="btn btn-secondary" id="teacherBtnPrintReportCards">Print Report Cards</button>
+             </div>
+ 
+             <div class="table-wrapper" style="margin-top:0.5rem;">
+@@ -2339,13 +2339,13 @@
+ 
+             <div class="card-toolbar" style="flex-wrap:wrap;">
+               <div class="assess-nav-pills" id="teacherAssessTabs" style="margin:0;">
+-                <button type="button" class="active" data-tatab="questions">🗂️ Question Bank</button>
+-                <button type="button" data-tatab="assessments">📝 My Assessments</button>
+-                <button type="button" data-tatab="attempts">📈 Results</button>
++                <button type="button" class="active" data-tatab="questions">Question Bank</button>
++                <button type="button" data-tatab="assessments">My Assessments</button>
++                <button type="button" data-tatab="attempts">Results</button>
+               </div>
+               <span style="margin-left:auto;display:flex;gap:0.5rem;">
+-                <button type="button" class="btn btn-secondary" id="btnTeacherBulkImport">📤 Bulk Import</button>
+-                <button type="button" class="btn btn-primary" id="btnTeacherAddQuestion">➕ Add Question</button>
++                <button type="button" class="btn btn-secondary" id="btnTeacherBulkImport">Bulk Import</button>
++                <button type="button" class="btn btn-primary" id="btnTeacherAddQuestion">Add Question</button>
+               </span>
+             </div>
+             <div id="teacherAssessMessage" class="message" style="display:none;"></div>
+@@ -2364,7 +2364,7 @@
+             <!-- Assessments -->
+             <div id="teacherAssessTab-assessments" class="assess-tab-content" style="display:none;">
+               <div class="assessment-toolbar">
+-                <button type="button" class="btn btn-primary" id="btnTeacherCreateAssessment">➕ Create Assessment</button>
++                <button type="button" class="btn btn-primary" id="btnTeacherCreateAssessment">Create Assessment</button>
+                 <span class="assessment-instructions" style="margin:0;">Create a paper that randomly draws questions from your bank for your subjects/classes.</span>
+               </div>
+               <div id="teacherAssessmentList"></div>
+@@ -2375,7 +2375,7 @@
+             <div id="teacherAssessTab-attempts" class="assess-tab-content" style="display:none;">
+               <div class="assessment-toolbar">
+                 <span style="font-size:0.85rem;color:var(--text-muted);">Results for your subjects/classes.</span>
+-                <button type="button" class="btn btn-primary" style="margin-left:auto;" id="btnPrintTeacherAttempts">🖨️ Print Results</button>
++                <button type="button" class="btn btn-primary" style="margin-left:auto;" id="btnPrintTeacherAttempts">Print Results</button>
+               </div>
+               <div class="table-wrapper">
+                 <table class="app-table">
+@@ -2388,7 +2388,7 @@
+ 
+             <!-- Reusable single question form (teacher) -->
+             <details class="admit-section" id="teacherQuestionFormSection" style="margin:1rem 0;">
+-              <summary class="btn btn-secondary" style="cursor:pointer;">✏️ Add / Edit Question</summary>
++              <summary class="btn btn-secondary" style="cursor:pointer;">Add / Edit Question</summary>
+               <form id="teacherQuestionForm" class="admission-form" style="margin-top:1rem;max-width:100%;">
+                 <input type="hidden" id="teacherQuestionEditId" />
+                 <div class="form-row">
+@@ -2407,13 +2407,13 @@
+                   <div class="form-group"><label>Correct Option *</label><select id="teacherQuestionCorrect" required><option value="">— Select —</option><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option></select></div>
+                   <div class="form-group" style="flex:2;"><label>Explanation</label><input type="text" id="teacherQuestionExplanation" /></div>
+                 </div>
+-                <button type="submit" class="btn btn-primary btn-full" id="teacherQuestionSubmitBtn">💾 Save Question</button>
++                <button type="submit" class="btn btn-primary btn-full" id="teacherQuestionSubmitBtn">Save Question</button>
+               </form>
+               <div id="teacherQuestionFormMessage" class="message" style="display:none;"></div>
+             </details>
+ <!-- Teacher bulk import -->
+             <details class="admit-section" id="teacherBulkImportSection" style="margin:1rem 0;">
+-              <summary class="btn btn-secondary" style="cursor:pointer;">📤 Bulk Import (thousands at a time)</summary>
++              <summary class="btn btn-secondary" style="cursor:pointer;">Bulk Import (thousands at a time)</summary>
+               <div style="margin-top:1rem;">
+                 <div class="assessment-instructions">
+                   Tab-separated: <code>subject&#9;class&#9;topic&#9;question&#9;A&#9;B&#9;C&#9;D&#9;correct[&#9;explanation]</code>.
+@@ -2423,8 +2423,8 @@
+                 <div class="form-row" style="align-items:center;margin-top:0.75rem;">
+                   <input type="file" id="teacherBulkImportFile" accept=".csv,.txt" style="max-width:260px;" />
+                   <span style="display:flex;gap:0.5rem;margin-left:auto;">
+-                    <button type="button" class="btn btn-secondary" id="btnTeacherPreviewBulk">🔍 Preview</button>
+-                    <button type="button" class="btn btn-primary" id="btnTeacherRunBulk">🚀 Import</button>
++                    <button type="button" class="btn btn-secondary" id="btnTeacherPreviewBulk">Preview</button>
++                    <button type="button" class="btn btn-primary" id="btnTeacherRunBulk">Import</button>
+                   </span>
+                 </div>
+                 <div id="teacherBulkImportPreview" style="margin-top:0.75rem;"></div>
+@@ -2433,7 +2433,7 @@
+ 
+             <!-- Teacher create assessment -->
+             <details class="admit-section" id="teacherAssessmentConfigSection" style="margin:1rem 0;">
+-              <summary class="btn btn-secondary" style="cursor:pointer;">📝 Create / Edit Assessment</summary>
++              <summary class="btn btn-secondary" style="cursor:pointer;">Create / Edit Assessment</summary>
+               <form id="teacherAssessmentConfigForm" class="admission-form" style="margin-top:1rem;max-width:100%;">
+                 <input type="hidden" id="teacherAssessmentConfigId" />
+                 <div class="form-row">
+@@ -2455,7 +2455,7 @@
+                   <div class="form-group" style="flex:2;"><label>Description</label><input type="text" id="teacherAssessmentDescription" /></div>
+                   <label style="display:flex;gap:0.4rem;align-items:center;margin-top:1.4rem;"><input type="checkbox" id="teacherAssessmentActive" checked /> Active</label>
+                   <label style="display:flex;gap:0.4rem;align-items:center;margin-top:1.4rem;"><input type="checkbox" id="teacherAssessmentPublished" /> Publish</label>
+-                  <button type="submit" class="btn btn-primary" id="teacherAssessmentConfigSubmitBtn">💾 Save Assessment</button>
++                  <button type="submit" class="btn btn-primary" id="teacherAssessmentConfigSubmitBtn">Save Assessment</button>
+                 </div>
+                 <div id="teacherAssessmentConfigMessage" class="message" style="display:none;"></div>
+               </form>
+@@ -2464,7 +2464,7 @@
+           
+           <!-- ===== PROFILE ===== -->
+           <div id="teacherPage-profile" class="teacher-subpage">
+-            <h3>👤 My Profile</h3>
++            <h3>My Profile</h3>
+             <p class="subtitle">Complete your teacher profile. Fields marked * are required.</p>
+             <form id="teacherProfileForm" class="auth-form" style="max-width:100%;">
+               <div class="form-row">
+@@ -2472,7 +2472,7 @@
+                   <label>Photo</label>
+                   <div style="width:120px;height:120px;border-radius:50%;border:3px dashed var(--border);display:flex;align-items:center;justify-content:center;overflow:hidden;background:var(--bg);margin-bottom:0.5rem;">
+                     <img id="teacherProfilePhotoPreview" src="#" alt="Photo Preview" style="display:none;width:100%;height:100%;object-fit:cover;" />
+-                    <span id="teacherProfilePhotoPlaceholder" style="font-size:2.5rem;color:var(--text-muted);">👤</span>
++                    <span id="teacherProfilePhotoPlaceholder" style="font-size:2.5rem;color:var(--text-muted);"></span>
+                   </div>
+                   <input type="file" id="teacherProfilePhoto" accept="image/*" />
+                   <small style="color:var(--text-muted);font-size:0.75rem;">JPG/PNG up to 2MB</small>
+@@ -2566,7 +2566,7 @@
+                   <input type="file" id="teacherProfileAppointmentFile" accept=".pdf" />
+                 </div>
+               </div>
+-              <button type="submit" class="btn btn-primary btn-full">💾 Save Profile</button>
++              <button type="submit" class="btn btn-primary btn-full">Save Profile</button>
+             </form>
+             <div id="teacherProfileMessage" class="message" style="display:none;"></div>
+           </div>
+@@ -2579,40 +2579,40 @@
+       <div class="dashboard-layout">
+         <aside class="dash-sidebar super-admin-brand" id="superAdminSidebar">
+           <div class="sidebar-brand">
+-            <div class="sidebar-logo-circle">⭐</div>
++            <div class="sidebar-logo-circle"></div>
+             <span class="sidebar-school-name" id="superSidebarSchoolName">My School</span>
+             <span class="sidebar-school-sub">Super Administrator</span>
+           </div>
+           <div class="dash-profile">
+-            <div class="dash-avatar">⭐</div>
++            <div class="dash-avatar"></div>
+             <div class="dash-avatar-info">
+               <span id="superSidebarName" class="dash-sidebar-name">Super Admin</span>
+               <span class="dash-sidebar-role-badge">Super Admin</span>
+             </div>
+           </div>
+           <nav class="dash-nav">
+-            <button type="button" class="dash-nav-link active" data-super-page="dashboard"><span class="dash-nav-icon">⭐</span> Dashboard</button>
+-            <button type="button" class="dash-nav-link" data-super-page="schools"><span class="dash-nav-icon">🏫</span> Schools</button>
+-            <button type="button" class="dash-nav-link" data-super-page="sub-admins"><span class="dash-nav-icon">👥</span> Sub Admins</button>
+-            <button type="button" class="dash-nav-link" data-super-page="students"><span class="dash-nav-icon">👥</span> Students</button>
+-            <button type="button" class="dash-nav-link" data-super-page="teachers"><span class="dash-nav-icon">📚</span> Teachers</button>
+-            <button type="button" class="dash-nav-link" data-super-page="parents"><span class="dash-nav-icon">👨‍👩‍👧</span> Parents</button>
+-            <button type="button" class="dash-nav-link" data-super-page="accountants"><span class="dash-nav-icon">🧾</span> Accountants</button>
+-            <button type="button" class="dash-nav-link" data-super-page="classes"><span class="dash-nav-icon">🏫</span> Classes</button>
+-            <button type="button" class="dash-nav-link" data-super-page="subjects"><span class="dash-nav-icon">📖</span> Subjects</button>
+-            <button type="button" class="dash-nav-link" data-super-page="announcements"><span class="dash-nav-icon">📢</span> Announcements</button>
+-            <button type="button" class="dash-nav-link" data-super-page="attendance"><span class="dash-nav-icon">📋</span> Attendance</button>
+-            <button type="button" class="dash-nav-link" data-super-page="exams"><span class="dash-nav-icon">📝</span> Exams</button>
+-            <button type="button" class="dash-nav-link" data-super-page="settings"><span class="dash-nav-icon">⚙️</span> Settings</button>
+-            <button type="button" class="dash-nav-link" data-super-page="profile"><span class="dash-nav-icon">👤</span> My Profile</button>
++            <button type="button" class="dash-nav-link active" data-super-page="dashboard">Dashboard</button>
++            <button type="button" class="dash-nav-link" data-super-page="schools">Schools</button>
++            <button type="button" class="dash-nav-link" data-super-page="sub-admins">Sub Admins</button>
++            <button type="button" class="dash-nav-link" data-super-page="students">Students</button>
++            <button type="button" class="dash-nav-link" data-super-page="teachers">Teachers</button>
++            <button type="button" class="dash-nav-link" data-super-page="parents">Parents</button>
++            <button type="button" class="dash-nav-link" data-super-page="accountants">Accountants</button>
++            <button type="button" class="dash-nav-link" data-super-page="classes">Classes</button>
++            <button type="button" class="dash-nav-link" data-super-page="subjects">Subjects</button>
++            <button type="button" class="dash-nav-link" data-super-page="announcements">Announcements</button>
++            <button type="button" class="dash-nav-link" data-super-page="attendance">Attendance</button>
++            <button type="button" class="dash-nav-link" data-super-page="exams">Exams</button>
++            <button type="button" class="dash-nav-link" data-super-page="settings">Settings</button>
++            <button type="button" class="dash-nav-link" data-super-page="profile">My Profile</button>
+           </nav>
+           <div class="sidebar-logout">
+-            <button type="button" class="dash-nav-link" onclick="handleLogout()"><span class="dash-nav-icon">🚪</span> Logout</button>
++            <button type="button" class="dash-nav-link" onclick="handleLogout()">Logout</button>
+           </div>
+         </aside>
+         <div class="dash-main super-admin-main">
+           <div class="dash-welcome-card">
+-            <div class="dash-welcome-icon">⭐</div>
++            <div class="dash-welcome-icon"></div>
+             <div class="dash-welcome-text"><h3 id="superAdminWelcome">Welcome, Super Admin!</h3><p>Oversee all schools, users, and system-wide operations.</p></div>
+             <a href="https://mail.google.com/mail/?view=cm&fs=1&to=boahengeeman@gmail.com"
+                target="_blank" rel="noopener noreferrer"
+@@ -2628,7 +2628,7 @@
+             </a>
+           </div>
+           <div class="dash-header">
+-            <h2 id="superAdminDashTitle">⭐ Dashboard Overview</h2>
++            <h2 id="superAdminDashTitle">Dashboard Overview</h2>
+             <p class="subtitle">System-wide analytics and management</p>
+           </div>
+ 
+@@ -2655,17 +2655,17 @@
+ 
+             <!-- Trial Expired / Expiring Notification Alert -->
+             <div id="superTrialAlertsPanel" style="display:none;margin-top:1rem;border-radius:12px;border:1px solid #fecaca;background:#fef2f2;padding:0.9rem 1rem;">
+-              <div style="font-weight:800;color:#b91c1c;margin-bottom:0.5rem;" id="superTrialAlertsTitle">⚠️ Trial Expired</div>
++              <div style="font-weight:800;color:#b91c1c;margin-bottom:0.5rem;" id="superTrialAlertsTitle">Trial Expired</div>
+               <div id="superTrialAlertsList" style="display:flex;flex-direction:column;gap:0.4rem;"></div>
+               <div id="superTrialExpiringSoon" style="margin-top:0.5rem;font-size:0.8rem;color:#a16207;"></div>
+             </div>
+-            <h3 style="margin-top:1.5rem;">🏫 Quick School Access</h3>
++            <h3 style="margin-top:1.5rem;">Quick School Access</h3>
+             <div class="modules-grid" id="superSchoolsQuickList"></div>
+ 
+             <!-- Live Activity Feed -->
+             <div class="dash-list-card animated-card" style="margin-top:1rem;">
+               <div class="dash-list-header">
+-                <h3>⚡ Live Activity Feed</h3>
++                <h3>Live Activity Feed</h3>
+                 <span class="dash-list-count badge-live" id="superActivityCount">0</span>
+               </div>
+               <div class="dash-list-body" id="dashActivityFeed" style="max-height:320px;overflow-y:auto;padding:0.5rem;">
+@@ -2676,17 +2676,17 @@
+ 
+           <!-- ===== SCHOOLS MANAGEMENT ===== -->
+           <div id="superPage-schools" class="super-subpage">
+-            <h3>🏫 Manage Schools</h3>
++            <h3>Manage Schools</h3>
+             <p class="subtitle">Generate registration IDs for schools, approve them, and manage their access. Each school gets its own data isolated via RLS.</p>
+             
+             <div class="card-toolbar">
+               <input type="text" id="superSchoolsSearch" placeholder="Search schools..." class="search-input" style="max-width:250px;" />
+-              <button type="button" class="btn btn-primary" id="btnGenerateSchoolId">➕ Create New School</button>
++              <button type="button" class="btn btn-primary" id="btnGenerateSchoolId">Create New School</button>
+             </div>
+             
+             <!-- New School Form (Systematic: enter name first -> Next generates ID) -->
+             <details class="admit-section" id="newSchoolSection" style="margin-top:1rem;display:none;">
+-              <summary class="btn btn-secondary" style="cursor:pointer;">➕ Create New School</summary>
++              <summary class="btn btn-secondary" style="cursor:pointer;">Create New School</summary>
+ 
+               <!-- Step 1 : Enter school name + choose version -->
+               <div id="superSchoolStep1" style="margin-top:0.75rem;">
+@@ -2700,7 +2700,7 @@
+                     <label for="newSchoolVersion">Version *</label>
+                     <select id="newSchoolVersion" required onchange="onNewSchoolVersionChange()">
+                       <option value="full" selected>✓ Full Version</option>
+-                      <option value="trial">⏱ Trial Version</option>
++                      <option value="trial">Trial Version</option>
+                     </select>
+                   </div>
+                   <div class="form-group" id="newSchoolTrialDaysGroup" style="flex:1;display:none;">
+@@ -2738,8 +2738,8 @@
+                         <span id="newSchoolLogoPlaceholder" style="font-size:0.85rem;color:var(--text-muted);">No logo selected</span>
+                       </div>
+                       <input type="file" id="newSchoolLogoInput" accept="image/png,image/jpeg,image/jpg,image/webp" style="display:none;" />
+-                      <button type="button" class="btn btn-sm btn-secondary" onclick="document.getElementById('newSchoolLogoInput').click()" style="margin-top:0.5rem;">📷 Upload Logo</button>
+-                      <button type="button" class="btn btn-sm btn-danger" id="newSchoolLogoClear" style="display:none;margin-top:0.5rem;margin-left:0.25rem;" onclick="clearNewSchoolLogo()">✖ Remove</button>
++                      <button type="button" class="btn btn-sm btn-secondary" onclick="document.getElementById('newSchoolLogoInput').click()" style="margin-top:0.5rem;">Upload Logo</button>
++                      <button type="button" class="btn btn-sm btn-danger" id="newSchoolLogoClear" style="display:none;margin-top:0.5rem;margin-left:0.25rem;" onclick="clearNewSchoolLogo()">× Remove</button>
+                     </div>
+                   </div>
+                   <div class="form-group">
+@@ -2749,7 +2749,7 @@
+                 </div>
+                 <div style="display:flex;gap:0.75rem;align-items:center;">
+                   <button type="button" class="btn btn-secondary" onclick="superSchoolBackToStep1()">← Back</button>
+-                  <button type="submit" class="btn btn-primary btn-full" id="saveSchoolBtn">✅ Create School</button>
++                  <button type="submit" class="btn btn-primary btn-full" id="saveSchoolBtn">Create School</button>
+                 </div>
+               </form>
+               <div id="newSchoolMessage" class="message" style="display:none;"></div>
+@@ -2766,7 +2766,7 @@
+ 
+             <!-- School Module Locks Management -->
+             <div id="schoolModulesSection" style="display:none;margin-top:2rem;padding-top:2rem;border-top:2px solid var(--border);">
+-              <h3>🔒 Module Locks for: <span id="schoolModulesSchoolName" style="font-weight:700;"></span></h3>
++              <h3>Module Locks for: <span id="schoolModulesSchoolName" style="font-weight:700;"></span></h3>
+               <p class="subtitle">Lock/unlock modules for this school. Locked modules will be hidden from the school's admin sidebar.</p>
+               <input type="hidden" id="schoolModulesSchoolId" />
+               <div id="schoolModulesList" class="modules-grid" style="margin-top:1rem;">
+@@ -2779,7 +2779,7 @@
+             <div id="resetSchoolPasswordModal" class="modal-overlay" style="display:none;">
+               <div class="modal-card" style="max-width:480px;">
+                 <div class="modal-header">
+-                  <h3>🔑 Reset School Admin Password</h3>
++                  <h3>Reset School Admin Password</h3>
+                   <button type="button" class="modal-close" onclick="closeResetSchoolPasswordModal()" style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--text-muted);">&times;</button>
+                 </div>
+                 <div class="modal-body" style="padding:1.5rem;">
+@@ -2796,24 +2796,24 @@
+                   <div id="resetPwMessage" class="message" style="display:none;margin-bottom:1rem;"></div>
+                   <div style="display:flex;gap:0.75rem;justify-content:flex-end;">
+                     <button type="button" class="btn btn-secondary" onclick="closeResetSchoolPasswordModal()">Cancel</button>
+-                    <button type="button" class="btn btn-primary" id="resetPwSubmitBtn" onclick="resetSchoolPassword()">🔑 Reset Password</button>
++                    <button type="button" class="btn btn-primary" id="resetPwSubmitBtn" onclick="resetSchoolPassword()">Reset Password</button>
+                   </div>
+                 </div>
+               </div>
+             </div>
+           </div>
+           <div id="superPage-sub-admins" class="super-subpage">
+-            <h3>👥 Manage Sub Admins</h3>
++            <h3>Manage Sub Admins</h3>
+             <p class="subtitle">Generate registration IDs for sub admins, approve them, and manage their access across all schools.</p>
+             
+             <div class="card-toolbar">
+               <input type="text" id="superSubAdminsSearch" placeholder="Search sub admins..." class="search-input" style="max-width:250px;" />
+-              <button type="button" class="btn btn-primary" id="btnGenerateSubAdminId">🔑 Generate New Sub Admin ID</button>
++              <button type="button" class="btn btn-primary" id="btnGenerateSubAdminId">Generate New Sub Admin ID</button>
+             </div>
+             
+             <!-- New Sub Admin Form -->
+             <details class="admit-section" id="newSubAdminSection" style="margin-top:1rem;display:none;">
+-              <summary class="btn btn-secondary" style="cursor:pointer;">➕ Create New Sub Admin</summary>
++              <summary class="btn btn-secondary" style="cursor:pointer;">Create New Sub Admin</summary>
+               <form id="newSubAdminForm" class="admission-form" style="margin-top:1rem;max-width:100%;">
+                 <div class="form-row">
+                   <div class="form-group"><label>Full Name *</label><input type="text" id="newSubAdminName" required placeholder="e.g. John Doe" /></div>
+@@ -2823,7 +2823,7 @@
+                   <div class="form-group"><label>Generated Registration ID</label><input type="text" id="newSubAdminRegId" readonly style="background:var(--bg);font-weight:700;font-size:1.1rem;letter-spacing:1px;text-align:center;" /></div>
+                 </div>
+                 <p class="subtitle" style="color:var(--text-muted);font-size:0.8rem;">Provide this Registration ID to the sub admin so they can register with it. They will set their own password.</p>
+-                <button type="submit" class="btn btn-primary btn-full" id="saveSubAdminBtn">✅ Create Sub Admin & Generate ID</button>
++                <button type="submit" class="btn btn-primary btn-full" id="saveSubAdminBtn">Create Sub Admin & Generate ID</button>
+               </form>
+               <div id="newSubAdminMessage" class="message" style="display:none;"></div>
+             </details>
+@@ -2841,8 +2841,8 @@
+             <div id="subAdminActivitiesModal" class="modal-overlay" style="display:none;">
+               <div class="modal-card" style="max-width:900px;max-height:90vh;overflow-y:auto;">
+                 <div class="modal-header">
+-                  <h3 id="activitiesModalTitle">📋 Sub Admin Activities</h3>
+-                  <button class="modal-close" onclick="document.getElementById('subAdminActivitiesModal').style.display='none'">✖</button>
++                  <h3 id="activitiesModalTitle">Sub Admin Activities</h3>
++                  <button class="modal-close" onclick="document.getElementById('subAdminActivitiesModal').style.display='none'">×</button>
+                 </div>
+                 <div class="modal-body" id="activitiesModalBody">
+                   <div id="activitiesLoading" style="text-align:center;padding:2rem;color:var(--text-muted);">Loading activities...</div>
+@@ -2859,7 +2859,7 @@
+                     </div>
+                     <div style="display:flex;justify-content:space-between;align-items:center;gap:0.75rem;flex-wrap:wrap;margin-bottom:0.75rem;">
+                       <div id="subAdminActivitiesClearMessage" class="message" style="display:none;margin:0;"></div>
+-                      <button type="button" class="btn btn-sm btn-danger" id="clearSubAdminActivitiesBtn" onclick="clearSubAdminActivityLog()">🗑️ Clear All Logs</button>
++                      <button type="button" class="btn btn-sm btn-danger" id="clearSubAdminActivitiesBtn" onclick="clearSubAdminActivityLog()">Clear All Logs</button>
+                     </div>
+                     <div class="table-wrapper">
+                       <table class="app-table">
+@@ -2876,7 +2876,7 @@
+ 
+           <!-- ===== ALL STUDENTS (Read-only oversight) ===== -->
+           <div id="superPage-students" class="super-subpage">
+-            <h3>👥 All Students (All Schools)</h3>
++            <h3>All Students (All Schools)</h3>
+             <p class="subtitle">View all students across the system. Data is read-only for oversight.</p>
+             
+             <div class="search-filter-row" style="flex-wrap:wrap;">
+@@ -2898,7 +2898,7 @@
+ 
+           <!-- ===== ALL CLASSES ===== -->
+           <div id="superPage-classes" class="super-subpage">
+-            <h3>🏫 All Classes (All Schools)</h3>
++            <h3>All Classes (All Schools)</h3>
+             <p class="subtitle">View all classes created across schools.</p>
+             <div class="card-toolbar">
+               <input type="text" id="superClassesSearch" placeholder="Search classes..." class="search-input" style="max-width:250px;" />
+@@ -2914,7 +2914,7 @@
+ 
+           <!-- ===== ALL SUBJECTS ===== -->
+           <div id="superPage-subjects" class="super-subpage">
+-            <h3>📖 All Subjects (All Schools)</h3>
++            <h3>All Subjects (All Schools)</h3>
+             <p class="subtitle">View all subjects created across schools.</p>
+             <div class="card-toolbar">
+               <input type="text" id="superSubjectsSearch" placeholder="Search subjects..." class="search-input" style="max-width:250px;" />
+@@ -2930,7 +2930,7 @@
+ 
+           <!-- ===== ALL TEACHERS ===== -->
+           <div id="superPage-teachers" class="super-subpage">
+-            <h3>📚 All Teachers (All Schools)</h3>
++            <h3>All Teachers (All Schools)</h3>
+             <p class="subtitle">View all teachers across the system.</p>
+             <div class="search-filter-row">
+               <input type="text" id="superTeachersSearch" placeholder="Search teachers..." class="search-input" style="max-width:200px;" />
+@@ -2947,7 +2947,7 @@
+ 
+           <!-- ===== ALL PARENTS ===== -->
+           <div id="superPage-parents" class="super-subpage">
+-            <h3>👨‍👩‍👧 All Parents (All Schools)</h3>
++            <h3>All Parents (All Schools)</h3>
+             <p class="subtitle">View all registered parent accounts and their linked wards.</p>
+             <div class="card-toolbar">
+               <input type="text" id="superParentsSearch" placeholder="Search parent name, email..." class="search-input" style="max-width:250px;" />
+@@ -2960,7 +2960,7 @@
+ 
+           <!-- ===== ALL ACCOUNTANTS ===== -->
+           <div id="superPage-accountants" class="super-subpage">
+-            <h3>🧾 All Accountants (All Schools)</h3>
++            <h3>All Accountants (All Schools)</h3>
+             <p class="subtitle">View all accountant records across the system.</p>
+             <div class="search-filter-row">
+               <input type="text" id="superAccountantsSearch" placeholder="Search accountants..." class="search-input" style="max-width:200px;" />
+@@ -2977,7 +2977,7 @@
+ 
+           <!-- ===== ALL ANNOUNCEMENTS ===== -->
+           <div id="superPage-announcements" class="super-subpage">
+-            <h3>📢 All Announcements (All Schools)</h3>
++            <h3>All Announcements (All Schools)</h3>
+             <p class="subtitle">View all announcements created across the system.</p>
+             <div class="search-filter-row">
+               <input type="text" id="superAnnouncementsSearch" placeholder="Search announcements..." class="search-input" style="max-width:200px;" />
+@@ -2989,7 +2989,7 @@
+ 
+           <!-- ===== ATTENDANCE OVERSIGHT ===== -->
+           <div id="superPage-attendance" class="super-subpage">
+-            <h3>📋 Attendance Oversight</h3>
++            <h3>Attendance Oversight</h3>
+             <p class="subtitle">View attendance records across all schools (read-only).</p>
+ 
+             <div class="attendance-toolbar card-toolbar" style="flex-wrap:wrap;">
+@@ -3016,7 +3016,7 @@
+ 
+           <!-- ===== EXAMS OVERSIGHT ===== -->
+           <div id="superPage-exams" class="super-subpage">
+-            <h3>📝 Exams Oversight</h3>
++            <h3>Exams Oversight</h3>
+             <p class="subtitle">View all exams across schools (read-only).</p>
+ 
+             <div class="search-filter-row" style="flex-wrap:wrap;">
+@@ -3037,7 +3037,7 @@
+ 
+           <!-- ===== SYSTEM SETTINGS ===== -->
+           <div id="superPage-settings" class="super-subpage">
+-            <h3>⚙️ System Settings</h3>
++            <h3>System Settings</h3>
+             <p class="subtitle">Manage system-wide configuration. These settings affect the top-level system name and academic calendar.</p>
+             <form id="superSettingsForm" class="admission-form" style="max-width:520px;">
+               <div class="form-group"><label>System School Name *</label><input type="text" id="superSettingSchoolName" required placeholder="e.g. My School" /></div>
+@@ -3052,12 +3052,12 @@
+ 
+           <!-- ===== SUPER ADMIN PROFILE ===== -->
+           <div id="superPage-profile" class="super-subpage">
+-            <h2>👤 My Profile</h2>
++            <h2>My Profile</h2>
+             <p class="subtitle">Manage your super admin account.</p>
+             
+             <!-- Update Name Section -->
+             <div class="status-card" style="margin-bottom:1.5rem;padding:1.5rem;">
+-              <h3 style="margin:0 0 0.75rem 0;font-size:1.1rem;">✏️ Update Name</h3>
++              <h3 style="margin:0 0 0.75rem 0;font-size:1.1rem;">Update Name</h3>
+               <form id="superAdminNameForm" class="auth-form" style="max-width:520px;box-shadow:none;border:none;padding:0;">
+                 <div class="form-group"><label>Full Name *</label><input type="text" id="superProfileName" required /></div>
+                 <div class="form-group"><label>Email</label><input type="email" id="superProfileEmail" disabled /></div>
+@@ -3067,7 +3067,7 @@
+ 
+             <!-- Change Password Section -->
+             <div class="status-card" style="padding:1.5rem;">
+-              <h3 style="margin:0 0 0.75rem 0;font-size:1.1rem;">🔑 Change Password</h3>
++              <h3 style="margin:0 0 0.75rem 0;font-size:1.1rem;">Change Password</h3>
+               <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:1rem;">Enter your new password below. Minimum 6 characters.</p>
+               <form id="superAdminPasswordForm" class="auth-form" style="max-width:520px;box-shadow:none;border:none;padding:0;">
+                 <div class="form-group"><label>New Password *</label><input type="password" id="superProfilePassword" required minlength="6" placeholder="Enter new password" /></div>
+@@ -3087,32 +3087,32 @@
+       <div class="dashboard-layout">
+         <aside class="dash-sidebar accountant-brand" id="accountantSidebar">
+           <div class="sidebar-brand">
+-            <div class="sidebar-logo-circle">🧾</div>
++            <div class="sidebar-logo-circle"></div>
+             <span class="sidebar-school-name" id="accountantSidebarSchoolName">School Name</span>
+             <span class="sidebar-school-sub">Accountant Portal</span>
+           </div>
+           <div class="dash-profile">
+-            <div class="dash-avatar">🧾</div>
++            <div class="dash-avatar"></div>
+             <div class="dash-avatar-info">
+               <span id="accountantSidebarName" class="dash-sidebar-name">Accountant</span>
+               <span class="dash-sidebar-role-badge">Accountant</span>
+             </div>
+           </div>
+           <nav class="dash-nav">
+-            <button type="button" class="dash-nav-link active" data-accountant-page="dashboard"><span class="dash-nav-icon">⭐</span> Dashboard</button>
+-            <button type="button" class="dash-nav-link" data-accountant-page="fees"><span class="dash-nav-icon">💰</span> Fees Management</button>
+-            <button type="button" class="dash-nav-link" data-accountant-page="receipts"><span class="dash-nav-icon">🧾</span> Receipts</button>
+-            <button type="button" class="dash-nav-link" data-accountant-page="debtors"><span class="dash-nav-icon">⚠️</span> Debtors</button>
+-            <button type="button" class="dash-nav-link" data-accountant-page="income-expenses"><span class="dash-nav-icon">📊</span> Income & Expenses</button>
+-            <button type="button" class="dash-nav-link" data-accountant-page="profile"><span class="dash-nav-icon">👤</span> My Profile</button>
++            <button type="button" class="dash-nav-link active" data-accountant-page="dashboard">Dashboard</button>
++            <button type="button" class="dash-nav-link" data-accountant-page="fees">Fees Management</button>
++            <button type="button" class="dash-nav-link" data-accountant-page="receipts">Receipts</button>
++            <button type="button" class="dash-nav-link" data-accountant-page="debtors">Debtors</button>
++            <button type="button" class="dash-nav-link" data-accountant-page="income-expenses">Income & Expenses</button>
++            <button type="button" class="dash-nav-link" data-accountant-page="profile">My Profile</button>
+           </nav>
+           <div class="sidebar-logout">
+-            <button type="button" class="dash-nav-link" onclick="handleLogout()"><span class="dash-nav-icon">🚪</span> Logout</button>
++            <button type="button" class="dash-nav-link" onclick="handleLogout()">Logout</button>
+           </div>
+         </aside>
+         <div class="dash-main accountant-main">
+           <div class="dash-welcome-card">
+-            <div class="dash-welcome-icon">🧾</div>
++            <div class="dash-welcome-icon"></div>
+             <div class="dash-welcome-text"><h3 id="accountantWelcome">Welcome!</h3><p>Financial dashboard — manage fees, receipts, and payment records.</p></div>
+             <a href="https://mail.google.com/mail/?view=cm&fs=1&to=boahengeeman@gmail.com"
+                target="_blank" rel="noopener noreferrer"
+@@ -3128,7 +3128,7 @@
+             </a>
+           </div>
+           <div class="dash-header">
+-            <h2 id="accountantDashTitle">⭐ Dashboard</h2>
++            <h2 id="accountantDashTitle">Dashboard</h2>
+             <p class="subtitle">Fee analytics and recent activity</p>
+           </div>
+ 
+@@ -3137,7 +3137,7 @@
+             <!-- Fee Overview Card (replaces individual stat cards) -->
+             <div class="dash-chart-card animated-card" style="margin-bottom:1rem;">
+               <div class="dash-chart-header">
+-                <h3>💰 Fee Overview</h3>
++                <h3>Fee Overview</h3>
+                 <span class="dash-chart-subtitle">Overall financial summary</span>
+               </div>
+               <div class="dash-fee-summary" id="accountantFeeOverview">
+@@ -3185,26 +3185,26 @@
+               <!-- Population Distribution by Payment Status -->
+               <div class="acc-card">
+                 <div class="acc-card-header">
+-                  <h3>📊 Payment Distribution</h3>
++                  <h3>Payment Distribution</h3>
+                   <span class="acc-badge" id="accDistTotal">0 Students</span>
+                 </div>
+                 <div class="acc-distribution-container" id="accDistributionContainer">
+                   <div class="acc-dist-bar">
+-                    <div class="acc-dist-label">✅ Paid</div>
++                    <div class="acc-dist-label">Paid</div>
+                     <div class="acc-dist-track">
+                       <div class="acc-dist-fill paid" id="accDistPaidBar" style="width:0%;"></div>
+                     </div>
+                     <div class="acc-dist-value" id="accDistPaidValue">0 (0%)</div>
+                   </div>
+                   <div class="acc-dist-bar">
+-                    <div class="acc-dist-label">⚠️ Partial</div>
++                    <div class="acc-dist-label">Partial</div>
+                     <div class="acc-dist-track">
+                       <div class="acc-dist-fill partial" id="accDistPartialBar" style="width:0%;"></div>
+                     </div>
+                     <div class="acc-dist-value" id="accDistPartialValue">0 (0%)</div>
+                   </div>
+                   <div class="acc-dist-bar">
+-                    <div class="acc-dist-label">❌ Unpaid</div>
++                    <div class="acc-dist-label">Unpaid</div>
+                     <div class="acc-dist-track">
+                       <div class="acc-dist-fill unpaid" id="accDistUnpaidBar" style="width:0%;"></div>
+                     </div>
+@@ -3216,7 +3216,7 @@
+               <!-- Recent Payments -->
+               <div class="acc-card">
+                 <div class="acc-card-header">
+-                  <h3>🕐 Recent Payments</h3>
++                  <h3>Recent Payments</h3>
+                   <span class="acc-badge" id="accRecentCount">0</span>
+                 </div>
+                 <div class="acc-recent-list" id="accRecentPayments">
+@@ -3228,14 +3228,14 @@
+             <!-- Today's Receipts & Transactions (Filtered by current accountant) -->
+             <div class="acc-card" style="margin-top:1rem;">
+               <div class="acc-card-header">
+-                <h3>🧾 Today's Receipts & Transactions</h3>
++                <h3>Today's Receipts & Transactions</h3>
+                 <span class="acc-badge" id="accTodayCount">0</span>
+               </div>
+               <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;margin-bottom:0.75rem;padding:0.75rem;background:#f0f9ff;border-radius:8px;border:1px solid #bae6fd;">
+-                <span style="font-size:0.8rem;font-weight:600;color:#0369a1;margin-right:0.5rem;">📋 Today's receipts processed by you:</span>
+-                <button type="button" class="btn btn-sm btn-primary" id="accTodayRefresh" style="min-width:100px;padding:0.45rem 0.8rem;font-size:0.85rem;">🔄 Refresh</button>
+-                <button type="button" class="btn btn-sm" id="accTodayPreview" style="min-width:100px;padding:0.45rem 0.8rem;font-size:0.85rem;background:linear-gradient(135deg,#4f46e5,#6366f1);color:#fff;border:1px solid #4338ca;border-radius:6px;cursor:pointer;font-weight:600;">👁️ Preview</button>
+-                <button type="button" class="btn btn-sm" id="accTodayPrint" style="min-width:100px;padding:0.45rem 0.8rem;font-size:0.85rem;background:linear-gradient(135deg,#0ea5e9,#06b6d4);color:#fff;border:1px solid #0284c7;border-radius:6px;cursor:pointer;font-weight:600;">🖨️ Print</button>
++                <span style="font-size:0.8rem;font-weight:600;color:#0369a1;margin-right:0.5rem;">Today's receipts processed by you:</span>
++                <button type="button" class="btn btn-sm btn-primary" id="accTodayRefresh" style="min-width:100px;padding:0.45rem 0.8rem;font-size:0.85rem;">Refresh</button>
++                <button type="button" class="btn btn-sm" id="accTodayPreview" style="min-width:100px;padding:0.45rem 0.8rem;font-size:0.85rem;background:linear-gradient(135deg,#4f46e5,#6366f1);color:#fff;border:1px solid #4338ca;border-radius:6px;cursor:pointer;font-weight:600;">Preview</button>
++                <button type="button" class="btn btn-sm" id="accTodayPrint" style="min-width:100px;padding:0.45rem 0.8rem;font-size:0.85rem;background:linear-gradient(135deg,#0ea5e9,#06b6d4);color:#fff;border:1px solid #0284c7;border-radius:6px;cursor:pointer;font-weight:600;">Print</button>
+               </div>
+               <div class="acc-today-summary" style="display:flex;gap:1rem;margin:0.5rem 0;flex-wrap:wrap;">
+                 <div class="dash-fee-stat" style="padding:0.75rem 1rem;background:#f0fdf4;border-radius:6px;border:1px solid #bbf7d0;min-width:160px;">
+@@ -3271,7 +3271,7 @@
+             <!-- Fees by Class (Animated Bar Chart) -->
+             <div class="acc-card" style="margin-top:1rem;">
+               <div class="acc-card-header">
+-                <h3>📊 Fees by Class</h3>
++                <h3>Fees by Class</h3>
+                 <span class="acc-badge">Total vs Collected vs Outstanding</span>
+               </div>
+               <div id="accFeeClassChart">
+@@ -3282,8 +3282,8 @@
+             <!-- Class-wise Fee Summary -->
+             <div class="acc-card" style="margin-top:1rem;">
+               <div class="acc-card-header">
+-                <h3>📈 Fee Summary by Class</h3>
+-                <button type="button" class="btn btn-sm btn-secondary" id="accRefreshSummary">🔄 Refresh</button>
++                <h3>Fee Summary by Class</h3>
++                <button type="button" class="btn btn-sm btn-secondary" id="accRefreshSummary">Refresh</button>
+               </div>
+               <div class="table-wrapper" style="margin-top:0.5rem;">
+                 <table class="app-table">
+@@ -3300,53 +3300,53 @@
+ 
+           <!-- ===== FEES MANAGEMENT ===== -->
+           <div id="accountantPage-fees" class="accountant-subpage" style="display:none;">
+-            <h2>💰 Fees Management</h2>
++            <h2>Fees Management</h2>
+             <p class="subtitle">Manage student fees, view fee records, and record payments.</p>
+             <div id="accFeesContainer"></div>
+           </div>
+ 
+           <!-- ===== RECEIPTS ===== -->
+           <div id="accountantPage-receipts" class="accountant-subpage" style="display:none;">
+-            <h2>🧾 Receipts</h2>
++            <h2>Receipts</h2>
+             <p class="subtitle">View and reprint payment receipts.</p>
+             <div id="accReceiptsContainer"></div>
+           </div>
+ 
+           <!-- ===== DEBTORS ===== -->
+           <div id="accountantPage-debtors" class="accountant-subpage" style="display:none;">
+-            <h2>⚠️ Debtors</h2>
++            <h2>Debtors</h2>
+             <p class="subtitle">Students with outstanding fee balances.</p>
+             <div id="accDebtorsContainer"></div>
+           </div>
+ 
+           <!-- ===== INCOME & EXPENSES ===== -->
+           <div id="accountantPage-income-expenses" class="accountant-subpage" style="display:none;">
+-            <h2>📊 Income & Expenditure Tracking</h2>
++            <h2>Income & Expenditure Tracking</h2>
+             <p class="subtitle">Track school income, expenses, and generate financial reports.</p>
+             <div id="accIeContainer"></div>
+           </div>
+ 
+           <!-- ===== PROFILE & PASSWORD CHANGE ===== -->
+           <div id="accountantPage-profile" class="accountant-subpage" style="display:none;">
+-            <h2>👤 My Profile</h2>
++            <h2>My Profile</h2>
+             <p class="subtitle">Manage your accountant account information.</p>
+             
+             <!-- Update Name Section -->
+             <div class="status-card" style="margin-bottom:1.5rem;padding:1.5rem;">
+-              <h3 style="margin:0 0 0.75rem 0;font-size:1.1rem;">✏️ Update Name</h3>
++              <h3 style="margin:0 0 0.75rem 0;font-size:1.1rem;">Update Name</h3>
+               <div id="accountantNameLockNotice" style="display:none;padding:0.75rem;background:#fef3c7;border:1px solid #fde68a;border-radius:4px;font-size:0.85rem;color:#92400e;margin-bottom:0.75rem;">
+-                🔒 <strong>Name Locked:</strong> Your name was set by the school admin when your ID was generated. Please contact the school admin to change your name.
++                <strong>Name Locked:</strong> Your name was set by the school admin when your ID was generated. Please contact the school admin to change your name.
+               </div>
+               <form id="accountantProfileForm" class="auth-form" style="max-width:520px;box-shadow:none;border:none;padding:0;">
+                 <div class="form-group"><label>Full Name *</label><input type="text" id="accountantProfileName" required disabled /></div>
+                 <div class="form-group"><label>Email</label><input type="email" id="accountantProfileEmail" disabled /></div>
+-                <button type="submit" class="btn btn-primary btn-full" disabled>🔒 Name Locked</button>
++                <button type="submit" class="btn btn-primary btn-full" disabled>Name Locked</button>
+               </form>
+             </div>
+ 
+             <!-- Change Password Section -->
+             <div class="status-card" style="padding:1.5rem;">
+-              <h3 style="margin:0 0 0.75rem 0;font-size:1.1rem;">🔑 Change Password</h3>
++              <h3 style="margin:0 0 0.75rem 0;font-size:1.1rem;">Change Password</h3>
+               <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:1rem;">Enter your new password below. Minimum 6 characters.</p>
+               <form id="accountantPasswordForm" class="auth-form" style="max-width:520px;box-shadow:none;border:none;padding:0;">
+                 <div class="form-group"><label>New Password *</label><input type="password" id="accountantNewPassword" required minlength="6" placeholder="Enter new password" /></div>
+@@ -3374,7 +3374,7 @@
+   <div id="editSchoolInfoModal" class="modal-overlay" style="display:none;">
+     <div class="modal-card" style="max-width:600px;">
+       <div class="modal-header">
+-        <h3>✏️ Edit School Info</h3>
++        <h3>Edit School Info</h3>
+         <button type="button" class="modal-close" onclick="closeEditSchoolInfoModal()" style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--text-muted);">&times;</button>
+       </div>
+       <div class="modal-body" style="padding:1.5rem;">
+@@ -3413,7 +3413,7 @@
+         </div>
+         <div style="display:flex;gap:0.75rem;justify-content:flex-end;margin-top:0.75rem;">
+           <button type="button" class="btn btn-secondary" onclick="closeEditSchoolInfoModal()">Cancel</button>
+-          <button type="button" class="btn btn-primary" id="saveEditSchoolBtn" onclick="saveEditSchoolInfo()">💾 Save Changes</button>
++          <button type="button" class="btn btn-primary" id="saveEditSchoolBtn" onclick="saveEditSchoolInfo()">Save Changes</button>
+         </div>
+       </div>
+     </div>
+@@ -3423,13 +3423,13 @@
+   <div id="schoolInfoModal" class="modal-overlay" style="display:none;">
+     <div class="modal-card" style="max-width:560px;">
+       <div class="modal-header">
+-        <h3>🏫 School Details</h3>
++        <h3>School Details</h3>
+         <button type="button" class="modal-close" onclick="closeSchoolInfoModal()" style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--text-muted);">&times;</button>
+       </div>
+       <div class="modal-body" style="padding:1.5rem;">
+         <div id="schoolInfoContent" style="line-height:1.7;">Loading school details...</div>
+         <div style="margin-top:1rem;display:flex;justify-content:flex-end;">
+-          <button type="button" class="btn btn-primary" id="schoolInfoEditBtn" onclick="">✏️ Edit Info</button>
++          <button type="button" class="btn btn-primary" id="schoolInfoEditBtn" onclick="">Edit Info</button>
+         </div>
+       </div>
+     </div>
+@@ -3437,7 +3437,7 @@
+ 
+   <div id="studentDetailModal" class="modal-overlay" style="display:none;">
+     <div class="modal-card" style="max-width:720px;">
+-      <div class="modal-header"><h3 id="modalStudentName">Student Details</h3><button class="modal-close" onclick="closeStudentModal()">✖</button></div>
++      <div class="modal-header"><h3 id="modalStudentName">Student Details</h3><button class="modal-close" onclick="closeStudentModal()">×</button></div>
+       <div id="modalStudentContent" class="modal-body"></div>
+     </div>
+   </div>
+@@ -3448,8 +3448,8 @@
+       <div class="modal-header">
+         <h3 id="teacherDetailModalName">Teacher Details</h3>
+         <div>
+-          <button type="button" class="btn btn-sm btn-secondary" onclick="printTeacherProfile()" style="margin-right:0.5rem;">🖨️ Print</button>
+-          <button class="modal-close" onclick="closeTeacherDetailModal()">✖</button>
++          <button type="button" class="btn btn-sm btn-secondary" onclick="printTeacherProfile()" style="margin-right:0.5rem;">Print</button>
++          <button class="modal-close" onclick="closeTeacherDetailModal()">×</button>
+         </div>
+       </div>
+       <div id="teacherDetailModalContent" class="modal-body"></div>
+@@ -3460,12 +3460,12 @@
+   <div id="deleteClassFeeModal" class="modal-overlay" style="display:none;">
+     <div class="modal-card" style="max-width:480px;">
+       <div class="modal-header" style="background:#fef2f2;border-bottom:2px solid #fecaca;">
+-        <h3 style="color:#b91c1c;">⚠️ Danger: Delete Fee Record</h3>
+-        <button class="modal-close" onclick="closeDeleteClassFeeModal()">✖</button>
++        <h3 style="color:#b91c1c;">Danger: Delete Fee Record</h3>
++        <button class="modal-close" onclick="closeDeleteClassFeeModal()">×</button>
+       </div>
+       <div class="modal-body">
+         <div style="background:#fef2f2;border:2px solid #fecaca;border-radius:8px;padding:1rem;margin-bottom:1rem;">
+-          <p style="margin:0 0 0.5rem 0;font-weight:600;color:#b91c1c;font-size:1rem;">🚨 WARNING: This action is IRREVERSIBLE!</p>
++          <p style="margin:0 0 0.5rem 0;font-weight:600;color:#b91c1c;font-size:1rem;">WARNING: This action is IRREVERSIBLE!</p>
+           <p style="margin:0 0 0.5rem 0;font-size:0.9rem;color:#7f1d1d;">
+             You are about to delete the fee structure for:
+           </p>
+@@ -3474,7 +3474,7 @@
+             <div style="font-size:0.9rem;color:#7f1d1d;margin-top:0.25rem;" id="deleteClassFeeDetails">—</div>
+           </div>
+           <p style="margin:0 0 0.5rem 0;font-size:0.85rem;color:#7f1d1d;">
+-            ⚠️ This will also <strong>DELETE the corresponding fee records for ALL students</strong> in this class/term.
++            This will also <strong>DELETE the corresponding fee records for ALL students</strong> in this class/term.
+             Payment transactions and receipts will be preserved.
+           </p>
+         </div>
+@@ -3484,12 +3484,12 @@
+             Type <strong style="color:#b91c1c;" id="deleteClassFeeTypeLabel">—</strong> to confirm deletion:
+           </label>
+           <input type="text" id="deleteClassFeeConfirmInput" class="search-input" style="width:100%;padding:0.75rem;border:2px solid #fecaca;border-radius:6px;font-size:1rem;" placeholder="Type the class name to confirm..." autocomplete="off" />
+-          <div id="deleteClassFeeMatchError" style="display:none;color:#dc2626;font-size:0.85rem;margin-top:0.5rem;font-weight:600;">❌ Class name does not match. Please type the exact class name to enable deletion.</div>
++          <div id="deleteClassFeeMatchError" style="display:none;color:#dc2626;font-size:0.85rem;margin-top:0.5rem;font-weight:600;">Class name does not match. Please type the exact class name to enable deletion.</div>
+         </div>
+ 
+         <div style="display:flex;gap:0.75rem;justify-content:flex-end;">
+           <button type="button" class="btn btn-secondary" onclick="closeDeleteClassFeeModal()">Cancel</button>
+-          <button type="button" class="btn btn-danger" id="deleteClassFeeConfirmBtn" disabled style="opacity:0.5;cursor:not-allowed;">🗑️ Delete Fee Record</button>
++          <button type="button" class="btn btn-danger" id="deleteClassFeeConfirmBtn" disabled style="opacity:0.5;cursor:not-allowed;">Delete Fee Record</button>
+         </div>
+       </div>
+     </div>
+@@ -3499,10 +3499,10 @@
+   <div id="receiptModal" class="modal-overlay" style="display:none;">
+     <div class="modal-card" style="max-width:500px;">
+       <div class="modal-header">
+-        <h3>🧾 Payment Receipt</h3>
++        <h3>Payment Receipt</h3>
+         <div>
+-          <button type="button" class="btn btn-sm btn-secondary" onclick="printReceipt()" style="margin-right:0.5rem;">🖨️ Print</button>
+-          <button class="modal-close" onclick="closeReceiptModal()">✖</button>
++          <button type="button" class="btn btn-sm btn-secondary" onclick="printReceipt()" style="margin-right:0.5rem;">Print</button>
++          <button class="modal-close" onclick="closeReceiptModal()">×</button>
+         </div>
+       </div>
+       <div class="modal-body" id="receiptContent"></div>
+@@ -3513,10 +3513,10 @@
+   <div id="debtorsPrintModal" class="modal-overlay" style="display:none;">
+     <div class="modal-card" style="max-width:1000px;max-height:90vh;overflow-y:auto;">
+       <div class="modal-header">
+-        <h3>🖨️ Debtors List Preview</h3>
++        <h3>Debtors List Preview</h3>
+         <div>
+-          <button type="button" class="btn btn-sm btn-primary" onclick="printDebtorsList()" style="margin-right:0.5rem;">🖨️ Print</button>
+-          <button class="modal-close" onclick="document.getElementById('debtorsPrintModal').style.display='none'">✖</button>
++          <button type="button" class="btn btn-sm btn-primary" onclick="printDebtorsList()" style="margin-right:0.5rem;">Print</button>
++          <button class="modal-close" onclick="document.getElementById('debtorsPrintModal').style.display='none'">×</button>
+         </div>
+       </div>
+       <div class="modal-body" id="debtorsPrintContent">
+@@ -3529,10 +3529,10 @@
+   <div id="holidayPrintModal" class="modal-overlay" style="display:none;">
+     <div class="modal-card" style="max-width:210mm;width:96%;max-height:90vh;overflow-y:auto;">
+       <div class="modal-header">
+-        <h3>🏖️ Holiday Fee Statements Preview</h3>
++        <h3>Holiday Fee Statements Preview</h3>
+         <div>
+-          <button type="button" class="btn btn-sm btn-primary" onclick="printHolidayFeesFromModal()" style="margin-right:0.5rem;">🖨️ Print All</button>
+-          <button class="modal-close" onclick="document.getElementById('holidayPrintModal').style.display='none'">✖</button>
++          <button type="button" class="btn btn-sm btn-primary" onclick="printHolidayFeesFromModal()" style="margin-right:0.5rem;">Print All</button>
++          <button class="modal-close" onclick="document.getElementById('holidayPrintModal').style.display='none'">×</button>
+         </div>
+       </div>
+       <div class="modal-body" id="holidayPrintContent">
+@@ -3545,10 +3545,10 @@
+   <div id="receiptListModal" class="modal-overlay" style="display:none;">
+     <div class="modal-card" style="max-width:800px;max-height:90vh;overflow-y:auto;">
+       <div class="modal-header">
+-        <h3>🧾 Student Receipts</h3>
++        <h3>Student Receipts</h3>
+         <div>
+-          <button type="button" class="btn btn-sm btn-secondary" onclick="printReceiptList()" style="margin-right:0.5rem;">🖨️ Print</button>
+-          <button class="modal-close" onclick="closeReceiptListModal()">✖</button>
++          <button type="button" class="btn btn-sm btn-secondary" onclick="printReceiptList()" style="margin-right:0.5rem;">Print</button>
++          <button class="modal-close" onclick="closeReceiptListModal()">×</button>
+         </div>
+       </div>
+       <div class="modal-body" id="receiptListContent">

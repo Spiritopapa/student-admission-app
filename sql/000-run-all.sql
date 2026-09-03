@@ -406,6 +406,13 @@
 --          js/modules/admin-students.js and js/modules/accountant-dashboard.js
 --          (sidebar avatar display).
 \i 057-admin-accountant-photos.sql
+-- Step 51: School Registration Lookup — Always Return the School Name
+-- Drops + recreates get_school_registration_info() so the school-admin
+-- registration wizard reliably auto-shows the school name in Step 2
+-- (the earlier 034 build only returned the school_id, breaking the
+--  "we found your school" display). Returns id + name + registration_id.
+-- Used by: js/modules/auth.js (schoolWizardGoNext).
+\i 058-school-registration-lookup.sql
 
 -- ============================================================
 --  SCHEMA DEPLOYMENT COMPLETE

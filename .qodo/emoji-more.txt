@@ -1,0 +1,278 @@
+﻿-        <td><button class="action-btn confirm" style="font-size:11px;padding:2px 6px;" onclick="reprintReceipt('${r.id}')">🖨️</button></td>
+-    if (title) title.textContent = `👁️ Today's Receipts Preview - ${today}`;
+-  const titles = { dashboard: '⭐ Dashboard', profile: '👤 Profile', fees: '💰 Fees Management', receipts: '🧾 Receipts', debtors: '⚠️ Debtors', 'income-expenses': '📊 Income & Expenses' };
+-        nameSubmitBtn.textContent = '🔒 Name Locked';
+-      <button type="button" class="btn btn-secondary fee-tab active" data-acc-fee-tab="students">👥 Student Fees</button>
+-      <button type="button" class="btn btn-secondary fee-tab" data-acc-fee-tab="payment">💰 Record Payment</button>
+-        <input type="text" id="accFeeSearch" placeholder="🔍 Search student name or ID..." class="search-input" style="max-width:250px;" />
+-        <h3 style="margin:0 0 0.75rem 0;">💳 Record New Payment</h3>
+-        <button type="button" class="btn btn-primary btn-full" id="accPayBtn">💾 Record Payment</button>
+-        <button type="button" class="btn btn-secondary" id="accFeeDebtorsRefresh">🔄 Refresh</button>
+-      : '<span class="dash-photo-placeholder">🎓</span>';
+-      <td><button class="action-btn confirm" onclick="accRecordPayment('${s.student_id}')">💰 Pay</button></td>
+-      `💡 Please clear this previous balance first before paying the current term fees.`, 
+-      `💡 Please enter an amount equal to or less than the outstanding balance of GHC ${formatCurrency(outstanding)}.\n` +
+-  finally { setLoading(btn, false, '💾 Record Payment'); }
+-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--text-muted);">🎉 No debtors! All fees are up to date.</td></tr>';
+-      <td><button class="action-btn confirm" onclick="accRecordPayment('${s.student_id}')">💰 Pay</button></td>
+-      <input type="text" id="accRecSearch" placeholder="🔍 Search by receipt # or student ID" class="search-input" style="max-width:300px;" />
+-      <button type="button" class="btn btn-secondary" id="accRecRefresh">🔄 Refresh</button>
+-      <td><button class="action-btn confirm" onclick="window.reprintReceipt && reprintReceipt('${r.id}')">🖨️ Reprint</button></td>
+-      <button type="button" class="btn btn-secondary" id="accDebtorsRefresh">🔄 Refresh</button>
+-      <button type="button" class="btn btn-secondary" id="accDebtorsPreview">👁 Preview</button>
+-      <button type="button" class="btn btn-primary" id="accDebtorsPrint">🖨️ Print Debtors</button>
+-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--text-muted);">🎉 No debtors!</td></tr>';
+-      <td><button class="action-btn confirm" onclick="accRecordPayment('${s.student_id}')">💰 Pay</button></td>
+-        <h3>🖨️ Debtors List Preview</h3>
+-          <button type="button" class="btn btn-sm btn-primary" id="accDebtorsModalPrint" style="margin-right:0.5rem;">🖨️ Print</button>
+-      let msg = `✅ Fee structure set: ${className} - ${term} Term = GHC ${formatCurrency(amount)}\n📋 Updated ${updated} student fee records.`;
+-      if (creditsApplied > 0) msg += `\n💰 Applied overpayment credits from previous term for ${creditsApplied} student(s).`;
+-    setLoading(btn, false, '💾 Set Fee');
+-    alert(`✅ Fee structure deleted.\n🗑️ Removed fee records for ${students?.length || 0} student(s) in ${classFee.class_name} - ${classFee.term} Term ${classFee.academic_year}.\n🧾 Receipts and payment transactions were preserved.`);
+-      confirmBtn.textContent = '🗑️ Delete Fee Record';
+-      : '<span class="dash-photo-placeholder">🎓</span>';
+-          ${overpaid > 0 ? `<span class="fee-credit-badge">💰 Credit: GHC ${formatCurrency(overpaid)}</span>` : ''}
+-        <button class="action-btn confirm" onclick="openFeePayment('${s.student_id}')">💰 Pay</button>
+-        <button class="action-btn" onclick="viewStudentReceipts('${s.student_id}')">🧾 Receipts</button>
+-        <button class="action-btn view" onclick="printFeeReminder('${s.student_id}')">🖨️ Reminder</button>
+-        <button class="action-btn danger" onclick="deleteStudentReceipts('${s.student_id}')">🗑️ Delete Receipt</button>
+-            📌 The payment form has been automatically set to this term. Please clear this balance first.
+-          balanceDisplay += ` <span class="fee-credit-badge">💰 Carried to next term</span>`;
+-        ${nextOverpaid > 0 ? ` | <span class="fee-credit-badge">💰 Credit: GHC ${formatCurrency(nextOverpaid)}</span>` : ''}
+-    <strong>📌 Note:</strong> Select the Academic Year and Term above, then enter the payment amount. Fee records are automatically created when you set the fee structure via "Set / Update Class Fee".
+-      `💡 Please select "${priorBalance.term} Term ${priorBalance.academic_year}" in the Academic Year/Term dropdown above and clear this previous balance first.`, 
+-      `💡 Please enter an amount equal to or less than the outstanding balance of GHC ${formatCurrency(outstanding)}.\n` +
+-    setLoading(btn, false, '💾 Record Payment');
+-      💰 <strong>GHC ${formatCurrency(overpaidAmount)}</strong> overpaid — this credit will be deducted from the next term's fees.
+-            <td><button class="action-btn confirm" onclick="reprintReceipt('${r.id}')">🖨️ Reprint</button>
+-            <button class="action-btn danger" onclick="deleteReceiptRecord('${r.id}', '${r.student_id}')">🗑️ Delete</button></td>
+-// 🗑️ Delete action (in case of a mistaken fee payment).
+-  if (!confirm(`🗑️ DELETE RECEIPT\n\nAre you sure you want to permanently delete this receipt and REVERSE the payment?\n\nThe fee record will be recalculated (amount paid / status updated) to undo this payment.\n\nThis action CANNOT be undone!`)) return;
+-    : '<div style="width:52px;height:52px;border-radius:6px;background:#1e3a5f;color:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;">🏛️</div>';
+-          <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:#1e3a5f;">🧾 FEES REMINDER NOTE</div>
+-        <strong style="font-size:12px;">📢 REMINDER TO PARENT / GUARDIAN</strong><br/>
+-    : '<div style="width:52px;height:52px;border-radius:6px;background:#1e3a5f;color:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;">🏛️</div>';
+-          <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:#1e3a5f;">🧾 FEES REMINDER NOTE</div>
+-        <strong style="font-size:12px;">📢 REMINDER TO PARENT / GUARDIAN</strong><br/>
+-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--text-muted);">🎉 No debtors! All fees are up to date.</td></tr>';
+-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--text-muted);">🎉 No debtors! All fees are up to date.</td></tr>';
+-        <button class="action-btn confirm" onclick="openFeePayment('${s.student_id}')">💰 Record Payment</button>
+-  const originalLabel = btn ? btn.textContent.trim() : '📨 Send Fee Reminder SMS';
+-              <td><button class="action-btn confirm" style="font-size:11px;padding:2px 6px;" onclick="reprintReceipt('${r.id}')">🖨️</button></td>
+-    if (title) title.textContent = `📋 Today's Receipts - ${todayFormatted}`;
+-  if (!confirm(`🗑️ DELETE RECEIPTS - DANGER ZONE\n\n${filterDesc}\n\nThis will PERMANENTLY delete all matching receipts and their associated payment transactions from the database.\n\nFee records will be recalculated (amount paid and payment status updated).\n\nThis action CANNOT be undone!\n\nAre you absolutely sure?`)) return;
+-      `🗑️ Receipts deleted: ${data.receipts_deleted}\n` +
+-      `💳 Transactions deleted: ${data.transactions_deleted}\n` +
+-      `💰 Total amount: GHC ${formatCurrency(data.total_amount)}\n` +
+-      `📋 Fee records updated: ${data.fee_records_updated}`,
+-    setLoading(btn, false, '🗑️ Delete Receipts');
+-    setLoading(btn, false, '🔄 Bulk Carry Forward');
+-            <div style="font-size:14px;font-weight:600;letter-spacing:1px;color:#1e3a5f;">🏖️ HOLIDAY FEE STATEMENT</div>
+-          <strong>📢 NOTE TO PARENTS / GUARDIANS</strong><br/>
+-      setLoading(btn, false, '👥 Generate Fee Records');
+-      setLoading(btn, false, '👥 Generate Fee Records');
+-    setLoading(btn, false, '👥 Generate Fee Records');
+-  if (!confirm(`🗑️ Delete fee record for ${studentId} (${termLabel})?\n\nThis will permanently delete this fee record from the database. Payment transactions and receipts will be preserved. This action CANNOT be undone.`)) return;
+-              <button type="button" class="action-btn danger" onclick="deleteFeeRecord('${f.id}', '${studentId}', '${f.term} ${f.academic_year}')" style="font-size:0.8rem;padding:0.25rem 0.5rem;">🗑️ Delete</button>
+-      <button type="button" class="btn btn-primary" id="saveStudentFeeEdits">💾 Save Changes</button>
+-        setLoading(btn, false, '💾 Save Changes');
+-        icon: '🎓',
+-        icon: '👨‍🏫',
+-        icon: '🧾',
+-        icon: '🏫',
+-        icon: '📖',
+-        icon: '👨‍👩‍👧',
+-        icon: '📢',
+-        icon: '📝',
+-        <span style="font-size:2rem;">🔍</span>
+-      student: '🎓 Students',
+-      teacher: '👨‍🏫 Teachers',
+-      accountant: '🧾 Accountants',
+-      class: '🏫 Classes',
+-      subject: '📖 Subjects',
+-      parent: '👨‍👩‍👧 Parents',
+-      announcement: '📢 Announcements',
+-      exam: '📝 Exams'
+-      { icon: '👁️', label: 'View Student Profile', action: () => openStudentProfile(id) },
+-      { icon: '🖨️', label: 'Print Student Profile', action: () => printStudentProfile(id) },
+-      { icon: '💰', label: 'View Fees Details', action: () => viewStudentFees(id) },
+-      { icon: '📋', label: 'View Attendance Records', action: () => viewStudentAttendance(id) },
+-      { icon: '📝', label: 'View Examination Report Card', action: () => viewStudentReportCard(id) },
+-      { icon: '👁️', label: 'View Teacher Profile', action: () => viewTeacherProfile(id) },
+-      { icon: '🖨️', label: 'Print Teacher Profile', action: () => printTeacherProfile(id) },
+-      { icon: '👁️', label: 'View Accountant Profile', action: () => viewAccountantProfile(id) },
+-      { icon: '👁️', label: `View ${type.charAt(0).toUpperCase() + type.slice(1)}`, action: () => handleSearchItemClick(type, id) },
+-    : '<div style="font-size:3rem;text-align:center;margin-bottom:1rem;">🎓</div>';
+-    : '<div style="font-size:3rem;">🎓</div>';
+-          <h3>💰 Fee Details</h3>
+-      <span style="font-size:2rem;">💰</span>
+-          <h3>📋 Attendance Records</h3>
+-      <span style="font-size:2rem;">📋</span>
+-        <button class="btn btn-primary btn-sm" onclick="window.printDeepSearchAttendance()">🖨️ Print Attendance</button>
+-  const statusMap = { present: '✅ Present', absent: '❌ Absent', late: '⏰ Late', excused: '📝 Excused' };
+-          <h3>📝 Examination Report Card</h3>
+-            <button class="btn btn-primary btn-sm" id="deepSearchLoadReport">📊 Load Report</button>
+-            <button class="btn btn-secondary btn-sm" id="deepSearchPrintReport">🖨️ Print</button>
+-      : '<div class="rc-seal">🏫</div>';
+-          <div class="rc-seal" style="font-size:2rem;">🏅</div>
+-            <strong style="color:#166534;">👨‍🏫 Teacher's Remark:</strong>
+-            <strong style="color:#1e40af;">🏫 Head Teacher's Remark:</strong>
+-    : '<div style="font-size:3rem;text-align:center;margin-bottom:1rem;">👨‍🏫</div>';
+-    : '<div style="font-size:3rem;">👨‍🏫</div>';
+-          <h3>🧾 Accountant Profile</h3>
+-      <div style="font-size:3rem;">🧾</div>
+-      ${field('Registered', accountant.user_id ? '✅ Registered' : '🔗 Not Registered')}
+-      : '<span class="dash-photo-placeholder">📷</span>';
+-        <button class="action-btn" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:none;" onclick="openAdminResetPassword('student','${s.student_id}','${name.replace(/'/g, "\\'")}')">🔑 Password</button>
+-    summary += `📋 Records removed:\n`;
+-      : `<span class="dash-photo-placeholder" ondblclick="replaceStudentPhoto('${s.student_id}')" title="Double-click to add photo">📷</span>`;
+-        <button class="action-btn" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:none;" onclick="openAdminResetPassword('student','${s.student_id}','${name.replace(/'/g, "\\'")}')">🔑 Password</button>
+-    showMoreRow.innerHTML = `<td colspan="10">🔽 Show all ${data.length} students</td>`;
+-          : `<span class="dash-photo-placeholder" ondblclick="replaceStudentPhoto('${s.student_id}')" title="Double-click to add photo">📷</span>`;
+-            <button class="action-btn" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:none;" onclick="openAdminResetPassword('student','${s.student_id}','${name.replace(/'/g, "\\'")}')">🔑 Password</button>
+-    : '<div style="display:flex;justify-content:center;margin-bottom:1rem;"><span class="student-profile-photo-placeholder">🎓</span></div>';
+-      <button type="button" class="btn btn-secondary btn-sm" onclick="printStudentProfileModal('${student.student_id}')">🖨️ Print Profile</button>
+-      ${section('👤 Personal Information', [
+-      ${section('🎓 Academic Information', [
+-      ${section('👪 Guardian Information', [
+-      ${section('📌 Status & Portal', [
+-    : '<div style="font-size:3rem;text-align:center;">🎓</div>';
+-      <tr><th colspan="2">👤 Personal Information</th></tr>
+-      <tr><th colspan="2">🎓 Academic Information</th></tr>
+-      <tr><th colspan="2">👪 Guardian Information</th></tr>
+-      <tr><th colspan="2">📌 Status & Portal</th></tr>
+-      : '<span class="print-no-photo">📷</span>';
+-      msg += `📋 Students have been moved to ${nextClass.name} with their existing fee balances preserved.\n`;
+-      msg += `💰 To create fee records for the new class, go to Fees → "Set / Update Class Fee" and set the fee structure.`;
+-    summary += `📋 Records removed:\n`;
+-        : '<span style="color:var(--text-muted);font-size:0.75rem;">🔗 Not registered</span>')
+-      ? `<button class="action-btn" onclick="unlinkTeacherUser('${t.id}')">🔗 Unlink</button>`
+-      : '<span class="dash-photo-placeholder">👨‍🏫</span>';
+-    const resetPwBtn = `<button class="action-btn" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:none;" onclick="openAdminResetPassword('teacher','${t.id}','${t.full_name.replace(/'/g, "\\'")}')">🔑 Password</button>`;
+-    const actionBtns = `<button class="action-btn confirm" onclick="viewTeacherDetails('${t.id}')">👁 View</button><button class="action-btn" onclick="viewTeacherActivities('${t.id}')">📋 Activity</button><button class="action-btn confirm" onclick="editTeacher('${t.id}')">Edit</button>${resetPwBtn}<button class="action-btn danger" onclick="deleteTeacher('${t.id}')">Delete</button>`;
+-        return `<div style="margin-bottom:0.5rem;font-size:0.8rem;color:var(--danger);">📄 ${label}: ${d.file_name || 'Attachment'} — ⚠️ blocked by Cloudinary, please ask the teacher to re-upload to restore the download</div>`;
+-        <a href="${d.file_url}" target="_blank" class="btn btn-sm btn-secondary">📄 ${label}: ${d.file_name || 'View'}</a>
+-      : '<div style="font-size:3rem;">👨‍🏫</div>';
+-        <h4 style="grid-column:1/-1;margin:0.5rem 0;color:var(--primary);">👤 Personal Information</h4>
+-        <h4 style="grid-column:1/-1;margin:0.5rem 0;color:var(--primary);">🆔 Identification</h4>
+-        <h4 style="grid-column:1/-1;margin:0.5rem 0;color:var(--primary);">📅 Appointment & School</h4>
+-        <h4 style="grid-column:1/-1;margin:0.5rem 0;color:var(--primary);">💼 Rank & Salary</h4>
+-        <h4 style="grid-column:1/-1;margin:0.5rem 0;color:var(--primary);">📚 Education & Additional Info</h4>
+-        <h4 style="grid-column:1/-1;margin:0.5rem 0;color:var(--primary);">📄 Documents</h4>
+-// Teacher Activity Log (opened from the Staff table "📋 Activity" button)
+-      getEl('staffActivitiesBadge').textContent = '👨‍🏫 Teacher';
+-      getEl('staffActivitiesModalTitle').textContent = `📋 Activity Log: ${teacher.full_name}`;
+-    showMessage('staffActivitiesClearMessage', `🗑️ All activity logs for this ${person} were cleared.`, 'success');
+-    const photoHtml = app.student_photo_url ? `<img src="${app.student_photo_url}" class="dash-photo" />` : '<span class="dash-photo-placeholder">📷</span>';
+-          const titles = { profile: '🎓 My Profile', attendance: '📋 My Attendance', announcements: '📢 Announcements', exams: '📝 My Exam Report Cards', assessments: '❓ My Assessments', fees: '💰 My Fee Details' };
+-      const titles = { profile: '🎓 My Profile', attendance: '📋 My Attendance', announcements: '📢 Announcements', exams: '📝 My Exam Report Cards', assessments: '❓ My Assessments', fees: '💰 My Fee Details' };
+-    attendance: '📋',
+-    announcements: '📢',
+-    exams: '📝',
+-    fees: '💰'
+-  const icon = icons[page] || '🔒';
+-      <div style="font-size:3rem;margin-bottom:1rem;">🔒</div>
+-  welcomeEl.textContent = `Welcome, ${profile?.full_name || 'Student'} | 🎓 Student`;
+-      photoContainer.innerHTML = '<span class="dash-photo-placeholder student-profile-photo-placeholder">📷</span>';
+-  const iconMap = { urgent: '🔴', high: '🟠', normal: '🔵', low: '🟢' };
+-  const icon = iconMap[priority] || '📢';
+-          <span class="announcement-popup-date">📅 ${date}</span>
+-        <div class="fee-terms-header">📋 Fee Records by Term</div>
+-        <div class="fee-receipts-header">📄 Receipt & Payment History</div>
+-                      <button class="fee-print-btn" style="padding:2px 7px;font-size:11px;background:var(--success-light);border-color:var(--success);" onclick='viewSavedReceipt(${escRow}, "${processorParam}")' title="View official receipt" aria-label="View receipt">👁 View</button>
+-                      <button class="fee-print-btn" onclick='printSavedReceipt(${escRow}, "${processorParam}")' title="Print official receipt" aria-label="Print receipt">🖨️ Print</button>
+-      : '<div class="rc-seal">🏫</div>';
+-      : `<div class="rc-photo rc-photo-placeholder">📷</div>`;
+-      <div class="rc-remarks-header">📚 Class Teacher's Remarks</div>
+-      <div class="rc-remarks-header">👨‍🏫 Head Teacher's Remarks</div>
+-        schools: '🏫 Schools Management',
+-        'sub-admins': '👥 Sub Admins',
+-        students: '👥 All Students',
+-        classes: '🏫 Classes',
+-        subjects: '📖 Subjects',
+-        teachers: '📚 Teachers',
+-        parents: '👨‍👩‍👧 Parents',
+-        accountants: '🧾 Accountants',
+-        announcements: '📢 Announcements',
+-        attendance: '📋 Attendance',
+-        fees: '💰 Fees',
+-        exams: '📝 Exams',
+-        profile: '👤 My Profile'
+-    student_add: '🎓',
+-    student_remove: '🗑️',
+-    status_change: '🔄',
+-    fee_add: '💰',
+-    payment: '💳',
+-    announcement: '📢',
+-    refresh: '🔄',
+-    fee_update: '📊',
+-    school_add: '🏫',
+-    sub_admin_add: '👥',
+-    teacher_add: '📚',
+-        <strong style="color:#b91c1c;">🏫 ${s.name}</strong>
+-          ? `<span style="position:absolute;top:0.25rem;right:0.25rem;background:var(--danger);color:#fff;font-size:0.6rem;padding:0.1rem 0.4rem;border-radius:20px;">🔒 ${lockedCount}</span>`
+-          ? '<span style="display:inline-block;background:rgba(239,68,68,0.12);color:#dc2626;font-size:0.65rem;padding:0.1rem 0.4rem;border-radius:20px;margin-left:0.25rem;border:1px solid rgba(239,68,68,0.35);">📵 SMS Off</span>'
+-            <span style="font-size:0.85rem;font-weight:700;color:var(--text);line-height:1.3;">🏫 ${s.name}</span>${smsOffBadge}
+-            <span style="font-size:0.7rem;color:var(--text-muted);">👩‍🏫 ${tCount} teacher${tCount === 1 ? '' : 's'} · 🧾 ${aCount} accountant${aCount === 1 ? '' : 's'}</span>
+-      const userInfo = s.user_id ? '<span style="color:var(--success);font-size:0.75rem;">✅ Linked</span>' : '<span style="color:var(--text-muted);font-size:0.75rem;">🔗 Not linked</span>';
+-        ? `<span style="background:var(--danger);color:#fff;font-size:0.65rem;padding:0.15rem 0.5rem;border-radius:20px;margin-left:0.25rem;">🔒 ${lockedCount} locked</span>`
+-      const resetPwBtn = `<button class="btn btn-sm" onclick="openResetSchoolPassword('${s.id}', '${s.name.replace(/'/g, "\\'")}')" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:none;cursor:pointer;box-shadow:0 2px 8px rgba(245,158,11,0.3);">🔑 Reset Password</button>`;
+-            ${smsEnabled ? '📵 Disable' : '📱 Enable'}
+-      <td><button class="action-btn" onclick="openSchoolInfo('${s.id}')" style="background:var(--purple);color:#fff;border:none;">👁️ Info</button> <button class="action-btn" onclick="openEditSchoolInfo('${s.id}')" style="background:var(--success);color:#fff;border:none;">✏️ Edit</button> ${approveBtn} <button class="action-btn" data-manage-modules="${s.id}" data-school-name="${s.name.replace(/'/g, "\\'")}" style="background:var(--primary);color:#fff;border:none;">🔒 Modules</button> ${resetPwBtn} <button class="action-btn danger" onclick="deleteSchool('${s.id}')">Delete</button></td>
+-    const linked = s.user_id ? '✅ Linked' : '🔗 Not linked';
+-    if (error) { showMessage('editSchoolMessage', 'Error saving: ' + error.message, 'error'); setLoading(btn, false, '💾 Save Changes'); return; }
+-    setLoading(btn, false, '💾 Save Changes');
+-      setLoading(btn, false, '🔑 Reset Password');
+-      setLoading(btn, false, '🔑 Reset Password');
+-    setLoading(btn, false, '🔑 Reset Password');
+-    setLoading(btn, false, '🔑 Reset Password');
+-      const userInfo = sa.user_id ? '<span style="color:var(--success);font-size:0.75rem;">✅ Linked</span>' : '<span style="color:var(--text-muted);font-size:0.75rem;">🔗 Not linked</span>';
+-        <button class="action-btn" onclick="viewSubAdminActivities('${sa.id}')">📋 Activities</button></td>
+-      getEl('activitiesModalTitle').textContent = `📋 Activities: ${sa.full_name}`;
+-    showMessage('subAdminActivitiesClearMessage', '🗑️ All activity logs for this sub admin were cleared.', 'success');
+-        : '<span class="dash-photo-placeholder">🎓</span>';
+-      const regInfo = t.registration_id ? `<br><small style="color:var(--text-muted);font-size:0.75rem;">🔑 ${t.registration_id}</small>` : '';
+-        : '<span style="color:var(--text-muted);font-size:0.75rem;">🔗 Not registered</span>';
+-        <td><span class="dash-photo-placeholder">📚</span></td>
+-      const regInfo = a.registration_id ? `<br><small style="color:var(--text-muted);font-size:0.75rem;">🔑 ${a.registration_id}</small>` : '';
+-        : '<span style="color:var(--text-muted);font-size:0.75rem;">🔗 Not registered</span>';
+-        <td><span class="dash-photo-placeholder">🧾</span></td>
+-          <span>🏫 ${a.schools?.name || '—'}</span>
+-          <span>👤 ${a.profiles?.full_name || '—'}</span>
+-          <span>📅 ${formatDate(a.created_at)}</span>
+-    const lockIcon = isLocked ? '🔒' : '🔓';
+-        students: '👥 My Students',
+-        attendance: '📋 Attendance Management',
+-        exams: '📝 Exams & Scores',
+-        profile: '👤 My Profile'
+-            <h3>📋 Today's Attendance</h3>
+-          <h3>📋 Today's Attendance</h3>
+-        : '<span class="dash-photo-placeholder">📷</span>';
+-      ? '<span style="display:inline-block;margin-left:0.35rem;font-size:0.65rem;padding:0.1rem 0.4rem;background:rgba(100,116,139,0.12);color:var(--secondary);border-radius:4px;white-space:nowrap;">🔒 Locked</span>' 
+-    setLoading(btn, false, '💾 Save Attendance');
+-      const lockIcon = isLocked ? '<span style="font-size:0.55rem;opacity:0.6;margin-left:1px;">🔒</span>' : '';
+-      <td class="save-cell"><button type="button" class="btn-save-student" data-student="${student.student_id}" title="Save this student's attendance">💾</button></td>
+-    setLoading(btn, false, '💾 Save All Changes');
+-      btn.textContent = '💾';
+-            📅 <strong>${date}</strong>
+-    setLoading(btn, false, '💾 Save All Scores');
+-            <h4>📖 ${subject}</h4>
+-    showMessage('teacherExamMessage', '🏆 Rankings generated successfully!', 'success');
+-          ${schoolLogoUrl ? `<img src="${schoolLogoUrl}" alt="School Logo" style="width:44px;height:44px;object-fit:contain;border-radius:8px;background:#fff;padding:2px;border:1px solid #e2e8f0;" />` : '<div class="rc-seal">📚</div>'}
+-            <div class="rc-photo-placeholder">🎓</div>
+-            <div class="rc-remarks-header">👨‍🏫 Teacher's Remarks</div>
+-            <div class="rc-remarks-header">👑 Head Teacher's Remarks</div>
+-  if (!firstName || !surname) { showMessage('teacherProfileMessage', 'First Name and Surname are required.', 'error'); setLoading(btn, false, '💾 Save Profile'); return; }
+-  if (!dob) { showMessage('teacherProfileMessage', 'Date of Birth is required.', 'error'); setLoading(btn, false, '💾 Save Profile'); return; }
+-    if (!teacher) { showMessage('teacherProfileMessage', 'Teacher record not found. Please contact admin.', 'error'); setLoading(btn, false, '💾 Save Profile'); return; }
+-      if (certFile.type !== 'application/pdf') { showMessage('teacherProfileMessage', 'Certificate must be a PDF file.', 'error'); setLoading(btn, false, '💾 Save Profile'); return; }
+-      if (certFile.size > 2 * 1024 * 1024) { showMessage('teacherProfileMessage', 'Certificate must be less than 2MB.', 'error'); setLoading(btn, false, '💾 Save Profile'); return; }
+-      if (apptFile.type !== 'application/pdf') { showMessage('teacherProfileMessage', 'Appointment letter must be a PDF file.', 'error'); setLoading(btn, false, '💾 Save Profile'); return; }
+-      if (apptFile.size > 2 * 1024 * 1024) { showMessage('teacherProfileMessage', 'Appointment letter must be less than 2MB.', 'error'); setLoading(btn, false, '💾 Save Profile'); return; }
+-      if (password.length < 6) { showMessage('teacherProfileMessage', 'Password must be at least 6 characters.', 'error'); setLoading(btn, false, '💾 Save Profile'); return; }
+-      if (password !== confirmPw) { showMessage('teacherProfileMessage', 'Passwords do not match.', 'error'); setLoading(btn, false, '💾 Save Profile'); return; }
+-    setLoading(btn, false, '💾 Save Profile');
+-            return `<span style="display:block;font-size:0.75rem;color:var(--danger);margin-bottom:0.25rem;">📄 ${name} — ⚠️ blocked by Cloudinary, please re-upload to restore the download</span>`;
+-          return `<a href="${d.file_url}" target="_blank" rel="noopener" style="display:inline-block;padding:0.25rem 0.5rem;background:var(--primary-light);border:1px solid var(--primary);border-radius:4px;color:var(--primary);text-decoration:none;font-size:0.75rem;margin-bottom:0.25rem;">📄 Download: ${name}</a>`;
+-            return `<span style="display:block;font-size:0.75rem;color:var(--danger);margin-bottom:0.25rem;">📄 ${name} — ⚠️ blocked by Cloudinary, please re-upload to restore the download</span>`;
+-          return `<a href="${d.file_url}" target="_blank" rel="noopener" style="display:inline-block;padding:0.25rem 0.5rem;background:var(--primary-light);border:1px solid var(--primary);border-radius:4px;color:var(--primary);text-decoration:none;font-size:0.75rem;margin-bottom:0.25rem;">📄 Download: ${name}</a>`;

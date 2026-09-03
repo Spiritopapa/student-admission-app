@@ -13,6 +13,7 @@
 
 import { getEl, buildStudentName, formatDate, formatDateTime, statusBadge, getCurrentSchoolId, showMessage, clearMessage, setLoading } from './utils.js';
 import { buildFeeClassChartHtml, animateFeeClassChart } from './fee-class-chart.js';
+import { svgIcon } from './icons.js';
 
 let supabaseClient = null;
 let allStudents = [];
@@ -128,46 +129,55 @@ async function fetchLockedModules() {
 async function fetchSchoolName() {
   try {
     const schoolId = await getCurrentSchoolId();
+    if (!schoolId) return;
+
+    let logoUrl = '';
 
     // 1. Try the per-school `school_settings` table first
-    if (schoolId) {
-      const { data: schoolSettingsData } = await supabaseClient.from('school_settings')
-        .select('school_name, logo_url')
-        .eq('school_id', schoolId)
-        .maybeSingle();
-      if (schoolSettingsData?.school_name) {
-        schoolName = schoolSettingsData.school_name;
-        if (schoolSettingsData.logo_url) {
-          applySchoolLogo(schoolSettingsData.logo_url);
-        }
-        return;
-      }
+    const { data: schoolSettingsData } = await supabaseClient.from('school_settings')
+      .select('school_name, logo_url')
+      .eq('school_id', schoolId)
+      .maybeSingle();
+    if (schoolSettingsData?.school_name) {
+      schoolName = schoolSettingsData.school_name;
+    }
+    if (schoolSettingsData?.logo_url) {
+      logoUrl = schoolSettingsData.logo_url;
     }
 
     // 2. Try the legacy `settings` table
-    if (!schoolId) return;
-    const { data: settingsData } = await supabaseClient
-      .from('settings')
-      .select('school_name')
-      .eq('id', 'singleton')
-      .eq('school_id', schoolId)
-      .maybeSingle();
-    if (settingsData?.school_name) {
-      schoolName = settingsData.school_name;
-      return;
+    if (!schoolName) {
+      const { data: settingsData } = await supabaseClient
+        .from('settings')
+        .select('school_name')
+        .eq('id', 'singleton')
+        .eq('school_id', schoolId)
+        .maybeSingle();
+      if (settingsData?.school_name) {
+        schoolName = settingsData.school_name;
+      }
     }
 
     // 3. Ultimate fallback: read directly from the `schools` table
-    if (schoolId) {
+    //    (also the source the Super Admin uses to upload logos).
+    if (!schoolName || !logoUrl) {
       const { data: schoolData } = await supabaseClient
         .from('schools')
-        .select('name')
+        .select('name, logo_url')
         .eq('id', schoolId)
         .maybeSingle();
-      if (schoolData?.name) {
+      if (schoolData?.name && !schoolName) {
         schoolName = schoolData.name;
-        return;
       }
+      if (schoolData?.logo_url) {
+        logoUrl = schoolData.logo_url;
+      }
+    }
+
+    // Always push the logo around once resolved, no matter which source
+    // provided the school name.
+    if (logoUrl) {
+      applySchoolLogo(logoUrl);
     }
   } catch (err) {
     console.warn('Failed to fetch school name:', err.message);
@@ -212,10 +222,12 @@ function propagateSchoolName() {
   if (!schoolName) return;
   const sidebarSchoolName = document.getElementById('sidebarSchoolName');
   if (sidebarSchoolName) sidebarSchoolName.textContent = schoolName;
+  const bannerName = document.getElementById('adminSchoolBannerName');
+  if (bannerName) bannerName.textContent = schoolName;
   const adminWelcome = document.getElementById('adminWelcome');
   if (adminWelcome) {
     // Make the school name BOLD and prominent on the admin dashboard
-    adminWelcome.innerHTML = `<span style="font-size:1.6rem;font-weight:800;color:var(--primary-dark);letter-spacing:0.5px;">${schoolName}</span>`;
+    adminWelcome.innerHTML = `<span style="display:inline-flex;align-items:center;gap:0.5rem;">${svgIcon('school')}<span style="font-size:1.6rem;font-weight:800;color:var(--primary-dark);letter-spacing:0.5px;">${schoolName}</span></span>`;
   }
   document.title = `Admission Portal - ${schoolName}`;
   document.querySelectorAll('.school-name-display').forEach(el => {
@@ -626,7 +638,18 @@ function renderActivityFeed() {
   }
 
   container.innerHTML = activityLog.slice(0, 10).map((item) => {
-    const icon = '•';
+    const iconMap = {
+      student_add: 'graduation',
+      student_remove: 'trash',
+      status_change: 'refresh',
+      fee_add: 'coins',
+      payment: 'credit-card',
+      announcement: 'megaphone',
+      refresh: 'refresh',
+      fee_update: 'chart',
+      exam_score: 'file-text',
+    };
+    const icon = svgIcon(iconMap[item.type] || 'sparkles');
     const time = formatTimeAgo(item.timestamp);
     return `
       <div class="dash-activity-item" data-type="${item.type}">
@@ -785,14 +808,14 @@ function renderDashboard() {
     <div class="dash-realtime-header">
       <div class="dash-realtime-header-left">
         <div class="dash-realtime-title-row">
-          <h2 class="dash-realtime-title">Dashboard Overview</h2>
+          <h2 class="dash-realtime-title">${svgIcon('chart')} Dashboard Overview</h2>
           <span id="dashConnectionStatus" class="dash-connection-badge status-live">● Live</span>
         </div>
         <span id="dashLastUpdated" class="dash-last-updated">Last updated: —</span>
       </div>
       <div class="dash-realtime-header-right">
         <button type="button" class="btn btn-sm btn-secondary" id="dashRefreshBtn" title="Refresh now">
-          Refresh
+          ${svgIcon('refresh')} Refresh
         </button>
       </div>
     </div>
@@ -800,42 +823,42 @@ function renderDashboard() {
     <!-- Dashboard Stats Overview -->
     <div class="dash-overview-cards" id="dashOverviewCards">
       <div class="dash-overview-card animated-card" style="--accent:var(--primary);">
-        <div class="dash-overview-icon"></div>
+        <div class="dash-overview-icon">${svgIcon('users')}</div>
         <div class="dash-overview-info">
           <span class="dash-overview-number" id="dashTotalStudents">0</span>
           <span class="dash-overview-label">Total Students</span>
         </div>
       </div>
       <div class="dash-overview-card animated-card" style="--accent:var(--success);">
-        <div class="dash-overview-icon"></div>
+        <div class="dash-overview-icon">${svgIcon('check-circle')}</div>
         <div class="dash-overview-info">
           <span class="dash-overview-number" id="dashAdmitted">0</span>
           <span class="dash-overview-label">Admitted</span>
         </div>
       </div>
       <div class="dash-overview-card animated-card" style="--accent:var(--warning);">
-        <div class="dash-overview-icon"></div>
+        <div class="dash-overview-icon">${svgIcon('clock')}</div>
         <div class="dash-overview-info">
           <span class="dash-overview-number" id="dashPending">0</span>
           <span class="dash-overview-label">Awaiting Portal Confirmation</span>
         </div>
       </div>
       <div class="dash-overview-card animated-card" style="--accent:#ec4899;">
-        <div class="dash-overview-icon"></div>
+        <div class="dash-overview-icon">${svgIcon('user')}</div>
         <div class="dash-overview-info">
           <span class="dash-overview-number" id="dashFemale">0</span>
           <span class="dash-overview-label">Female</span>
         </div>
       </div>
       <div class="dash-overview-card animated-card" style="--accent:#06b6d4;">
-        <div class="dash-overview-icon"></div>
+        <div class="dash-overview-icon">${svgIcon('user')}</div>
         <div class="dash-overview-info">
           <span class="dash-overview-number" id="dashMale">0</span>
           <span class="dash-overview-label">Male</span>
         </div>
       </div>
       <div class="dash-overview-card animated-card" style="--accent:var(--purple);">
-        <div class="dash-overview-icon"></div>
+        <div class="dash-overview-icon">${svgIcon('check-circle')}</div>
         <div class="dash-overview-info">
           <span class="dash-overview-number" id="dashConfirmed">0</span>
           <span class="dash-overview-label">Portal Confirmed</span>
@@ -846,7 +869,7 @@ function renderDashboard() {
     <!-- Today's Attendance by Class -->
     <div class="dash-list-card animated-card dash-attendance-card">
       <div class="dash-list-header">
-        <h3>Today's Attendance</h3>
+        <h3>${svgIcon('clipboard')} Today's Attendance</h3>
         <span class="dash-list-count" id="dashTodayAttCount">${todayAttendance.length} classes</span>
       </div>
       <div class="dash-list-body" id="dashTodayAttendance">
@@ -860,7 +883,7 @@ function renderDashboard() {
       ${showStudents ? `
       <div class="dash-chart-card animated-card">
         <div class="dash-chart-header">
-          <h3>Student Population by Class</h3>
+          <h3>${svgIcon('chart')} Student Population by Class</h3>
           <span class="dash-chart-subtitle">Distribution across classes</span>
         </div>
         <div class="dash-chart-body" id="dashStudentChart">
@@ -873,7 +896,7 @@ function renderDashboard() {
       ${showFees ? `
       <div class="dash-chart-card animated-card">
         <div class="dash-chart-header">
-          <h3>Fee Overview</h3>
+          <h3>${svgIcon('coins')} Fee Overview</h3>
           <span class="dash-chart-subtitle">Overall financial summary</span>
         </div>
         <div class="dash-fee-summary" id="dashFeeSummary">
@@ -890,7 +913,7 @@ function renderDashboard() {
     ${showFees ? `
     <div class="dash-chart-card animated-card" style="margin-bottom:1rem;">
       <div class="dash-chart-header">
-        <h3>Fees by Class</h3>
+        <h3>${svgIcon('chart')} Fees by Class</h3>
         <span class="dash-chart-subtitle">Total fees vs collected vs outstanding per class</span>
       </div>
       <div class="dash-chart-body" id="dashFeeClassChart">
@@ -905,7 +928,7 @@ function renderDashboard() {
       ${showAnnouncements ? `
       <div class="dash-list-card animated-card">
         <div class="dash-list-header">
-          <h3>Latest Announcements</h3>
+          <h3>${svgIcon('megaphone')} Latest Announcements</h3>
           <span class="dash-list-count">${allAnnouncements.length}</span>
         </div>
         <div class="dash-list-body" id="dashAnnouncementsList">
@@ -918,7 +941,7 @@ function renderDashboard() {
       ${showStudents ? `
       <div class="dash-list-card animated-card">
         <div class="dash-list-header">
-          <h3>Recent Admitted Students</h3>
+          <h3>${svgIcon('user-plus')} Recent Admitted Students</h3>
           <span class="dash-list-count">5</span>
         </div>
         <div class="dash-list-body" id="dashRecentStudents">
@@ -950,10 +973,10 @@ function renderDashboard() {
   const refreshBtn = document.getElementById('dashRefreshBtn');
   if (refreshBtn) {
     refreshBtn.onclick = () => {
-      refreshBtn.textContent = 'Refreshing...';
+      refreshBtn.innerHTML = `${svgIcon('clock')} Refreshing...`;
       refreshBtn.disabled = true;
       refreshDashboardData('manual').then(() => {
-        refreshBtn.textContent = 'Refresh';
+        refreshBtn.innerHTML = `${svgIcon('refresh')} Refresh`;
         refreshBtn.disabled = false;
       });
     };
@@ -1253,12 +1276,14 @@ function showAnnouncementPopup(announcement) {
 
   const priority = announcement.priority || 'normal';
   const date = formatDate(announcement.created_at);
+  const priorityClasses = { urgent: 'app-dot-urgent', high: 'app-dot-high', normal: 'app-dot-normal', low: 'app-dot-low' };
   const popup = document.createElement('div');
   popup.id = 'dashAnnouncementPopup';
   popup.innerHTML = `
     <div class="announcement-popup-overlay"></div>
     <div class="announcement-popup-card">
       <div class="announcement-popup-header" style="background:${priority === 'urgent' ? '#dc2626' : priority === 'high' ? '#f59e0b' : '#6366f1'};">
+        <span class="announcement-popup-icon"><span class="app-dot ${priorityClasses[priority] || 'app-dot-normal'}"></span></span>
         <span class="announcement-popup-badge">${priority.toUpperCase()}</span>
         <button class="announcement-popup-close" onclick="this.closest('#dashAnnouncementPopup').remove()">×</button>
       </div>
@@ -1266,9 +1291,9 @@ function showAnnouncementPopup(announcement) {
         <h3 class="announcement-popup-title">${announcement.title || 'Announcement'}</h3>
         <p class="announcement-popup-text">${announcement.content || ''}</p>
         <div class="announcement-popup-footer">
-          <span class="announcement-popup-date">${date}</span>
+          <span class="announcement-popup-date">${svgIcon('calendar')} ${date}</span>
           <div style="display:flex;gap:0.5rem;">
-            <button class="announcement-popup-remind" onclick="this.closest('#dashAnnouncementPopup').remove(); window._remindAnnouncement && window._remindAnnouncement()">Remind Later</button>
+            <button class="announcement-popup-remind" onclick="this.closest('#dashAnnouncementPopup').remove(); window._remindAnnouncement && window._remindAnnouncement()">${svgIcon('clock')} Remind Later</button>
             <button class="announcement-popup-dismiss" onclick="this.closest('#dashAnnouncementPopup').remove()">Dismiss</button>
           </div>
         </div>

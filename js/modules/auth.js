@@ -218,9 +218,13 @@ window.schoolWizardGoNext = async function () {
     if (error) throw error;
     const row = (info && info.length > 0) ? info[0] : null;
     if (!row) { schoolWizardSetMsg('No school found with that ID. Please check with your Super Administrator.', 'error'); return; }
-    _schoolWizard = { regId, schoolName: row.name || regId, schoolId: row.id, stage: 2 };
+    // Tolerate both the fixed RPC shape (id + name + registration_id) and
+    // older builds that only returned school_id.
+    const schoolId = row.id || row.school_id || null;
+    const schoolName = String(row.name || row.school_name || '').trim() || regId;
+    _schoolWizard = { regId, schoolName, schoolId, stage: 2 };
     const nameEl = getEl('regSchoolNameAuto');
-    if (nameEl) nameEl.textContent = row.name || regId;
+    if (nameEl) nameEl.textContent = schoolName;
     schoolWizardSetMsg('');
     schoolWizardShow(2);
   } catch (err) {

@@ -1,0 +1,439 @@
+﻿commit e5859baecf0472218156e5e9442a6e3f4969981f
+Author: Spiritopapa <Spiritopapa@users.noreply.github.com>
+Date:   Wed Sep 2 20:29:30 2026 +0000
+
+    modified
+
+diff --git a/js/app.js b/js/app.js
+index 07b63c1..1678ad3 100644
+--- a/js/app.js
++++ b/js/app.js
+@@ -89,7 +89,7 @@ import { showPage } from './modules/navigation.js';
+ 
+ window.loadAdminDashboard = async function loadAdminDashboard() {
+   const dashTitle = getEl('adminDashTitle');
+-  if (dashTitle) dashTitle.textContent = '👑 Admin Dashboard';
++  if (dashTitle) dashTitle.textContent = 'Admin Dashboard';
+ 
+   // Show the home overview and hide any previously active module panel,
+   // so the sticky sidebar + dashboard shell stay in view.
+@@ -369,7 +369,7 @@ async function loadAdminSubPage(page) {
+   if (page === 'dashboard') {
+     if (homeContent) homeContent.style.display = '';
+     if (dashHeader) dashHeader.style.display = '';
+-    if (titleEl) titleEl.textContent = '👑 Admin Dashboard';
++    if (titleEl) titleEl.textContent = 'Admin Dashboard';
+     window.scrollTo({ top: 0, behavior: 'smooth' });
+     await loadAdminDashboardHome();
+     return;
+@@ -380,23 +380,23 @@ async function loadAdminSubPage(page) {
+   if (dashHeader) dashHeader.style.display = 'none';
+ 
+   const map = {
+-    students: { id: 'page-admin-students', title: '👥 All Students' },
+-    classes: { id: 'page-admin-classes', title: '🏫 Classes' },
+-    subjects: { id: 'page-admin-subjects', title: '📖 Subjects' },
+-    teachers: { id: 'page-admin-teachers', title: '📚 Teachers' },
+-    accountants: { id: 'page-admin-accountants', title: '🧾 Accountants' },
+-    parents: { id: 'page-admin-parents', title: '👨‍👩‍👧 Parents / Guardians' },
+-    admit: { id: 'page-admin-admit', title: '➕ Admit Student' },
+-    announcements: { id: 'page-admin-announcements', title: '📢 Announcements' },
+-    attendance: { id: 'page-admin-attendance', title: '📋 Attendance Management' },
+-    exams: { id: 'page-admin-exams', title: '📝 Examinations' },
+-    assessments: { id: 'page-admin-assessments', title: '❓ Multi-Choice Assessments' },
+-    grading: { id: 'page-admin-grading', title: '📊 Grading System' },
+-    fees: { id: 'page-admin-fees', title: '💰 Fees Management' },
+-    'income-expenses': { id: 'page-admin-income-expenses', title: '📊 Income & Expenses' },
+-    'sms-monitoring': { id: 'page-admin-sms-monitoring', title: '📨 SMS Monitoring' },
+-    backup: { id: 'page-admin-backup', title: '💾 Backup & Restore' },
+-    profile: { id: 'page-admin-profile', title: '🔑 Change Password' },
++    students: { id: 'page-admin-students', title: 'All Students' },
++    classes: { id: 'page-admin-classes', title: 'Classes' },
++    subjects: { id: 'page-admin-subjects', title: 'Subjects' },
++    teachers: { id: 'page-admin-teachers', title: 'Teachers' },
++    accountants: { id: 'page-admin-accountants', title: 'Accountants' },
++    parents: { id: 'page-admin-parents', title: 'Parents / Guardians' },
++    admit: { id: 'page-admin-admit', title: 'Admit Student' },
++    announcements: { id: 'page-admin-announcements', title: 'Announcements' },
++    attendance: { id: 'page-admin-attendance', title: 'Attendance Management' },
++    exams: { id: 'page-admin-exams', title: 'Examinations' },
++    assessments: { id: 'page-admin-assessments', title: 'Multi-Choice Assessments' },
++    grading: { id: 'page-admin-grading', title: 'Grading System' },
++    fees: { id: 'page-admin-fees', title: 'Fees Management' },
++    'income-expenses': { id: 'page-admin-income-expenses', title: 'Income & Expenses' },
++    'sms-monitoring': { id: 'page-admin-sms-monitoring', title: 'SMS Monitoring' },
++    backup: { id: 'page-admin-backup', title: 'Backup & Restore' },
++    profile: { id: 'page-admin-profile', title: 'Change Password' },
+   };
+   const targetPage = getEl(map[page]?.id);
+   if (targetPage) targetPage.classList.add('active-page');
+diff --git a/js/modules/admin-dashboard.js b/js/modules/admin-dashboard.js
+index 53c43fa..78842d1 100644
+--- a/js/modules/admin-dashboard.js
++++ b/js/modules/admin-dashboard.js
+@@ -190,7 +190,7 @@ function propagateSchoolName() {
+   const adminWelcome = document.getElementById('adminWelcome');
+   if (adminWelcome) {
+     // Make the school name BOLD and prominent on the admin dashboard
+-    adminWelcome.innerHTML = `<span style="font-size:1.6rem;font-weight:800;color:var(--primary-dark);letter-spacing:0.5px;">🏫 ${schoolName}</span>`;
++    adminWelcome.innerHTML = `<span style="font-size:1.6rem;font-weight:800;color:var(--primary-dark);letter-spacing:0.5px;">${schoolName}</span>`;
+   }
+   document.title = `Admission Portal - ${schoolName}`;
+   document.querySelectorAll('.school-name-display').forEach(el => {
+@@ -601,18 +601,7 @@ function renderActivityFeed() {
+   }
+ 
+   container.innerHTML = activityLog.slice(0, 10).map((item) => {
+-    const iconMap = {
+-      student_add: '🎓',
+-      student_remove: '🗑️',
+-      status_change: '🔄',
+-      fee_add: '💰',
+-      payment: '💳',
+-      announcement: '📢',
+-      refresh: '🔄',
+-      fee_update: '📊',
+-      exam_score: '📝',
+-    };
+-    const icon = iconMap[item.type] || '•';
++    const icon = '•';
+     const time = formatTimeAgo(item.timestamp);
+     return `
+       <div class="dash-activity-item" data-type="${item.type}">
+@@ -771,14 +760,14 @@ function renderDashboard() {
+     <div class="dash-realtime-header">
+       <div class="dash-realtime-header-left">
+         <div class="dash-realtime-title-row">
+-          <h2 class="dash-realtime-title">📊 Dashboard Overview</h2>
++          <h2 class="dash-realtime-title">Dashboard Overview</h2>
+           <span id="dashConnectionStatus" class="dash-connection-badge status-live">● Live</span>
+         </div>
+         <span id="dashLastUpdated" class="dash-last-updated">Last updated: —</span>
+       </div>
+       <div class="dash-realtime-header-right">
+         <button type="button" class="btn btn-sm btn-secondary" id="dashRefreshBtn" title="Refresh now">
+-          🔄 Refresh
++          Refresh
+         </button>
+       </div>
+     </div>
+@@ -786,42 +775,42 @@ function renderDashboard() {
+     <!-- Dashboard Stats Overview -->
+     <div class="dash-overview-cards" id="dashOverviewCards">
+       <div class="dash-overview-card animated-card" style="--accent:var(--primary);">
+-        <div class="dash-overview-icon">👥</div>
++        <div class="dash-overview-icon"></div>
+         <div class="dash-overview-info">
+           <span class="dash-overview-number" id="dashTotalStudents">0</span>
+           <span class="dash-overview-label">Total Students</span>
+         </div>
+       </div>
+       <div class="dash-overview-card animated-card" style="--accent:var(--success);">
+-        <div class="dash-overview-icon">✅</div>
++        <div class="dash-overview-icon"></div>
+         <div class="dash-overview-info">
+           <span class="dash-overview-number" id="dashAdmitted">0</span>
+           <span class="dash-overview-label">Admitted</span>
+         </div>
+       </div>
+       <div class="dash-overview-card animated-card" style="--accent:var(--warning);">
+-        <div class="dash-overview-icon">⏳</div>
++        <div class="dash-overview-icon"></div>
+         <div class="dash-overview-info">
+           <span class="dash-overview-number" id="dashPending">0</span>
+           <span class="dash-overview-label">Awaiting Portal Confirmation</span>
+         </div>
+       </div>
+       <div class="dash-overview-card animated-card" style="--accent:#ec4899;">
+-        <div class="dash-overview-icon">👩‍🎓</div>
++        <div class="dash-overview-icon"></div>
+         <div class="dash-overview-info">
+           <span class="dash-overview-number" id="dashFemale">0</span>
+           <span class="dash-overview-label">Female</span>
+         </div>
+       </div>
+       <div class="dash-overview-card animated-card" style="--accent:#06b6d4;">
+-        <div class="dash-overview-icon">👨‍🎓</div>
++        <div class="dash-overview-icon"></div>
+         <div class="dash-overview-info">
+           <span class="dash-overview-number" id="dashMale">0</span>
+           <span class="dash-overview-label">Male</span>
+         </div>
+       </div>
+       <div class="dash-overview-card animated-card" style="--accent:var(--purple);">
+-        <div class="dash-overview-icon">🔐</div>
++        <div class="dash-overview-icon"></div>
+         <div class="dash-overview-info">
+           <span class="dash-overview-number" id="dashConfirmed">0</span>
+           <span class="dash-overview-label">Portal Confirmed</span>
+@@ -832,7 +821,7 @@ function renderDashboard() {
+     <!-- Today's Attendance by Class -->
+     <div class="dash-list-card animated-card dash-attendance-card">
+       <div class="dash-list-header">
+-        <h3>📋 Today's Attendance</h3>
++        <h3>Today's Attendance</h3>
+         <span class="dash-list-count" id="dashTodayAttCount">${todayAttendance.length} classes</span>
+       </div>
+       <div class="dash-list-body" id="dashTodayAttendance">
+@@ -846,7 +835,7 @@ function renderDashboard() {
+       ${showStudents ? `
+       <div class="dash-chart-card animated-card">
+         <div class="dash-chart-header">
+-          <h3>📊 Student Population by Class</h3>
++          <h3>Student Population by Class</h3>
+           <span class="dash-chart-subtitle">Distribution across classes</span>
+         </div>
+         <div class="dash-chart-body" id="dashStudentChart">
+@@ -859,7 +848,7 @@ function renderDashboard() {
+       ${showFees ? `
+       <div class="dash-chart-card animated-card">
+         <div class="dash-chart-header">
+-          <h3>💰 Fee Overview</h3>
++          <h3>Fee Overview</h3>
+           <span class="dash-chart-subtitle">Overall financial summary</span>
+         </div>
+         <div class="dash-fee-summary" id="dashFeeSummary">
+@@ -876,7 +865,7 @@ function renderDashboard() {
+     ${showFees ? `
+     <div class="dash-chart-card animated-card" style="margin-bottom:1rem;">
+       <div class="dash-chart-header">
+-        <h3>📊 Fees by Class</h3>
++        <h3>Fees by Class</h3>
+         <span class="dash-chart-subtitle">Total fees vs collected vs outstanding per class</span>
+       </div>
+       <div class="dash-chart-body" id="dashFeeClassChart">
+@@ -891,7 +880,7 @@ function renderDashboard() {
+       ${showAnnouncements ? `
+       <div class="dash-list-card animated-card">
+         <div class="dash-list-header">
+-          <h3>📢 Latest Announcements</h3>
++          <h3>Latest Announcements</h3>
+           <span class="dash-list-count">${allAnnouncements.length}</span>
+         </div>
+         <div class="dash-list-body" id="dashAnnouncementsList">
+@@ -904,7 +893,7 @@ function renderDashboard() {
+       ${showStudents ? `
+       <div class="dash-list-card animated-card">
+         <div class="dash-list-header">
+-          <h3>🆕 Recent Admitted Students</h3>
++          <h3>Recent Admitted Students</h3>
+           <span class="dash-list-count">5</span>
+         </div>
+         <div class="dash-list-body" id="dashRecentStudents">
+@@ -936,10 +925,10 @@ function renderDashboard() {
+   const refreshBtn = document.getElementById('dashRefreshBtn');
+   if (refreshBtn) {
+     refreshBtn.onclick = () => {
+-      refreshBtn.textContent = '⏳ Refreshing...';
++      refreshBtn.textContent = 'Refreshing...';
+       refreshBtn.disabled = true;
+       refreshDashboardData('manual').then(() => {
+-        refreshBtn.textContent = '🔄 Refresh';
++        refreshBtn.textContent = 'Refresh';
+         refreshBtn.disabled = false;
+       });
+     };
+@@ -1239,25 +1228,22 @@ function showAnnouncementPopup(announcement) {
+ 
+   const priority = announcement.priority || 'normal';
+   const date = formatDate(announcement.created_at);
+-  const iconMap = { urgent: '🔴', high: '🟠', normal: '🔵', low: '🟢' };
+-  const icon = iconMap[priority] || '📢';
+   const popup = document.createElement('div');
+   popup.id = 'dashAnnouncementPopup';
+   popup.innerHTML = `
+     <div class="announcement-popup-overlay"></div>
+     <div class="announcement-popup-card">
+       <div class="announcement-popup-header" style="background:${priority === 'urgent' ? '#dc2626' : priority === 'high' ? '#f59e0b' : '#6366f1'};">
+-        <span class="announcement-popup-icon">${icon}</span>
+         <span class="announcement-popup-badge">${priority.toUpperCase()}</span>
+-        <button class="announcement-popup-close" onclick="this.closest('#dashAnnouncementPopup').remove()">✕</button>
++        <button class="announcement-popup-close" onclick="this.closest('#dashAnnouncementPopup').remove()">×</button>
+       </div>
+       <div class="announcement-popup-body">
+         <h3 class="announcement-popup-title">${announcement.title || 'Announcement'}</h3>
+         <p class="announcement-popup-text">${announcement.content || ''}</p>
+         <div class="announcement-popup-footer">
+-          <span class="announcement-popup-date">📅 ${date}</span>
++          <span class="announcement-popup-date">${date}</span>
+           <div style="display:flex;gap:0.5rem;">
+-            <button class="announcement-popup-remind" onclick="this.closest('#dashAnnouncementPopup').remove(); window._remindAnnouncement && window._remindAnnouncement()">⏰ Remind Later</button>
++            <button class="announcement-popup-remind" onclick="this.closest('#dashAnnouncementPopup').remove(); window._remindAnnouncement && window._remindAnnouncement()">Remind Later</button>
+             <button class="announcement-popup-dismiss" onclick="this.closest('#dashAnnouncementPopup').remove()">Dismiss</button>
+           </div>
+         </div>
+@@ -1367,7 +1353,7 @@ function renderRecentStudents() {
+     const name = buildStudentName(s.first_name, s.middle_name, s.last_name);
+     const photo = s.student_photo_url
+       ? `<img src="${s.student_photo_url}" class="dash-recent-photo" alt="" />`
+-      : '<span class="dash-recent-photo-placeholder">📷</span>';
++      : '<span class="dash-recent-photo-placeholder"></span>';
+     return `
+       <div class="dash-recent-item" style="animation-delay:${idx * 0.1}s">
+         ${photo}
+@@ -1409,7 +1395,7 @@ async function changeAdminPassword(e) {
+   try {
+     const { error } = await supabaseClient.auth.updateUser({ password: newPassword });
+     if (error) throw error;
+-    showMessage('adminProfileMessage', '✅ Password changed successfully. Use your new password next time you sign in.', 'success');
++    showMessage('adminProfileMessage', 'Password changed successfully. Use your new password next time you sign in.', 'success');
+     getEl('adminNewPassword').value = '';
+     getEl('adminConfirmPassword').value = '';
+   } catch (err) {
+diff --git a/js/modules/utils.js b/js/modules/utils.js
+index 09064a8..9aaf0c8 100644
+--- a/js/modules/utils.js
++++ b/js/modules/utils.js
+@@ -430,7 +430,7 @@ export function validateImageFile(file, maxSizeMB = 5) {
+   if (!file.type.startsWith('image/')) return { valid: false, error: 'Please select an image file.' };
+   if (file.size > maxSizeMB * 1024 * 1024) {
+     const maxKB = Math.round(maxSizeMB * 1024);
+-    return { valid: false, error: `❌ Photo rejected! Maximum allowed size is ${maxKB}KB. Your photo is ${(file.size / 1024).toFixed(1)}KB. Please select a smaller photo.` };
++    return { valid: false, error: `Photo rejected! Maximum allowed size is ${maxKB}KB. Your photo is ${(file.size / 1024).toFixed(1)}KB. Please select a smaller photo.` };
+   }
+   return { valid: true, error: null };
+ }
+@@ -536,7 +536,7 @@ export function buildStudentName(first, middle, last) {
+ // ================================================================
+ 
+ export function getRoleDisplay(role) {
+-  return { admin: '👑 Admin', student: '🎓 Student', parent: '👨‍👩‍👧 Parent', sub_admin: '🔧 Sub Admin', super_admin: '⭐ Super Admin', teacher: '📚 Teacher', accountant: '🧾 Accountant' }[role] || 'User';
++  return { admin: 'Admin', student: 'Student', parent: 'Parent', sub_admin: 'Sub Admin', super_admin: 'Super Admin', teacher: 'Teacher', accountant: 'Accountant' }[role] || 'User';
+ }
+ 
+ // ================================================================
+@@ -553,8 +553,8 @@ export function statusBadge(status) {
+ 
+ export function portalBadge(confirmed) {
+   return confirmed
+-    ? '<span class="badge-confirmed">✅ Confirmed</span>'
+-    : '<span class="badge-unconfirmed">⏳ Pending</span>';
++    ? '<span class="badge-confirmed">Confirmed</span>'
++    : '<span class="badge-unconfirmed">Pending</span>';
+ }
+ 
+ // ================================================================
+@@ -658,7 +658,7 @@ function createPrintOverlay() {
+     'display:flex;align-items:center;justify-content:center;' +
+     'background:rgba(255,255,255,0.94);font-family:sans-serif;font-size:14px;' +
+     'color:#334155;letter-spacing:0.3px;';
+-  overlay.textContent = '⏳ Preparing print preview…';
++  overlay.textContent = 'Preparing print preview…';
+   document.body.appendChild(overlay);
+   return overlay;
+ }
+@@ -816,12 +816,12 @@ function scopePrintStyles(cssText) {
+  *   • generates a REAL A4 PDF on the fly with html2pdf.js, exports it as a
+  *     Blob and renders it inline (`URL.createObjectURL` → <iframe>), so the
+  *     user sees the exact document that will be printed or shared;
+- *   • pairs the preview with the Web Share API — 📤 Share hands the PDF Blob
++ *   • pairs the preview with the Web Share API — Share hands the PDF Blob
+  *     to the device's native share sheet (WhatsApp, Email, Drive, Files…);
+- *   • 🖨️ Print / Save as PDF still uses the platform's own native print dialog
++ *   • Print / Save as PDF still uses the platform's own native print dialog
+  *     on the mounted document, so the printed output is the real, exact HTML
+  *     (WYSIWYG with the PDF);
+- *   • 💾 Download PDF saves the same Blob to Downloads / Files (on iOS Safari
++ *   • Download PDF saves the same Blob to Downloads / Files (on iOS Safari
+  *     it opens the blob so the browser's Share sheet can "Save to Files").
+  *
+  * The mount is shared by every document type in the app: all modules reach
+@@ -1025,10 +1025,10 @@ function printViaNativeMobile(html, title) {
+   modal.innerHTML =
+     '<div class="__adh-preview-toolbar">' +
+       '<div class="__adh-preview-title-wrap">' +
+-        '<span class="__adh-preview-title">🗎 ' + escapeHtml(title || 'Print') + '</span>' +
+-        '<span class="__adh-preview-subtitle" id="__adhPreviewStatus">⏳ Generating PDF preview…</span>' +
++        '<span class="__adh-preview-title">' + escapeHtml(title || 'Print') + '</span>' +
++        '<span class="__adh-preview-subtitle" id="__adhPreviewStatus">Generating PDF preview…</span>' +
+       '</div>' +
+-      '<button type="button" class="__adh-preview-close" id="__adhPreviewClose" aria-label="Close preview">✕</button>' +
++      '<button type="button" class="__adh-preview-close" id="__adhPreviewClose" aria-label="Close preview">×</button>' +
+     '</div>' +
+     '<div class="__adh-preview-body">' +
+       '<div class="__adh-preview-spinner" id="__adhPreviewSpinner">' +
+@@ -1041,9 +1041,9 @@ function printViaNativeMobile(html, title) {
+       '<iframe id="__adhPreviewFrame" title="' + escapeHtml(title) + ' PDF preview"></iframe>' +
+     '</div>' +
+     '<div class="__adh-preview-actions">' +
+-      '<button type="button" class="__adh-preview-btn __adh-preview-share" id="__adhPreviewShare">📤 Share</button>' +
+-      '<button type="button" class="__adh-preview-btn" id="__adhPreviewDownload">💾 Download</button>' +
+-      '<button type="button" class="__adh-preview-btn __adh-preview-primary" id="__adhPreviewPrint">🖨️ Print / Save</button>' +
++      '<button type="button" class="__adh-preview-btn __adh-preview-share" id="__adhPreviewShare">Share</button>' +
++      '<button type="button" class="__adh-preview-btn" id="__adhPreviewDownload">Download</button>' +
++      '<button type="button" class="__adh-preview-btn __adh-preview-primary" id="__adhPreviewPrint">Print / Save</button>' +
+     '</div>' +
+     '<div class="__adh-preview-hint" id="__adhPreviewHint"></div>';
+   document.body.appendChild(modal);
+@@ -1213,7 +1213,7 @@ function printViaNativeMobile(html, title) {
+       // tab where Safari's reader/share sheet offers "Save to Files".
+       setStatus('Opening PDF… tap the Share icon in the browser to save to Files.', false);
+       const w = window.open(blobUrl, '_blank');
+-      if (!w) setStatus('Pop-up blocked — use 📤 Share instead.', false);
++      if (!w) setStatus('Pop-up blocked — use Share instead.', false);
+     } else {
+       const a = document.createElement('a');
+       a.href = blobUrl;
+@@ -1262,7 +1262,7 @@ function printViaNativeMobile(html, title) {
+ 
+   // Handle for legacy `win.focus(); win.print()` callers. On mobile the
+   // preview modal IS the UI, so a direct print() is intentionally ignored —
+-  // the modal's own 🖨️ Print / Save button opens the native dialog once.
++  // the modal's own Print / Save button opens the native dialog once.
+   // Desktop iframes still auto-print as before.
+   return {
+     focus: () => { try { modal.focus(); } catch (e) { /* noop */ } },
+@@ -1482,10 +1482,10 @@ function removePrintMount() {
+  *     • Live PDF preview — a real A4 PDF is generated on the fly with
+  *       html2pdf.js, exported as a Blob (URL.createObjectURL) and shown
+  *       inline, so the user sees the exact document;
+- *     • 📤 Share — the Web Share API hands the PDF Blob to the device's
++ *     • Share — the Web Share API hands the PDF Blob to the device's
+  *       native share sheet (WhatsApp, Email, Drive, Files…);
+- *     • 💾 Download PDF — saves the same Blob to Downloads / Files;
+- *     • 🖨️ Print / Save as PDF — opens the platform's own print dialog on the
++ *     • Download PDF — saves the same Blob to Downloads / Files;
++ *     • Print / Save as PDF — opens the platform's own print dialog on the
+  *       mounted document (printer, "Save as PDF" on Android, "Save to
+  *       Files"/AirPrint on iOS).
+  *
+@@ -1602,7 +1602,7 @@ window.submitAdminResetPassword = async function () {
+   }
+ 
+   // Confirm with the admin
+-  if (!confirm(`⚠️ RESET PASSWORD\n\nAre you sure you want to reset the password for "${displayName}"?\n\nThe account holder will need to use the new password to log in.`)) {
++  if (!confirm(`RESET PASSWORD\n\nAre you sure you want to reset the password for "${displayName}"?\n\nThe account holder will need to use the new password to log in.`)) {
+     return;
+   }
+ 
+@@ -1622,18 +1622,18 @@ window.submitAdminResetPassword = async function () {
+ 
+     if (error) {
+       showMessage('adminResetPwMessage', 'Error: ' + error.message, 'error');
+-      setLoading(btn, false, '🔑 Reset Password');
++      setLoading(btn, false, 'Reset Password');
+       return;
+     }
+     if (!data?.success) {
+       showMessage('adminResetPwMessage', data?.error || 'Failed to reset password.', 'error');
+-      setLoading(btn, false, '🔑 Reset Password');
++      setLoading(btn, false, 'Reset Password');
+       return;
+     }
+ 
+-    showMessage('adminResetPwMessage', `✅ Password reset successfully for "${displayName}". They can now log in with the new password.`, 'success');
++    showMessage('adminResetPwMessage', `Password reset successfully for "${displayName}". They can now log in with the new password.`, 'success');
+     logSubAdminActivity(`Reset ${type} password for "${displayName}"`, type, displayName);
+-    setLoading(btn, false, '🔑 Reset Password');
++    setLoading(btn, false, 'Reset Password');
+ 
+     // Close the modal after a short delay
+     setTimeout(() => {
+@@ -1642,6 +1642,6 @@ window.submitAdminResetPassword = async function () {
+     }, 2000);
+   } catch (err) {
+     showMessage('adminResetPwMessage', 'Error: ' + err.message, 'error');
+-    setLoading(btn, false, '🔑 Reset Password');
++    setLoading(btn, false, 'Reset Password');
+   }
+ };

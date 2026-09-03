@@ -1,0 +1,62 @@
+/* =============================================================
+   App Icon System — modern inline SVG icons
+   (stroke-based, Lucide-style, 24x24 viewBox)
+   =============================================================
+   Every icon is a <symbol id="i-..." > inside the sprite
+   block at the top of <body>, rendered with <use href="#i-..."/>.
+   This stylesheet sizes and colors them consistently across all
+   the places where the old emoji glyphs used to live.
+   ============================================================ */
+
+.app-icon {
+  width: 1em;
+  height: 1em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex-shrink: 0;
+  vertical-align: -0.125em;
+  display: inline-block;
+}
+
+/* Elements the injector tagged get a small gap before their
+   leading icon so icon + label sit nicely together. */
+.app-iconized > .app-icon { margin-right: 0.35em; vertical-align: -0.18em; }
+h1.app-iconized > .app-icon,
+h2.app-iconized > .app-icon,
+h3.app-iconized > .app-icon,
+h4.app-iconized > .app-icon,
+summary.app-iconized > .app-icon,
+.btn.app-iconized > .app-icon { margin-right: 0.3em; vertical-align: -0.15em; }
+
+/* ---- Fixed-size containers ---- */
+.dash-nav-icon > .app-icon { width: 18px; height: 18px; display: block; }
+.dash-welcome-icon > .app-icon { width: 22px; height: 22px; display: block; }
+.dash-avatar > .app-icon { width: 18px; height: 18px; display: block; }
+.sidebar-logo-circle > .app-icon { width: 24px; height: 24px; display: block; }
+
+.home-glass-icon > .app-icon { width: 20px; height: 20px; display: block; }
+.home-feature-icon > .app-icon { width: 22px; height: 22px; display: block; }
+.school-banner-icon > .app-icon { width: 22px; height: 22px; display: block; }
+.deep-search-icon > .app-icon { width: 18px; height: 18px; display: block; }
+.login-logo-icon > .app-icon { width: 32px; height: 32px; display: block; }
+.login-input-icon > .app-icon { width: 18px; height: 18px; display: block; color: var(--text-muted, #6b7280); }
+
+.dash-overview-icon > .app-icon { width: 22px; height: 22px; display: block; }
+.acc-stat-icon > .app-icon { width: 24px; height: 24px; display: block; }
+.dash-activity-icon > .app-icon { width: 15px; height: 15px; display: block; }
+
+.dash-photo-placeholder > .app-icon,
+.rc-photo-placeholder > .app-icon,
+.dash-recent-photo-placeholder > .app-icon { width: 28px; height: 28px; display: block; }
+.rc-seal > .app-icon { width: 44px; height: 44px; display: block; }
+.announcement-popup-icon > .app-icon { width: 20px; height: 20px; display: block; }
+
+/* Announcement priority dot markers (solid circles) */
+.announcement-popup-icon .app-dot { border-radius: 50%; display: inline-block; width: 14px; height: 14px; }
+.app-dot-urgent { background: #ef4444; }
+.app-dot-high   { background: #f59e0b; }
+.app-dot-normal { background: #3b82f6; }
+.app-dot-low    { background: #22c55e; }

@@ -34,6 +34,7 @@ import { initAdminAssessments, setupAdminAssessments, loadAdminAssessmentsPage }
 import { initTeacherAssessments, setupTeacherAssessments } from './modules/teacher-assessments.js';
 import { initAssessmentTaking } from './modules/assessment-taking.js';
 import { getEl, initActivityLogger, initSchoolIdHelper, clearSchoolIdCache, applyTableLabels } from './modules/utils.js';
+import { injectAppIcons, initIconInjector, svgIcon } from './modules/icons.js';
 import { startRealtimeSubscriptions, stopRealtimeSubscriptions } from './modules/realtime.js';
 import { setupForgotPassword } from './modules/forgot-password.js';
 
@@ -89,7 +90,7 @@ import { showPage } from './modules/navigation.js';
 
 window.loadAdminDashboard = async function loadAdminDashboard() {
   const dashTitle = getEl('adminDashTitle');
-  if (dashTitle) dashTitle.textContent = 'Admin Dashboard';
+  if (dashTitle) dashTitle.innerHTML = `${svgIcon('crown')} Admin Dashboard`;
 
   // Show the home overview and hide any previously active module panel,
   // so the sticky sidebar + dashboard shell stay in view.
@@ -334,6 +335,27 @@ async function filterAdminSidebarByLockedModules() {
 // Expose globally so realtime module can re-filter the sidebar when module locks change
 window.filterAdminSidebarByLockedModules = filterAdminSidebarByLockedModules;
 
+/** Icon shown next to each admin sub-page heading. */
+const ADMIN_PAGE_ICONS = {
+  students: 'users',
+  classes: 'school',
+  subjects: 'book-open',
+  teachers: 'users',
+  accountants: 'receipt',
+  parents: 'parents',
+  admit: 'user-plus',
+  announcements: 'megaphone',
+  attendance: 'clipboard',
+  exams: 'file-text',
+  assessments: 'clipboard-check',
+  grading: 'chart',
+  fees: 'coins',
+  'income-expenses': 'trending-up',
+  'sms-monitoring': 'message-square',
+  backup: 'archive',
+  profile: 'key',
+};
+
 async function loadAdminSubPage(page) {
   // Keep the clicked sidebar button highlighted
   document.querySelectorAll('#adminSidebar .dash-nav-link').forEach((b) => b.classList.remove('active'));
@@ -369,7 +391,7 @@ async function loadAdminSubPage(page) {
   if (page === 'dashboard') {
     if (homeContent) homeContent.style.display = '';
     if (dashHeader) dashHeader.style.display = '';
-    if (titleEl) titleEl.textContent = 'Admin Dashboard';
+    if (titleEl) titleEl.innerHTML = `${svgIcon('crown')} Admin Dashboard`;
     window.scrollTo({ top: 0, behavior: 'smooth' });
     await loadAdminDashboardHome();
     return;
@@ -400,7 +422,9 @@ async function loadAdminSubPage(page) {
   };
   const targetPage = getEl(map[page]?.id);
   if (targetPage) targetPage.classList.add('active-page');
-  if (titleEl && map[page]?.title) titleEl.textContent = map[page].title;
+  if (titleEl && map[page]?.title) {
+    titleEl.innerHTML = `${svgIcon(ADMIN_PAGE_ICONS[page] || 'home')} ${map[page].title}`;
+  }
   switch (page) {
     case 'students': await renderAdminSubStudentsTable(); break;
     case 'classes': await renderClassesTable(); break;
@@ -459,6 +483,10 @@ async function initApp() {
   initAllModules();
   setupAllListeners();
   setupAdminSidebar();
+
+  // Inject modern SVG icons (sidebars, welcome cards, headings, buttons…)
+  // and keep them applied as dynamic content renders.
+  initIconInjector();
 
   // Initialize session
   await initSession({
