@@ -831,6 +831,59 @@
   height: 20px;
 }
 
+/* Home hero contact cluster — Call + WhatsApp pills sit next to the email
+   button. The Call pill carries the mobile number and is a tel: link so
+   tapping it (or the number) fires the native dialer on phones. The
+   WhatsApp pill is a wa.me link that jumps straight into a WhatsApp chat. */
+.home-contact-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+  min-height: 48px;
+  padding: 0.7rem 1.1rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  color: #fff;
+  text-decoration: none;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  white-space: nowrap;
+  transition: transform 0.25s var(--spring), box-shadow 0.3s ease, filter 0.3s ease;
+}
+.home-contact-btn:hover {
+  transform: translateY(-2px) scale(1.04);
+  text-decoration: none;
+  filter: brightness(1.07);
+}
+.home-contact-btn:active { transform: scale(0.95); }
+
+/* Call — sky/blue pill; the whole pill including the number is the dialer
+   trigger on mobile. */
+.home-call-btn {
+  background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%);
+  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.32);
+}
+.home-call-btn:hover { box-shadow: 0 10px 26px rgba(37, 99, 235, 0.46); }
+
+/* WhatsApp — official brand green pill; opens wa.me chat instantly. */
+.home-whatsapp-btn {
+  background: linear-gradient(135deg, #25d366 0%, #128c7e 100%);
+  box-shadow: 0 6px 18px rgba(37, 211, 102, 0.32);
+}
+.home-whatsapp-btn:hover { box-shadow: 0 10px 26px rgba(37, 211, 102, 0.46); }
+
+.home-contact-icon {
+  width: 20px;
+  height: 20px;
+  display: block;
+  flex-shrink: 0;
+}
+.home-whatsapp-icon { width: 18px; height: 18px; }
+.home-contact-number { font-weight: 800; letter-spacing: 0.3px; }
+
 .email-admin-btn .envelope-icon {
   width: 22px;
   height: 22px;
@@ -880,6 +933,19 @@
   .email-admin-btn span { display: none; }
   .home-actions .email-admin-btn span { display: inline; }
   .email-admin-btn { padding: 0.5rem 0.62rem; }
+
+  /* Keep the Call / WhatsApp contact pills usable and labelled on small
+     phones — the number and labels must never be clipped or hidden. */
+  .home-contact-btn {
+    min-height: 44px;
+    padding: 0.55rem 0.85rem;
+    font-size: 0.85rem;
+    gap: 0.45rem;
+  }
+  .home-contact-btn span { display: inline; }
+  .home-contact-number { font-size: 0.82rem; }
+  .home-contact-icon { width: 18px; height: 18px; }
+  .home-whatsapp-icon { width: 16px; height: 16px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .email-admin-btn,
