@@ -414,6 +414,15 @@
 -- Used by: js/modules/auth.js (schoolWizardGoNext).
 \i 058-school-registration-lookup.sql
 
+-- Step 52: Bug Reports & Suggestions
+-- Adds: support_reports table + RLS + submit_support_report() SECURITY
+--       DEFINER RPC. Any signed-in user can report a bug or send a
+--       suggestion; the Super Admin views these on the Super Admin
+--       dashboard (Bugs & Suggestions page).
+-- Used by: js/modules/support-reports.js (submission modal),
+--          js/modules/super-admin.js (dashboard review page).
+\i 059-support-reports.sql
+
 -- ============================================================
 --  SCHEMA DEPLOYMENT COMPLETE
 -- ============================================================

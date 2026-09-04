@@ -37,6 +37,7 @@ import { getEl, initActivityLogger, initSchoolIdHelper, clearSchoolIdCache, appl
 import { injectAppIcons, initIconInjector, svgIcon } from './modules/icons.js';
 import { startRealtimeSubscriptions, stopRealtimeSubscriptions } from './modules/realtime.js';
 import { setupForgotPassword } from './modules/forgot-password.js';
+import { initSupportReports, setupSupportReports } from './modules/support-reports.js';
 
 // ================================================================
 // Expose supabaseClient globally for non-module scripts
@@ -76,6 +77,7 @@ function initAllModules() {
   initAdminAssessments(supabaseClient);
   initTeacherAssessments(supabaseClient);
   initAssessmentTaking(supabaseClient);
+  initSupportReports(supabaseClient);
 }
 
 // ================================================================
@@ -161,6 +163,7 @@ function setupAllListeners() {
   setupAdminAssessments();
   setupTeacherAssessments();
   setupEmailButtonMobileBehavior();
+  setupSupportReports();
 }
 
 // ================================================================

@@ -781,6 +781,16 @@
 }
 .email-admin-btn:active { transform: scale(0.95); }
 
+/* "Report Bug or Suggestion" button — shares the email-admin-btn pill styles
+   but is a real <button>, so normalise font/cursor for consistency. */
+.email-admin-btn.report-issue-btn {
+  font-family: inherit;
+  font-size: 0.8rem;
+  line-height: 1.2;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
 /* Home hero "Contact Us" button - matches the hero action-button sizing */
 .home-actions { flex-wrap: wrap; }
 .home-actions .email-admin-btn {

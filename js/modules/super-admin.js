@@ -98,6 +98,7 @@ export function setupSuperAdmin() {
         fees: 'Fees',
         exams: 'Exams',
         settings: 'System Settings',
+        reports: 'Bugs & Suggestions Reports',
         profile: 'My Profile'
       };
       const titleEl = getEl('superAdminDashTitle');
@@ -117,6 +118,7 @@ export function setupSuperAdmin() {
         case 'attendance': loadAttendancePage(); break;
         case 'exams': loadExamsPage(); break;
         case 'settings': loadSystemSettings(); break;
+        case 'reports': loadSupportReports(); break;
         case 'profile': loadSuperAdminProfile(); break;
       }
     });
@@ -177,6 +179,11 @@ export function setupSuperAdmin() {
   
   // Settings form
   getEl('superSettingsForm')?.addEventListener('submit', saveSystemSettings);
+
+  // Bugs & Suggestions Reports filters
+  getEl('superReportsSearch')?.addEventListener('input', debounce(loadSupportReports, 300));
+  getEl('superReportsType')?.addEventListener('change', loadSupportReports);
+  getEl('superReportsStatus')?.addEventListener('change', loadSupportReports);
   
   // School module management
   document.addEventListener('click', (e) => {
@@ -213,6 +220,7 @@ export async function loadSuperAdminDashboard() {
   
   // Load initial stats
   await loadDashboardStats();
+  updateSuperReportsNavBadge();
   // Populate school dropdowns across the dashboard
   await populateAllSchoolDropdowns();
 }
@@ -1872,3 +1880,169 @@ window.toggleSchoolModuleLock = async function(schoolId, moduleName, isCurrently
     showMessage('schoolModulesMessage', `Error: ${err.message}`, 'error');
   }
 };
+// ================================================================
+// Bugs & Suggestions Reports — user-submitted feedback (all schools)
+// ================================================================
+
+/**
+ * Loads user-submitted bug reports & suggestions, applies the active filters
+ * (type, status, search) and renders them for the Super Admin.
+ */
+async function loadSupportReports() {
+  const container = getEl('superReportsList');
+  if (!container) return;
+
+  const typeFilter = getEl('superReportsType')?.value || 'all';
+  const statusFilter = getEl('superReportsStatus')?.value || 'all';
+  const searchTerm = (getEl('superReportsSearch')?.value || '').trim().toLowerCase();
+
+  container.innerHTML = '<div style="text-align:center;padding:1.5rem;color:var(--text-muted);">Loading reports...</div>';
+
+  try {
+    let query = supabaseClient
+      .from('support_reports')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (typeFilter !== 'all') query = query.eq('report_type', typeFilter);
+    if (statusFilter !== 'all') query = query.eq('status', statusFilter);
+
+    const { data, error } = await query;
+    if (error) {
+      container.innerHTML = `<div style="text-align:center;padding:1.5rem;color:var(--danger);">Failed to load reports: ${error.message}</div>`;
+      return;
+    }
+
+    let reports = data || [];
+
+    if (searchTerm) {
+      reports = reports.filter((r) =>
+        (r.subject || '').toLowerCase().includes(searchTerm) ||
+        (r.message || '').toLowerCase().includes(searchTerm) ||
+        (r.reporter_name || '').toLowerCase().includes(searchTerm) ||
+        (r.reporter_email || '').toLowerCase().includes(searchTerm)
+      );
+    }
+
+    const countEl = getEl('superReportsCount');
+    if (countEl) countEl.textContent = String(reports.length);
+
+    if (reports.length === 0) {
+      container.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-muted);">No reports found. Users can submit a report from the "Report Bug or Suggestion" button on their dashboard.</div>';
+      return;
+    }
+
+    // Resolve school names for display (super admin can read all schools).
+    const schoolIds = [...new Set(reports.map((r) => r.school_id).filter(Boolean))];
+    let schoolNames = {};
+    if (schoolIds.length) {
+      const { data: schools } = await supabaseClient.from('schools').select('id, name').in('id', schoolIds);
+      (schools || []).forEach((s) => { schoolNames[s.id] = s.name; });
+    }
+
+    container.innerHTML = reports.map((r) => buildSupportReportCard(r, schoolNames)).join('');
+  } catch (err) {
+    container.innerHTML = `<div style="text-align:center;padding:1.5rem;color:var(--danger);">Failed to load reports: ${err.message}</div>`;
+  }
+}
+/** Renders one report as a card with type/status badges, reporter info, status controls + delete. */
+function buildSupportReportCard(r, schoolNames) {
+  const typeBadge = r.report_type === 'bug'
+    ? '<span style="display:inline-block;background:rgba(239,68,68,0.12);color:#dc2626;border:1px solid rgba(239,68,68,0.35);border-radius:20px;padding:0.15rem 0.6rem;font-size:0.7rem;font-weight:700;text-transform:uppercase;">Bug</span>'
+    : '<span style="display:inline-block;background:rgba(79,70,229,0.12);color:#4f46e5;border:1px solid rgba(79,70,229,0.35);border-radius:20px;padding:0.15rem 0.6rem;font-size:0.7rem;font-weight:700;text-transform:uppercase;">Suggestion</span>';
+
+  const statusStyles = {
+    new: { bg: 'rgba(245,158,11,0.12)', color: '#b45309', border: 'rgba(245,158,11,0.4)' },
+    in_progress: { bg: 'rgba(59,130,246,0.12)', color: '#2563eb', border: 'rgba(59,130,246,0.4)' },
+    resolved: { bg: 'rgba(34,197,94,0.12)', color: '#16a34a', border: 'rgba(34,197,94,0.4)' },
+  };
+  const st = statusStyles[r.status] || statusStyles.new;
+  const statusBadgeHtml = `<span style="display:inline-block;background:${st.bg};color:${st.color};border:1px solid ${st.border};border-radius:20px;padding:0.15rem 0.6rem;font-size:0.7rem;font-weight:700;text-transform:capitalize;">${String(r.status).replace('_', ' ')}</span>`;
+
+  const schoolName = r.school_id && schoolNames[r.school_id] ? schoolNames[r.school_id] : '—';
+  const reporter = [r.reporter_name, r.reporter_email].filter(Boolean).join(' · ') || '—';
+
+  return `
+    <div style="background:var(--card-bg,#fff);border:1px solid var(--border);border-radius:12px;padding:1rem;box-shadow:0 1px 3px rgba(0,0,0,0.06);">
+      <div style="display:flex;flex-wrap:wrap;align-items:center;gap:0.5rem;margin-bottom:0.5rem;">
+        ${typeBadge}
+        ${statusBadgeHtml}
+        <span style="font-size:0.72rem;color:var(--text-muted);">${formatDateTime(r.created_at)}</span>
+      </div>
+      <div style="font-weight:800;font-size:1rem;margin-bottom:0.25rem;">${escapeHtml(r.subject)}</div>
+      <div style="font-size:0.9rem;color:var(--text);line-height:1.5;margin-bottom:0.6rem;white-space:pre-wrap;">${escapeHtml(r.message)}</div>
+      <div style="font-size:0.78rem;color:var(--text-muted);display:flex;flex-wrap:wrap;gap:0.75rem;margin-bottom:0.75rem;">
+        <span><strong>School:</strong> ${escapeHtml(schoolName)}</span>
+        <span><strong>Reporter:</strong> ${escapeHtml(reporter)}</span>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:0.5rem;">
+        ${r.status !== 'in_progress' ? `<button type="button" class="btn btn-sm btn-secondary" onclick="updateSupportReportStatus('${r.id}', 'in_progress')">Mark In Progress</button>` : ''}
+        ${r.status !== 'resolved' ? `<button type="button" class="btn btn-sm btn-primary" onclick="updateSupportReportStatus('${r.id}', 'resolved')">Mark Resolved</button>` : ''}
+        ${r.status !== 'new' ? `<button type="button" class="btn btn-sm btn-secondary" onclick="updateSupportReportStatus('${r.id}', 'new')">Reopen</button>` : ''}
+        <button type="button" class="btn btn-sm btn-danger" onclick="deleteSupportReport('${r.id}')">Delete</button>
+      </div>
+    </div>`;
+}
+
+/** Escapes HTML so user-entered report text can never inject markup. */
+function escapeHtml(str) {
+  return String(str ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+/** Super Admin: update a report's status (new / in_progress / resolved). */
+window.updateSupportReportStatus = async function (id, newStatus) {
+  try {
+    const { error } = await supabaseClient.from('support_reports')
+      .update({ status: newStatus })
+      .eq('id', id);
+    if (error) { showMessage('superReportsMessage', `Error: ${error.message}`, 'error'); return; }
+    showMessage('superReportsMessage', 'Report status updated.', 'success');
+    await loadSupportReports();
+    updateSuperReportsNavBadge();
+  } catch (err) {
+    showMessage('superReportsMessage', `Error: ${err.message}`, 'error');
+  }
+};
+
+/** Super Admin: permanently delete a report. */
+window.deleteSupportReport = async function (id) {
+  if (!window.confirm('Delete this report permanently? This cannot be undone.')) return;
+  try {
+    const { error } = await supabaseClient.from('support_reports').delete().eq('id', id);
+    if (error) { showMessage('superReportsMessage', `Error: ${error.message}`, 'error'); return; }
+    showMessage('superReportsMessage', 'Report deleted.', 'success');
+    await loadSupportReports();
+    updateSuperReportsNavBadge();
+  } catch (err) {
+    showMessage('superReportsMessage', `Error: ${err.message}`, 'error');
+  }
+};
+/** Super Admin: show the count of unresolved (new + in_progress) reports on the sidebar nav item. */
+async function updateSuperReportsNavBadge() {
+  const btn = document.querySelector('#superAdminSidebar .dash-nav-link[data-super-page="reports"]');
+  if (!btn) return;
+  try {
+    const { count } = await supabaseClient
+      .from('support_reports')
+      .select('*', { count: 'exact', head: true })
+      .neq('status', 'resolved');
+    const existing = btn.querySelector('.report-count-badge');
+    if (existing) existing.remove();
+    if (count > 0) {
+      const badge = document.createElement('span');
+      badge.className = 'report-count-badge';
+      badge.style.cssText = 'display:inline-block;margin-left:0.4rem;background:#ef4444;color:#fff;border-radius:20px;padding:0.05rem 0.45rem;font-size:0.65rem;font-weight:800;vertical-align:middle;';
+      badge.textContent = String(count);
+      btn.appendChild(badge);
+    }
+  } catch (err) {
+    /* non-fatal — badge is just a convenience */
+  }
+}
+
+/** Exposed so the dashboard can refresh the badge after a status change/delete. */
+window.refreshSuperReportsNavBadge = updateSuperReportsNavBadge;
