@@ -1627,50 +1627,7 @@ async function printAccDebtorsListDirect() {
 // ACCOUNTANT DASHBOARD OVERVIEW - DATA FUNCTIONS
 // ================================================================
 
-/**
- * Carried-forward debt = the REMAINING unpaid balance each student carried
- * into their CURRENT (latest) fee record.
- *
- * The fees `debt` column chains across records: every promote/carry-forward
- * sets the NEW record's debt to (previous_balance + previous_debt), so only
- * the LATEST record per student holds their current carried debt. Payments
- * made on that record reduce the carried debt first:
- *   max(latest.debt - latest.amount_paid, 0) per student.
- * Summing `debt` across ALL records (or ignoring payments) would overstate it.
- */
-function computeCarriedForwardDebt(fees) {
-  const latestByStudent = new Map();
-  const yearRank = (ay) => {
-    const n = parseInt(String(ay || '').split('/')[0], 10);
-    return Number.isFinite(n) ? n : -1;
-  };
-  const termRank = (t) => {
-    const term = String(t || '').toLowerCase();
-    if (term === 'second') return 2;
-    if (term === 'third') return 3;
-    if (term === 'first') return 1;
-    return -1;
-  };
-  const rankOf = (f) => yearRank(f.academic_year) * 10 + termRank(f.term);
-
-  (fees || []).forEach((f) => {
-    const prev = latestByStudent.get(f.student_id);
-    if (!prev || rankOf(f) > rankOf(prev)) latestByStudent.set(f.student_id, f);
-  });
-
-  let total = 0;
-  latestByStudent.forEach((f) => {
-    const unpaidCarried = (Number(f.debt) || 0) - (Number(f.amount_paid) || 0);
-    total += Math.max(unpaidCarried, 0);
-  });
-  return total;
-}
-
-/**
- * Loads the fee overview stats (total expected, collected, outstanding, debt).
- * Updates the #accountantFeeOverview section cards.
- */
-async function loadAccFeeOverview() {
+function loadAccFeeOverview() {
   const schoolId = await _getSchoolId();
   try {
     let query = supabaseClient.from('fees').select('student_id, academic_year, term, total_amount, amount_paid, debt, balance');
@@ -1685,16 +1642,12 @@ async function loadAccFeeOverview() {
       });
     }
 
-    const totalDebt = computeCarriedForwardDebt(fees || []);
-
     // Total Expected = all fee billings. Carried debt is NOT added again — it
     // is already inside the older term records' total_amount that were rolled
     // forward, so adding it here would double-count it.
     const totalExpected = totalAmount;
     // Outstanding Balance = what's still owed after all payments
     const outstandingBalance = Math.max(totalExpected - totalPaid, 0);
-    // Grand Total Outstanding = the true debt picture
-    const grandTotalOutstanding = outstandingBalance;
 
     const totalEl = getEl('accFeeTotalAmount');
     if (totalEl) totalEl.textContent = `GHC ${formatCurrency(totalExpected)}`;
@@ -1704,12 +1657,6 @@ async function loadAccFeeOverview() {
 
     const balanceEl = getEl('accFeeTotalBalance');
     if (balanceEl) balanceEl.textContent = `GHC ${formatCurrency(outstandingBalance)}`;
-
-    const debtEl = getEl('accFeeTotalDebt');
-    if (debtEl) debtEl.textContent = `GHC ${formatCurrency(totalDebt)}`;
-
-    const grandDebtEl = getEl('accFeeGrandTotalDebt');
-    if (grandDebtEl) grandDebtEl.textContent = `GHC ${formatCurrency(grandTotalOutstanding)}`;
 
     // Collection rate percentage (based on total expected, not just total_amount)
     const pctEl = getEl('accFeePct');

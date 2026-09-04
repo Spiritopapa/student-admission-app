@@ -1074,25 +1074,17 @@ function animateDashboardCounters() {
       totalAmount += amt;
       totalPaid += paid;
     });
-    // Carried-forward debt = each student's remaining unpaid carried balance
-    // (latest fee record only; reduced by payments). See getCarriedForwardDebt.
-    const totalDebt = getCarriedForwardDebt();
-
     // Total Expected = all fee billings. Carried debt is NOT added again —
     // it is already represented inside the older term records' total_amount
     // that were rolled forward, so adding it here would double-count.
     const totalExpected = totalAmount;
     // Outstanding Balance = what's still owed after all payments (never negative)
     const outstandingBalance = Math.max(totalExpected - totalPaid, 0);
-    // Grand Total Outstanding = the true debt picture
-    const grandTotalOutstanding = outstandingBalance;
 
     const feeConfigs = [
       { id: 'feeTotalAmount', target: totalExpected },
       { id: 'feeTotalPaid', target: totalPaid },
       { id: 'feeTotalBalance', target: outstandingBalance },
-      { id: 'feeTotalDebt', target: totalDebt },
-      { id: 'feeGrandTotalDebt', target: grandTotalOutstanding },
     ];
 
     // Collection rate = paid ÷ total expected (matches accountant dashboard)
@@ -1169,51 +1161,6 @@ function animateChartBars() {
 // Fee Overview
 // ================================================================
 
-/**
- * Canonical source for the "Carried Forward Debt" figure.
- *
- * The fees `debt` column is the TOTAL outstanding balance a student carried
- * when they were promoted from one class to another (or term to term):
- * promote_student_fees()/carry_forward_balance() set the new record's `debt`
- * to (previous_term_balance + previous_term_debt). Because that carried total
- * is copied forward onto each newer record, ONLY the LATEST fee record per
- * student holds their current carried-forward debt. Summing `debt` across ALL
- * fee records would count the same balance once per promotion, inflating the
- * figure.
- *
- * Payments made on the current (latest) record reduce the carried debt first,
- * so the figure returned is the REMAINING unpaid carried balance:
- *   max(latest.debt - latest.amount_paid, 0) per student.
- */
-function getCarriedForwardDebt() {
-  const latestByStudent = new Map();
-
-  const yearRank = (ay) => {
-    const n = parseInt(String(ay || '').split('/')[0], 10);
-    return Number.isFinite(n) ? n : -1;
-  };
-  const termRank = (t) => {
-    const term = String(t || '').toLowerCase();
-    if (term === 'second') return 2;
-    if (term === 'third') return 3;
-    if (term === 'first') return 1;
-    return -1;
-  };
-  const rankOf = (f) => yearRank(f.academic_year) * 10 + termRank(f.term);
-
-  allFees.forEach((f) => {
-    const prev = latestByStudent.get(f.student_id);
-    if (!prev || rankOf(f) > rankOf(prev)) latestByStudent.set(f.student_id, f);
-  });
-
-  let total = 0;
-  latestByStudent.forEach((f) => {
-    const unpaidCarried = (Number(f.debt) || 0) - (Number(f.amount_paid) || 0);
-    total += Math.max(unpaidCarried, 0);
-  });
-  return total;
-}
-
 function renderFeeOverview() {
   let totalAmount = 0, totalPaid = 0;
   let paidCount = 0, unpaidCount = 0, partialCount = 0;
@@ -1229,19 +1176,12 @@ function renderFeeOverview() {
     else unpaidCount++;
   });
 
-  // Carried-forward debt = the REMAINING unpaid balance students carried when
-  // they were promoted into their CURRENT class (latest fee record per student
-  // only). Payments on the current term reduce it first.
-  const totalDebt = getCarriedForwardDebt();
-
   // Total Expected = all fee billings. Carried debt is NOT added again — it is
   // already inside the older term records' total_amount that were rolled
   // forward, so adding it here would double-count it.
   const totalExpected = totalAmount;
   // Outstanding Balance = what's still owed after all payments
   const outstandingBalance = Math.max(totalExpected - totalPaid, 0);
-  // Grand Total Debt = total outstanding balance (the true debt picture)
-  const grandTotalDebt = outstandingBalance;
 
   return `
     <div class="dash-fee-stat">
@@ -1255,14 +1195,6 @@ function renderFeeOverview() {
     <div class="dash-fee-stat">
       <span class="dash-fee-label">Outstanding Balance</span>
       <span class="dash-fee-value balance" id="feeTotalBalance">GHC 0.00</span>
-    </div>
-    <div class="dash-fee-stat">
-      <span class="dash-fee-label">Carried Forward Debt</span>
-      <span class="dash-fee-value debt" id="feeTotalDebt">GHC 0.00</span>
-    </div>
-    <div class="dash-fee-stat dash-fee-stat-grand">
-      <span class="dash-fee-label">Grand Total Outstanding</span>
-      <span class="dash-fee-value grand-debt" id="feeGrandTotalDebt">GHC 0.00</span>
     </div>
     <div class="dash-fee-counts">
       <span class="dash-fee-count-item"><span class="fee-dot paid-dot"></span>Paid: ${paidCount}</span>
