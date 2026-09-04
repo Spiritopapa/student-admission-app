@@ -366,9 +366,11 @@
     transform: translateX(-100%);
     opacity: 0;
     transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
-    /* Only the .dash-nav tabs scroll; brand/profile/logout stay pinned.
-       The nav itself scrolls + the scrollbar is hidden (see .dash-nav rules). */
-    overflow: hidden;
+    /* The WHOLE drawer is one independent scroll region (brand, profile, all
+       nav links, logout scroll together). The content area behind it keeps
+       its own independent scroll (body overflow is no longer locked). */
+    overflow-x: hidden;
+    overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     display: flex;
     flex-direction: column;
@@ -457,17 +459,15 @@
 
   .dash-nav {
     flex-direction: column;
-    overflow-x: hidden;
-    overflow-y: auto;
+    overflow: visible;
     min-height: 0;
     gap: 2px;
     padding: 0.4rem;
     scroll-snap-type: none;
-    flex: 1;
+    flex: 0 0 auto;
     -webkit-overflow-scrolling: touch;
-    /* Invisible scrollbar for the sidebar tabs on mobile.
-       The nav still scrolls; only the scrollbar chrome is hidden.
-       Desktop keeps its thin visible scrollbar (see base rule above). */
+    /* The drawer itself is the single scroll region now; the nav no longer
+       needs its own scrollbar chrome (harmless to keep these hidden). */
     scrollbar-width: none;
     scrollbar-color: transparent transparent;
     -ms-overflow-style: none;
@@ -495,18 +495,31 @@
     background: transparent;
     border: none;
   }
+/* The drawer is now the single scroll region — hide its scrollbar chrome
+     too, keeping the glassy look clean. */
+  .dash-sidebar {
+    scrollbar-width: none;
+    scrollbar-color: transparent transparent;
+  }
+  .dash-sidebar::-webkit-scrollbar,
+  .dash-sidebar::-webkit-scrollbar-track,
+  .dash-sidebar::-webkit-scrollbar-thumb {
+    display: none;
+    width: 0;
+    height: 0;
+    background: transparent;
+    border: none;
+  }
 
-  /* ---- Ten tabs visible at a time; the rest scroll ----
-     Cap the visible sidebar tab window to exactly 10 tabs on mobile.
-     Each tab is ~0.65rem padding top+bottom + a ~1.36rem line box
-     (0.85rem at 1.6 line-height) = ~2.66rem, plus 2px gaps and the
-     nav's own 0.4rem padding. The nav keeps only this height and the
-     remaining tabs scroll within it (its scrollbar is already hidden
-     above). Brand / profile / logout stay pinned via flex-shrink 0. */
+  /* ---- The whole drawer scrolls as one region ----
+     Brand, profile and logout are no longer pinned: the entire drawer
+     (brand + profile + nav + logout) scrolls together as one region,
+     and all nav links are shown (no 10-tab cap / inner nav scroll). */
   .dash-sidebar > .dash-nav,
   .dash-nav {
-    max-height: calc(2.66rem * 10 + 2px * 9 + 0.8rem);
-    overflow-y: auto;
+    max-height: none;
+    flex: 0 0 auto;
+    overflow: visible;
   }
 
   .dash-nav-link {
@@ -526,7 +539,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    position: absolute;
+    position: sticky;
     top: 0.5rem;
     right: 0.5rem;
     width: 32px;

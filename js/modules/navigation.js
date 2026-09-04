@@ -211,7 +211,8 @@ function openSidebarDrawer(dashboard) {
   const backdrop = dashboard.querySelector('.sidebar-backdrop');
   if (sidebar) sidebar.classList.add('mobile-sidebar-open');
   if (backdrop) backdrop.classList.add('active');
-  document.body.style.overflow = 'hidden';
+  /* Do NOT lock body/background scrolling here: the drawer is its own
+     scroll region and the content area behind keeps scrolling independently. */
   clearMobileModuleZoom();
 }
 
@@ -221,7 +222,6 @@ function closeSidebarDrawer(dashboard) {
   const backdrop = dashboard.querySelector('.sidebar-backdrop');
   if (sidebar) sidebar.classList.remove('mobile-sidebar-open');
   if (backdrop) backdrop.classList.remove('active');
-  document.body.style.overflow = '';
   clearMobileModuleZoom();
 }
 
@@ -232,7 +232,6 @@ function closeAllSidebarDrawers() {
   document.querySelectorAll('.sidebar-backdrop.active').forEach((b) => {
     b.classList.remove('active');
   });
-  document.body.style.overflow = '';
   clearMobileModuleZoom();
 }
 
@@ -494,7 +493,7 @@ async function handleBottomNavAction(action) {
       const backdrop = activeDashboard.querySelector('.sidebar-backdrop');
       if (sidebar) sidebar.classList.add('mobile-sidebar-open');
       if (backdrop) backdrop.classList.add('active');
-      document.body.style.overflow = 'hidden';
+      /* Background content keeps its own independent scroll behind the drawer. */
     }
   }
 }
