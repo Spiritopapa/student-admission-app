@@ -229,7 +229,7 @@
   align-items: flex-start;
 }
 @media (max-width: 768px) {
-  .dashboard-layout { flex-direction: row; gap: 0; align-items: stretch; }
+  .dashboard-layout { flex-direction: column; gap: 0; align-items: stretch; }
 }
 
 /* ---- Sidebar Base ---- */
@@ -336,37 +336,65 @@
   to { opacity: 1; }
 }
 
-/* ===== MOBILE DASHBOARD — PERSISTENT SPLIT (sidebar + content) =====
-   On phones the sidebar is a persistent left column beside the content
-   (NOT an overlay drawer). Each has its own independent scroll. */
+/* ===== MOBILE DASHBOARD — AUTO-HIDE SIDEBAR (overlay drawer) =====
+   On phones the sidebar is HIDDEN by default so the content area gets the
+   full width and shows more content. It slides in as an overlay drawer
+   from the left when the hamburger toggle in the content area is tapped. */
 @media (max-width: 768px) {
-  /* The injected drawer chrome (toggle, close, backdrop) is not used in the
-     persistent layout — it stays hidden from the base rules. */
+  /* Show the hamburger toggle row inside the content area + the backdrop
+     (the DOM is injected by js/modules/navigation.js). */
+  .sidebar-mobile-header {
+    display: flex;
+  }
+
+  .sidebar-toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .sidebar-backdrop.active {
+    display: block;
+  }
 
   .dash-sidebar {
-    position: sticky;
-    top: calc(var(--nav-height) + var(--safe-top));
+    position: fixed;
+    top: 0;
     left: 0;
-    width: min(var(--sidebar-width), 46vw);
+    bottom: 0;
+    width: min(var(--sidebar-width), 85vw);
     z-index: 1003;
     border-radius: 0;
     border: none;
     border-right: 1px solid var(--glass-border);
     margin: 0;
-    /* Persistent left column — the whole sidebar is its OWN independent
-       scroll region (brand, profile, all nav links, logout scroll together).
-       It is sticky, so scrolling the content on the right never moves it. */
-    height: calc(100vh - var(--nav-height) - var(--safe-top));
-    max-height: none;
+    /* Hidden by default (auto-hide → content gets the full width). */
+    transform: translateX(-100%);
+    opacity: 0;
+    visibility: hidden;
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease, visibility 0.3s;
+    /* The whole drawer is one independent scroll region (brand, profile,
+       all nav links, logout scroll together). */
     overflow-x: hidden;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     display: flex;
     flex-direction: column;
-    background: var(--glass-bg-strong);
-    backdrop-filter: var(--glass-blur);
-    -webkit-backdrop-filter: var(--glass-blur);
-    box-shadow: var(--glass-shadow);
+    height: 100%;
+    max-height: none;
+    background: rgba(255, 255, 255, 0.78);
+    backdrop-filter: blur(32px) saturate(1.4);
+    -webkit-backdrop-filter: blur(32px) saturate(1.4);
+    box-shadow: 
+      0 0 0 1px rgba(255, 255, 255, 0.5) inset,
+      0 8px 40px rgba(0, 0, 0, 0.12),
+      0 2px 8px rgba(0, 0, 0, 0.06);
+  }
+
+  .dash-sidebar.mobile-sidebar-open {
+    transform: translateX(0);
+    opacity: 1;
+    visibility: visible;
   }
 
   /* Accountant brand has dark background - maintain glass on mobile */
@@ -419,9 +447,9 @@
     border-color: rgba(255, 255, 255, 0.08);
   }
 
-  /* Persistent layout — the sidebar is always visible; no open/close state. */
+  /* Overlay drawer — opened via .mobile-sidebar-open (toggled by the hamburger). */
 
-  /* Show all sidebar elements on mobile overlay */
+  /* Show all sidebar elements in the drawer */
   .sidebar-brand {
     display: flex;
     flex-direction: column;
@@ -490,8 +518,8 @@
     border: none;
   }
 
-  /* ---- The whole sidebar column scrolls as one region ----
-     Brand, profile and logout are NOT pinned: the entire column
+  /* ---- The whole drawer scrolls as one region ----
+     Brand, profile and logout are NOT pinned: the entire drawer
      (brand + profile + nav + logout) scrolls together as one region,
      and all nav links are shown (no 10-tab cap / inner nav scroll). */
   .dash-sidebar > .dash-nav,
@@ -513,9 +541,24 @@
 
   .dash-nav-link .dash-nav-icon { width: 24px; font-size: 1rem; }
 
-  /* Injected close button — irrelevant in the persistent layout (no drawer). */
+  /* Injected close button — shown at the top of the open drawer */
   .dash-sidebar .sidebar-close-btn {
-    display: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: sticky;
+    top: 0.5rem;
+    right: 0.5rem;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.05);
+    border: none;
+    cursor: pointer;
+    font-size: 1.1rem;
+    color: var(--text-muted);
+    transition: var(--transition);
+    z-index: 10;
   }
 
   .dash-sidebar .sidebar-close-btn:hover {
