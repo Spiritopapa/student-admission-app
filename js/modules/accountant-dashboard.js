@@ -1627,7 +1627,7 @@ async function printAccDebtorsListDirect() {
 // ACCOUNTANT DASHBOARD OVERVIEW - DATA FUNCTIONS
 // ================================================================
 
-function loadAccFeeOverview() {
+async function loadAccFeeOverview() {
   const schoolId = await _getSchoolId();
   try {
     let query = supabaseClient.from('fees').select('student_id, academic_year, term, total_amount, amount_paid, debt, balance');
