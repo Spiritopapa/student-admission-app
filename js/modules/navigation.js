@@ -31,6 +31,7 @@ export function initNavigation() {
   setupRoleTabs();
   setupSidebarDrawers();
   setupMobileModuleTapZoom();
+  setupMobileNavCap();
   setupNavbarScroll();
   setupMobileBottomNav();
 }
@@ -169,6 +170,57 @@ function clearMobileModuleZoom() {
   });
 }
 
+// ================================================================
+// Mobile Module List Cap - only the modules scroll
+// On mobile the sidebar drawer pins brand/profile/logout while the
+// module list is the only scroll region. The list is capped so the
+// first 15 modules are visible at a time and the rest scroll inside
+// the nav. The cap is measured against the 15th module, so it stays
+// exact regardless of font size, device or browser zoom.
+// ================================================================
+
+const MOBILE_MAX_MODULES = 15;
+const mobileNavCapMatcher = window.matchMedia('(max-width: 768px)');
+let mobileNavCapTimer = null;
+
+function applyMobileNavModuleCap() {
+  const navs = document.querySelectorAll('.dashboard-layout .dash-nav');
+  if (!mobileNavCapMatcher.matches) {
+    navs.forEach((nav) => { nav.style.maxHeight = ''; });
+    return;
+  }
+  navs.forEach((nav) => {
+    // Hidden pages (display:none) report zero rects - only measure a
+    // dashboard that is actually mounted/active so the cap stays valid.
+    const page = nav.closest('.page');
+    if (page && !page.classList.contains('active-page')) return;
+    const links = nav.querySelectorAll('.dash-nav-link');
+    if (!links.length) return;
+    const rows = Math.min(MOBILE_MAX_MODULES, links.length);
+    const anchor = links[rows - 1];
+    if (!anchor) return;
+    const navRect = nav.getBoundingClientRect();
+    if (!navRect.height) return;
+    const anchorBottom = anchor.getBoundingClientRect().bottom;
+    const padBottom = parseFloat(window.getComputedStyle(nav).paddingBottom) || 0;
+    nav.style.maxHeight = `${(anchorBottom - navRect.top) + padBottom}px`;
+  });
+}
+
+function scheduleMobileNavCap() {
+  clearTimeout(mobileNavCapTimer);
+  mobileNavCapTimer = setTimeout(applyMobileNavModuleCap, 120);
+}
+
+function setupMobileNavCap() {
+  window.addEventListener('resize', scheduleMobileNavCap, { passive: true });
+  window.addEventListener('orientationchange', scheduleMobileNavCap);
+  window.addEventListener('pageshow', scheduleMobileNavCap);
+  // Apply once now in case a dashboard is already the active page
+  // (e.g. a restored auth session or WebView cached mount).
+  applyMobileNavModuleCap();
+}
+
 // Build the toggle button, close button, and backdrop for each dashboard
 function buildSidebarUI() {
   document.querySelectorAll('.dashboard-layout').forEach((dashboard) => {
@@ -214,6 +266,7 @@ function openSidebarDrawer(dashboard) {
   /* Do NOT lock body/background scrolling here: the drawer is its own
      scroll region and the content area behind keeps scrolling independently. */
   clearMobileModuleZoom();
+  applyMobileNavModuleCap();
 }
 
 function closeSidebarDrawer(dashboard) {
@@ -494,6 +547,7 @@ async function handleBottomNavAction(action) {
       if (sidebar) sidebar.classList.add('mobile-sidebar-open');
       if (backdrop) backdrop.classList.add('active');
       /* Background content keeps its own independent scroll behind the drawer. */
+      applyMobileNavModuleCap();
     }
   }
 }

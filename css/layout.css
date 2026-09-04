@@ -373,11 +373,9 @@
     opacity: 0;
     visibility: hidden;
     transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease, visibility 0.3s;
-    /* The whole drawer is one independent scroll region (brand, profile,
-       all nav links, logout scroll together). */
-    overflow-x: hidden;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
+    /* Brand, profile and logout are pinned; ONLY the module list inside
+       the drawer scrolls (see the .dash-nav rules below). */
+    overflow: hidden;
     display: flex;
     flex-direction: column;
     height: 100%;
@@ -463,19 +461,26 @@
   .sidebar-logout {
     display: flex;
     flex-direction: column;
+    /* Pin logout to the bottom of the drawer when there is free space;
+       with no free space (short screens) modules simply scroll above it. */
+    margin-top: auto;
   }
 
   .dash-nav {
     flex-direction: column;
-    overflow: visible;
+    overflow-x: hidden;
+    overflow-y: auto;
     min-height: 0;
     gap: 2px;
     padding: 0.4rem;
     scroll-snap-type: none;
-    flex: 0 0 auto;
+    flex: 1 1 auto;
     -webkit-overflow-scrolling: touch;
-    /* The sidebar column is the single scroll region; the nav no longer
-       needs its own scrollbar (kept hidden). */
+    /* The module list is the ONLY scroll region in the drawer; brand,
+       profile and logout stay pinned above/below it. The list is capped
+       to the first 15 modules (rest scrollable). JS measures the 15th
+       module for an exact cap; this calc is the no-JS fallback. */
+    max-height: calc(15 * 2.66rem + 14 * 2px + 0.8rem);
     scrollbar-width: none;
     scrollbar-color: transparent transparent;
     -ms-overflow-style: none;
@@ -503,7 +508,7 @@
     background: transparent;
     border: none;
   }
-/* The sidebar is the single scroll region — hide its scrollbar chrome too. */
+/* The drawer overflow is clipped — hide scrollbar chrome just in case. */
   .dash-sidebar {
     scrollbar-width: none;
     scrollbar-color: transparent transparent;
@@ -518,15 +523,16 @@
     border: none;
   }
 
-  /* ---- The whole drawer scrolls as one region ----
-     Brand, profile and logout are NOT pinned: the entire drawer
-     (brand + profile + nav + logout) scrolls together as one region,
-     and all nav links are shown (no 10-tab cap / inner nav scroll). */
+  /* ---- Module list is the only scroll region ----
+     Brand, profile and logout stay pinned (flex-shrink: 0). The module
+     nav flexes to fill the remaining drawer height and scrolls internally
+     when capped: the first 15 modules visible, the rest scrollable. */
   .dash-sidebar > .dash-nav,
   .dash-nav {
-    max-height: none;
-    flex: 0 0 auto;
-    overflow: visible;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
   }
 
   .dash-nav-link {
@@ -559,6 +565,7 @@
     color: var(--text-muted);
     transition: var(--transition);
     z-index: 10;
+    flex-shrink: 0;
   }
 
   .dash-sidebar .sidebar-close-btn:hover {
