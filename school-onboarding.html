@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<title>Register Your School — Admission Portal</title>
+<style>
+  :root {
+    --primary: #4f46e5;
+    --border: #d7dbe8;
+    --text: #1f2937;
+    --muted: #6b7280;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background:
+      linear-gradient(rgba(244,245,251,0.5), rgba(240,238,252,0.7)),
+      url('https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&w=1920&q=80') center / cover no-repeat;
+    background-attachment: fixed;
+    color: var(--text);
+    min-height: 100%;
+  }
+  .wrap { max-width: 620px; margin: 28px auto; padding: 16px; }
+
+  .banner {
+    text-align: center;
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    color: #fff;
+    padding: 16px 18px;
+    border-radius: 14px 14px 0 0;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    font-size: 16px;
+    box-shadow: 0 10px 24px rgba(79,70,229,0.25);
+  }
+  .banner .banner-sub { display: block; font-size: 12px; opacity: 0.9; margin-top: 2px; }
+
+  .card {
+    background: #ffffff;
+    border: 1px solid var(--border);
+    border-radius: 0 0 14px 14px;
+    padding: 24px;
+    box-shadow: 0 18px 40px rgba(31,41,55,0.12);
+  }
+  .card h2 { margin: 0 0 6px; font-size: 20px; font-weight: 800; }
+  .card p.intro { margin: 0 0 18px; font-size: 13.5px; color: var(--muted); line-height: 1.5; }
+
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 13px; font-weight: 700; margin-bottom: 5px; color: var(--text); }
+  .field .req { color: #c02626; font-weight: 800; }
+  .field input, .field select, .field textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    background: #fbfbfe;
+    color: var(--text);
+    font-family: inherit;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(79,70,229,0.18);
+  }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 520px) { .row { grid-template-columns: 1fr; } }
+
+  .sep { height: 1px; background: var(--border); margin: 16px 0; }
+  .sep-label { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); font-weight: 700; margin: 0 0 12px; }
+
+  .msg { display: none; }
+  .msg.success { display: block; background: #ecfdf5; border: 1px solid #a7f3c6; color: #047857; border-radius: 10px; padding: 12px; font-size: 14px; line-height: 1.5; }
+  .msg.error { display: block; background: #fee2e2; border: 1px solid #fca5a5; color: #b91c1c; border-radius: 10px; padding: 12px; font-size: 14px; }
+
+  .actions { text-align: center; margin-top: 16px; }
+  .actions .actions-row { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+  .btn {
+    display: inline-block;
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    color: #fff;
+    border: none;
+    padding: 12px 26px;
+    border-radius: 999px;
+    font-size: 15px;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 8px 18px rgba(79,70,229,0.3);
+  }
+  .btn:hover { filter: brightness(1.08); transform: translateY(-1px); }
+  .btn:disabled { opacity: 0.6; cursor: not-allowed; box-shadow: none; }
+  .btn-ghost { background: transparent; color: var(--primary); border: 1.5px solid var(--primary); box-shadow: none; }
+  .home-link { display: block; margin: 14px auto 0; text-align: center; }
+  .home-link a { color: var(--primary); font-weight: 700; text-decoration: none; }
+</style>
+<link rel="stylesheet" href="css/icons.css" />
+</head>
+<body>
+<div class="wrap">
+  <div class="banner">Register Your School<span class="banner-sub">Join the Student Admission Portal</span></div>
+  <div class="card">
+    <h2>Get your School on board</h2>
+    <p class="intro">Fill in the details below to apply to join the platform. Your application is sent to the Super Administrator for review, and they will onboard your school.</p>
+
+    <!-- SUCCESS PANEL (shown after submission) -->
+    <div id="successPanel" style="display:none;">
+      <div class="msg success" id="successText"></div>
+      <div class="home-link"><a href="index.html">← Back to Home</a></div>
+    </div>
+
+    <!-- APPLICATION FORM -->
+    <form id="appForm" onsubmit="return false;">
+      <div class="sep-label">School Details</div>
+      <div class="field">
+        <label for="fSchoolName">School Name <span class="req">*</span></label>
+        <input type="text" id="fSchoolName" required placeholder="e.g. Sunshine International School" style="text-transform:capitalize;" />
+      </div>
+      <div class="row">
+        <div class="field">
+          <label for="fSchoolType">School Type <span class="req">*</span></label>
+          <select id="fSchoolType" required>
+            <option value="private">Private</option>
+            <option value="public">Public</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="fPopulation">Student Population</label>
+          <input type="number" id="fPopulation" min="0" step="1" placeholder="e.g. 1200" />
+        </div>
+      </div>
+      <div class="field">
+        <label for="fLocation">Location / Address</label>
+        <input type="text" id="fLocation" placeholder="e.g. Accra, Ghana" />
+      </div>
+
+      <div class="sep"></div>
+      <div class="sep-label">Administrator Contact</div>
+      <div class="field">
+        <label for="fAdminName">Administrator Full Name <span class="req">*</span></label>
+        <input type="text" id="fAdminName" required placeholder="e.g. John Doe" />
+      </div>
+      <div class="row">
+        <div class="field">
+          <label for="fAdminEmail">Administrator Email <span class="req">*</span></label>
+          <input type="email" id="fAdminEmail" required placeholder="admin@school.com" />
+        </div>
+        <div class="field">
+          <label for="fAdminPhone">Mobile Number</label>
+          <input type="tel" id="fAdminPhone" placeholder="e.g. 0244 000 000" />
+        </div>
+      </div>
+      <div class="field">
+        <label for="fMessage">Message (optional)</label>
+        <textarea id="fMessage" rows="4" placeholder="Anything the Super Administrator should know about your school..." style="resize:vertical;"></textarea>
+      </div>
+
+      <div id="appMsg" class="msg"></div>
+
+      <div class="actions" id="submitArea">
+        <div class="actions-row">
+          <button type="button" class="btn" id="submitBtn" onclick="submitApplication()">Submit Application</button>
+          <a class="btn btn-ghost" href="index.html">Back to Home</a>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script type="module">
+import supabaseClient from './js/supabase-config.js';
+
+(function () {
+  const getF = (id) => document.getElementById(id);
+  const msgEl = getF('appMsg');
+  const successPanel = getF('successPanel');
+  const form = getF('appForm');
+  const submitBtn = getF('submitBtn');
+
+  function showMsg(text, cls) {
+    msgEl.className = 'msg ' + (cls || 'error');
+    msgEl.textContent = text;
+  }
+
+  window.submitApplication = function () {
+    if (!getF('fSchoolName').value.trim() || !getF('fAdminName').value.trim() || !getF('fAdminEmail').value.trim()) {
+      showMsg('Please complete all required fields.', 'error');
+      return;
+    }
+    if (!/^\S+@\S+\.\S+$/.test(getF('fAdminEmail').value.trim())) {
+      showMsg('Please enter a valid administrator email address.', 'error');
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Submitting...';
+    const payload = {
+      p_school_name: getF('fSchoolName').value.trim(),
+      p_admin_name: getF('fAdminName').value.trim(),
+      p_admin_email: getF('fAdminEmail').value.trim(),
+      p_admin_phone: getF('fAdminPhone').value.trim(),
+      p_school_type: getF('fSchoolType').value,
+      p_location: getF('fLocation').value.trim(),
+      p_population: parseInt(getF('fPopulation').value || '0', 10),
+      p_message: getF('fMessage').value.trim(),
+    };
+
+    supabaseClient.rpc('submit_school_application', payload)
+      .then(function (res) {
+        if (res && res.error) {
+          showMsg('Submission failed: ' + (res.error.message || 'please try again.'), 'error');
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Submit Application';
+          return;
+        }
+        // Success: hide the form, show the confirmation panel.
+        form.style.display = 'none';
+        successPanel.style.display = 'block';
+        getF('successText').textContent =
+          'Thank you! Your application for ' + payload.p_school_name +
+          ' has been sent to the Super Administrator for review. ' +
+          'You will be contacted once your school is approved.';
+      })
+      .catch(function (err) {
+        showMsg('Submission failed: ' + err.message, 'error');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Submit Application';
+      });
+  };
+})();
+</script>
+<script type="module">import './js/icons-init.js';</script>
+</body>
+</html>

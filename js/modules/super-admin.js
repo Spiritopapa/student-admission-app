@@ -98,6 +98,7 @@ export function setupSuperAdmin() {
         fees: 'Fees',
         exams: 'Exams',
         settings: 'System Settings',
+        applications: 'School Applications',
         reports: 'Bugs & Suggestions Reports',
         profile: 'My Profile'
       };
@@ -118,6 +119,7 @@ export function setupSuperAdmin() {
         case 'attendance': loadAttendancePage(); break;
         case 'exams': loadExamsPage(); break;
         case 'settings': loadSystemSettings(); break;
+        case 'applications': loadSchoolApplications(); break;
         case 'reports': loadSupportReports(); break;
         case 'profile': loadSuperAdminProfile(); break;
       }
@@ -184,6 +186,10 @@ export function setupSuperAdmin() {
   getEl('superReportsSearch')?.addEventListener('input', debounce(loadSupportReports, 300));
   getEl('superReportsType')?.addEventListener('change', loadSupportReports);
   getEl('superReportsStatus')?.addEventListener('change', loadSupportReports);
+
+  // School Applications filters
+  getEl('superAppsSearch')?.addEventListener('input', debounce(loadSchoolApplications, 300));
+  getEl('superAppsStatus')?.addEventListener('change', loadSchoolApplications);
   
   // School module management
   document.addEventListener('click', (e) => {
@@ -221,6 +227,7 @@ export async function loadSuperAdminDashboard() {
   // Load initial stats
   await loadDashboardStats();
   updateSuperReportsNavBadge();
+  updateSchoolApplicationsNavBadge();
   // Populate school dropdowns across the dashboard
   await populateAllSchoolDropdowns();
 }
@@ -2046,3 +2053,166 @@ async function updateSuperReportsNavBadge() {
 
 /** Exposed so the dashboard can refresh the badge after a status change/delete. */
 window.refreshSuperReportsNavBadge = updateSuperReportsNavBadge;
+// ================================================================
+// School Applications — applications from the public onboarding page
+// ================================================================
+
+/**
+ * Loads school onboarding applications, applies the active filters
+ * (status, search) and renders them as review cards for the Super Admin.
+ */
+async function loadSchoolApplications() {
+  const container = getEl('superApplicationsList');
+  if (!container) return;
+
+  const statusFilter = getEl('superAppsStatus')?.value || 'all';
+  const searchTerm = (getEl('superAppsSearch')?.value || '').trim().toLowerCase();
+
+  container.innerHTML = '<div style="text-align:center;padding:1.5rem;color:var(--text-muted);">Loading applications...</div>';
+
+  try {
+    let query = supabaseClient
+      .from('school_applications')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (statusFilter !== 'all') query = query.eq('status', statusFilter);
+
+    const { data, error } = await query;
+    if (error) {
+      container.innerHTML = `<div style="text-align:center;padding:1.5rem;color:var(--danger);">Failed to load applications: ${error.message}</div>`;
+      return;
+    }
+
+    let apps = data || [];
+
+    if (searchTerm) {
+      apps = apps.filter((a) =>
+        (a.school_name || '').toLowerCase().includes(searchTerm) ||
+        (a.admin_name || '').toLowerCase().includes(searchTerm) ||
+        (a.admin_email || '').toLowerCase().includes(searchTerm) ||
+        (a.location || '').toLowerCase().includes(searchTerm)
+      );
+    }
+
+    const countEl = getEl('superAppsCount');
+    if (countEl) countEl.textContent = String(apps.length);
+
+    if (apps.length === 0) {
+      container.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-muted);">No applications found. Applications appear here when a school submits the "Register to get your School on board" form.</div>';
+      return;
+    }
+
+    container.innerHTML = apps.map((a) => buildSchoolApplicationCard(a)).join('');
+  } catch (err) {
+    container.innerHTML = `<div style="text-align:center;padding:1.5rem;color:var(--danger);">Failed to load applications: ${err.message}</div>`;
+  }
+}
+
+/** Renders one onboarding application card with status controls. */
+function buildSchoolApplicationCard(a) {
+  const typeLabel = a.school_type === 'public' ? 'Public' : 'Private';
+  const statusStyles = {
+    pending: { bg: 'rgba(245,158,11,0.12)', color: '#b45309', border: 'rgba(245,158,11,0.4)' },
+    approved: { bg: 'rgba(34,197,94,0.12)', color: '#16a34a', border: 'rgba(34,197,94,0.4)' },
+    rejected: { bg: 'rgba(239,68,68,0.12)', color: '#dc2626', border: 'rgba(239,68,68,0.4)' },
+  };
+  const st = statusStyles[a.status] || statusStyles.pending;
+  const statusBadge = `<span style="display:inline-block;background:${st.bg};color:${st.color};border:1px solid ${st.border};border-radius:20px;padding:0.15rem 0.6rem;font-size:0.7rem;font-weight:700;text-transform:capitalize;">${String(a.status)}</span>`;
+
+  const population = (a.student_population != null && a.student_population > 0)
+    ? Number(a.student_population).toLocaleString() : '—';
+
+  return `
+    <div style="background:var(--card-bg,#fff);border:1px solid var(--border);border-radius:12px;padding:1rem;box-shadow:0 1px 3px rgba(0,0,0,0.06);">
+      <div style="display:flex;flex-wrap:wrap;align-items:center;gap:0.5rem;margin-bottom:0.6rem;">
+        ${statusBadge}
+        <span style="font-size:0.95rem;font-weight:800;color:var(--text);">${escapeHtml(a.school_name)}</span>
+        <span style="font-size:0.72rem;color:var(--text-muted);">${formatDateTime(a.created_at)}</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;font-size:0.85rem;color:var(--text);margin-bottom:0.5rem;">
+        <span><strong>Admin:</strong> ${escapeHtml(a.admin_name)}</span>
+        <span><strong>Type:</strong> ${typeLabel}</span>
+        <span><strong>Email:</strong> <a href="mailto:${escapeHtml(a.admin_email)}">${escapeHtml(a.admin_email)}</a></span>
+        <span><strong>Mobile:</strong> ${escapeHtml(a.admin_phone || '—')}</span>
+        <span><strong>Location:</strong> ${escapeHtml(a.location || '—')}</span>
+        <span><strong>Population:</strong> ${population}</span>
+      </div>
+      ${a.message ? `<div style="font-size:0.85rem;color:var(--text);margin:0.35rem 0;white-space:pre-wrap;"><strong>Message:</strong> ${escapeHtml(a.message)}</div>` : ''}
+      <div style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-top:0.6rem;">
+        ${a.status === 'pending' ? `<button type="button" class="btn btn-sm btn-primary" onclick="approveSchoolApplication('${a.id}')">Approve</button>` : ''}
+        ${a.status !== 'rejected' ? `<button type="button" class="btn btn-sm btn-secondary" onclick="rejectSchoolApplication('${a.id}')">Reject</button>` : ''}
+        <button type="button" class="btn btn-sm btn-danger" onclick="deleteSchoolApplication('${a.id}')">Delete</button>
+      </div>
+    </div>`;
+}
+/** Super Admin: approve an onboarding application. */
+window.approveSchoolApplication = async function (id) {
+  try {
+    const { error } = await supabaseClient.from('school_applications')
+      .update({ status: 'approved' })
+      .eq('id', id);
+    if (error) { showMessage('superApplicationsMessage', `Error: ${error.message}`, 'error'); return; }
+    showMessage('superApplicationsMessage', 'Application approved. Use Schools → Create New School to generate the registration ID for this school.', 'success');
+    await loadSchoolApplications();
+    updateSchoolApplicationsNavBadge();
+  } catch (err) {
+    showMessage('superApplicationsMessage', `Error: ${err.message}`, 'error');
+  }
+};
+
+/** Super Admin: reject an onboarding application. */
+window.rejectSchoolApplication = async function (id) {
+  if (!window.confirm('Reject this application?')) return;
+  try {
+    const { error } = await supabaseClient.from('school_applications')
+      .update({ status: 'rejected' })
+      .eq('id', id);
+    if (error) { showMessage('superApplicationsMessage', `Error: ${error.message}`, 'error'); return; }
+    showMessage('superApplicationsMessage', 'Application rejected.', 'success');
+    await loadSchoolApplications();
+    updateSchoolApplicationsNavBadge();
+  } catch (err) {
+    showMessage('superApplicationsMessage', `Error: ${err.message}`, 'error');
+  }
+};
+
+/** Super Admin: permanently delete an onboarding application. */
+window.deleteSchoolApplication = async function (id) {
+  if (!window.confirm('Delete this application permanently? This cannot be undone.')) return;
+  try {
+    const { error } = await supabaseClient.from('school_applications').delete().eq('id', id);
+    if (error) { showMessage('superApplicationsMessage', `Error: ${error.message}`, 'error'); return; }
+    showMessage('superApplicationsMessage', 'Application deleted.', 'success');
+    await loadSchoolApplications();
+    updateSchoolApplicationsNavBadge();
+  } catch (err) {
+    showMessage('superApplicationsMessage', `Error: ${err.message}`, 'error');
+  }
+};
+
+/** Super Admin: show the count of pending applications on the sidebar nav item. */
+async function updateSchoolApplicationsNavBadge() {
+  const btn = document.querySelector('#superAdminSidebar .dash-nav-link[data-super-page="applications"]');
+  if (!btn) return;
+  try {
+    const { count } = await supabaseClient
+      .from('school_applications')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'pending');
+    const existing = btn.querySelector('.report-count-badge');
+    if (existing) existing.remove();
+    if (count > 0) {
+      const badge = document.createElement('span');
+      badge.className = 'report-count-badge';
+      badge.style.cssText = 'display:inline-block;margin-left:0.4rem;background:#ef4444;color:#fff;border-radius:20px;padding:0.05rem 0.45rem;font-size:0.65rem;font-weight:800;vertical-align:middle;';
+      badge.textContent = String(count);
+      btn.appendChild(badge);
+    }
+  } catch (err) {
+    /* non-fatal — badge is just a convenience */
+  }
+}
+
+/** Exposed so the dashboard can refresh the badge after an approval/rejection/delete. */
+window.refreshSchoolApplicationsNavBadge = updateSchoolApplicationsNavBadge;

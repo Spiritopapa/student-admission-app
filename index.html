@@ -201,6 +201,10 @@
               <span>Create Account</span>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/></svg>
             </a>
+            <a href="school-onboarding.html" class="btn btn-secondary btn-glow">
+              <span>Register to get your School on board</span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 22v-4a2 2 0 1 0-4 0v4"/><path d="m18 10 4 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-8l4-2"/><path d="M18 5v17"/><path d="m4 6 8-4 8 4"/><path d="M6 5v17"/><circle cx="12" cy="9" r="2"/></svg>
+            </a>
 <a href="https://mail.google.com/mail/?view=cm&fs=1&to=boahengeeman@gmail.com"
                target="_blank" rel="noopener noreferrer"
                class="email-admin-btn email-btn-home btn-glow"
@@ -302,6 +306,7 @@
           <div class="home-cta-actions">
             <a href="#" class="btn btn-primary btn-glow" data-page="login">Sign In Now</a>
             <a href="#" class="btn btn-ghost btn-ghost-light" data-page="register">Create Free Account</a>
+            <a href="school-onboarding.html" class="btn btn-secondary btn-glow">Register to get your School on board</a>
           </div>
         </div>
       </div>
@@ -2699,6 +2704,7 @@
             <button type="button" class="dash-nav-link" data-super-page="attendance">Attendance</button>
             <button type="button" class="dash-nav-link" data-super-page="exams">Exams</button>
             <button type="button" class="dash-nav-link" data-super-page="settings">Settings</button>
+            <button type="button" class="dash-nav-link" data-super-page="applications">School Applications</button>
             <button type="button" class="dash-nav-link" data-super-page="reports">Bugs &amp; Suggestions</button>
             <button type="button" class="dash-nav-link" data-super-page="profile">My Profile</button>
           </nav>
@@ -3173,6 +3179,26 @@
             </div>
 
             <div id="superProfileMessage" class="message" style="display:none;"></div>
+          </div>
+
+          <!-- ===== SCHOOL APPLICATIONS (from the public onboarding page) ===== -->
+          <div id="superPage-applications" class="super-subpage">
+            <h3>School Applications</h3>
+            <p class="subtitle">Schools that applied to join the platform from the "Register to get your School on board" page. Approve, reject or delete applications. After approving, use <strong>Schools → Create New School</strong> to generate the school's registration ID.</p>
+            <div class="card-toolbar">
+              <input type="text" id="superAppsSearch" placeholder="Search school or admin..." class="search-input" style="max-width:240px;" />
+              <select id="superAppsStatus" class="search-input" style="max-width:170px;">
+                <option value="all">All Statuses</option>
+                <option value="pending">Pending</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+              </select>
+              <span style="font-size:0.85rem;color:var(--text-muted);">Showing <strong id="superAppsCount">0</strong></span>
+            </div>
+            <div id="superApplicationsList" style="margin-top:1rem;display:flex;flex-direction:column;gap:0.75rem;">
+              <!-- Populated by loadSchoolApplications() -->
+            </div>
+            <div id="superApplicationsMessage" class="message" style="display:none;"></div>
           </div>
 
           <!-- ===== BUGS & SUGGESTIONS REPORTS (from all users) ===== -->

@@ -423,6 +423,15 @@
 --          js/modules/super-admin.js (dashboard review page).
 \i 059-support-reports.sql
 
+-- Step 53: School Onboarding Applications
+-- Adds: school_applications table + RLS + submit_school_application()
+--       SECURITY DEFINER RPC (granted to anon for the public page).
+--       Prospective schools apply from school-onboarding.html and the
+--       Super Admin reviews/approves/rejects them on the dashboard.
+-- Used by: school-onboarding.html (submission),
+--          js/modules/super-admin.js (dashboard review page).
+\i 060-school-applications.sql
+
 -- ============================================================
 --  SCHEMA DEPLOYMENT COMPLETE
 -- ============================================================
