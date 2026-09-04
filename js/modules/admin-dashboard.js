@@ -789,16 +789,10 @@ function animateFeeProgressBar() {
     totalPaid += Number(f.amount_paid) || 0;
   });
 
-  // Carried-forward debt = only each student's latest fee record.
-  // promote_student_fees()/carry_forward_balance() roll prior balances + debt
-  // into the NEWEST record's `debt`, so summing `debt` across ALL fee records
-  // would count the same promotion debt multiple times.
-  const totalDebt = getCarriedForwardDebt();
-
-  // Collection rate = paid ÷ total expected (term fees + carried-forward debt).
-  // Keeps the admin Collection Rate consistent with the "Total Expected" stat
-  // above it and with the accountant dashboard.
-  const totalExpected = totalAmount + totalDebt;
+  // Collection rate = paid ÷ total expected (all fee billings). Carried debt
+  // is NOT added to expected — it is already inside the older term records'
+  // total_amount that were rolled forward, so adding it would double-count.
+  const totalExpected = totalAmount;
   const pct = totalExpected > 0 ? (totalPaid / totalExpected) * 100 : 0;
 
   setTimeout(() => {
@@ -1080,11 +1074,14 @@ function animateDashboardCounters() {
       totalAmount += amt;
       totalPaid += paid;
     });
-    // Carried-forward debt = each student's latest fee record only (see getCarriedForwardDebt).
+    // Carried-forward debt = each student's remaining unpaid carried balance
+    // (latest fee record only; reduced by payments). See getCarriedForwardDebt.
     const totalDebt = getCarriedForwardDebt();
 
-    // Total Expected = all term fees + carried-forward debt (matches the label)
-    const totalExpected = totalAmount + totalDebt;
+    // Total Expected = all fee billings. Carried debt is NOT added again —
+    // it is already represented inside the older term records' total_amount
+    // that were rolled forward, so adding it here would double-count.
+    const totalExpected = totalAmount;
     // Outstanding Balance = what's still owed after all payments (never negative)
     const outstandingBalance = Math.max(totalExpected - totalPaid, 0);
     // Grand Total Outstanding = the true debt picture
@@ -1183,6 +1180,10 @@ function animateChartBars() {
  * student holds their current carried-forward debt. Summing `debt` across ALL
  * fee records would count the same balance once per promotion, inflating the
  * figure.
+ *
+ * Payments made on the current (latest) record reduce the carried debt first,
+ * so the figure returned is the REMAINING unpaid carried balance:
+ *   max(latest.debt - latest.amount_paid, 0) per student.
  */
 function getCarriedForwardDebt() {
   const latestByStudent = new Map();
@@ -1206,7 +1207,10 @@ function getCarriedForwardDebt() {
   });
 
   let total = 0;
-  latestByStudent.forEach((f) => { total += Number(f.debt) || 0; });
+  latestByStudent.forEach((f) => {
+    const unpaidCarried = (Number(f.debt) || 0) - (Number(f.amount_paid) || 0);
+    total += Math.max(unpaidCarried, 0);
+  });
   return total;
 }
 
@@ -1225,12 +1229,15 @@ function renderFeeOverview() {
     else unpaidCount++;
   });
 
-  // Carried-forward debt = the total balance students carried when they were
-  // promoted into their CURRENT class (latest fee record per student only).
+  // Carried-forward debt = the REMAINING unpaid balance students carried when
+  // they were promoted into their CURRENT class (latest fee record per student
+  // only). Payments on the current term reduce it first.
   const totalDebt = getCarriedForwardDebt();
 
-  // Total Expected = all term fees + all carried-forward debts
-  const totalExpected = totalAmount + totalDebt;
+  // Total Expected = all fee billings. Carried debt is NOT added again — it is
+  // already inside the older term records' total_amount that were rolled
+  // forward, so adding it here would double-count it.
+  const totalExpected = totalAmount;
   // Outstanding Balance = what's still owed after all payments
   const outstandingBalance = Math.max(totalExpected - totalPaid, 0);
   // Grand Total Debt = total outstanding balance (the true debt picture)
