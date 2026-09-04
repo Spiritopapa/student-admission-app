@@ -783,12 +783,17 @@ function animateFeeProgressBar() {
   const fill = document.getElementById('feeProgressFill');
   if (!fill) return;
 
-  let totalAmount = 0, totalPaid = 0, totalDebt = 0;
+  let totalAmount = 0, totalPaid = 0;
   allFees.forEach(f => {
     totalAmount += Number(f.total_amount) || 0;
     totalPaid += Number(f.amount_paid) || 0;
-    totalDebt += Number(f.debt) || 0;
   });
+
+  // Carried-forward debt = only each student's latest fee record.
+  // promote_student_fees()/carry_forward_balance() roll prior balances + debt
+  // into the NEWEST record's `debt`, so summing `debt` across ALL fee records
+  // would count the same promotion debt multiple times.
+  const totalDebt = getCarriedForwardDebt();
 
   // Collection rate = paid ÷ total expected (term fees + carried-forward debt).
   // Keeps the admin Collection Rate consistent with the "Total Expected" stat
@@ -1068,14 +1073,15 @@ function animateDashboardCounters() {
 
   // Fee counters (only if fees module is not locked)
   if (!lockedModules.has('fees')) {
-    let totalAmount = 0, totalPaid = 0, totalDebt = 0;
+    let totalAmount = 0, totalPaid = 0;
     allFees.forEach(f => {
       const amt = Number(f.total_amount) || 0;
       const paid = Number(f.amount_paid) || 0;
       totalAmount += amt;
       totalPaid += paid;
-      totalDebt += Number(f.debt) || 0;
     });
+    // Carried-forward debt = each student's latest fee record only (see getCarriedForwardDebt).
+    const totalDebt = getCarriedForwardDebt();
 
     // Total Expected = all term fees + carried-forward debt (matches the label)
     const totalExpected = totalAmount + totalDebt;
@@ -1166,22 +1172,62 @@ function animateChartBars() {
 // Fee Overview
 // ================================================================
 
+/**
+ * Canonical source for the "Carried Forward Debt" figure.
+ *
+ * The fees `debt` column is the TOTAL outstanding balance a student carried
+ * when they were promoted from one class to another (or term to term):
+ * promote_student_fees()/carry_forward_balance() set the new record's `debt`
+ * to (previous_term_balance + previous_term_debt). Because that carried total
+ * is copied forward onto each newer record, ONLY the LATEST fee record per
+ * student holds their current carried-forward debt. Summing `debt` across ALL
+ * fee records would count the same balance once per promotion, inflating the
+ * figure.
+ */
+function getCarriedForwardDebt() {
+  const latestByStudent = new Map();
+
+  const yearRank = (ay) => {
+    const n = parseInt(String(ay || '').split('/')[0], 10);
+    return Number.isFinite(n) ? n : -1;
+  };
+  const termRank = (t) => {
+    const term = String(t || '').toLowerCase();
+    if (term === 'second') return 2;
+    if (term === 'third') return 3;
+    if (term === 'first') return 1;
+    return -1;
+  };
+  const rankOf = (f) => yearRank(f.academic_year) * 10 + termRank(f.term);
+
+  allFees.forEach((f) => {
+    const prev = latestByStudent.get(f.student_id);
+    if (!prev || rankOf(f) > rankOf(prev)) latestByStudent.set(f.student_id, f);
+  });
+
+  let total = 0;
+  latestByStudent.forEach((f) => { total += Number(f.debt) || 0; });
+  return total;
+}
+
 function renderFeeOverview() {
-  let totalAmount = 0, totalPaid = 0, totalDebt = 0;
+  let totalAmount = 0, totalPaid = 0;
   let paidCount = 0, unpaidCount = 0, partialCount = 0;
 
   // allFees now contains ALL fee records across all terms and years
   allFees.forEach(f => {
     const amt = Number(f.total_amount) || 0;
     const paid = Number(f.amount_paid) || 0;
-    const debt = Number(f.debt) || 0;
     totalAmount += amt;
     totalPaid += paid;
-    totalDebt += debt;
     if (f.payment_status === 'paid') paidCount++;
     else if (f.payment_status === 'partial') partialCount++;
     else unpaidCount++;
   });
+
+  // Carried-forward debt = the total balance students carried when they were
+  // promoted into their CURRENT class (latest fee record per student only).
+  const totalDebt = getCarriedForwardDebt();
 
   // Total Expected = all term fees + all carried-forward debts
   const totalExpected = totalAmount + totalDebt;
