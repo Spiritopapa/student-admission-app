@@ -21,7 +21,7 @@ const ICON_IDS = [
   'eye', 'refresh', 'key', 'settings', 'shield', 'logout', 'search',
   'bell', 'calendar', 'clock', 'crown', 'smile', 'lock', 'id-card',
   'list-checks', 'smartphone', 'check-circle', 'alert', 'plus', 'edit',
-  'x', 'home', 'trophy', 'mail', 'phone', 'share', 'save', 'sun',
+  'x', 'menu', 'home', 'trophy', 'mail', 'phone', 'share', 'save', 'sun',
   'star', 'lightbulb', 'camera', 'flag', 'heart', 'help', 'briefcase',
   'sparkles',
 ];
@@ -118,6 +118,7 @@ const SPRITE_CHUNK_2 = ''
 + '<symbol id="i-plus" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></symbol>'
   + '<symbol id="i-edit" viewBox="0 0 24 24"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></symbol>'
   + '<symbol id="i-x" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></symbol>'
+  + '<symbol id="i-menu" viewBox="0 0 24 24"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></symbol>'
   + '<symbol id="i-home" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></symbol>'
   + '<symbol id="i-trophy" viewBox="0 0 24 24"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></symbol>'
   + '<symbol id="i-mail" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="22 6 12 13 2 6"/></symbol>'

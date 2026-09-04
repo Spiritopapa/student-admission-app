@@ -457,6 +457,15 @@ input, textarea, select, [contenteditable="true"] {
     transition: transform 0.3s var(--spring);
   }
 
+  /* The bottom nav icons are SVG shapes from the app sprite — size them
+     explicitly so stroke icons render crisp and identically. */
+  .mobile-bottom-nav-item .bottom-nav-icon .app-icon {
+    width: 20px;
+    height: 20px;
+    display: block;
+    margin: 0 auto;
+  }
+
   .mobile-bottom-nav-item.active {
     color: var(--primary);
   }

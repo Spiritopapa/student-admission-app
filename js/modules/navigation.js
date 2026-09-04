@@ -3,6 +3,7 @@
  */
 
 import { getEl } from './utils.js';
+import { svgIcon } from './icons.js';
 
 // ================================================================
 // State
@@ -378,11 +379,11 @@ function setupMobileBottomNav() {
   });
   bottomNav.appendChild(collapseBtn);
 
-  // Define bottom nav items - Home (dashboard), Logout, Sidebar
+  // Define bottom nav items - Sidebar (left), Home (middle), Logout (right)
   const items = [
-    { label: 'Home', action: 'home' },
-    { label: 'Logout', action: 'logout' },
-    { label: 'Sidebar', action: 'sidebar' }
+    { label: 'Sidebar', action: 'sidebar', icon: 'menu' },
+    { label: 'Home', action: 'home', icon: 'home' },
+    { label: 'Logout', action: 'logout', icon: 'logout' }
   ];
 
   items.forEach((item) => {
@@ -390,7 +391,7 @@ function setupMobileBottomNav() {
     btn.type = 'button';
     btn.className = 'mobile-bottom-nav-item';
     btn.dataset.action = item.action;
-    btn.innerHTML = `<span class="bottom-nav-label">${item.label}</span>`;
+    btn.innerHTML = `<span class="bottom-nav-icon">${svgIcon(item.icon)}</span><span class="bottom-nav-label">${item.label}</span>`;
     btn.addEventListener('click', () => {
       handleBottomNavAction(item.action);
     });
