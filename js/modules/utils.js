@@ -983,6 +983,81 @@ function escapeHtml(value) {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 }
+// ================================================================
+// Photo Lightbox — shared click-to-zoom for avatar & student photos
+// ================================================================
+
+let _photoLightboxEl = null;
+
+/**
+ * Open a lightbox showing a large version of the given photo URL.
+ * Used by the admin sidebar avatar and every student photo thumbnail.
+ * Call from any module; works on desktop and mobile.
+ */
+export function openPhotoLightbox(src, title = 'Photo', alt = 'Photo') {
+  closePhotoLightbox();
+  const overlay = document.createElement('div');
+  overlay.id = 'photoLightbox';
+  overlay.className = 'modal-overlay photo-lightbox';
+  overlay.style.display = 'flex';
+  overlay.innerHTML = `
+    <div class="modal-card photo-zoom-card">
+      <div class="modal-header">
+        <h3>${escapeHtml(title)}</h3>
+        <button type="button" class="modal-close" aria-label="Close" title="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <img src="${escapeHtml(src)}" alt="${escapeHtml(alt)}" />
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  _photoLightboxEl = overlay;
+
+  // Escape key closes the lightbox while it is open.
+  const onKeyDown = (ev) => {
+    if (ev.key === 'Escape') closePhotoLightbox();
+  };
+  document.addEventListener('keydown', onKeyDown);
+  overlay._onKeyDown = onKeyDown;
+
+  // Backdrop click or the × button closes the lightbox.
+  overlay.addEventListener('click', (ev) => {
+    if (ev.target === overlay || ev.target.closest('.modal-close')) {
+      closePhotoLightbox();
+    }
+  });
+}
+
+/** Remove the lightbox overlay if it is open. */
+export function closePhotoLightbox() {
+  const el = _photoLightboxEl;
+  if (!el) return;
+  if (el._onKeyDown) document.removeEventListener('keydown', el._onKeyDown);
+  el.remove();
+  _photoLightboxEl = null;
+}
+
+/**
+ * One delegated click listener that zooms ANY thumbnail into the shared
+ * lightbox. Targets the classes used across all dashboards for student
+ * pictures. Photos that already carry their own inline single/double click
+ * action (e.g. openStudentModal / replaceStudentPhoto) are left untouched
+ * so their existing behaviour wins.
+ */
+export function initPhotoZoom() {
+  document.addEventListener('click', (e) => {
+    const img = e.target.closest(
+      'img.dash-photo, img.dash-recent-photo, img.student-photo-thumb, img.student-profile-photo'
+    );
+    if (!img || !img.src) return;
+    // Don't hijack photos with existing inline click / double-click handlers.
+    if (img.hasAttribute('onclick') || img.hasAttribute('ondblclick')) return;
+    const title = img.getAttribute('alt') || 'Student Photo';
+    openPhotoLightbox(img.src, title, title);
+  });
+}
 
 /** Build a safe PDF filename from a document title. */
 function safePrintFilename(title) {

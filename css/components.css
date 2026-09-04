@@ -593,26 +593,27 @@ legend {
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22);
 }
 
-/* Lightbox overlay + card override the generic modal look so the framed
-   administrator picture fills the screen as large as possible. */
-.admin-photo-lightbox.modal-overlay {
+/* Generic photo lightbox used by BOTH the administrator avatar and every
+   student photo thumbnail. Overrides the generic modal look so the
+   enlarged picture fills the screen as large as possible. */
+.photo-lightbox.modal-overlay {
   padding: 1rem;
   align-items: center;
 }
-.admin-photo-card.modal-card {
+.photo-zoom-card.modal-card {
   max-width: min(560px, 94vw);
   max-height: 90vh;
   overflow: hidden;
   border-radius: var(--radius);
 }
-.admin-photo-card .modal-body {
+.photo-zoom-card .modal-body {
   padding: 0.75rem;
   background: rgba(10, 12, 24, 0.06);
   display: flex;
   align-items: center;
   justify-content: center;
 }
-.admin-photo-card .modal-body img {
+.photo-zoom-card .modal-body img {
   display: block;
   width: auto;
   max-width: 100%;
@@ -622,16 +623,23 @@ legend {
   box-shadow: var(--glass-shadow);
 }
 @media (max-width: 480px) {
-  .admin-photo-lightbox.modal-overlay {
+  .photo-lightbox.modal-overlay {
     padding: 0.5rem;
     align-items: center;
   }
-  .admin-photo-card.modal-card {
+  .photo-zoom-card.modal-card {
     border-radius: var(--radius);
   }
-  .admin-photo-card .modal-body img {
+  .photo-zoom-card .modal-body img {
     max-height: 78vh;
   }
+}
+
+/* Zoom affordance on the student photo thumbnails that open the lightbox. */
+.dash-recent-photo,
+.student-photo-thumb {
+  cursor: zoom-in;
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* ===== REFRESH BUTTON ===== */

@@ -33,7 +33,7 @@ import { initSmsMonitor, loadSmsMonitorPage } from './modules/admin-sms-monitor.
 import { initAdminAssessments, setupAdminAssessments, loadAdminAssessmentsPage } from './modules/admin-assessments.js';
 import { initTeacherAssessments, setupTeacherAssessments } from './modules/teacher-assessments.js';
 import { initAssessmentTaking } from './modules/assessment-taking.js';
-import { getEl, initActivityLogger, initSchoolIdHelper, clearSchoolIdCache, applyTableLabels } from './modules/utils.js';
+import { getEl, initActivityLogger, initSchoolIdHelper, clearSchoolIdCache, applyTableLabels, initPhotoZoom } from './modules/utils.js';
 import { injectAppIcons, initIconInjector, svgIcon } from './modules/icons.js';
 import { startRealtimeSubscriptions, stopRealtimeSubscriptions } from './modules/realtime.js';
 import { setupForgotPassword } from './modules/forgot-password.js';
@@ -490,6 +490,10 @@ async function initApp() {
   // Inject modern SVG icons (sidebars, welcome cards, headings, buttons…)
   // and keep them applied as dynamic content renders.
   initIconInjector();
+
+  // Enable tap/click-to-zoom on every student photo thumbnail (and the
+  // admin sidebar avatar via admin-dashboard.js) using the shared lightbox.
+  initPhotoZoom();
 
   // Initialize session
   await initSession({
