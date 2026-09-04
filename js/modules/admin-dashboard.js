@@ -42,6 +42,7 @@ const REFRESH_INTERVAL = 30000; // fallback poll every 30s
 
 export function initAdminDashboard(supabase) {
   supabaseClient = supabase;
+  setupAdminPhotoZoom();
 }
 
 // ================================================================
@@ -96,6 +97,62 @@ async function applyAdminAvatar() {
   } catch (err) {
     console.warn('Could not load administrator picture for avatar:', err.message);
   }
+}
+
+/**
+ * Zoom the administrator's sidebar photo into a lightbox.
+ *
+ * The admin picture can be injected by two places
+ * (applyAdminAvatar() here or loadAdminDashboard() in admin-students.js),
+ * so a delegated document-level listener reliably reacts to the photo
+ * no matter which module rendered it. Tapping the avatar enlarges it;
+ * tapping the backdrop, the × button, or pressing Escape closes it.
+ */
+function setupAdminPhotoZoom() {
+  document.addEventListener('click', (e) => {
+    const img = e.target.closest('#adminSidebar .dash-avatar img');
+    if (!img || !img.src) return;
+    openAdminPhotoLightbox(img.src);
+  });
+}
+
+function openAdminPhotoLightbox(src) {
+  closeAdminPhotoLightbox();
+  const overlay = document.createElement('div');
+  overlay.id = 'adminPhotoLightbox';
+  overlay.className = 'modal-overlay admin-photo-lightbox';
+  overlay.style.display = 'flex';
+  overlay.innerHTML = `
+    <div class="modal-card admin-photo-card">
+      <div class="modal-header">
+        <h3>Administrator</h3>
+        <button type="button" class="modal-close" aria-label="Close" title="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <img src="${src}" alt="Administrator" />
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+
+  // Escape key closes the lightbox while it is open.
+  const onKeyDown = (ev) => {
+    if (ev.key === 'Escape') closeAdminPhotoLightbox(overlay);
+  };
+  document.addEventListener('keydown', onKeyDown);
+
+  // Backdrop click or the × button closes the lightbox.
+  overlay.addEventListener('click', (ev) => {
+    if (ev.target === overlay || ev.target.closest('.modal-close')) {
+      closeAdminPhotoLightbox(overlay);
+    }
+  });
+}
+
+function closeAdminPhotoLightbox(overlay) {
+  const target = overlay || document.getElementById('adminPhotoLightbox');
+  if (target) target.remove();
 }
 
 /**

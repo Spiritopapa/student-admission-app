@@ -578,6 +578,62 @@ legend {
   border-radius: var(--radius); margin-bottom: 0.75rem; border: 1px solid var(--glass-border);
 }
 
+/* ===== ADMIN PHOTO ZOOM (LIGHTBOX) ===== */
+/* The admin's sidebar photo is tappable — enlarge it into a lightbox. */
+#adminSidebar .dash-avatar,
+#adminSidebar .dash-avatar img {
+  cursor: zoom-in;
+  -webkit-tap-highlight-color: transparent;
+}
+#adminSidebar .dash-avatar img {
+  transition: transform 0.2s var(--spring), box-shadow 0.2s ease;
+}
+#adminSidebar .dash-avatar:hover img {
+  transform: scale(1.06);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22);
+}
+
+/* Lightbox overlay + card override the generic modal look so the framed
+   administrator picture fills the screen as large as possible. */
+.admin-photo-lightbox.modal-overlay {
+  padding: 1rem;
+  align-items: center;
+}
+.admin-photo-card.modal-card {
+  max-width: min(560px, 94vw);
+  max-height: 90vh;
+  overflow: hidden;
+  border-radius: var(--radius);
+}
+.admin-photo-card .modal-body {
+  padding: 0.75rem;
+  background: rgba(10, 12, 24, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.admin-photo-card .modal-body img {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  max-height: 70vh;
+  object-fit: contain;
+  border-radius: var(--radius-sm);
+  box-shadow: var(--glass-shadow);
+}
+@media (max-width: 480px) {
+  .admin-photo-lightbox.modal-overlay {
+    padding: 0.5rem;
+    align-items: center;
+  }
+  .admin-photo-card.modal-card {
+    border-radius: var(--radius);
+  }
+  .admin-photo-card .modal-body img {
+    max-height: 78vh;
+  }
+}
+
 /* ===== REFRESH BUTTON ===== */
 .refresh-btn {
   background: rgba(255,255,255,0.5);
