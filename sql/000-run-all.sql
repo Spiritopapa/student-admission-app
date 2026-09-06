@@ -442,6 +442,13 @@
 --          student admission form (openPrintWindow).
 \i 061-admission-settings.sql
 
+-- Step 55: Password-Reset OTP Monthly Limit
+-- Hardens request_forgot_password_otp() so every user gets at most
+-- 3 password-reset SMS OTPs in any rolling 30-day window. When the
+-- allowance is exhausted the RPC returns otp_limit_exceeded = true
+-- and js/modules/forgot-password.js shows a popup telling the user
+-- to contact the developer for a password reset.
+\i 062-reset-otp-monthly-limit.sql
 -- ============================================================
 --  SCHEMA DEPLOYMENT COMPLETE
 -- ============================================================

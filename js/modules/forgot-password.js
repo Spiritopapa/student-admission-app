@@ -150,7 +150,17 @@ async function onSendOtp() {
       p_phone: phone,
     });
     if (error) throw error;
-    if (!data || !data.success) { showMsg(data?.error || 'Could not send the verification code.', 'error'); return; }
+    if (!data || !data.success) {
+      if (data?.otp_limit_exceeded) {
+        // Monthly allowance (3 codes per 30 days) is exhausted →
+        // pop up the message so the user knows to contact the developer.
+        window.alert(data.error || 'You have used all 3 password-reset codes allowed in 30 days. Please contact the developer for a password reset.');
+        showMsg(data.error || 'Please contact the developer for a password reset.', 'error');
+      } else {
+        showMsg(data?.error || 'Could not send the verification code.', 'error');
+      }
+      return;
+    }
 
     // Deliver the OTP by SMS through the Nalo gateway. The RPC also returns
     // the school administrator's mobile so the message can offer "call for
@@ -161,7 +171,10 @@ async function onSendOtp() {
       return;
     }
 
-    showMsg(`Verification code sent to the mobile number ending in ${data.phone_last3}. Enter it to continue.`, 'success');
+    const limitNote = data.otps_remaining === 0
+      ? ' You have now used all 3 password-reset codes allowed in 30 days.'
+      : '';
+    showMsg(`Verification code sent to the mobile number ending in ${data.phone_last3}. Enter it to continue.${limitNote}`, 'success');
     fpGoStep(3);
   } catch (err) {
     showMsg('Something went wrong: ' + err.message, 'error');
