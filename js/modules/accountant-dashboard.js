@@ -1092,7 +1092,7 @@ async function processAccPayment() {
 
     // Show receipt if function exists
     if (typeof showReceiptModal === 'function') {
-      const { generateReceiptHTML, renderReceiptQR } = await import('./admin-fees.js');
+      const { generateReceiptHTML, renderReceiptQR, enrichReceiptWithSnapshot } = await import('./admin-fees.js');
       const content = getEl('receiptContent');
       const modal = getEl('receiptModal');
       if (content && modal) {
@@ -1116,9 +1116,16 @@ async function processAccPayment() {
             }
           }
         } catch (e) { /* ignore logo fetch errors */ }
-        content.innerHTML = generateReceiptHTML({ ...data, school_logo_url: schoolLogoUrl });
+        // Enrich with the stored receipt snapshot so "Total Fees Due" /
+        // "Amount Paid Previously" are correct on the very first display
+        // (the process_fee_payment RPC return omits those breakdown fields).
+        const receiptData = await enrichReceiptWithSnapshot(
+          { ...data, student_id: studentId, student_photo_url: studentPhotoUrl, school_logo_url: schoolLogoUrl },
+          data.receipt_id
+        );
+        content.innerHTML = generateReceiptHTML(receiptData);
         // Render QR code for security verification
-        renderReceiptQR({ ...data, student_id: studentId, student_photo_url: studentPhotoUrl, school_logo_url: schoolLogoUrl });
+        renderReceiptQR(receiptData);
         modal.style.display = 'flex';
       }
     }

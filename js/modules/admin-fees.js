@@ -1139,8 +1139,14 @@ async function recordPayment() {
       if (studentApp?.student_photo_url) studentPhotoUrl = studentApp.student_photo_url;
     } catch (e) { /* ignore photo fetch errors */ }
 
-    // Show receipt with previous term flag
-    showReceiptModal({ ...data, student_id: studentId, student_photo_url: studentPhotoUrl, is_previous_term_payment: isPreviousTermPayment });
+    // Show receipt with previous term flag. Enrich with the stored receipt
+    // snapshot so "Total Fees Due" / "Amount Paid Previously" (and the rest
+    // of the breakdown) are correct on the very first display — same as reprint.
+    const receiptData = await enrichReceiptWithSnapshot(
+      { ...data, student_id: studentId, student_photo_url: studentPhotoUrl, is_previous_term_payment: isPreviousTermPayment },
+      data.receipt_id
+    );
+    showReceiptModal(receiptData);
 
   } catch (err) {
     showMessage('feePaymentMessage', 'Error: ' + err.message, 'error');
@@ -1152,6 +1158,52 @@ async function recordPayment() {
 // ================================================================
 // RECEIPT MODAL & PRINTING
 // ================================================================
+
+/**
+ * Merge the stored receipt snapshot (receipts.receipt_data) into the client
+ * data returned by process_fee_payment before the receipt is shown.
+ *
+ * WHY: the RPC return only carries a summary (receipt_number, amount_paid,
+ * total_paid, remaining_balance, ...). The full breakdown — total_fees,
+ * total_due, amount_paid_before, amount_now, payment_method, reference,
+ * notes — is written into receipts.receipt_data but was NOT returned, so the
+ * first receipt display rendered "Total Fees Due" and "Amount Paid Previously"
+ * as 0.00. Reprints were correct because they read the stored snapshot.
+ * This fetches that same snapshot so the first display matches a reprint.
+ *
+ * Falls back to the original data when the fetch fails.
+ */
+export async function enrichReceiptWithSnapshot(receiptData, receiptId) {
+  if (!receiptId) return receiptData;
+  try {
+    const { data: receipt } = await supabaseClient.from('receipts')
+      .select('*')
+      .eq('id', receiptId)
+      .single();
+    if (!receipt) return receiptData;
+
+    const snap = (receipt.receipt_data && typeof receipt.receipt_data === 'object')
+      ? { ...receipt.receipt_data }
+      : {};
+
+    const merged = { ...receiptData, ...snap };
+
+    // Identity / scalar row columns always win for these fields.
+    merged.receipt_number = receipt.receipt_number || merged.receipt_number;
+    merged.receipt_id = receipt.id;
+    merged.receipt_date = receipt.receipt_date || merged.receipt_date;
+    merged.verification_token = receipt.verification_token;
+    merged.student_id = receipt.student_id || merged.student_id;
+    merged.academic_year = receipt.academic_year || merged.academic_year;
+    merged.term = receipt.term || merged.term;
+    merged.payment_method = receipt.payment_method || merged.payment_method;
+    merged.amount_paid = receipt.amount || merged.amount_paid;
+    return merged;
+  } catch (e) {
+    console.warn('Failed to enrich receipt with stored snapshot:', e.message);
+    return receiptData;
+  }
+}
 
 export async function showReceiptModal(data) {
   // Fetch school logo URL if not already present
