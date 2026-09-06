@@ -9,7 +9,7 @@
 import supabaseClient from './supabase-config.js';
 import { initAuth, setupRegisterStudentForm, setupRegisterParentForm, setupRegisterSchoolForm, setupRegisterTeacherForm, setupRegisterSubAdminForm, setupRegisterAccountantForm, setupRegisterSuperAdminForm, setupLoginForm, initSession, checkAndGuardSuperAdminRegistration } from './modules/auth.js';
 import { initNavigation } from './modules/navigation.js';
-import { initAdminStudents, setupAdmitForm, setupStudentSearchListeners, setupEditStudent, setupPrintClassList, setupPromoteClass, ensureAdmitClassDropdown, renderAdminSubStudentsTable, setupStudentCSVHandlers } from './modules/admin-students.js';
+import { initAdminStudents, setupAdmitForm, setupStudentSearchListeners, setupEditStudent, setupPrintClassList, setupPromoteClass, ensureAdmitClassDropdown, renderAdminSubStudentsTable, setupStudentCSVHandlers, loadAdmitFeeItems } from './modules/admin-students.js';
 import { initAdminDashboard, loadAdminDashboardHome, refreshDashboardData, cleanupDashboardRealtime, setupAdminPasswordChange } from './modules/admin-dashboard.js';
 import { initAdminSearch, setupAdminSearch, refreshSearchCache } from './modules/admin-search.js';
 import { initAdminClasses, setupClassForm, renderClassesTable } from './modules/admin-classes.js';
@@ -21,6 +21,7 @@ import { initAdminAttendance, setupAttendanceListeners, loadAttendancePage } fro
 import { initAdminExams, setupExamListeners } from './modules/admin-exams.js';
 import { initAdminGrading, setupGradingListeners, loadGradingPage } from './modules/admin-grading.js';
 import { initAdminFees, setupFeesListeners, loadFeesPage } from './modules/admin-fees.js';
+import { initAdminSettings, setupSettingsListeners, loadSettingsPage } from './modules/admin-settings.js';
 import { initStudentDashboard, setupStudentDashboard, loadStudentDashboard } from './modules/student-dashboard.js';
 import { initParentDashboard, loadParentDashboard } from './modules/parent-dashboard.js';
 import { initSuperAdmin, setupSuperAdmin, loadSuperAdminDashboard } from './modules/super-admin.js';
@@ -72,6 +73,7 @@ function initAllModules() {
   initAccountantDashboard(supabaseClient);
   initIncomeExpenses(supabaseClient);
   initAdminFees(supabaseClient);
+  initAdminSettings(supabaseClient);
   initBackupRestore(supabaseClient);
   initSmsMonitor(supabaseClient);
   initAdminAssessments(supabaseClient);
@@ -157,6 +159,7 @@ function setupAllListeners() {
   setupAccountantDashboard();
   setupGradingListeners();
   setupFeesListeners();
+  setupSettingsListeners();
   setupStudentCSVHandlers();
   setupAdminPasswordChange();
   setupAdminSearch();
@@ -356,6 +359,7 @@ const ADMIN_PAGE_ICONS = {
   'income-expenses': 'trending-up',
   'sms-monitoring': 'message-square',
   backup: 'archive',
+  settings: 'settings',
   profile: 'key',
 };
 
@@ -421,6 +425,7 @@ async function loadAdminSubPage(page) {
     'income-expenses': { id: 'page-admin-income-expenses', title: 'Income & Expenses' },
     'sms-monitoring': { id: 'page-admin-sms-monitoring', title: 'SMS Monitoring' },
     backup: { id: 'page-admin-backup', title: 'Backup & Restore' },
+    settings: { id: 'page-admin-settings', title: 'Settings' },
     profile: { id: 'page-admin-profile', title: 'Change Password' },
   };
   const targetPage = getEl(map[page]?.id);
@@ -450,7 +455,11 @@ async function loadAdminSubPage(page) {
       await loadSmsMonitorPage();
       break;
     }
-    case 'admit': await ensureAdmitClassDropdown(); break;
+    case 'admit':
+      await ensureAdmitClassDropdown();
+      await loadAdmitFeeItems();
+      break;
+    case 'settings': await loadSettingsPage(); break;
     case 'profile': break; // Password change form is static HTML; no dynamic load needed
   }
   window.scrollTo({ top: 0, behavior: 'smooth' });

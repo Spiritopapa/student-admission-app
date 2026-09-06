@@ -629,6 +629,7 @@
             <button type="button" class="dash-nav-link" data-admin-page="income-expenses">Income & Expenses</button>
             <button type="button" class="dash-nav-link" data-admin-page="sms-monitoring">SMS Monitoring</button>
             <button type="button" class="dash-nav-link" data-admin-page="backup">Backup & Restore</button>
+            <button type="button" class="dash-nav-link" data-admin-page="settings">Settings</button>
             <button type="button" class="dash-nav-link" data-admin-page="profile">Change Password</button>
           </nav>
           <div class="sidebar-logout">
@@ -790,6 +791,29 @@
           <div class="form-group"><label>Previous School</label><input type="text" id="admitPrevSchool" /></div>
           <div class="form-group"><label>Admission Date *</label><input type="date" id="admitDate" required /></div>
         </div>
+
+        <details class="admit-section" style="margin-top:1rem;" open>
+          <summary class="btn btn-secondary" style="cursor:pointer;">Term Fees (Class Fee + Additional Items)</summary>
+          <div style="margin-top:0.75rem;padding:0.75rem;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--glass-bg);">
+            <div class="form-row" style="flex-wrap:wrap;gap:0.75rem;">
+              <div class="form-group" style="flex:1;min-width:180px;">
+                <label>Class (Term) Fee - GHC</label>
+                <input type="number" id="admitClassFeeAmount" step="0.01" min="0" value="0" style="width:100%;" />
+                <small style="color:var(--text-muted);font-size:0.75rem;">Auto-filled from the fee structure. Change to override.</small>
+              </div>
+            </div>
+            <div id="admitAdditionalFees" style="margin-top:0.75rem;">
+              <p style="font-size:0.85rem;color:var(--text-muted);margin:0 0 0.5rem 0;">Loading admission items...</p>
+            </div>
+            <div class="form-row" style="justify-content:flex-end;margin-top:0.6rem;">
+              <div class="form-group">
+                <label>Total Term Fee</label>
+                <strong id="admitFeeTotal" style="font-size:1.15rem;color:var(--primary);">GHC 0.00</strong>
+              </div>
+            </div>
+          </div>
+        </details>
+
         <div class="form-group photo-upload-group">
           <label>Student Photo</label>
           <div class="photo-upload-wrapper">
@@ -2030,6 +2054,37 @@
           </ol>
           <p style="margin-top:0.5rem;"><strong>After re-running the schema:</strong> Simply log in as your school admin, go to Backup & Restore, select your backup file, and click "Confirm & Restore". Your data will be restored to the exact state when the backup was created.</p>
         </div>
+      </div>
+    </section>
+
+    <!-- ==================== ADMIN SETTINGS ==================== -->
+    <section id="page-admin-settings" class="page">
+      <h2>Settings</h2>
+      <p class="subtitle">Configure admission options, including additional fees shown on the Admit Student form.</p>
+
+      <div class="status-card" style="padding:1.5rem;margin-bottom:1rem;">
+        <h3 style="margin:0 0 0.5rem 0;font-size:1.1rem;">Admission Items (Additional Fees)</h3>
+        <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:1rem;">
+          Items added here appear on the <strong>Admit Student</strong> form with an amount input field.
+          On admission, the class (term) fee plus the entered item amounts are saved as the student's
+          term fee, and a <strong>Student Admission Form</strong> is auto-generated showing the full breakdown.
+        </p>
+        <div class="form-row">
+          <div class="form-group" style="flex:1;min-width:200px;"><label>Item Name *</label><input type="text" id="settingsItemName" placeholder="e.g. Development Levy, PTA Dues, Uniform" style="width:100%;" /></div>
+          <div class="form-group" style="flex:1;min-width:150px;"><label>Default Amount (GHC)</label><input type="number" id="settingsItemAmount" step="0.01" min="0" placeholder="0.00" style="width:100%;" /></div>
+          <div class="form-group"><label>&nbsp;</label><button type="button" class="btn btn-primary" id="settingsAddItemBtn">Add Item</button></div>
+        </div>
+        <div id="settingsMessage" class="message" style="display:none;margin-top:0.75rem;"></div>
+      </div>
+
+      <div class="table-wrapper">
+        <table class="app-table">
+          <thead><tr><th>Item Name</th><th>Default Amount (GHC)</th><th>Added On</th><th>Action</th></tr></thead>
+          <tbody id="settingsItemsBody">
+            <tr><td colspan="4" style="text-align:center;padding:2rem;color:var(--text-muted);">Loading admission items...</td></tr>
+          </tbody>
+        </table>
+        <p id="settingsEmptyHint" style="display:none;text-align:center;color:var(--text-muted);padding:1.5rem;">No admission items yet. Add one above — it will appear on the Admit Student form.</p>
       </div>
     </section>
 

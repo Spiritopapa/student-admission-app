@@ -4,6 +4,8 @@
 
 import { getEl, showMessage, clearMessage, setLoading, buildStudentName, formatDate, formatDateTime, statusBadge, portalBadge, uploadPhoto, previewFile, validateImageFile, logSubAdminActivity, getCurrentSchoolId, getCurrentSchoolInitials, parseCSVLine, openPrintWindow, getCurrentAcademicYear } from './utils.js';
 import { deleteCloudinaryFile, getCloudinaryPublicIdFromUrl } from './cloudinary.js';
+import { loadAdmissionItems } from './admin-settings.js';
+import { openAdmissionForm } from './admission-form.js';
 
 let supabaseClient = null;
 let allStudents = [];
@@ -389,6 +391,112 @@ async function replaceStudentPhotoFromFile(studentId, file) {
 }
 
 // ================================================================
+// Admit Form — Term Fees (class fee + additional admission items)
+// ================================================================
+
+/** Best-effort HTML escape for item names rendered into the admit form. */
+function escapeAdmitHtml(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+/**
+ * Refresh the live "Total Term Fee" shown on the admit form:
+ * class fee + every additional admission item amount.
+ */
+export function updateAdmitFeeTotal() {
+  const classFee = Number(getEl('admitClassFeeAmount')?.value || 0) || 0;
+  let total = classFee;
+  document.querySelectorAll('#admitAdditionalFees .admit-item-amount').forEach((input) => {
+    total += Number(input.value || 0) || 0;
+  });
+  const totalEl = getEl('admitFeeTotal');
+  if (totalEl) totalEl.textContent = `GHC ${total.toFixed(2)}`;
+}
+
+/**
+ * Load the class (term) fee and the additional admission items on the admit
+ * form. Populates the Class (Term) Fee amount (from the class_fees fee
+ * structure) and renders one amount input per admission item saved in
+ * Settings. Re-run whenever class or term changes.
+ */
+export async function loadAdmitFeeItems() {
+  const classFeeEl = getEl('admitClassFeeAmount');
+  const container = getEl('admitAdditionalFees');
+  const cls = getEl('admitClass')?.value || '';
+  const term = getEl('admitTerm')?.value || '';
+  const academicYear = getCurrentAcademicYear();
+
+  // 1. Auto-fill the class term fee from the fee structure (class+year+term)
+  let classFee = 0;
+  if (cls && term) {
+    try {
+      const { data: cf } = await supabaseClient.from('class_fees')
+        .select('fee_amount')
+        .eq('class_name', cls)
+        .eq('academic_year', academicYear)
+        .eq('term', term)
+        .maybeSingle();
+      if (cf) classFee = Number(cf.fee_amount) || 0;
+    } catch (err) {
+      console.warn('Failed to auto-fill class fee for admit form:', err.message);
+    }
+  }
+  if (classFeeEl) classFeeEl.value = classFee || 0;
+
+  // 2. Render the additional admission items with amount inputs
+  const items = await loadAdmissionItems();
+  if (container) {
+    if (!items || items.length === 0) {
+      container.innerHTML = '<p style="font-size:0.85rem;color:var(--text-muted);margin:0 0 0.5rem 0;">No additional admission items configured. Add some in <strong>Settings</strong> &#8594; <strong>Admission Items</strong>.</p>';
+    } else {
+      container.innerHTML =
+        '<p style="font-size:0.85rem;color:var(--text-muted);margin:0 0 0.6rem 0;">Enter the amount charged to this student for each additional item. Defaults come from Settings.</p>' +
+        items.map((it) => `
+          <div class="form-row" style="flex-wrap:wrap;gap:0.75rem;margin-bottom:0.4rem;">
+            <div class="form-group" style="flex:1;min-width:200px;">
+              <label>${escapeAdmitHtml(it.name)}</label>
+              <input type="number" class="admit-item-amount" data-item-name="${escapeAdmitHtml(it.name)}" step="0.01" min="0" value="${Number(it.amount) || 0}" style="width:100%;" />
+            </div>
+          </div>`).join('');
+    }
+  }
+
+  updateAdmitFeeTotal();
+}
+
+/**
+ * Resolve the school display name & logo for generated documents.
+ * Mirrors getSchoolPrintInfo() in admin-fees.js.
+ */
+async function getSchoolPrintInfo(schoolId) {
+  let schoolName = 'My School';
+  let schoolLogoUrl = '';
+  if (schoolId) {
+    try {
+      const { data: schoolSettings } = await supabaseClient.from('school_settings')
+        .select('school_name, logo_url')
+        .eq('school_id', schoolId)
+        .maybeSingle();
+      if (schoolSettings?.school_name) {
+        schoolName = schoolSettings.school_name;
+        schoolLogoUrl = schoolSettings.logo_url || '';
+      } else {
+        const { data: school } = await supabaseClient.from('schools').select('name, logo_url').eq('id', schoolId).single();
+        if (school) {
+          schoolName = school.name || 'My School';
+          schoolLogoUrl = school.logo_url || '';
+        }
+      }
+    } catch (e) { /* keep defaults */ }
+  }
+  return { schoolName, schoolLogoUrl };
+}
+
+// ================================================================
 // Admit New Student
 // ================================================================
 
@@ -410,6 +518,20 @@ export function setupAdmitForm() {
     getEl('admitPhotoPlaceholder').style.display = 'block';
     getEl('admitClearPhoto').style.display = 'none';
   });
+
+  // --- Term fees: class fee + additional admission items ---
+  // Reload the class fee and admission items when class or term changes.
+  getEl('admitClass')?.addEventListener('change', loadAdmitFeeItems);
+  getEl('admitTerm')?.addEventListener('change', loadAdmitFeeItems);
+  // Recompute the live total whenever a fee amount changes.
+  getEl('admitClassFeeAmount')?.addEventListener('input', updateAdmitFeeTotal);
+  getEl('admitAdditionalFees')?.addEventListener('input', (ev) => {
+    if (ev.target && ev.target.classList && ev.target.classList.contains('admit-item-amount')) {
+      updateAdmitFeeTotal();
+    }
+  });
+  // Initial render of the fee section (safe no-op when signed out).
+  loadAdmitFeeItems();
 
   getEl('admitForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -477,8 +599,28 @@ export function setupAdmitForm() {
         .maybeSingle();
       
       const feeYear = classFee?.academic_year || academicYear;
-      const totalAmount = classFee?.fee_amount || 0;
-      
+      // Class (term) fee: use the amount entered on the admit form (auto-filled
+      // from the fee structure), falling back to the stored fee structure record.
+      const classFeeAmount = Number(getEl('admitClassFeeAmount')?.value || 0) || Number(classFee?.fee_amount) || 0;
+
+      // Additional admission items (from Settings) entered on the admit form.
+      const breakdownItems = [];
+      let totalAmount = classFeeAmount;
+      document.querySelectorAll('#admitAdditionalFees .admit-item-amount').forEach((input) => {
+        const amt = Number(input.value || 0) || 0;
+        if (amt > 0) {
+          breakdownItems.push({ name: input.getAttribute('data-item-name') || 'Additional Fee', amount: amt });
+        }
+        totalAmount += amt;
+      });
+      const feeBreakdown = {
+        class_fee: classFeeAmount,
+        items: breakdownItems,
+        academic_year: feeYear,
+        term: currentTerm,
+        generated_at: new Date().toISOString(),
+      };
+
       await supabaseClient.from('fees').upsert([{
         student_id: studentId,
         academic_year: feeYear,
@@ -489,14 +631,44 @@ export function setupAdmitForm() {
         payment_status: totalAmount > 0 ? 'unpaid' : 'paid',
         last_payment_date: null,
         school_id: schoolId,
+        fee_breakdown: feeBreakdown,
       }], { onConflict: 'student_id,academic_year,term' });
 
       showMessage('admitMessage', `Student admitted! <strong>ID: ${studentId}</strong>`, 'success');
       logSubAdminActivity(`Admitted student "${buildStudentName(getEl('admitFirstName').value.trim(), getEl('admitMiddleName').value.trim(), getEl('admitLastName').value.trim())}"`, 'student', `${studentId}`);
+
+      // Auto-generate the modern standalone HTML Student Admission Form
+      // containing all student information, term fees and additional items.
+      try {
+        const { data: admittedStudent } = await supabaseClient.from('applications')
+          .select('*')
+          .eq('student_id', studentId)
+          .maybeSingle();
+        if (admittedStudent) {
+          const { schoolName, schoolLogoUrl } = await getSchoolPrintInfo(schoolId);
+          const studentName = buildStudentName(admittedStudent.first_name, admittedStudent.middle_name, admittedStudent.last_name);
+          openAdmissionForm({
+            studentId,
+            student: admittedStudent,
+            schoolName,
+            schoolLogoUrl,
+            academicYear: feeYear,
+            term: currentTerm,
+            classFee: classFeeAmount,
+            items: breakdownItems,
+            totalAmount,
+          }, `Admission Form - ${studentName}`);
+        }
+      } catch (genErr) {
+        console.warn('Failed to auto-generate admission form:', genErr.message);
+      }
+
       getEl('admitForm').reset();
       getEl('admitPhotoPreviewImg').style.display = 'none';
       getEl('admitPhotoPlaceholder').style.display = 'block';
       getEl('admitClearPhoto').style.display = 'none';
+      // Re-populate the class term fee + admission item defaults for the next admission.
+      await loadAdmitFeeItems();
       await loadAllStudents();
     } catch (err) {
       showMessage('admitMessage', err.message, 'error');

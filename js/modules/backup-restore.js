@@ -57,6 +57,7 @@ const BACKUP_TABLES = [
   { name: 'announcements', label: 'Announcements', schoolScoped: true },
   { name: 'fee_categories', label: 'Fee Categories', schoolScoped: true },
   { name: 'class_fees', label: 'Class Fees', schoolScoped: true },
+  { name: 'admission_items', label: 'Admission Items', schoolScoped: true },
   
   // Level 4: Entities that reference applications/teachers
   { name: 'parent_links', label: 'Parent Links', schoolScoped: true },

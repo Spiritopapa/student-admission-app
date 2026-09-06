@@ -432,6 +432,16 @@
 --          js/modules/super-admin.js (dashboard review page).
 \i 060-school-applications.sql
 
+-- Step 54: Admission Items (Additional Fees) & Admin Settings Module
+-- Creates: admission_items table (per-school additional fee items with a
+--          default amount), adds fees.fee_breakdown JSONB snapshot so each
+--          admitted student keeps an itemized term-fee breakdown, and
+--          registers the 'settings' module for lock/unlock control.
+-- Used by: js/modules/admin-settings.js (Settings module), the Admit Student
+--          form in js/modules/admin-students.js, and the auto-generated
+--          student admission form (openPrintWindow).
+\i 061-admission-settings.sql
+
 -- ============================================================
 --  SCHEMA DEPLOYMENT COMPLETE
 -- ============================================================
