@@ -11,7 +11,7 @@
  * - Module lock filtering (hides sections for locked modules)
  */
 
-import { getEl, buildStudentName, formatDate, formatDateTime, statusBadge, getCurrentSchoolId, showMessage, clearMessage, setLoading, openPhotoLightbox } from './utils.js';
+import { getEl, buildStudentName, formatDate, formatDateTime, statusBadge, getCurrentSchoolId, showMessage, clearMessage, setLoading, openPhotoLightbox, getLastLogoutTime } from './utils.js';
 import { buildFeeClassChartHtml, animateFeeClassChart } from './fee-class-chart.js';
 import { svgIcon } from './icons.js';
 
@@ -28,6 +28,7 @@ let lockedModules = new Set();
 let trialStatus = { isTrial: false, endsAt: null }; // Trial version countdown state
 let _trialTimerId = null;
 let lastSignInAt = null; // Last successful sign-in timestamp (from Supabase Auth)
+let lastLogoutAt = null; // Last logout timestamp (persisted in localStorage)
 
 // ================================================================
 // Realtime subscription references (for cleanup)
@@ -63,6 +64,7 @@ export async function loadAdminDashboardHome() {
       fetchTrialStatus(),
       applyAdminAvatar(),
       applyLastSignIn(),
+      applyLastLogout(),
     ]);
     renderDashboard();
     renderTrialBanner();
@@ -121,6 +123,26 @@ async function applyLastSignIn() {
 /** Renders the last sign-in date & time, falling back to an em dash. */
 function formatLastSignIn() {
   return lastSignInAt ? formatDateTime(lastSignInAt) : '—';
+}
+
+/**
+ * Loads the persisted "last logout" timestamp for the current user so the
+ * dashboard can show when the previous session ended. Written by auth.js
+ * handleLogout() via utils.js saveLastLogoutTime().
+ */
+async function applyLastLogout() {
+  try {
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    lastLogoutAt = user?.id ? getLastLogoutTime(user.id) : null;
+  } catch (err) {
+    console.warn('Failed to load last logout:', err.message);
+    lastLogoutAt = null;
+  }
+}
+
+/** Renders the last logout date & time, falling back to an em dash. */
+function formatLastLogout() {
+  return lastLogoutAt ? formatDateTime(lastLogoutAt) : '—';
 }
 
 /**
@@ -854,6 +876,7 @@ function renderDashboard() {
         </div>
         <span id="dashLastUpdated" class="dash-last-updated">Last updated: —</span>
         <span id="dashLastSignIn" class="dash-last-updated">Last sign in: ${formatLastSignIn()}</span>
+        <span id="dashLastLogout" class="dash-last-updated">Last log out: ${formatLastLogout()}</span>
       </div>
       <div class="dash-realtime-header-right">
         <button type="button" class="btn btn-sm btn-secondary" id="dashRefreshBtn" title="Refresh now">

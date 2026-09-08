@@ -7,7 +7,7 @@
  *   sub_admin → students, teachers, accountants, parents (each registers with their ID)
  */
 
-import { getEl, showMessage, clearMessage, getRoleDisplay, clearSchoolIdCache, logStaffActivity, uploadPhoto, framedPhotoPreview } from './utils.js';
+import { getEl, showMessage, clearMessage, getRoleDisplay, clearSchoolIdCache, logStaffActivity, uploadPhoto, framedPhotoPreview, saveLastLogoutTime } from './utils.js';
 
 // ================================================================
 // State
@@ -1294,6 +1294,13 @@ export async function handleLogout() {
   // list can never appear in the next signed-in school's dashboard/students module.
   if (typeof window.resetAdminStudentsCache === 'function') window.resetAdminStudentsCache();
   clearInactivityTimer();
+  // Persist the logout timestamp BEFORE sign-out so the session is still valid
+  // for reading the user id. Supabase has no native last-logout field, so this
+  // is stored per-user in localStorage (see utils.js saveLastLogoutTime).
+  try {
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    if (user?.id) saveLastLogoutTime(user.id);
+  } catch (e) { console.warn('Could not record logout time:', e.message); }
   // Log the logout BEFORE sign-out so the current session can still be audited.
   try { await logStaffActivity('Logged out'); } catch (e) { console.warn('logout audit log failed:', e.message); }
   await supabaseClient.auth.signOut();

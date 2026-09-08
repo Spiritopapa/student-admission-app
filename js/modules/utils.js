@@ -162,6 +162,44 @@ export async function getCurrentSchoolInitials() {
 }
 
 // ================================================================
+// Last Logout Tracker (localStorage, keyed per auth user)
+// ================================================================
+
+const LAST_LOGOUT_KEY_PREFIX = '_lastLogoutAt_';
+
+/**
+ * Persist the current time as the given user's last logout.
+ *
+ * Supabase Auth tracks `last_sign_in_at` natively but offers no logout
+ * timestamp, so we keep it in localStorage keyed by the auth user id —
+ * this never leaks timestamps between accounts sharing a browser/device.
+ *
+ * @param {string} userId - The auth user id that just logged out.
+ */
+export function saveLastLogoutTime(userId) {
+  if (!userId) return;
+  try {
+    localStorage.setItem(LAST_LOGOUT_KEY_PREFIX + userId, new Date().toISOString());
+  } catch (err) {
+    console.warn('Failed to save last logout time:', err.message);
+  }
+}
+
+/**
+ * Read the last logout timestamp (ISO 8601 string) for a user, or null.
+ * @param {string} userId - The auth user id to look up.
+ */
+export function getLastLogoutTime(userId) {
+  if (!userId) return null;
+  try {
+    return localStorage.getItem(LAST_LOGOUT_KEY_PREFIX + userId) || null;
+  } catch (err) {
+    console.warn('Failed to read last logout time:', err.message);
+    return null;
+  }
+}
+
+// ================================================================
 // Sub Admin Activity Logger
 // ================================================================
 
