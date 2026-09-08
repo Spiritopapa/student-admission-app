@@ -7,6 +7,14 @@
     "dev": "npx serve .",
     "start": "npx serve ."
   },
-  "keywords": ["admission", "supabase", "student", "portal"],
-  "license": "MIT"
+  "keywords": [
+    "admission",
+    "supabase",
+    "student",
+    "portal"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.116.0"
+  }
 }
