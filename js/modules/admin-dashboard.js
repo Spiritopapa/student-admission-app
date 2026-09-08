@@ -27,6 +27,7 @@ let activityLog = [];
 let lockedModules = new Set();
 let trialStatus = { isTrial: false, endsAt: null }; // Trial version countdown state
 let _trialTimerId = null;
+let lastSignInAt = null; // Last successful sign-in timestamp (from Supabase Auth)
 
 // ================================================================
 // Realtime subscription references (for cleanup)
@@ -61,6 +62,7 @@ export async function loadAdminDashboardHome() {
       fetchSchoolName(),
       fetchTrialStatus(),
       applyAdminAvatar(),
+      applyLastSignIn(),
     ]);
     renderDashboard();
     renderTrialBanner();
@@ -97,6 +99,28 @@ async function applyAdminAvatar() {
   } catch (err) {
     console.warn('Could not load administrator picture for avatar:', err.message);
   }
+}
+
+/**
+ * Loads the Supabase Auth "last sign in" timestamp for the current user.
+ *
+ * Supabase updates `last_sign_in_at` on the auth user automatically on every
+ * successful password / OTP sign-in, so no extra DB writes are needed — we
+ * just read the value back and keep it in module state for the header.
+ */
+async function applyLastSignIn() {
+  try {
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    lastSignInAt = user?.last_sign_in_at || null;
+  } catch (err) {
+    console.warn('Failed to load last sign-in:', err.message);
+    lastSignInAt = null;
+  }
+}
+
+/** Renders the last sign-in date & time, falling back to an em dash. */
+function formatLastSignIn() {
+  return lastSignInAt ? formatDateTime(lastSignInAt) : '—';
 }
 
 /**
@@ -829,6 +853,7 @@ function renderDashboard() {
           <span id="dashConnectionStatus" class="dash-connection-badge status-live">● Live</span>
         </div>
         <span id="dashLastUpdated" class="dash-last-updated">Last updated: —</span>
+        <span id="dashLastSignIn" class="dash-last-updated">Last sign in: ${formatLastSignIn()}</span>
       </div>
       <div class="dash-realtime-header-right">
         <button type="button" class="btn btn-sm btn-secondary" id="dashRefreshBtn" title="Refresh now">
