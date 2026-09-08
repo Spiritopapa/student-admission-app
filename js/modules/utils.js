@@ -200,6 +200,53 @@ export function getLastLogoutTime(userId) {
 }
 
 // ================================================================
+// Last Sign-In Tracker (localStorage, keyed per auth user)
+// ================================================================
+
+const LAST_SIGN_IN_KEY_PREFIX = '_lastSignInAt_';
+const LAST_SIGN_IN_DISPLAY_PREFIX = '_lastSignInDisplay_';
+
+/**
+ * Record a fresh sign-in for the user and rotate the stored timestamps so the
+ * admin dashboard can show the PREVIOUS sign-in.
+ *
+ * localStorage keeps two per-user values:
+ *   "_lastSignInAt_<uid>"      → the most recent sign-in (replaced each login)
+ *   "_lastSignInDisplay_<uid>" → the sign-in BEFORE the current one, i.e. what
+ *                                 the dashboard displays as "Last sign in"
+ *                                 (it must NOT be the current session's time).
+ *
+ * @param {string} userId - The auth user id that just signed in.
+ */
+export function recordSignIn(userId) {
+  if (!userId) return;
+  try {
+    const lastKey = LAST_SIGN_IN_KEY_PREFIX + userId;
+    const displayKey = LAST_SIGN_IN_DISPLAY_PREFIX + userId;
+    // The previous session's sign-in time becomes the "last sign in" to show.
+    localStorage.setItem(displayKey, localStorage.getItem(lastKey) || '');
+    // The current sign-in becomes the "most recent" for the next rotation.
+    localStorage.setItem(lastKey, new Date().toISOString());
+  } catch (err) {
+    console.warn('Failed to record last sign-in time:', err.message);
+  }
+}
+
+/**
+ * Read the PREVIOUS sign-in timestamp (what the dashboard displays), or null.
+ * @param {string} userId - The auth user id to look up.
+ */
+export function getLastSignInTime(userId) {
+  if (!userId) return null;
+  try {
+    return localStorage.getItem(LAST_SIGN_IN_DISPLAY_PREFIX + userId) || null;
+  } catch (err) {
+    console.warn('Failed to read last sign-in time:', err.message);
+    return null;
+  }
+}
+
+// ================================================================
 // Sub Admin Activity Logger
 // ================================================================
 

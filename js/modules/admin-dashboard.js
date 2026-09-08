@@ -11,7 +11,7 @@
  * - Module lock filtering (hides sections for locked modules)
  */
 
-import { getEl, buildStudentName, formatDate, formatDateTime, statusBadge, getCurrentSchoolId, showMessage, clearMessage, setLoading, openPhotoLightbox, getLastLogoutTime } from './utils.js';
+import { getEl, buildStudentName, formatDate, formatDateTime, statusBadge, getCurrentSchoolId, showMessage, clearMessage, setLoading, openPhotoLightbox, getLastSignInTime, getLastLogoutTime } from './utils.js';
 import { buildFeeClassChartHtml, animateFeeClassChart } from './fee-class-chart.js';
 import { svgIcon } from './icons.js';
 
@@ -27,7 +27,7 @@ let activityLog = [];
 let lockedModules = new Set();
 let trialStatus = { isTrial: false, endsAt: null }; // Trial version countdown state
 let _trialTimerId = null;
-let lastSignInAt = null; // Last successful sign-in timestamp (from Supabase Auth)
+let lastSignInAt = null; // PREVIOUS sign-in timestamp to display (rotated at each login, via localStorage)
 let lastLogoutAt = null; // Last logout timestamp (persisted in localStorage)
 
 // ================================================================
@@ -104,16 +104,17 @@ async function applyAdminAvatar() {
 }
 
 /**
- * Loads the Supabase Auth "last sign in" timestamp for the current user.
+ * Loads the PREVIOUS sign-in timestamp for the current user.
  *
- * Supabase updates `last_sign_in_at` on the auth user automatically on every
- * successful password / OTP sign-in, so no extra DB writes are needed — we
- * just read the value back and keep it in module state for the header.
+ * Supabase's built-in `last_sign_in_at` always reflects the CURRENT session's
+ * sign-in time, so instead we track the rotation ourselves at login time
+ * (see utils.js recordSignIn): every successful sign-in stores the prior
+ * session's timestamp for display, then records the new one for next time.
  */
 async function applyLastSignIn() {
   try {
     const { data: { user } } = await supabaseClient.auth.getUser();
-    lastSignInAt = user?.last_sign_in_at || null;
+    lastSignInAt = user?.id ? getLastSignInTime(user.id) : null;
   } catch (err) {
     console.warn('Failed to load last sign-in:', err.message);
     lastSignInAt = null;

@@ -7,7 +7,7 @@
  *   sub_admin → students, teachers, accountants, parents (each registers with their ID)
  */
 
-import { getEl, showMessage, clearMessage, getRoleDisplay, clearSchoolIdCache, logStaffActivity, uploadPhoto, framedPhotoPreview, saveLastLogoutTime } from './utils.js';
+import { getEl, showMessage, clearMessage, getRoleDisplay, clearSchoolIdCache, logStaffActivity, uploadPhoto, framedPhotoPreview, saveLastLogoutTime, recordSignIn } from './utils.js';
 
 // ================================================================
 // State
@@ -1186,6 +1186,10 @@ export function setupLoginForm(loadDashboardCallbacks) {
       if (role === 'teacher' || role === 'accountant') {
         try { await logStaffActivity('Logged in', { role }); } catch (e) { console.warn('login audit log failed:', e.message); }
       }
+
+      // Rotate the stored sign-in timestamps so the admin dashboard shows the
+      // PREVIOUS sign-in, not this current one (see utils.js recordSignIn).
+      try { recordSignIn(data.user.id); } catch (e) { console.warn('Could not record sign-in time:', e.message); }
 
       updateUIForAuth(data.user, profile);
       form.reset();
