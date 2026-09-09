@@ -23,7 +23,7 @@ const ICON_IDS = [
   'list-checks', 'smartphone', 'check-circle', 'alert', 'plus', 'edit',
   'x', 'menu', 'home', 'trophy', 'mail', 'phone', 'share', 'save', 'sun',
   'star', 'lightbulb', 'camera', 'flag', 'heart', 'help', 'briefcase',
-  'sparkles',
+  'bus', 'map-pin', 'sparkles',
 ];
 
 /** Returns the <svg><use/></svg> markup for a named sprite icon. */
@@ -48,6 +48,7 @@ const NAV_ICONS = {
   assessments: 'clipboard-check',
   grading: 'chart',
   fees: 'coins',
+  transport: 'bus',
   'income-expenses': 'trending-up',
   'sms-monitoring': 'message-square',
   backup: 'archive',
@@ -133,6 +134,8 @@ const SPRITE_CHUNK_2 = ''
   + '<symbol id="i-heart" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></symbol>'
   + '<symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></symbol>'
   + '<symbol id="i-briefcase" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></symbol>'
+  + '<symbol id="i-bus" viewBox="0 0 24 24"><rect x="6" y="5" width="12" height="14" rx="2"/><path d="M4 6a1 1 0 0 0 3 14h9a1 1 0 0 0 3 4H3a1 1 0 0 0-3 4v-4"/><path d="M6.5 11.7a5.22 5.22 0 0 0 8.3 1.5"/></symbol>'
+  + '<symbol id="i-map-pin" viewBox="0 0 24 24"><path d="M14 20a2 2 0 0 0 1-1 1 1 1-1 1 1-.5-1h17"/><circle cx="7" cy="3" r="4"/></symbol>'
   + '<symbol id="i-sparkles" viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/></symbol>'
   + '</svg>';
 

@@ -449,6 +449,25 @@
 -- and js/modules/forgot-password.js shows a popup telling the user
 -- to contact the developer for a password reset.
 \i 062-reset-otp-monthly-limit.sql
+
+-- Step 56: Student Transport System Module
+-- Creates: transport_routes (bus destinations with their own fee),
+--          transport_enrollments (selected students who ride the bus),
+--          transport_fee_payments (daily transport fee collection),
+--          and registers the 'transport' module for lock/unlock control.
+-- Used by: js/modules/admin-transport.js (admin dashboard — daily
+--          collection sheet grouped by destination, route & fee CRUD,
+--          student enrollment, payments history & reports).
+\i 063-student-transport.sql
+
+-- Step 57: Transport Fees Collector Staff Flag
+-- Adds teachers.is_transport_collector so the admin can flag selected
+-- staff as responsible for transport fee collection when generating
+-- their staff ID. Flagged staff get the Transport module (manage mode)
+-- on their dashboard; the accountant gets view + print.
+-- Used by: js/modules/transport-shared.js, js/modules/admin-teachers.js,
+--          index.html (staff forms), teacher-dashboard.js / accountant-dashboard.js.
+\i 064-transport-staff-collector.sql
 -- ============================================================
 --  SCHEMA DEPLOYMENT COMPLETE
 -- ============================================================

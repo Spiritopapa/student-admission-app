@@ -153,6 +153,48 @@ const TABLE_ACTIONS = {
       refresh: 'refreshSmsMonitor',
     },
   ],
+  transport_routes: [
+    {
+      pages: ['page-admin-transport'],
+      refresh: 'loadTransportPage',
+    },
+    {
+      pages: ['page-teacher-dashboard'],
+      refresh: 'refreshTeacherTransport',
+    },
+    {
+      pages: ['page-accountant-dashboard'],
+      refresh: 'refreshAccountantTransport',
+    },
+  ],
+  transport_enrollments: [
+    {
+      pages: ['page-admin-transport'],
+      refresh: 'loadTransportPage',
+    },
+    {
+      pages: ['page-teacher-dashboard'],
+      refresh: 'refreshTeacherTransport',
+    },
+    {
+      pages: ['page-accountant-dashboard'],
+      refresh: 'refreshAccountantTransport',
+    },
+  ],
+  transport_fee_payments: [
+    {
+      pages: ['page-admin-transport'],
+      refresh: 'loadTransportPage',
+    },
+    {
+      pages: ['page-teacher-dashboard'],
+      refresh: 'refreshTeacherTransport',
+    },
+    {
+      pages: ['page-accountant-dashboard'],
+      refresh: 'refreshAccountantTransport',
+    },
+  ],
 };
 
 // ================================================================
@@ -471,6 +513,37 @@ window.loadAttendancePage = async function () {
   if (attendancePage && attendancePage.classList.contains('active-page')) {
     const { loadAttendancePage } = await import('./admin-attendance.js');
     await loadAttendancePage();
+  }
+};
+
+// Transport page load function (exported from admin-transport.js, not on window)
+window.loadTransportPage = async function () {
+  const transportPage = document.getElementById('page-admin-transport');
+  if (transportPage && transportPage.classList.contains('active-page')) {
+    const { loadTransportPage } = await import('./admin-transport.js');
+    await loadTransportPage();
+  }
+};
+
+// Transport workspace refresh for a flagged staff collector (teacher dashboard)
+window.refreshTeacherTransport = async function () {
+  const dashboard = document.getElementById('page-teacher-dashboard');
+  if (!dashboard || !dashboard.classList.contains('active-page')) return;
+  const sub = document.getElementById('teacherPage-transport');
+  if (sub && sub.classList.contains('active-subpage')) {
+    const { refreshTransportWorkspace } = await import('./transport-shared.js');
+    await refreshTransportWorkspace();
+  }
+};
+
+// Transport workspace refresh for the accountant (view & print)
+window.refreshAccountantTransport = async function () {
+  const dashboard = document.getElementById('page-accountant-dashboard');
+  if (!dashboard || !dashboard.classList.contains('active-page')) return;
+  const sub = document.getElementById('accountantPage-transport');
+  if (sub && sub.style.display !== 'none') {
+    const { refreshTransportWorkspace } = await import('./transport-shared.js');
+    await refreshTransportWorkspace();
   }
 };
 

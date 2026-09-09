@@ -36,6 +36,7 @@ export function setupTeacherDashboard() {
         attendance: 'Attendance Management',
         exams: 'Exams & Scores',
         assessments: 'Assessments',
+        transport: 'Transport',
         profile: 'My Profile'
       };
       const titleEl = getEl('teacherDashTitle');
@@ -46,6 +47,7 @@ export function setupTeacherDashboard() {
         case 'attendance': loadTeacherAttendancePage(); break;
         case 'exams': loadTeacherExamsPage(); break;
         case 'assessments': loadTeacherAssessmentsPage(); break;
+        case 'transport': loadTeacherTransportPage(); break;
       }
     });
   });
@@ -188,6 +190,24 @@ async function getTeacherClasses(userId) {
   }
 }
 
+/**
+ * Transport Fee Collection workspace (manage mode).
+ * Only rendered when the admin has flagged this staff member as a
+ * Transport Fees Collector (is_transport_collector = true).
+ */
+async function loadTeacherTransportPage() {
+  const container = document.getElementById('teacherTransportContainer');
+  if (!container) return;
+  try {
+    const { loadTransportWorkspace } = await import('./transport-shared.js');
+    await loadTransportWorkspace('teacherTransportContainer', 'manage');
+  } catch (err) {
+    console.error('[Teacher] transport page error:', err.message);
+    const safeMsg = String(err.message || 'Unknown error').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    container.innerHTML = `<div class="tr-empty-state">Failed to load the Transport workspace. ${safeMsg}</div>`;
+  }
+}
+
 export async function loadTeacherDashboard(user) {
   const welcomeEl = getEl('teacherWelcome');
   const sidebarName = getEl('teacherSidebarName');
@@ -200,6 +220,14 @@ export async function loadTeacherDashboard(user) {
 
   // Get teacher's assigned classes and subjects
   const { classes, subjects, teacher } = await getTeacherClasses(user.id);
+
+  // Transport module access: only staff flagged as Transport Fees
+  // Collectors see the Transport nav link on their dashboard.
+  const transportNavBtn = document.querySelector('#teacherSidebar .dash-nav-link[data-teacher-page="transport"]');
+  if (transportNavBtn) {
+    const isCollector = teacher && teacher.is_transport_collector === true;
+    transportNavBtn.style.display = isCollector ? '' : 'none';
+  }
 
   if (teacher) {
     const classInfo = getEl('teacherClassInfo');

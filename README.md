@@ -231,6 +231,38 @@ On the **sign-in page** there is a "Forgot password?" link that lets any user re
 
 ---
 
+## Student Transport System (Admin)
+
+The **Transport** module on the Admin Dashboard tracks the **daily transport collection fees** of the students who come to school with the school bus, grouped **by bus destination** — and **every destination has its own fee payment**.
+
+### Key features
+- **Today's Collection sheet** — pick a date (defaults to today), see every enrolled bus student grouped per destination, and tap **Pay · GHC xx** to mark a student paid (their destination's fee is auto-applied) or **✕** to undo. A "Mark all paid" / "Reset all" action handles whole destinations. Live summary cards show Expected / Collected / Outstanding / Bus Students with a per-route progress bar.
+- **Routes & Fees** — create, edit, activate/deactivate and delete bus destinations. Each destination (e.g. *Madina*, *East Legon*) carries its **own daily fee (GHC)** which is snapshotted into every collection, so history stays accurate even if the fee changes later.
+- **Enroll Students** — choose which admitted students ride the school bus and on which destination (route). Only enrolled students appear on the daily collection sheet.
+- **Payments History** — searchable, date-range ledger across all destinations with totals, per-entry removal and a printable daily sheet + ledger.
+- **Parent SMS** — when a transport fee is collected the parent/guardian is notified by SMS through the same Nalo gateway as school fee receipts (respects the per-school SMS on/off switch). Fire-and-forget, never blocks the collection flow.
+- **Mobile friendly** — route cards replace wide tables on phones, big tap targets, and the standard stacked-card table layout is used for the ledger.
+
+### Database (`sql/063-student-transport.sql`)
+- `transport_routes` — bus destinations with their own daily `fee` (school-scoped).
+- `transport_enrollments` — which student rides which route (`is_active`).
+- `transport_fee_payments` — one row per student per destination per day (fee amount, method, reference, collected_by), unique per `(student_id, collection_date, route_id)`.
+- Registers the `transport` module so the Super Admin can lock/unlock it per school like every other module.
+
+The migration is already included in `sql/000-run-all.sql` (Step 56). Backup & Restore, real-time refresh and the search cache all include the transport tables.
+
+### Roles & access
+| Role | Access to the Transport module |
+|------|-------------------------------|
+| **Admin** | **Full access** — all four tabs: Today's Collection, Routes & Fees, Enroll Students, Payments History. |
+| **Transport Fees Collector** (selected staff) | **Manage collections** — when the admin generates a staff ID (Staff → *Create Staff with Registration ID*) they can tick **"Transport Fees Collector"**. Flagged staff see a **Transport** tab on their own dashboard, where they can mark daily bus fees **PAID / UNPAID** per student, mark a whole destination paid / reset it, view the collection history (with remove), and print the daily sheet + ledger. Parents still receive the SMS notification on collection. |
+| **Accountant** | **View & print** — a read-only **Transport** tab shows the daily collection sheet and payments history with the full print options; no edit buttons are shown. |
+
+- The collector flag is stored in `teachers.is_transport_collector` (`sql/064-transport-staff-collector.sql`, Step 57) and can be toggled anytime from Staff → *Add / Edit Staff*. It also shows a **Transport Collector** badge in the staff table and is exported/imported in the staff CSV.
+- The shared workspace lives in `js/modules/transport-shared.js` (`loadTransportWorkspace(containerId, mode)`, mode `'manage'` / `'view'`) and is embedded in the Teacher and Accountant dashboards.
+
+---
+
 ## Tech Stack
 
 | Layer       | Technology        |

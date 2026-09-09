@@ -58,6 +58,7 @@ const BACKUP_TABLES = [
   { name: 'fee_categories', label: 'Fee Categories', schoolScoped: true },
   { name: 'class_fees', label: 'Class Fees', schoolScoped: true },
   { name: 'admission_items', label: 'Admission Items', schoolScoped: true },
+  { name: 'transport_routes', label: 'Transport Destinations', schoolScoped: true },
   
   // Level 4: Entities that reference applications/teachers
   { name: 'parent_links', label: 'Parent Links', schoolScoped: true },
@@ -65,6 +66,7 @@ const BACKUP_TABLES = [
   { name: 'teacher_documents', label: 'Teacher Documents', schoolScoped: true },
   { name: 'sub_admin_modules', label: 'Sub Admin Modules', schoolScoped: true },
   { name: 'school_modules', label: 'School Module Locks', schoolScoped: true },
+  { name: 'transport_enrollments', label: 'Transport Enrollments', schoolScoped: true },
   
   // Level 5: Exam entities (reference applications)
   { name: 'exams', label: 'Exams', schoolScoped: true },
@@ -79,6 +81,9 @@ const BACKUP_TABLES = [
   { name: 'fees', label: 'Student Fees', schoolScoped: true },
   { name: 'payment_transactions', label: 'Payment Transactions', schoolScoped: true },
   { name: 'receipts', label: 'Receipts', schoolScoped: true },
+
+  // Level 7b: Transport payments (reference applications + destinations)
+  { name: 'transport_fee_payments', label: 'Transport Fee Payments', schoolScoped: true },
   
   // Level 8: Activity logs (reference sub_admins)
   { name: 'sub_admin_activities', label: 'Sub Admin Activities', schoolScoped: true },

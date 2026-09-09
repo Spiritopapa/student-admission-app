@@ -563,7 +563,7 @@ async function changeAccountantPassword(e) {
 // ================================================================
 
 async function loadAccountantSubPage(page) {
-  const titles = { dashboard: 'Dashboard', profile: 'Profile', fees: 'Fees Management', receipts: 'Receipts', debtors: 'Debtors', 'income-expenses': 'Income & Expenses' };
+  const titles = { dashboard: 'Dashboard', profile: 'Profile', fees: 'Fees Management', receipts: 'Receipts', debtors: 'Debtors', transport: 'Transport', 'income-expenses': 'Income & Expenses' };
   document.querySelectorAll('.accountant-subpage').forEach(p => p.style.display = 'none');
   const target = getEl(`accountantPage-${page}`);
   if (target) target.style.display = 'block';
@@ -576,11 +576,30 @@ async function loadAccountantSubPage(page) {
     case 'fees': await loadAccountantFeesPage(); break;
     case 'receipts': await loadAccountantReceiptsPage(); break;
     case 'debtors': await loadAccountantDebtorsPage(); break;
+    case 'transport': await loadAccountantTransportPage(); break;
     case 'income-expenses': {
       const { loadIncomeExpensesPage } = await import('./income-expenses.js');
       await loadIncomeExpensesPage('accIeContainer');
       break;
     }
+  }
+}
+
+/**
+ * Transport workspace (VIEW + PRINT mode) for the accountant.
+ * Read-only daily sheet + payments history with printing. Collection
+ * management stays with the admin and flagged Transport Fees Collectors.
+ */
+async function loadAccountantTransportPage() {
+  const container = document.getElementById('accountantTransportContainer');
+  if (!container) return;
+  try {
+    const { loadTransportWorkspace } = await import('./transport-shared.js');
+    await loadTransportWorkspace('accountantTransportContainer', 'view');
+  } catch (err) {
+    console.error('[Accountant] transport page error:', err.message);
+    const safeMsg = String(err.message || 'Unknown error').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    container.innerHTML = `<div class="tr-empty-state">Failed to load the Transport workspace. ${safeMsg}</div>`;
   }
 }
 

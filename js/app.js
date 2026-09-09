@@ -21,6 +21,8 @@ import { initAdminAttendance, setupAttendanceListeners, loadAttendancePage } fro
 import { initAdminExams, setupExamListeners } from './modules/admin-exams.js';
 import { initAdminGrading, setupGradingListeners, loadGradingPage } from './modules/admin-grading.js';
 import { initAdminFees, setupFeesListeners, loadFeesPage } from './modules/admin-fees.js';
+import { initAdminTransport, setupTransportListeners, loadTransportPage } from './modules/admin-transport.js';
+import { initTransportWorkspace } from './modules/transport-shared.js';
 import { initAdminSettings, setupSettingsListeners, loadSettingsPage } from './modules/admin-settings.js';
 import { initStudentDashboard, setupStudentDashboard, loadStudentDashboard } from './modules/student-dashboard.js';
 import { initParentDashboard, loadParentDashboard } from './modules/parent-dashboard.js';
@@ -73,6 +75,8 @@ function initAllModules() {
   initAccountantDashboard(supabaseClient);
   initIncomeExpenses(supabaseClient);
   initAdminFees(supabaseClient);
+  initAdminTransport(supabaseClient);
+  initTransportWorkspace(supabaseClient);
   initAdminSettings(supabaseClient);
   initBackupRestore(supabaseClient);
   initSmsMonitor(supabaseClient);
@@ -159,6 +163,7 @@ function setupAllListeners() {
   setupAccountantDashboard();
   setupGradingListeners();
   setupFeesListeners();
+  setupTransportListeners();
   setupSettingsListeners();
   setupStudentCSVHandlers();
   setupAdminPasswordChange();
@@ -356,6 +361,7 @@ const ADMIN_PAGE_ICONS = {
   assessments: 'clipboard-check',
   grading: 'chart',
   fees: 'coins',
+  transport: 'bus',
   'income-expenses': 'trending-up',
   'sms-monitoring': 'message-square',
   backup: 'archive',
@@ -422,6 +428,7 @@ async function loadAdminSubPage(page) {
     assessments: { id: 'page-admin-assessments', title: 'Multi-Choice Assessments' },
     grading: { id: 'page-admin-grading', title: 'Grading System' },
     fees: { id: 'page-admin-fees', title: 'Fees Management' },
+    transport: { id: 'page-admin-transport', title: 'Transport System' },
     'income-expenses': { id: 'page-admin-income-expenses', title: 'Income & Expenses' },
     'sms-monitoring': { id: 'page-admin-sms-monitoring', title: 'SMS Monitoring' },
     backup: { id: 'page-admin-backup', title: 'Backup & Restore' },
@@ -446,6 +453,7 @@ async function loadAdminSubPage(page) {
     case 'assessments': await loadAdminAssessmentsPage(); break;
     case 'grading': await loadGradingPage(); break;
     case 'fees': await loadFeesPage(); break;
+    case 'transport': await loadTransportPage(); break;
     case 'income-expenses': {
       const { loadIncomeExpensesPage } = await import('./modules/income-expenses.js');
       await loadIncomeExpensesPage();

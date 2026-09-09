@@ -22,6 +22,7 @@
   <link rel="stylesheet" href="css/announcements.css" />
   <link rel="stylesheet" href="css/assessments.css" />
   <link rel="stylesheet" href="css/sms-monitor.css" />
+  <link rel="stylesheet" href="css/transport.css" />
   <link rel="stylesheet" href="css/print.css" />
   <link rel="stylesheet" href="css/webview.css" />
   <link rel="stylesheet" href="css/icons.css" />
@@ -149,6 +150,7 @@
     <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></symbol>
     <symbol id="i-briefcase" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></symbol>
     <symbol id="i-sparkles" viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/></symbol>
+    <symbol id="i-bus" viewBox="0 0 24 24"><rect x="6" y="5" width="12" height="14" rx="2"/><path d="M4 6a1 1 0 0 0 3 14h9a1 1 0 0 0 3 4H3a1 1 0 0 0-3 4v-4"/><path d="M6.5 11.7a5.22 5.22 0 0 0 8.3 1.5"/></symbol>
   </svg>
   <!-- Navigation Bar -->
   <nav class="navbar">
@@ -626,6 +628,7 @@
             <button type="button" class="dash-nav-link" data-admin-page="assessments">Assessments</button>
             <button type="button" class="dash-nav-link" data-admin-page="grading">Grading System</button>
             <button type="button" class="dash-nav-link" data-admin-page="fees">Fees Management</button>
+            <button type="button" class="dash-nav-link" data-admin-page="transport">Transport</button>
             <button type="button" class="dash-nav-link" data-admin-page="income-expenses">Income & Expenses</button>
             <button type="button" class="dash-nav-link" data-admin-page="sms-monitoring">SMS Monitoring</button>
             <button type="button" class="dash-nav-link" data-admin-page="backup">Backup & Restore</button>
@@ -1012,6 +1015,12 @@
                 <option value="non_teaching">Non-Teaching Staff</option>
               </select>
             </div>
+            <div class="form-group"><label>&nbsp;</label>
+              <label class="checkbox-label" style="display:flex;align-items:center;gap:0.4rem;font-size:0.85rem;font-weight:600;">
+                <input type="checkbox" id="newTeacherTransportCollector" style="width:18px;height:18px;accent-color:var(--primary);" />
+                Transport Fees Collector
+              </label>
+            </div>
           </div>
           <div id="newTeacherClassFields" style="display:block;">
             <div class="form-row">
@@ -1054,6 +1063,12 @@
                 <option value="teaching">Teaching Staff</option>
                 <option value="non_teaching">Non-Teaching Staff</option>
               </select>
+            </div>
+            <div class="form-group"><label>&nbsp;</label>
+              <label class="checkbox-label" style="display:flex;align-items:center;gap:0.4rem;font-size:0.85rem;font-weight:600;">
+                <input type="checkbox" id="teacherTransportCollector" style="width:18px;height:18px;accent-color:var(--primary);" />
+                Transport Fees Collector
+              </label>
             </div>
           </div>
           <div id="teacherClassFieldWrap" style="display:block;">
@@ -1980,6 +1995,124 @@
       </div>
     </section>
 
+    <!-- ==================== ADMIN TRANSPORT SYSTEM ==================== -->
+    <section id="page-admin-transport" class="page">
+      <h2>Transport Management</h2>
+      <p class="subtitle">Track daily transport collection fees for students who come to school with the school bus — grouped by bus destination, and every destination has its own fee payment.</p>
+
+      <div class="transport-tabs">
+        <button type="button" class="transport-tab active" data-transport-tab="daily">Today's Collection</button>
+        <button type="button" class="transport-tab" data-transport-tab="routes">Routes &amp; Fees</button>
+        <button type="button" class="transport-tab" data-transport-tab="enroll">Enroll Students</button>
+        <button type="button" class="transport-tab" data-transport-tab="history">Payments History</button>
+      </div>
+
+      <div id="transportMessage" class="message" style="display:none;margin-bottom:1rem;"></div>
+
+      <!-- ===== TAB: TODAY'S COLLECTION ===== -->
+      <div id="transportTab-daily" class="transport-tab-content active">
+        <div class="transport-daily-toolbar">
+          <label>Date</label>
+          <input type="date" id="trDailyDate" class="search-input" style="max-width:150px;" />
+          <select id="trDailyRouteFilter" class="filter-select"><option value="">All Destinations</option></select>
+          <select id="trDailyClassFilter" class="filter-select"><option value="">All Classes</option></select>
+          <input type="text" id="trDailySearch" placeholder="Search student..." class="search-input" style="max-width:170px;" />
+          <label>Method</label>
+          <select id="trDailyMethod" class="filter-select" style="max-width:150px;">
+            <option>Cash</option><option>Mobile Money</option><option>Bank Transfer</option><option>Cheque</option><option>Other</option>
+          </select>
+          <button type="button" class="btn btn-primary" id="trDailyRefresh">Refresh</button>
+          <button type="button" class="btn btn-secondary" id="trPrintDailyBtn">Print Sheet</button>
+        </div>
+
+        <div class="tr-summary-cards" id="trSummaryCards"></div>
+
+        <div id="trDailyRouteCards"></div>
+
+        <p id="trDailyEmpty" style="display:none;text-align:center;color:var(--text-muted);padding:1.75rem;border:1px dashed var(--border);border-radius:12px;">
+          No bus students to collect from for this date / filters.<br />
+          <strong>Tip:</strong> Add a destination under <em>Routes &amp; Fees</em>, then enroll students under <em>Enroll Students</em>.
+        </p>
+      </div>
+
+    <!-- ===== TAB: ROUTES & FEES ===== -->
+      <div id="transportTab-routes" class="transport-tab-content">
+        <div class="tr-route-form">
+          <h3 id="trRouteFormTitle">Add a Bus Destination</h3>
+          <p>Each destination (e.g. <em>Madina</em>, <em>East Legon</em>) has its own daily transport fee. Students enrolled on that destination pay that fee each day they ride the bus.</p>
+          <div class="form-row">
+            <div class="form-group" style="flex:1.4;min-width:180px;"><label>Destination / Route Name *</label><input type="text" id="trRouteName" placeholder="e.g. Madina" style="width:100%;" /></div>
+            <div class="form-group" style="flex:1;min-width:130px;"><label>Daily Fee (GHC) *</label><input type="number" id="trRouteFee" step="0.01" min="0" placeholder="0.00" style="width:100%;" /></div>
+            <div class="form-group"><label>&nbsp;</label><label class="checkbox-label"><input type="checkbox" id="trRouteActive" checked /> Active</label></div>
+          </div>
+          <div class="form-group"><label>Description (optional)</label><input type="text" id="trRouteDesc" placeholder="e.g. Pick-up points: Madina Zongo, Atomic Junction..." style="width:100%;" /></div>
+          <input type="hidden" id="trRouteId" />
+          <button type="button" class="btn btn-primary" id="trSaveRouteBtn">Add Destination</button>
+          <button type="button" class="btn btn-secondary" id="trResetRouteBtn">Reset Form</button>
+          <div id="transportRoutesMessage" class="message" style="display:none;margin-top:0.75rem;"></div>
+        </div>
+
+        <div class="table-wrapper">
+          <table class="app-table">
+            <thead>
+              <tr><th>Destination</th><th>Daily Fee (GHC)</th><th>Bus Students</th><th>Today Collected</th><th>Status</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="transportRoutesBody">
+              <tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--text-muted);">Loading destinations...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    <!-- ===== TAB: ENROLL STUDENTS ===== -->
+      <div id="transportTab-enroll" class="transport-tab-content">
+        <div class="tr-enroll-toolbar">
+          <select id="trEnrollRoute" class="filter-select"><option value="">— Select Destination —</option></select>
+          <select id="trEnrollClass" class="filter-select"><option value="">All Classes</option></select>
+          <input type="text" id="trEnrollSearch" placeholder="Search student..." class="search-input" style="max-width:170px;" />
+          <label class="checkbox-label"><input type="checkbox" id="trEnrollCheckAll" /> Select all</label>
+          <button type="button" class="btn btn-primary" id="trEnrollSaveBtn">Save Enrollment</button>
+        </div>
+
+        <div id="trEnrollInfo" style="margin-bottom:0.5rem;"></div>
+        <div id="trEnrollMessage" class="message" style="display:none;margin-bottom:0.75rem;"></div>
+        <div id="trEnrollStudentList" class="tr-enroll-list" style="display:flex;flex-direction:column;gap:0.5rem;">
+          <div class="tr-empty-state">Select a <strong>destination</strong> to manage the students who ride that bus.</div>
+        </div>
+      </div>
+
+      <!-- ===== TAB: PAYMENTS HISTORY ===== -->
+      <div id="transportTab-history" class="transport-tab-content">
+        <div class="tr-history-filters">
+          <label>From</label>
+          <input type="date" id="trHistoryFrom" class="search-input" style="max-width:150px;" />
+          <label>To</label>
+          <input type="date" id="trHistoryTo" class="search-input" style="max-width:150px;" />
+          <select id="trHistoryRoute" class="filter-select"><option value="">All Destinations</option></select>
+          <select id="trHistoryClass" class="filter-select"><option value="">All Classes</option></select>
+          <input type="text" id="trHistorySearch" placeholder="Search student..." class="search-input" style="max-width:160px;" />
+          <button type="button" class="btn btn-primary" id="trHistoryRefresh">Refresh</button>
+          <button type="button" class="btn btn-secondary" id="trHistoryPrint">Print Ledger</button>
+        </div>
+
+        <div id="trHistoryTotals" style="margin-bottom:0.5rem;"></div>
+        <div id="trHistoryMessage" class="message" style="display:none;margin-bottom:0.75rem;"></div>
+
+        <div class="table-wrapper">
+          <table class="app-table">
+            <thead>
+              <tr>
+                <th>Date</th><th>Student</th><th>Destination</th><th>Amount (GHC)</th><th>Method</th><th>Reference</th><th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="transportHistoryBody">
+              <tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--text-muted);">Loading payments history...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
     <!-- ==================== ADMIN INCOME & EXPENSES ==================== -->
     <section id="page-admin-income-expenses" class="page">
       <h2>Income & Expenditure Tracking</h2>
@@ -2287,6 +2420,7 @@
             <button type="button" class="dash-nav-link" data-teacher-page="attendance">Attendance</button>
             <button type="button" class="dash-nav-link" data-teacher-page="exams">Exams</button>
             <button type="button" class="dash-nav-link" data-teacher-page="assessments">Assessments</button>
+            <button type="button" class="dash-nav-link" data-teacher-page="transport" style="display:none;">Transport</button>
             <button type="button" class="dash-nav-link" data-teacher-page="profile">My Profile</button>
           </nav>
           <div class="sidebar-logout"><button type="button" class="dash-nav-link" onclick="handleLogout()">Logout</button></div>
@@ -2637,6 +2771,15 @@
             </details>
           </div>
           
+          <!-- ===== TRANSPORT (Transport Fees Collector) ===== -->
+          <div id="teacherPage-transport" class="teacher-subpage">
+            <h3>Transport Fee Collection</h3>
+            <p class="subtitle">Mark daily school-bus transport fees as PAID for students on their destinations, review collection history, and print reports.</p>
+            <div id="teacherTransportContainer">
+              <p style="color:var(--text-muted);">Loading transport workspace...</p>
+            </div>
+          </div>
+
           <!-- ===== PROFILE ===== -->
           <div id="teacherPage-profile" class="teacher-subpage">
             <h3>My Profile</h3>
@@ -3325,6 +3468,7 @@
             <button type="button" class="dash-nav-link" data-accountant-page="fees">Fees Management</button>
             <button type="button" class="dash-nav-link" data-accountant-page="receipts">Receipts</button>
             <button type="button" class="dash-nav-link" data-accountant-page="debtors">Debtors</button>
+            <button type="button" class="dash-nav-link" data-accountant-page="transport">Transport</button>
             <button type="button" class="dash-nav-link" data-accountant-page="income-expenses">Income & Expenses</button>
             <button type="button" class="dash-nav-link" data-accountant-page="profile">My Profile</button>
           </nav>
@@ -3530,6 +3674,15 @@
             <h2>Debtors</h2>
             <p class="subtitle">Students with outstanding fee balances.</p>
             <div id="accDebtorsContainer"></div>
+          </div>
+
+          <!-- ===== TRANSPORT (View & Print) ===== -->
+          <div id="accountantPage-transport" class="accountant-subpage" style="display:none;">
+            <h2>Transport</h2>
+            <p class="subtitle">View daily school-bus transport fee collections and print reports. Collection management is handled by the Admin and flagged Transport Fees Collectors.</p>
+            <div id="accountantTransportContainer">
+              <p style="color:var(--text-muted);">Loading transport workspace...</p>
+            </div>
           </div>
 
           <!-- ===== INCOME & EXPENSES ===== -->

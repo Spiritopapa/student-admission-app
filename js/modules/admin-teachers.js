@@ -62,6 +62,7 @@ export function setupTeacherForm() {
       email: getEl('teacherEmail').value.trim() || null,
       phone: getEl('teacherPhone').value.trim() || null,
       staff_type: getEl('teacherStaffType')?.value || 'teaching',
+      is_transport_collector: getEl('teacherTransportCollector')?.checked === true,
       class_taught: isTeachingStaff ? selectedClasses.join(', ') || null : null,
       subject: isTeachingStaff ? allSubjects.join(', ') || null : null,
       qualification: getEl('teacherQualification').value.trim() || null,
@@ -298,6 +299,7 @@ async function saveNewTeacher(e) {
     const { data, error } = await supabaseClient.from('teachers').insert([{
       registration_id: regId, full_name: fullName, school_id: schoolId,
       staff_type: staffType,
+      is_transport_collector: getEl('newTeacherTransportCollector')?.checked === true,
       class_taught: isTeachingStaff ? (selectedClasses.join(', ') || null) : null,
       subject: isTeachingStaff ? (selectedSubjects.join(', ') || null) : null,
       created_by: user?.id || null, is_approved: true,
@@ -312,6 +314,7 @@ async function saveNewTeacher(e) {
     showMessage('newTeacherMessage', `Staff "${fullName}" created with ID: ${regId}. Provide this ID to them for registration.`, 'success');
     getEl('newTeacherName').value = '';
     getEl('newTeacherRegId').value = '';
+    getEl('newTeacherTransportCollector').checked = false;
     getEl('newTeacherSection').style.display = 'none';
     await renderTeachersTable();
   } catch (err) { showMessage('newTeacherMessage', 'Error: ' + err.message, 'error'); }
@@ -336,6 +339,7 @@ window.editTeacher = async function (id) {
     getEl('teacherQualification').value = teacher.qualification || '';
     getEl('teacherActive').value = teacher.is_active ? 'true' : 'false';
     getEl('teacherStaffType').value = teacher.staff_type === 'non_teaching' ? 'non_teaching' : 'teaching';
+    getEl('teacherTransportCollector').checked = teacher.is_transport_collector === true;
     
     // Personal Information
     getEl('teacherFirstName').value = teacher.first_name || '';
@@ -679,7 +683,7 @@ export async function renderTeachersTable() {
     return `<tr>
       <td>${photoHtml}</td>
       <td><strong>${t.full_name}</strong></td>
-      <td><span style="font-size:0.8rem;color:var(--primary-dark);font-weight:600;">${t.staff_type === 'non_teaching' ? 'Non-Teaching' : 'Teaching'}</span></td>
+      <td><span style="font-size:0.8rem;color:var(--primary-dark);font-weight:600;">${t.staff_type === 'non_teaching' ? 'Non-Teaching' : 'Teaching'}</span>${t.is_transport_collector ? '<br/><span style="font-size:0.72rem;color:#0d9488;background:rgba(20,184,166,0.12);padding:0.1rem 0.5rem;border-radius:999px;">Transport Collector</span>' : ''}</td>
       <td>${t.email || '-'}</td>
       <td>${t.phone || '-'}</td>
       <td>${t.class_taught || '-'}</td>
@@ -979,7 +983,8 @@ function teachersToCSV(teachers) {
     'College Attended', 'SHS Attended', 'Bank Account Name', 'Bank Account Number',
     'Account Branch', 'Home Town', 'Area of Specialization',
     'Professional Qualification', 'Academic Qualification',
-    'Email', 'Phone', 'Class Taught', 'Subject', 'Qualification', 'Registration ID'
+    'Email', 'Phone', 'Class Taught', 'Subject', 'Qualification', 'Registration ID',
+    'Transport Collector'
   ];
   const rows = teachers.map(t => [
     t.full_name, t.staff_type === 'non_teaching' ? 'Non-Teaching' : 'Teaching',
@@ -993,7 +998,8 @@ function teachersToCSV(teachers) {
     t.college_attended, t.shs_attended, t.bank_account_name, t.bank_account_number,
     t.account_branch, t.home_town, t.area_of_specialization,
     t.professional_qualification, t.academic_qualification,
-    t.email, t.phone, t.class_taught, t.subject, t.qualification, t.registration_id
+    t.email, t.phone, t.class_taught, t.subject, t.qualification, t.registration_id,
+    t.is_transport_collector ? 'Yes' : 'No'
   ]);
   return [header, ...rows].map(r => r.map(escapeCSVCell).join(',')).join('\n');
 }
@@ -1106,6 +1112,7 @@ async function importTeachersCSV() {
         subject: getVal('Subject') || null,
         qualification: getVal('Qualification') || null,
         registration_id: getVal('Registration ID') || null,
+        is_transport_collector: getVal('Transport Collector').toLowerCase() === 'yes',
         school_id: schoolId,
         created_by: user?.id || null,
         is_approved: true,

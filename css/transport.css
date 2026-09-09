@@ -1,0 +1,415 @@
+/* ================================================================
+   STUDENT TRANSPORT SYSTEM MODULE STYLES
+   Daily bus-fee collection, routes/fees, enrollment, payments history.
+   Mobile-first: cards collapse gracefully, tables stack via data-label.
+   ================================================================ */
+
+/* ---------- Tabs ---------- */
+.transport-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.transport-tabs .transport-tab {
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  color: var(--text);
+  font-weight: 600;
+  border-radius: 999px;
+  padding: 0.45rem 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  font-size: 0.85rem;
+}
+
+.transport-tabs .transport-tab.active {
+  background: var(--primary) !important;
+  color: #fff !important;
+  border-color: var(--primary);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
+}
+
+.transport-tab-content { display: none; }
+.transport-tab-content.active { display: block; }
+
+/* ---------- Daily toolbar ---------- */
+.transport-daily-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-bottom: 1rem;
+}
+
+.transport-daily-toolbar label {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+/* ---------- Summary stat cards ---------- */
+.tr-summary-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+.tr-stat-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.9rem 1rem;
+  box-shadow: var(--shadow-sm, 0 1px 4px rgba(0, 0, 0, 0.05));
+}
+
+.tr-stat-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-bottom: 0.35rem;
+}
+
+.tr-stat-value {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.tr-stat-value.tr-collected { color: var(--success, #059669); }
+.tr-stat-value.tr-outstanding { color: var(--danger, #dc2626); }
+.tr-stat-value.tr-expected { color: var(--primary, #6366f1); }
+.tr-stat-value.tr-students { color: var(--text); }
+
+/* ---------- Route card (daily sheet grouped per destination) ---------- */
+.tr-route-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  margin-bottom: 1rem;
+  overflow: hidden;
+}
+
+.tr-route-card-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.09), rgba(20, 184, 166, 0.09));
+}
+
+.tr-route-card-header .tr-route-badge {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: var(--primary-light, #e0e7ff);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+.tr-route-card-header .tr-route-badge svg.app-icon { width: 24px; height: 24px; }
+
+.tr-route-card-header .tr-route-title { font-size: 1rem; font-weight: 700; line-height: 1.15; }
+.tr-route-card-header .tr-route-title small {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.tr-route-card-header .tr-route-fee {
+  margin-left: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.tr-route-card-header .tr-route-fee strong {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--primary, #6366f1);
+}
+
+.tr-route-progress-wrap { padding: 0.4rem 1rem; }
+/* ---------- Student rows inside a route card ---------- */
+.tr-student-list { display: flex; flex-direction: column; gap: 0; }
+
+.tr-student-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.6rem 1rem;
+  border-top: 1px solid var(--border-soft, rgba(15, 23, 42, 0.08));
+}
+
+.tr-student-row:last-child { border-bottom: 1px solid var(--border-soft, rgba(15, 23, 42, 0.08)); }
+
+.tr-student-row .tr-student-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--primary-light, #e0e7ff);
+  color: var(--primary, #6366f1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.8rem;
+  flex: 0 0 auto;
+}
+
+.tr-student-row .tr-student-info { min-width: 0; flex: 1; line-height: 1.2; }
+
+.tr-student-row .tr-student-info .tr-student-name {
+  font-weight: 650;
+  font-size: 0.88rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tr-student-row .tr-student-info small {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.tr-student-row .tr-student-paid-badge {
+  font-size: 0.72rem;
+  color: var(--success, #059669);
+  background: rgba(5, 150, 105, 0.12);
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.tr-student-row .tr-mark-paid-btn,
+.tr-student-row .tr-mark-unpaid-btn {
+  border-radius: 999px;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  color: var(--text);
+  transition: all 0.15s ease;
+}
+
+.tr-student-row .tr-mark-paid-btn { border-color: #10b981; color: #059669; }
+.tr-student-row .tr-mark-paid-btn:hover { background: #10b981; color: #fff; }
+.tr-student-row .tr-mark-unpaid-btn { border-color: #f43f5e; color: #e11d48; }
+.tr-student-row .tr-mark-unpaid-btn:hover { background: #f43f5e; color: #fff; }
+
+/* Mark-all + bulk actions */
+.tr-route-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  padding: 0.55rem 1rem;
+  background: rgba(99, 102, 241, 0.05);
+}
+
+.tr-route-actions button {
+  border-radius: 8px;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  color: var(--text);
+}
+
+.tr-route-actions button.tr-bulk-paid { border-color: #10b981; color: #059669; background: rgba(16, 185, 129, 0.08); }
+.tr-route-actions button.tr-bulk-unpaid { border-color: #f43f5e; color: #e11d48; background: rgba(244, 63, 94, 0.06); }
+
+.tr-route-progress {
+  height: 8px;
+  background: var(--bg, #f1f5f9);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.tr-route-progress .tr-route-progress-fill {
+  height: 100%;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--primary, #6366f1), #14b8a6);
+  transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.tr-route-progress-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 0.2rem;
+}
+/* ---------- Route manager (routes & fees tab) ---------- */
+.tr-route-form {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.tr-route-form h3 { font-size: 1rem; margin: 0 0 0.1rem 0; }
+.tr-route-form p { font-size: 0.78rem; color: var(--text-muted); margin: 0 0 0.75rem 0; }
+
+.tr-route-card-mini {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.6rem 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.tr-route-card-mini .tr-route-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--primary, #6366f1);
+  flex: 0 0 auto;
+}
+
+.tr-route-card-mini .tr-route-mini-name {
+  font-weight: 700;
+  font-size: 0.85rem;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.tr-route-card-mini .tr-route-mini-fee {
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: var(--primary, #6366f1);
+}
+
+/* ---------- Enrollment tab ---------- */
+.tr-enroll-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-bottom: 1rem;
+}
+
+.tr-enroll-student-item {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.55rem 0.9rem;
+  border: 1px solid var(--border-soft, rgba(15, 23, 42, 0.08));
+  border-radius: 10px;
+  background: var(--card-bg);
+}
+
+.tr-enroll-student-item input[type="checkbox"].tr-enroll-check {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary, #6366f1);
+  flex: 0 0 auto;
+}
+
+.tr-enroll-student-item .tr-student-name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tr-enroll-student-item small { font-size: 0.72rem; color: var(--text-muted); }
+/* ---------- History / ledger ---------- */
+.tr-history-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-bottom: 1rem;
+}
+
+.tr-history-total {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.9rem;
+  background: rgba(5, 150, 105, 0.1);
+  border-radius: 999px;
+  color: var(--success, #059669);
+  font-weight: 800;
+  font-size: 0.85rem;
+}
+
+/* ---------- Messages / empty states ---------- */
+.tr-empty-state {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 2.25rem 1rem;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  font-size: 0.9rem;
+}
+
+.tr-empty-state strong { color: var(--text); }
+
+/* ---------- Activity logging chip (mobile friendly) ---------- */
+.tr-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: rgba(20, 184, 166, 0.1);
+  color: #0d9488;
+  border-radius: 999px;
+  padding: 0.25rem 0.7rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 768px) {
+  .tr-summary-cards { grid-template-columns: 1fr 1fr; gap: 0.6rem; }
+  .tr-stat-card { padding: 0.7rem 0.85rem; }
+  .tr-stat-value { font-size: 1.15rem; }
+  .transport-tabs { flex-wrap: wrap; }
+  .transport-tabs .transport-tab { flex: 1 1 auto; font-size: 0.78rem; padding: 0.4rem 0.7rem; }
+}
+
+@media (max-width: 480px) {
+  .tr-summary-cards { grid-template-columns: 1fr 1fr; }
+  .tr-student-row .tr-mark-paid-btn,
+  .tr-student-row .tr-mark-unpaid-btn {
+    padding: 0.35rem 0.85rem;
+    font-size: 0.85rem;
+  }
+  .tr-student-row .tr-student-avatar { width: 30px; height: 30px; }
+}
