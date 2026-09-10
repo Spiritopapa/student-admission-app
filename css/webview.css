@@ -531,9 +531,14 @@ html.webview-mode .home-blob,
 html.webview-mode .login-blob,
 html.webview-mode .glow-pulse,
 html.webview-mode .float-anim,
-html.webview-mode .login-water-ripple {
+html.webview-mode .login-water-ripple,
+html.webview-mode .login-logo-circle::before,
+html.webview-mode .login-app-name-text,
+html.webview-mode .login-app-name::after,
+html.webview-mode .login-tagline {
   animation: none !important;
 }
+html.webview-mode .login-app-name::after { transform: scaleX(1) !important; }
 
 /* ---------- 20d. AVOID BLUR / FILTER DURING NAVIGATION ---------- */
 html.webview-mode .home-hero-content,

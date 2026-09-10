@@ -847,6 +847,7 @@ legend {
 }
 
 .login-logo-circle {
+  position: relative;
   width: 70px;
   height: 70px;
   margin: 0 auto 0.75rem;
@@ -859,9 +860,28 @@ legend {
   animation: loginLogoPulse 3s ease-in-out infinite;
 }
 
+/* Modern orbit ring that spins around the logo */
+.login-logo-circle::before {
+  content: '';
+  position: absolute;
+  inset: -7px;
+  border-radius: 50%;
+  border: 2.5px solid transparent;
+  border-top-color: rgba(99, 102, 241, 0.95);
+  border-right-color: rgba(34, 211, 238, 0.7);
+  border-bottom-color: rgba(167, 139, 250, 0.5);
+  pointer-events: none;
+  animation: loginOrbitSpin 3.2s linear infinite;
+}
+
 @keyframes loginLogoPulse {
   0%, 100% { box-shadow: 0 8px 24px rgba(99, 102, 241, 0.35); }
   50% { box-shadow: 0 8px 40px rgba(99, 102, 241, 0.55); }
+}
+
+@keyframes loginOrbitSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 .login-logo-icon {
@@ -869,25 +889,76 @@ legend {
 }
 
 .login-app-name {
+  position: relative;
+  display: inline-block;
   font-size: 2.4rem;
   font-weight: 900;
-  margin: 0;
-  background: linear-gradient(135deg, #fff 0%, #c7d2fe 50%, #a5b4fc 100%);
+  margin: 0.1rem 0 0.7rem 0;
+  letter-spacing: -0.5px;
+  line-height: 1.1;
+}
+
+/* Modern animated wordmark — shimmering gradient flowing through the text */
+.login-app-name-text {
+  background: linear-gradient(120deg, #ffffff 0%, #c7d2fe 22%, #22d3ee 48%, #a5b4fc 74%, #ffffff 100%);
+  background-size: 400% 100%;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  letter-spacing: -0.5px;
-  text-shadow: 0 2px 20px rgba(99, 102, 241, 0.2);
-  line-height: 1.1;
+  filter: drop-shadow(0 2px 14px rgba(99, 102, 241, 0.35));
+  animation: loginBrandShimmer 6s linear infinite;
+}
+
+@keyframes loginBrandShimmer {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 400% 50%; }
+}
+
+/* Draw-in underline accent that keeps shimmering after it appears */
+.login-app-name::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -5px;
+  height: 3px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #6366f1, #22d3ee, #a78bfa, #6366f1);
+  background-size: 200% 100%;
+  transform: scaleX(0);
+  transform-origin: left center;
+  animation:
+    loginUnderlineDraw 0.9s cubic-bezier(0.25, 0.8, 0.35, 1) forwards,
+    loginUnderlineShimmer 4s linear infinite;
+}
+
+@keyframes loginUnderlineDraw {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+@keyframes loginUnderlineShimmer {
+  from { background-position: 0% 50%; }
+  to { background-position: 200% 50%; }
 }
 
 .login-tagline {
   font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.5);
-  margin: 0.3rem 0 0;
-  font-weight: 400;
-  letter-spacing: 1px;
+  font-weight: 500;
+  margin: 0.1rem 0 0;
+  letter-spacing: 1.2px;
   text-transform: uppercase;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.55) 0%, #a5b4fc 30%, rgba(199, 210, 254, 0.8) 60%, rgba(255, 255, 255, 0.55) 100%);
+  background-size: 300% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: loginTaglineShimmer 8s linear infinite;
+}
+
+@keyframes loginTaglineShimmer {
+  from { background-position: 0% 50%; }
+  to { background-position: 300% 50%; }
 }
 
 /* Divider */
@@ -1086,7 +1157,12 @@ legend {
   .login-blob { animation: none; }
   .login-water-ripple { animation: none; }
   .login-container { animation: none; }
-  .login-logo-circle { animation: none; }
+  .login-logo-circle,
+  .login-logo-circle::before,
+  .login-app-name-text,
+  .login-app-name::after,
+  .login-tagline { animation: none; }
+  .login-app-name::after { transform: scaleX(1); }
 }
 
 /* ===== WATERMARK FOR RECEIPTS ===== */
