@@ -159,6 +159,41 @@
 
 .tr-student-row:last-child { border-bottom: 1px solid var(--border-soft, rgba(15, 23, 42, 0.08)); }
 
+/* ---------- Collapsible route cards (click header to expand / collapse) ---------- */
+.tr-route-card-header {
+  cursor: pointer;
+}
+
+.tr-route-card-header .tr-chevron {
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 6px solid var(--text-muted, #64748b);
+  flex: 0 0 auto;
+  transition: transform 0.2s ease;
+}
+
+.tr-route-card-header .tr-chevron-holder {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.06);
+  flex: 0 0 auto;
+}
+
+.tr-route-card[data-collapsed="true"] .tr-chevron {
+  transform: rotate(-90deg);
+}
+
+.tr-route-card[data-collapsed="true"] .tr-student-list,
+.tr-route-card[data-collapsed="true"] .tr-route-actions {
+  display: none;
+}
+
 .tr-student-row .tr-student-avatar {
   width: 34px;
   height: 34px;

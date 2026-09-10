@@ -33,6 +33,7 @@ let _studentMap = {};           // student_id -> application record
 let _dailyPayments = [];        // transport_fee_payments for shown date
 let _dailyPaymentsByKey = {};   // "studentId|routeId" -> payment row
 let _activeTab = 'daily';
+let _collapsedRoutes = new Set(); // route IDs collapsed in the Today's Collection sheet
 
 // ================================================================
 // Init / Listeners
@@ -319,11 +320,14 @@ async function renderDailyTab() {
     const routeDesc = route.description ? `<small>${esc(route.description)}</small>` : '';
     const progressLabel = `${routePaidRows.length} of ${students.length} paid · GHC ${formatCurrency(routeCollected)} of GHC ${formatCurrency(routeExpected)} · ${pct}%`;
 
-    routeCards.push(`<div class="tr-route-card">
-      <div class="tr-route-card-header">
+    const isCollapsed = _collapsedRoutes.has(route.id);
+
+    routeCards.push(`<div class="tr-route-card" data-route-id="${route.id}" data-collapsed="${isCollapsed}">
+      <div class="tr-route-card-header" title="Click to expand / collapse" onclick="trToggleCollapse('${route.id}')">
         <span class="tr-route-badge">${svgIcon('bus')}</span>
         <span class="tr-route-title">${esc(route.name)}${routeDesc}</span>
         <span class="tr-route-fee">Daily fee<strong>GHC ${formatCurrency(route.fee)}</strong></span>
+        <span class="tr-chevron-holder" aria-hidden="true"><span class="tr-chevron"></span></span>
       </div>
       <div class="tr-route-progress-wrap">
         <div class="tr-route-progress"><div class="tr-route-progress-fill" style="width:${pct}%;"></div></div>
@@ -355,6 +359,17 @@ async function renderDailyTab() {
   const emptyEl = getEl('trDailyEmpty');
   if (emptyEl) emptyEl.style.display = routeCards.length ? 'none' : '';
 }
+
+/** Expand / collapse a destination card in the Today's Collection sheet. */
+window.trToggleCollapse = function (routeId) {
+  const card = document.querySelector(`.tr-route-card[data-route-id="${routeId}"]`);
+  if (!card) return;
+  const collapsed = card.getAttribute('data-collapsed') === 'true';
+  card.setAttribute('data-collapsed', String(!collapsed));
+  if (!collapsed) _collapsedRoutes.add(routeId);
+  else _collapsedRoutes.delete(routeId);
+};
+
 /**
  * Toggle a single student's transport fee for the shown date.
  * Unpaid → records the route's fee as collected. Paid → removes it.

@@ -468,6 +468,16 @@
 -- Used by: js/modules/transport-shared.js, js/modules/admin-teachers.js,
 --          index.html (staff forms), teacher-dashboard.js / accountant-dashboard.js.
 \i 064-transport-staff-collector.sql
+
+-- Step 58: Transport Payment Delete Restriction
+-- Restricts DELETION of transport_fee_payments to the school Admin /
+-- Sub-Admins / Super Admin only. Transport Fees Collectors may still
+-- ADD collections (mark students PAID) and the Accountant may view,
+-- but neither role can delete / undo a recorded student collection.
+-- Used by: sql/063's transport_fee_payments policy replacement
+--          (enforced server-side for the transport workspace in
+--          js/modules/transport-shared.js and admin-transport.js).
+\i 065-transport-payment-delete-restrict.sql
 -- ============================================================
 --  SCHEMA DEPLOYMENT COMPLETE
 -- ============================================================

@@ -50,6 +50,7 @@ const W = {
   classFilter: '',
   search: '',
   method: 'Cash',
+  collapsedRoutes: new Set(), // route IDs collapsed in Today's Collection
   // history filter state
   hFrom: '',
   hTo: '',
@@ -268,7 +269,7 @@ function renderWorkspace() {
         <div id="tsHistMsg" class="message" style="display:none;margin-bottom:0.75rem;"></div>
         <div class="table-wrapper">
           <table class="app-table" id="tsHistTable">
-            <thead><tr><th>Date</th><th>Student</th><th>Destination</th><th>Amount (GHC)</th><th>Method</th><th>Reference</th>${manageMode() ? '<th>Actions</th>' : ''}</tr></thead>
+            <thead><tr><th>Date</th><th>Student</th><th>Destination</th><th>Amount (GHC)</th><th>Method</th><th>Reference</th></tr></thead>
             <tbody id="tsHistBody"></tbody>
           </table>
         </div>
@@ -411,18 +412,16 @@ function renderDailyCards() {
       const avatar = esc(initialsOf(name));
       const sub = `${esc(s.student_id)} · ${esc(s.class_applying || '—')}`;
       if (paid) {
-        const undoBtn = manageMode()
-          ? `<button type="button" class="tr-mark-unpaid-btn" onclick="tsTogglePaid('${s.student_id}','${route.id}')" title="Mark as unpaid">✕</button>`
-          : '';
+        // Only the Admin can undo / delete a recorded collection — collectors
+        // and the accountant simply see the PAID badge.
         return `<div class="tr-student-row">
           <span class="tr-student-avatar">${avatar}</span>
           <span class="tr-student-info"><span class="tr-student-name">${esc(name)}</span><small>${sub}</small></span>
           <span class="tr-student-paid-badge">✓ Paid · GHC ${formatCurrency(pay.fee_amount)}</span>
-          ${undoBtn}
         </div>`;
       }
       const payBtn = manageMode()
-        ? `<button type="button" class="tr-mark-paid-btn" onclick="tsTogglePaid('${s.student_id}','${route.id}')">Pay · GHC ${formatCurrency(route.fee)}</button>`
+        ? `<button type="button" class="tr-mark-paid-btn" onclick="tsMarkPaid('${s.student_id}','${route.id}')">Pay · GHC ${formatCurrency(route.fee)}</button>`
         : '<span style="font-size:0.75rem;color:var(--danger,#dc2626);font-weight:700;">Unpaid</span>';
       return `<div class="tr-student-row">
         <span class="tr-student-avatar">${avatar}</span>
@@ -434,18 +433,21 @@ function renderDailyCards() {
     const routeDesc = route.description ? `<small>${esc(route.description)}</small>` : '';
     const progressLabel = `${routePaidRows.length} of ${students.length} paid · GHC ${formatCurrency(routeCollected)} of GHC ${formatCurrency(routeExpected)} · ${pct}%`;
 
+    // Collectors can only ADD collections — deleting / resetting stays with the Admin.
     const actionsHtml = manageMode()
       ? `<div class="tr-route-actions">
           <button type="button" class="tr-bulk-paid" onclick="tsMarkAllRoutePaid('${route.id}')">✓ Mark all paid</button>
-          <button type="button" class="tr-bulk-unpaid" onclick="tsMarkAllRouteUnpaid('${route.id}')">Reset all</button>
         </div>`
       : '';
 
-    routeCards.push(`<div class="tr-route-card">
-      <div class="tr-route-card-header">
+    const isCollapsed = W.collapsedRoutes.has(route.id);
+
+    routeCards.push(`<div class="tr-route-card" data-route-id="${route.id}" data-collapsed="${isCollapsed}">
+      <div class="tr-route-card-header" title="Click to expand / collapse" onclick="tsToggleCollapse('${route.id}')">
         <span class="tr-route-badge">${svgIcon('bus')}</span>
         <span class="tr-route-title">${esc(route.name)}${routeDesc}</span>
         <span class="tr-route-fee">Daily fee<strong>GHC ${formatCurrency(route.fee)}</strong></span>
+        <span class="tr-chevron-holder" aria-hidden="true"><span class="tr-chevron"></span></span>
       </div>
       <div class="tr-route-progress-wrap">
         <div class="tr-route-progress"><div class="tr-route-progress-fill" style="width:${pct}%;"></div></div>
@@ -475,48 +477,59 @@ function renderDailyCards() {
 // Collection actions (manage mode only — guarded in the UI)
 // ================================================================
 
-/** Toggle a single student's transport fee for the shown date. */
-window.tsTogglePaid = async function (studentId, routeId) {
+/** Expand / collapse a destination card in the Today's Collection sheet. */
+window.tsToggleCollapse = function (routeId) {
+  const card = document.querySelector(`.tr-route-card[data-route-id="${routeId}"]`);
+  if (!card) return;
+  const collapsed = card.getAttribute('data-collapsed') === 'true';
+  card.setAttribute('data-collapsed', String(!collapsed));
+  if (!collapsed) W.collapsedRoutes.add(routeId);
+  else W.collapsedRoutes.delete(routeId);
+};
+
+/**
+ * Mark a single student's transport fee as PAID for the shown date.
+ * Collectors can only ADD collections — they cannot delete a payment.
+ * Deleting / undoing a collection is restricted to the Admin.
+ */
+window.tsMarkPaid = async function (studentId, routeId) {
   if (!manageMode()) return;
   const student = W.studentMap[studentId];
   const route = W.routes.find((r) => r.id === routeId);
   const existing = W.paymentsByKey[`${studentId}|${routeId}`];
   const date = W.date;
 
+  if (existing) {
+    showMessage('tsDailyMsg', `${fullName(student)} is already recorded as PAID for ${date}. Only the school Admin can delete a transport payment.`, 'info');
+    return;
+  }
+
   try {
-    if (existing) {
-      if (!confirm(`Remove the transport fee collection for ${fullName(student)} (${studentId}) on ${date}?`)) return;
-      const { error } = await supabaseClient.from('transport_fee_payments').delete().eq('id', existing.id);
-      if (error) throw error;
-      await logStaffActivity(`Removed transport fee for ${fullName(student)} (${studentId}) on ${date}`, { role: 'teacher', entityType: 'transport', entityDetails: `${studentId} · ${date}` });
-      await logSubAdminActivity(`Removed transport fee for ${fullName(student)} (${studentId}) on ${date}`, 'transport');
-    } else {
-      const fee = Number(route?.fee || 0);
-      if (fee <= 0) {
-        showMessage('tsDailyMsg', `"${route?.name || 'This route'}" has no daily fee set. Contact the admin to set it in Transport → Routes & Fees.`, 'error');
-        return;
-      }
-      const method = getEl('tsMethod')?.value || 'Cash';
-      const { data: { user } } = await supabaseClient.auth.getUser();
-      const { data, error } = await supabaseClient.from('transport_fee_payments').insert({
-        school_id: W.schoolId,
-        student_id: studentId,
-        route_id: routeId,
-        fee_amount: fee,
-        collection_date: date,
-        payment_method: method,
-        collected_by: user?.id || null,
-      }).select('id, created_at').single();
-      if (error) throw error;
-      await logStaffActivity(`Collected transport fee GHC ${formatCurrency(fee)} for ${fullName(student)} (${studentId}) on ${date} — ${route?.name}`, { role: 'teacher', entityType: 'transport', entityDetails: `${studentId} · ${date} · GHC ${formatCurrency(fee)}` });
-      await logSubAdminActivity(`Collected transport fee GHC ${formatCurrency(fee)} for ${fullName(student)} (${studentId}) on ${date} — ${route?.name}`, 'transport');
-      sendTransportFeeSms(studentId, fee, date, route?.name); // fire-and-forget
+    const fee = Number(route?.fee || 0);
+    if (fee <= 0) {
+      showMessage('tsDailyMsg', `"${route?.name || 'This route'}" has no daily fee set. Contact the admin to set it in Transport → Routes & Fees.`, 'error');
+      return;
     }
+    const method = getEl('tsMethod')?.value || 'Cash';
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    const { data, error } = await supabaseClient.from('transport_fee_payments').insert({
+      school_id: W.schoolId,
+      student_id: studentId,
+      route_id: routeId,
+      fee_amount: fee,
+      collection_date: date,
+      payment_method: method,
+      collected_by: user?.id || null,
+    }).select('id, created_at').single();
+    if (error) throw error;
+    await logStaffActivity(`Collected transport fee GHC ${formatCurrency(fee)} for ${fullName(student)} (${studentId}) on ${date} — ${route?.name}`, { role: 'teacher', entityType: 'transport', entityDetails: `${studentId} · ${date} · GHC ${formatCurrency(fee)}` });
+    await logSubAdminActivity(`Collected transport fee GHC ${formatCurrency(fee)} for ${fullName(student)} (${studentId}) on ${date} — ${route?.name}`, 'transport');
+    sendTransportFeeSms(studentId, fee, date, route?.name); // fire-and-forget
     await loadDailyPayments();
     renderDailyCards();
   } catch (err) {
-    console.error('[TransportWS] toggle error:', err);
-    showMessage('tsDailyMsg', `Failed to update payment: ${err.message}`, 'error');
+    console.error('[TransportWS] mark paid error:', err);
+    showMessage('tsDailyMsg', `Failed to record payment: ${err.message}`, 'error');
   }
 };
 
@@ -561,46 +574,15 @@ window.tsMarkAllRoutePaid = async function (routeId) {
     showMessage('tsDailyMsg', `Failed to mark all as paid: ${err.message}`, 'error');
   }
 };
-/** Remove every payment recorded for a route on the shown date. */
-window.tsMarkAllRouteUnpaid = async function (routeId) {
+/** Delete / reset is ADMIN ONLY. Kept as a guard so any stale buttons don't silently fail. */
+window.tsMarkAllRouteUnpaid = async function () {
   if (!manageMode()) return;
-  const ids = W.payments.filter((p) => p.route_id === routeId).map((p) => p.id);
-  if (!ids.length) return;
-  if (!confirm(`Reset ALL transport fee collections for this destination on ${W.date}? ${ids.length} payment(s) will be removed.`)) return;
-  try {
-    const { error } = await supabaseClient.from('transport_fee_payments').delete().in('id', ids);
-    if (error) throw error;
-    await logStaffActivity(`Reset ${ids.length} transport fee collection(s) on ${W.date}`, { role: 'teacher', entityType: 'transport' });
-    await logSubAdminActivity(`Reset ${ids.length} transport fee collection(s) on ${W.date}`, 'transport');
-    await loadDailyPayments();
-    renderDailyCards();
-  } catch (err) {
-    console.error('[TransportWS] reset all error:', err);
-    showMessage('tsDailyMsg', `Failed to reset collections: ${err.message}`, 'error');
-  }
+  showMessage('tsDailyMsg', 'Only the school Admin can delete / reset transport payments.', 'error');
 };
 
-/** Remove a single history entry (manage mode only). */
-window.tsDeleteHistoryEntry = async function (id) {
-  const row = W.payments.find((p) => p.id === id);
-  let p = row;
-  if (!p) {
-    const { data } = await supabaseClient.from('transport_fee_payments').select('*').eq('id', id).maybeSingle();
-    p = data;
-  }
-  if (!p) return;
-  const s = W.studentMap[p.student_id];
-  if (!confirm(`Remove transport fee entry for ${fullName(s)} (${p.student_id}) on ${p.collection_date}?`)) return;
-  try {
-    const { error } = await supabaseClient.from('transport_fee_payments').delete().eq('id', id);
-    if (error) throw error;
-    await logStaffActivity(`Removed transport fee entry for ${fullName(s)} (${p.student_id}) on ${p.collection_date}`, { role: 'teacher', entityType: 'transport' });
-    await logSubAdminActivity(`Removed transport fee entry for ${fullName(s)} (${p.student_id}) on ${p.collection_date}`, 'transport');
-    await loadDailyPayments();
-    renderHistory();
-  } catch (err) {
-    showMessage('tsHistMsg', `Failed to remove entry: ${err.message}`, 'error');
-  }
+/** Remove a single history entry — ADMIN ONLY. Guard kept for stale DOM safety. */
+window.tsDeleteHistoryEntry = async function () {
+  showMessage('tsHistMsg', 'Only the school Admin can delete transport payment records.', 'error');
 };
 
 // ================================================================
@@ -668,7 +650,7 @@ async function renderHistory() {
     renderHistoryRows(payments);
   } catch (err) {
     console.error('[TransportWS] history error:', err);
-    tbody.innerHTML = `<tr><td colspan="${manageMode() ? 7 : 6}">Failed to load history: ${esc(err.message)}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6">Failed to load history: ${esc(err.message)}</td></tr>`;
   }
 }
 
@@ -685,7 +667,7 @@ function renderHistoryRows(payments) {
   }
 
   if (!payments.length) {
-    tbody.innerHTML = `<tr><td colspan="${manageMode() ? 7 : 6}" style="text-align:center;padding:2rem;color:var(--text-muted);">No transport fee payments found for the selected filters.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--text-muted);">No transport fee payments found for the selected filters.</td></tr>`;
     return;
   }
 
@@ -693,9 +675,6 @@ function renderHistoryRows(payments) {
     const s = W.studentMap[p.student_id];
     const route = W.routes.find((r) => r.id === p.route_id);
     const time = p.created_at ? new Date(p.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—';
-    const actions = manageMode()
-      ? `<td data-label="Actions"><button type="button" class="btn btn-sm btn-danger" onclick="tsDeleteHistoryEntry('${p.id}')">Remove</button></td>`
-      : '';
     return `<tr>
       <td data-label="Date">${esc(p.collection_date)}<br/><small style="color:var(--text-muted);font-size:0.72rem;">${esc(time)}</small></td>
       <td data-label="Student">${esc(fullName(s))}<br/><small style="color:var(--text-muted);font-size:0.72rem;">${esc(p.student_id)}${s?.class_applying ? ' · ' + esc(s.class_applying) : ''}</small></td>
@@ -703,7 +682,6 @@ function renderHistoryRows(payments) {
       <td data-label="Amount" style="text-align:right;font-weight:700;color:var(--success);">GHC ${formatCurrency(p.fee_amount)}</td>
       <td data-label="Method">${esc(p.payment_method || 'Cash')}</td>
       <td data-label="Reference">${p.reference ? esc(p.reference) : '—'}</td>
-      ${actions}
     </tr>`;
   }).join('');
 }

@@ -254,12 +254,14 @@ The migration is already included in `sql/000-run-all.sql` (Step 56). Backup & R
 ### Roles & access
 | Role | Access to the Transport module |
 |------|-------------------------------|
-| **Admin** | **Full access** — all four tabs: Today's Collection, Routes & Fees, Enroll Students, Payments History. |
-| **Transport Fees Collector** (selected staff) | **Manage collections** — when the admin generates a staff ID (Staff → *Create Staff with Registration ID*) they can tick **"Transport Fees Collector"**. Flagged staff see a **Transport** tab on their own dashboard, where they can mark daily bus fees **PAID / UNPAID** per student, mark a whole destination paid / reset it, view the collection history (with remove), and print the daily sheet + ledger. Parents still receive the SMS notification on collection. |
+| **Admin** | **Full access** — all four tabs: Today's Collection, Routes & Fees, Enroll Students, Payments History. **Only the Admin can delete / undo a transport payment** (daily ✕ undo, Reset all, and History → Remove). |
+| **Transport Fees Collector** (selected staff) | **Manage collections** — when the admin generates a staff ID (Staff → *Create Staff with Registration ID*) they can tick **"Transport Fees Collector"**. Flagged staff see a **Transport** tab on their own dashboard, where they can mark daily bus fees **PAID** per student and mark a whole destination paid, view the collection history, and print the daily sheet + ledger. They **cannot delete / undo a recorded collection** — deletion is admin-only (hidden buttons + database-level restriction). Parents still receive the SMS notification on collection. |
 | **Accountant** | **View & print** — a read-only **Transport** tab shows the daily collection sheet and payments history with the full print options; no edit buttons are shown. |
 
+- Delivery of the "delete only by Admin" rule is enforced **twice**: every delete/undo button is hidden for collectors/accountants in the UI (`js/modules/transport-shared.js`), and `sql/065-transport-payment-delete-restrict.sql` (Step 58) replaces the permissive RLS with **INSERT/UPDATE open to school staff but DELETE restricted to admin / sub-admin / super-admin**.
 - The collector flag is stored in `teachers.is_transport_collector` (`sql/064-transport-staff-collector.sql`, Step 57) and can be toggled anytime from Staff → *Add / Edit Staff*. It also shows a **Transport Collector** badge in the staff table and is exported/imported in the staff CSV.
 - The shared workspace lives in `js/modules/transport-shared.js` (`loadTransportWorkspace(containerId, mode)`, mode `'manage'` / `'view'`) and is embedded in the Teacher and Accountant dashboards.
+- **Today's Collection** (admin, collector and accountant) uses collapsible destination cards — click a destination's header (chevron shows the state) to expand / collapse its student payment list. Groups keep their collapsed state across refreshes.
 
 ---
 
