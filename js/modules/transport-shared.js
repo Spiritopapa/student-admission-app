@@ -23,7 +23,6 @@
  */
 
 import { getEl, showMessage, clearMessage, getCurrentSchoolId, formatCurrency, logSubAdminActivity, logStaffActivity, openPrintWindow, buildStudentName } from './utils.js';
-import { normalizeGhanaPhone, isSmsEnabledForSchool, getAdminContactForSchool, buildAssistanceLine } from './sms-gateway.js';
 import { svgIcon } from './icons.js';
 
 let supabaseClient = null;
@@ -524,7 +523,6 @@ window.tsMarkPaid = async function (studentId, routeId) {
     if (error) throw error;
     await logStaffActivity(`Collected transport fee GHC ${formatCurrency(fee)} for ${fullName(student)} (${studentId}) on ${date} — ${route?.name}`, { role: 'teacher', entityType: 'transport', entityDetails: `${studentId} · ${date} · GHC ${formatCurrency(fee)}` });
     await logSubAdminActivity(`Collected transport fee GHC ${formatCurrency(fee)} for ${fullName(student)} (${studentId}) on ${date} — ${route?.name}`, 'transport');
-    sendTransportFeeSms(studentId, fee, date, route?.name); // fire-and-forget
     await loadDailyPayments();
     renderDailyCards();
   } catch (err) {
@@ -566,7 +564,6 @@ window.tsMarkAllRoutePaid = async function (routeId) {
     if (error) throw error;
     await logStaffActivity(`Bulk-collected transport fees for ${pending.length} student(s) on "${route.name}" for ${W.date}`, { role: 'teacher', entityType: 'transport', entityDetails: `${route.name} · ${W.date}` });
     await logSubAdminActivity(`Bulk-collected transport fees for ${pending.length} student(s) on "${route.name}" for ${W.date}`, 'transport');
-    pending.forEach((s) => sendTransportFeeSms(s.student_id, Number(route.fee || 0), W.date, route.name));
     await loadDailyPayments();
     renderDailyCards();
   } catch (err) {
@@ -585,31 +582,6 @@ window.tsDeleteHistoryEntry = async function () {
   showMessage('tsHistMsg', 'Only the school Admin can delete transport payment records.', 'error');
 };
 
-// ================================================================
-// Parent SMS notification (best-effort, never blocks the flow)
-// ================================================================
-
-async function sendTransportFeeSms(studentId, amount, date, routeName) {
-  try {
-    const smsOn = await isSmsEnabledForSchool(W.schoolId);
-    if (!smsOn) return;
-    const app = W.studentMap[studentId];
-    if (!app) return;
-    const phone = normalizeGhanaPhone(app.parent_contact);
-    if (!phone) return;
-    const adminPhone = await getAdminContactForSchool(W.schoolId);
-    const school = String(W.schoolName || 'School').trim().slice(0, 45);
-    let msg = `${school}: Transport fee received GHC${formatCurrency(amount)} for ${fullName(app)}${routeName ? ' (' + routeName + ')' : ''} on ${date}. Thank you.`;
-    msg += buildAssistanceLine(adminPhone);
-    await fetch('/api/send-sms', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone, message: msg }),
-    });
-  } catch (err) {
-    console.warn('[TransportWS] SMS notification failed:', err.message);
-  }
-}
 // ================================================================
 // Payments History (date-range ledger)
 // ================================================================

@@ -240,7 +240,7 @@ The **Transport** module on the Admin Dashboard tracks the **daily transport col
 - **Routes & Fees** — create, edit, activate/deactivate and delete bus destinations. Each destination (e.g. *Madina*, *East Legon*) carries its **own daily fee (GHC)** which is snapshotted into every collection, so history stays accurate even if the fee changes later.
 - **Enroll Students** — choose which admitted students ride the school bus and on which destination (route). Only enrolled students appear on the daily collection sheet.
 - **Payments History** — searchable, date-range ledger across all destinations with totals, per-entry removal and a printable daily sheet + ledger.
-- **Parent SMS** — when a transport fee is collected the parent/guardian is notified by SMS through the same Nalo gateway as school fee receipts (respects the per-school SMS on/off switch). Fire-and-forget, never blocks the collection flow.
+- **No SMS for transport** — parent SMS notifications are deliberately **disabled** for transport fee collections (the transport modules no longer call the SMS gateway at all; the school-fee SMS system is unaffected).
 - **Mobile friendly** — route cards replace wide tables on phones, big tap targets, and the standard stacked-card table layout is used for the ledger.
 
 ### Database (`sql/063-student-transport.sql`)
@@ -255,7 +255,7 @@ The migration is already included in `sql/000-run-all.sql` (Step 56). Backup & R
 | Role | Access to the Transport module |
 |------|-------------------------------|
 | **Admin** | **Full access** — all four tabs: Today's Collection, Routes & Fees, Enroll Students, Payments History. **Only the Admin can delete / undo a transport payment** (daily ✕ undo, Reset all, and History → Remove). |
-| **Transport Fees Collector** (selected staff) | **Manage collections** — when the admin generates a staff ID (Staff → *Create Staff with Registration ID*) they can tick **"Transport Fees Collector"**. Flagged staff see a **Transport** tab on their own dashboard, where they can mark daily bus fees **PAID** per student and mark a whole destination paid, view the collection history, and print the daily sheet + ledger. They **cannot delete / undo a recorded collection** — deletion is admin-only (hidden buttons + database-level restriction). Parents still receive the SMS notification on collection. |
+| **Transport Fees Collector** (selected staff) | **Manage collections** — when the admin generates a staff ID (Staff → *Create Staff with Registration ID*) they can tick **"Transport Fees Collector"**. Flagged staff see a **Transport** tab on their own dashboard, where they can mark daily bus fees **PAID** per student and mark a whole destination paid, view the collection history, and print the daily sheet + ledger. They **cannot delete / undo a recorded collection** — deletion is admin-only (hidden buttons + database-level restriction). |
 | **Accountant** | **View & print** — a read-only **Transport** tab shows the daily collection sheet and payments history with the full print options; no edit buttons are shown. |
 
 - Delivery of the "delete only by Admin" rule is enforced **twice**: every delete/undo button is hidden for collectors/accountants in the UI (`js/modules/transport-shared.js`), and `sql/065-transport-payment-delete-restrict.sql` (Step 58) replaces the permissive RLS with **INSERT/UPDATE open to school staff but DELETE restricted to admin / sub-admin / super-admin**.

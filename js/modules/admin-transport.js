@@ -20,7 +20,6 @@
  */
 
 import { getEl, showMessage, clearMessage, getCurrentSchoolId, formatCurrency, logSubAdminActivity, openPrintWindow, buildStudentName } from './utils.js';
-import { normalizeGhanaPhone, isSmsEnabledForSchool, getAdminContactForSchool, buildAssistanceLine } from './sms-gateway.js';
 import { svgIcon } from './icons.js';
 
 let supabaseClient = null;
@@ -403,7 +402,6 @@ window.trTogglePaid = async function (studentId, routeId) {
       }).select('id, created_at').single();
       if (error) throw error;
       await logSubAdminActivity(`Collected transport fee GHC ${formatCurrency(fee)} for ${fullName(student)} (${studentId}) on ${date} — ${route?.name}`, 'transport');
-      sendTransportFeeSms(studentId, fee, date, route?.name); // fire-and-forget
     }
     await renderDailyTab();
   } catch (err) {
@@ -442,7 +440,6 @@ window.trMarkAllRoutePaid = async function (routeId) {
     const { error } = await supabaseClient.from('transport_fee_payments').insert(rows);
     if (error) throw error;
     await logSubAdminActivity(`Bulk-collected transport fees for ${pending.length} student(s) on "${route.name}" for ${date}`, 'transport');
-    pending.forEach((s) => sendTransportFeeSms(s.student_id, Number(route.fee || 0), date, route.name));
     await renderDailyTab();
   } catch (err) {
     console.error('[Transport] mark all error:', err);
@@ -467,32 +464,6 @@ window.trMarkAllRouteUnpaid = async function (routeId) {
   }
 };
 
-// ================================================================
-// Parent SMS notification (best-effort, never blocks the flow)
-// ================================================================
-
-async function sendTransportFeeSms(studentId, amount, date, routeName) {
-  try {
-    const smsOn = await isSmsEnabledForSchool(_schoolId);
-    if (!smsOn) return;
-    const app = _studentMap[studentId];
-    if (!app) return;
-    const phone = normalizeGhanaPhone(app.parent_contact);
-    if (!phone) return;
-    const adminPhone = await getAdminContactForSchool(_schoolId);
-    const school = String(_schoolName || 'School').trim().slice(0, 45);
-    const student = fullName(app);
-    let msg = `${school}: Transport fee received GHC${formatCurrency(amount)} for ${student}${routeName ? ' (' + routeName + ')' : ''} on ${date}. Thank you.`;
-    msg += buildAssistanceLine(adminPhone);
-    await fetch('/api/send-sms', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone, message: msg }),
-    });
-  } catch (err) {
-    console.warn('[Transport] SMS notification failed:', err.message);
-  }
-}
 // ================================================================
 // TAB 2 — Routes & Fees (bus destinations with their own fee)
 // ================================================================
