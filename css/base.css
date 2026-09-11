@@ -548,6 +548,18 @@ input, textarea, select, [contenteditable="true"] {
     display: block;
   }
 
+  /* Tiny caption under each chip so the categories are instantly
+     identifiable (Home · Academic · Finance · Others). */
+  .admin-dock-item-label {
+    max-width: 68px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.58rem;
+    line-height: 1.1;
+    color: var(--text-muted);
+  }
+
   /* Active chip: gradient pill + pop up, like a modern app dock. */
   .mobile-admin-dock-item.active {
     color: #fff;
@@ -557,6 +569,10 @@ input, textarea, select, [contenteditable="true"] {
     background: var(--primary-gradient);
     transform: translateY(-2px) scale(1.12);
     box-shadow: 0 8px 18px rgba(99, 102, 241, 0.28);
+  }
+
+  .mobile-admin-dock-item.active .admin-dock-item-label {
+    color: #fff;
   }
 
   .mobile-admin-dock-item:active .bottom-nav-icon {

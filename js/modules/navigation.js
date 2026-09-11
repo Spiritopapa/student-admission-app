@@ -494,7 +494,7 @@ function buildAdminModuleDock(bottomNav) {
     btn.dataset.dockCategory = cat.key;
     btn.setAttribute('aria-label', `${cat.label} menu`);
     btn.setAttribute('title', cat.label);
-    btn.innerHTML = `<span class="bottom-nav-icon">${svgIcon(cat.icon)}</span>`;
+    btn.innerHTML = `<span class="bottom-nav-icon">${svgIcon(cat.icon)}</span><span class="admin-dock-item-label">${cat.label}</span>`;
     // Open the sheet on the FIRST tap. Some mobile browsers / the Android
     // WebView consume the synthesized `click` (tap-highlight, focus,
     // double-tap detection), which made the chips feel like they needed two
@@ -611,7 +611,7 @@ function renderAdminDockSheet(key) {
     );
   }).join('');
 }
-/** Clicking a module chip navigates via the real sidebar button, or logs out. */
+/** Clicking a module chip opens the module (or logs out) on the FIRST tap. */
 function handleAdminDockModuleClick(e) {
   const btn = e.target.closest('.admin-dock-module');
   if (!btn) return;
@@ -628,9 +628,32 @@ function handleAdminDockModuleClick(e) {
     return;
   }
   if (!page) return;
+  openAdminModuleFromDock(page);
+}
+
+/**
+ * Opens an admin module straight from the dock.
+ *
+ * We deliberately do NOT simulate a click on the sidebar button here: the
+ * sidebar drawer's "two-tap module selector" intercepts the FIRST synthetic
+ * click (capture phase) to show a zoom preview, so tapping a module icon
+ * felt like it needed two taps. Calling loadAdminSubPage directly opens the
+ * module on the very first tap while keeping the same sidebar highlight,
+ * lock checks and page loading as the sidebar button.
+ */
+function openAdminModuleFromDock(page) {
   closeAdminDockSheet();
-  const sidebarBtn = document.querySelector(`#adminSidebar .dash-nav-link[data-admin-page="${page}"]`);
-  if (sidebarBtn) sidebarBtn.click();
+  // Drop any leftover "tap-zoom" preview so drawer taps stay normal.
+  clearMobileModuleZoom();
+  // Mirror what the sidebar button click does: highlight it first.
+  const dashBtn = document.querySelector(`#adminSidebar .dash-nav-link[data-admin-page="${page}"]`);
+  if (dashBtn) {
+    document.querySelectorAll('#adminSidebar .dash-nav-link').forEach((b) => b.classList.remove('active'));
+    dashBtn.classList.add('active');
+  }
+  if (typeof window.loadAdminSubPage === 'function') {
+    window.loadAdminSubPage(page);
+  }
   syncAdminDockCategory();
 }
 
