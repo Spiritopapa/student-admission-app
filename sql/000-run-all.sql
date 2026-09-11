@@ -487,6 +487,17 @@
 -- data and the Enroll Students UI disables already-assigned students.
 -- Used by: js/modules/admin-transport.js (Enroll Students tab).
 \i 066-transport-one-route-per-student.sql
+
+-- Step 60: Payment Date Selector for Fee Payments
+-- Adds an optional p_payment_date parameter to process_fee_payment()
+-- so admins/accountants can record a fee payment under the date it was
+-- actually received (e.g. backdated cash receipts) instead of always
+-- stamping now(). When omitted, now() is used (previous behaviour) and
+-- the payment_transactions.payment_date, receipts.receipt_date and
+-- fees.last_payment_date all receive the selected date.
+-- Used by: js/modules/admin-fees.js (Fees Management → Record Payment)
+--          and js/modules/accountant-dashboard.js (Fees Management).
+\i 067-payment-date-selector.sql
 -- ============================================================
 --  SCHEMA DEPLOYMENT COMPLETE
 -- ============================================================

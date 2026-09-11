@@ -718,6 +718,9 @@ async function loadAccountantFeesPage() {
           <div class="form-group"><label>Payment Method</label><select id="accPayMethod"><option value="cash">Cash</option><option value="mobile_money">Mobile Money</option><option value="bank_transfer">Bank Transfer</option><option value="cheque">Cheque</option><option value="other">Other</option></select></div>
         </div>
         <div class="form-row">
+          <div class="form-group"><label>Payment Date</label><input type="date" id="accPayDate" value="${new Date().toISOString().slice(0, 10)}" title="Date the payment was received. Defaults to today." /></div>
+        </div>
+        <div class="form-row">
           <div class="form-group"><label>Reference Number</label><input type="text" id="accPayRef" placeholder="Optional: receipt/transaction ref" /></div>
           <div class="form-group"><label>Notes</label><input type="text" id="accPayNotes" placeholder="Optional notes" /></div>
         </div>
@@ -1002,6 +1005,7 @@ async function processAccPayment() {
 
   const academicYear = getEl('accPayAcademicYear').value.trim();
   const term = getEl('accPayTerm').value;
+  const payDate = getEl('accPayDate').value;
   if (!academicYear || !term) { showMessage('accPayMessage', 'Academic year and term are required.', 'error'); return; }
 
   const schoolId = await _getSchoolId();
@@ -1075,11 +1079,12 @@ async function processAccPayment() {
       p_notes: getEl('accPayNotes').value.trim() || null,
       p_recorded_by: user?.id || null,
       p_school_id: schoolId,
+      p_payment_date: payDate ? new Date(payDate + 'T12:00:00').toISOString() : null,
     });
     if (error) throw error;
     if (!data.success) { showMessage('accPayMessage', 'Error: ' + (data.error || 'Failed'), 'error'); return; }
 
-    showMessage('accPayMessage', `Paid! Receipt: ${data.receipt_number}`, 'success');
+    showMessage('accPayMessage', `Paid! Receipt: ${data.receipt_number}\nPayment Date: ${formatDate(payDate ? new Date(payDate + 'T12:00:00').toISOString() : new Date().toISOString())}`, 'success');
     try { await logStaffActivity(`Recorded fee payment of GHC ${formatCurrency(amount)} for ${studentId} (Receipt: ${data.receipt_number})`, { role: 'accountant', entityType: 'payment', entityDetails: `${studentId} · ${term} Term ${academicYear} · GHC ${formatCurrency(amount)}` }); } catch (e) { console.warn(e); }
     // Notify the parent via SMS as soon as the payment is recorded
     sendFeePaymentSms({

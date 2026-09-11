@@ -53,6 +53,10 @@ export function setupFeesListeners() {
   // Record payment
   getEl('feeRecordPaymentBtn')?.addEventListener('click', recordPayment);
 
+  // Default the payment date to today (can be changed to backdate receipts)
+  const feePayDateEl = getEl('feePayDate');
+  if (feePayDateEl && !feePayDateEl.value) feePayDateEl.value = new Date().toISOString().slice(0, 10);
+
   // Load student info when student ID entered for payment
   getEl('feePaymentStudentId')?.addEventListener('change', loadStudentFeeInfo);
   getEl('feePaymentStudentId')?.addEventListener('keyup', (e) => {
@@ -988,6 +992,7 @@ async function recordPayment() {
   const method = getEl('feePayMethod').value;
   const reference = getEl('feePayReference').value.trim() || null;
   const notes = getEl('feePayNotes').value.trim() || null;
+  const payDate = getEl('feePayDate').value;
 
   if (!studentId) { showMessage('feePaymentMessage', 'Enter a student ID.', 'error'); return; }
   if (!amount || amount <= 0) { showMessage('feePaymentMessage', 'Enter a valid amount.', 'error'); return; }
@@ -1071,6 +1076,7 @@ async function recordPayment() {
       p_notes: notes,
       p_recorded_by: user?.id || null,
       p_school_id: schoolId,
+      p_payment_date: payDate ? new Date(payDate + 'T12:00:00').toISOString() : null,
     });
 
     if (error) throw error;
@@ -1101,7 +1107,8 @@ async function recordPayment() {
       }
     }
 
-    let successMsg = `Payment recorded successfully!\nReceipt: ${data.receipt_number}\nAmount: GHC ${formatCurrency(data.amount_paid)}\nStatus: ${data.payment_status}`;
+    const effectivePayDate = payDate ? new Date(payDate + 'T12:00:00').toISOString() : new Date().toISOString();
+    let successMsg = `Payment recorded successfully!\nReceipt: ${data.receipt_number}\nAmount: GHC ${formatCurrency(data.amount_paid)}\nPayment Date: ${formatDate(effectivePayDate)}\nStatus: ${data.payment_status}`;
 
     showMessage('feePaymentMessage', successMsg, 'success');
     logSubAdminActivity(`Recorded payment of GHC ${amount} for ${studentId} (Receipt: ${data.receipt_number})`, 'payment', `${studentId} - ${data.student_name}`);
