@@ -398,11 +398,21 @@ function setupMobileBottomNav() {
     bottomNav.appendChild(btn);
   });
 
+  // Mobile admin module dock — icon-only category launcher (replaces the
+  // generic items while an admin / sub-admin is signed in).
+  buildAdminModuleDock(bottomNav);
+
   document.body.appendChild(bottomNav);
   document.body.classList.add('has-bottom-nav');
 
   // Update active state based on current page
   const updateBottomNavActive = (pageId) => {
+    if (adminDockModeActive) {
+      // Admin dock: keep the active category pill in sync with the module
+      // currently open in the sidebar (dashboard home → Home chip).
+      syncAdminDockCategory();
+      return;
+    }
     bottomNav.querySelectorAll('.mobile-bottom-nav-item').forEach((item) => {
       item.classList.toggle('active', item.dataset.action === 'home' && isDashboardPage(pageId));
     });
@@ -421,6 +431,229 @@ function setupMobileBottomNav() {
   // Hide by default until login
   setBottomNavVisible(false);
 }
+// ================================================================
+// Admin Module Dock — mobile category launcher (icon-only)
+// Re-categorises the admin modules into four groups (home, academic,
+// finance, others) shown as modern icon chips on the fixed bottom dock.
+// Tapping a category slides a glassy sheet of module icons up above the
+// dock with a spring transition; tapping a module opens it through the
+// real sidebar button so module locks, active states and page loading
+// stay perfectly in sync with the desktop sidebar.
+// ================================================================
+
+const ADMIN_MODULE_CATEGORIES = [
+  {
+    key: 'home', label: 'Home', icon: 'home',
+    modules: [
+      { page: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
+      { page: 'admit', label: 'Admit Student', icon: 'user-plus' },
+      { action: 'logout', label: 'Log Out', icon: 'logout' },
+    ],
+  },
+  {
+    key: 'academic', label: 'Academic', icon: 'book',
+    modules: [
+      { page: 'students', label: 'Students', icon: 'users' },
+      { page: 'classes', label: 'Class', icon: 'school' },
+      { page: 'subjects', label: 'Subjects', icon: 'book-open' },
+      { page: 'exams', label: 'Exams', icon: 'file-text' },
+      { page: 'assessments', label: 'Assessment', icon: 'clipboard-check' },
+      { page: 'announcements', label: 'Announcement', icon: 'megaphone' },
+      { page: 'teachers', label: 'Add Staff', icon: 'users' },
+      { page: 'accountants', label: 'Add Accountant', icon: 'receipt' },
+      { page: 'parents', label: 'Parent', icon: 'parents' },
+      { page: 'grading', label: 'Grading System', icon: 'chart' },
+    ],
+  },
+  {
+    key: 'finance', label: 'Finance', icon: 'coins',
+    modules: [
+      { page: 'fees', label: 'Fees Management', icon: 'coins' },
+      { page: 'transport', label: 'Transport', icon: 'bus' },
+      { page: 'income-expenses', label: 'Income & Expenditure', icon: 'trending-up' },
+    ],
+  },
+  {
+    key: 'others', label: 'Others', icon: 'menu',
+    modules: [
+      { page: 'sms-monitoring', label: 'SMS Monitoring', icon: 'message-square' },
+      { page: 'settings', label: 'Settings', icon: 'settings' },
+      { page: 'profile', label: 'Change Password', icon: 'key' },
+    ],
+  },
+];
+
+let adminDockModeActive = false;
+let adminDockOpenCategory = null;
+/** Builds the icon-only category dock, the slide-up sheet and its backdrop. */
+function buildAdminModuleDock(bottomNav) {
+  ADMIN_MODULE_CATEGORIES.forEach((cat) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'mobile-admin-dock-item';
+    btn.dataset.dockCategory = cat.key;
+    btn.setAttribute('aria-label', `${cat.label} menu`);
+    btn.setAttribute('title', cat.label);
+    btn.innerHTML = `<span class="bottom-nav-icon">${svgIcon(cat.icon)}</span>`;
+    btn.addEventListener('click', () => toggleAdminDockCategory(cat.key));
+    bottomNav.appendChild(btn);
+  });
+
+  const sheet = document.createElement('div');
+  sheet.className = 'mobile-admin-dock-sheet';
+  sheet.setAttribute('role', 'dialog');
+  sheet.setAttribute('aria-label', 'Admin modules menu');
+  sheet.innerHTML =
+    '<div class="admin-dock-sheet-header">' +
+      '<span class="admin-dock-sheet-title" id="adminDockSheetTitle"></span>' +
+      '<button type="button" class="admin-dock-sheet-close" aria-label="Close menu">' + svgIcon('x') + '</button>' +
+    '</div>' +
+    '<div class="admin-dock-sheet-grid" id="adminDockSheetGrid"></div>';
+  sheet.querySelector('.admin-dock-sheet-close').addEventListener('click', closeAdminDockSheet);
+  sheet.querySelector('.admin-dock-sheet-grid').addEventListener('click', handleAdminDockModuleClick);
+  document.body.appendChild(sheet);
+  window.__adminDockSheet = sheet;
+
+  const backdrop = document.createElement('div');
+  backdrop.className = 'admin-dock-backdrop';
+  backdrop.addEventListener('click', closeAdminDockSheet);
+  document.body.appendChild(backdrop);
+  window.__adminDockBackdrop = backdrop;
+
+  positionAdminDockSheet();
+}
+
+/** Anchors the sheet just above the dock and keeps it off-screen when closed. */
+function positionAdminDockSheet() {
+  const sheet = window.__adminDockSheet;
+  const bottomNav = document.querySelector('.mobile-bottom-nav');
+  if (!sheet || !bottomNav) return;
+  const off = bottomNav.offsetHeight;
+  sheet.style.bottom = `${off}px`;
+  sheet.style.setProperty('--dock-hide-offset', `${off}px`);
+}
+
+function toggleAdminDockCategory(key) {
+  const sheet = window.__adminDockSheet;
+  if (!sheet) return;
+  if (sheet.classList.contains('open') && adminDockOpenCategory === key) {
+    closeAdminDockSheet();
+    return;
+  }
+  renderAdminDockSheet(key);
+  adminDockOpenCategory = key;
+  positionAdminDockSheet();
+  sheet.classList.add('open');
+  if (window.__adminDockBackdrop) window.__adminDockBackdrop.classList.add('active');
+  syncAdminDockCategory();
+}
+
+function closeAdminDockSheet() {
+  const sheet = window.__adminDockSheet;
+  if (sheet) sheet.classList.remove('open');
+  if (window.__adminDockBackdrop) window.__adminDockBackdrop.classList.remove('active');
+  adminDockOpenCategory = null;
+}
+
+/** Fills the sheet with the category's module icon buttons (staggered pop-in). */
+function renderAdminDockSheet(key) {
+  const cat = ADMIN_MODULE_CATEGORIES.find((c) => c.key === key);
+  const sheet = window.__adminDockSheet;
+  if (!cat || !sheet) return;
+  const titleEl = sheet.querySelector('.admin-dock-sheet-title');
+  const grid = sheet.querySelector('.admin-dock-sheet-grid');
+  if (titleEl) titleEl.innerHTML = `${svgIcon(cat.icon)}${cat.label}`;
+
+  const visible = cat.modules.filter((mod) => {
+    if (mod.action) return true;
+    const sidebarBtn = document.querySelector(`#adminSidebar .dash-nav-link[data-admin-page="${mod.page}"]`);
+    return !sidebarBtn || sidebarBtn.style.display !== 'none';
+  });
+
+  if (!visible.length) {
+    grid.innerHTML = `<div class="admin-dock-sheet-empty">All ${cat.label.toLowerCase()} modules are locked.</div>`;
+    return;
+  }
+
+  grid.innerHTML = visible.map((mod, i) => {
+    const pageAttr = mod.page ? ` data-admin-page="${mod.page}"` : '';
+    const actionAttr = mod.action ? ` data-dock-action="${mod.action}"` : '';
+    const delay = Math.min(i * 42, 380);
+    return (
+      `<button type="button" class="admin-dock-module"${pageAttr}${actionAttr} style="animation-delay:${delay}ms">` +
+        `<span class="admin-dock-module-icon">${svgIcon(mod.icon)}</span>` +
+        `<span class="admin-dock-module-label">${mod.label}</span>` +
+      `</button>`
+    );
+  }).join('');
+}
+/** Clicking a module chip navigates via the real sidebar button, or logs out. */
+function handleAdminDockModuleClick(e) {
+  const btn = e.target.closest('.admin-dock-module');
+  if (!btn) return;
+  e.preventDefault();
+  const action = btn.getAttribute('data-dock-action');
+  const page = btn.getAttribute('data-admin-page');
+  if (action === 'logout') {
+    closeAdminDockSheet();
+    if (typeof window.handleLogout === 'function') {
+      window.handleLogout();
+    } else {
+      import('./auth.js').then((m) => { if (m.handleLogout) m.handleLogout(); });
+    }
+    return;
+  }
+  if (!page) return;
+  closeAdminDockSheet();
+  const sidebarBtn = document.querySelector(`#adminSidebar .dash-nav-link[data-admin-page="${page}"]`);
+  if (sidebarBtn) sidebarBtn.click();
+  syncAdminDockCategory();
+}
+
+/** Highlights the dock category that contains the currently active admin module. */
+function syncAdminDockCategory() {
+  if (!adminDockModeActive) return;
+  const activeSidebarBtn = document.querySelector('#adminSidebar .dash-nav-link.active[data-admin-page]');
+  const activePage = activeSidebarBtn ? activeSidebarBtn.getAttribute('data-admin-page') : 'dashboard';
+  let key = 'home';
+  if (activePage && activePage !== 'dashboard') {
+    const cat = ADMIN_MODULE_CATEGORIES.find((c) => c.modules.some((mod) => mod.page === activePage));
+    if (cat) key = cat.key;
+  }
+  document.querySelectorAll('.mobile-admin-dock-item').forEach((item) => {
+    item.classList.toggle('active', item.dataset.dockCategory === key);
+  });
+}
+
+/** Hides dock chips whose module is locked in the real sidebar. */
+function refreshAdminDockLocks() {
+  document.querySelectorAll('.admin-dock-module[data-admin-page]').forEach((btn) => {
+    const page = btn.getAttribute('data-admin-page');
+    const sidebarBtn = document.querySelector(`#adminSidebar .dash-nav-link[data-admin-page="${page}"]`);
+    btn.classList.toggle('is-locked', !!sidebarBtn && sidebarBtn.style.display === 'none');
+  });
+  if (adminDockOpenCategory) renderAdminDockSheet(adminDockOpenCategory);
+}
+
+/** Switches the bottom dock between the generic items and the admin category dock. */
+function setAdminDockMode(isAdmin) {
+  const bottomNav = document.querySelector('.mobile-bottom-nav');
+  adminDockModeActive = !!isAdmin;
+  if (!bottomNav) return;
+  bottomNav.classList.toggle('admin-dock-mode', adminDockModeActive);
+  if (!adminDockModeActive) {
+    closeAdminDockSheet();
+    document.querySelectorAll('.mobile-admin-dock-item').forEach((item) => item.classList.remove('active'));
+  } else {
+    syncAdminDockCategory();
+  }
+}
+
+// Exposed so auth.js can flip the dock after login/logout, app.js can sync
+// locked modules, and sidebar navigation can keep the active category in sync.
+window.__setAdminDockActive = setAdminDockMode;
+window.__refreshAdminDock = refreshAdminDockLocks;
+window.__syncAdminDockCategory = syncAdminDockCategory;
 
 /**
  * Toggle the bottom nav between expanded and collapsed states.
@@ -431,6 +664,8 @@ function toggleBottomNavCollapse() {
   if (!bottomNav) return;
   const isCollapsed = bottomNav.classList.toggle('collapsed');
   document.body.classList.toggle('bottom-nav-collapsed', isCollapsed);
+  // If the admin sheet is open, tuck it away with the dock.
+  if (isCollapsed) closeAdminDockSheet();
   const collapseBtn = bottomNav.querySelector('.bottom-nav-collapse-btn');
   if (collapseBtn) {
     collapseBtn.innerHTML = isCollapsed ? '▴' : '▾';

@@ -279,6 +279,9 @@ function setupAdminSidebar() {
       document.querySelectorAll('#adminSidebar .dash-nav-link').forEach((b) => b.classList.remove('active'));
       btn.classList.add('active');
       loadAdminSubPage(page);
+      // Keep the mobile admin dock's active category pill in sync when
+      // modules are opened through the sidebar drawer instead of the dock.
+      if (window.__syncAdminDockCategory) window.__syncAdminDockCategory();
     });
   });
   
@@ -337,6 +340,9 @@ async function filterAdminSidebarByLockedModules() {
         pageEl.style.display = 'none';
       }
     });
+
+    // Keep the mobile admin dock's module chips in sync with these locks.
+    if (window.__refreshAdminDock) window.__refreshAdminDock();
   } catch (err) {
     console.warn('Failed to filter sidebar by locked modules:', err);
     // Non-critical, silently fail

@@ -101,6 +101,12 @@ export function updateUIForAuth(user, profile) {
   if (window.__setBottomNavVisible) {
     window.__setBottomNavVisible(!!user);
   }
+
+  // Admins / sub-admins get the icon-only category dock on mobile
+  // (Home · Academic · Finance · Others) instead of the generic items.
+  if (window.__setAdminDockActive) {
+    window.__setAdminDockActive(!!user && (role === 'admin' || role === 'sub_admin'));
+  }
 }
 
 // ================================================================
