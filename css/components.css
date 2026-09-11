@@ -79,7 +79,8 @@ legend {
   margin-bottom: 0.3rem; color: var(--text);
   letter-spacing: 0.2px;
 }
-.form-group input, .form-group select, .form-group textarea {
+.form-group input:not([type="checkbox"]):not([type="radio"]),
+.form-group select, .form-group textarea {
   width: 100%; padding: 0.7rem 0.85rem;
   border: 1px solid var(--border); border-radius: var(--radius-sm);
   font-size: 1rem; font-family: inherit;
@@ -87,6 +88,29 @@ legend {
   transition: var(--transition);
   -webkit-appearance: none;
   appearance: none;
+}
+/* Keep native checkboxes/radios inside form groups. With `appearance: none`
+   and no custom replacement they lose their border + checkmark and render as
+   blank/invisible boxes (worst on iOS WebKit), so keep the browser default
+   widget with natural sizing. */
+.form-group input[type="checkbox"],
+.form-group input[type="radio"] {
+  width: auto;
+  height: auto;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: transparent;
+  -webkit-appearance: auto;
+  appearance: auto;
+}
+.form-group input[type="checkbox"] {
+  -webkit-appearance: checkbox;
+  appearance: checkbox;
+}
+.form-group input[type="radio"] {
+  -webkit-appearance: radio;
+  appearance: radio;
 }
 .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
   outline: none;

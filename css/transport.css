@@ -369,6 +369,28 @@
   flex: 0 0 auto;
 }
 
+/* iOS WKWebView / Safari safety net: force the NATIVE checkbox widget so the
+   per-student selection boxes are always visible and tappable on iPhone/iPad.
+   A stripped appearance (`appearance: none`) with no custom replacement makes
+   WebKit render checkboxes INVISIBLE — the exact bug where Transport student
+   checkboxes showed on Android but not on iOS. */
+.tr-enroll-student-item input[type="checkbox"].tr-enroll-check,
+.tr-enroll-toolbar input[type="checkbox"],
+#trRouteActive {
+  -webkit-appearance: checkbox;
+  appearance: auto;
+}
+
+#trEnrollCheckAll {
+  width: 16px;
+  height: 16px;
+}
+
+#trRouteActive {
+  width: 16px;
+  height: 16px;
+}
+
 .tr-enroll-student-item .tr-student-name {
   flex: 1;
   min-width: 0;

@@ -501,10 +501,31 @@ input, textarea, select, [contenteditable="true"] {
   body {
     -webkit-touch-callout: none;
   }
-  input, textarea, select {
+  input:not([type="checkbox"]):not([type="radio"]),
+  textarea,
+  select {
     -webkit-appearance: none;
     appearance: none;
     border-radius: 0;
+  }
+  /* iOS WKWebView / Safari: NEVER strip the native look of checkboxes and
+     radios here. `appearance: none` on a checkbox without a custom
+     replacement (background/border/checkmark) makes WebKit render it
+     INVISIBLE — e.g. the Transport "Enroll Students" per-student checkboxes
+     disappeared on iOS while Android (which skips this @supports block)
+     still showed them. */
+  input[type="checkbox"],
+  input[type="radio"] {
+    -webkit-appearance: auto;
+    appearance: auto;
+  }
+  input[type="checkbox"] {
+    -webkit-appearance: checkbox;
+    appearance: checkbox;
+  }
+  input[type="radio"] {
+    -webkit-appearance: radio;
+    appearance: radio;
   }
   .dash-sidebar {
     -webkit-overflow-scrolling: touch;
