@@ -641,10 +641,14 @@
           </div>
         </aside>
         <div class="dash-main admin-main">
-          <div class="dash-welcome-card">
-            <div class="dash-welcome-icon"></div>
-            <div class="dash-welcome-text"><h3 id="adminWelcome">Welcome back!</h3><p>Manage all student admissions, classes, and more.</p></div>
-            <button type="button"
+          <!-- School Name Banner - Shows on all admin pages -->
+          <div class="school-banner" id="adminSchoolBanner">
+            <div class="school-banner-icon"></div>
+            <div class="school-banner-info">
+              <span class="school-banner-name" id="adminSchoolBannerName">My School</span>
+              <span class="school-banner-subtitle">Administrator Dashboard</span>
+            </div>
+            <button type="button" style="margin-left:auto;flex-shrink:0;"
                class="email-admin-btn report-issue-btn"
                title="Report a bug or send suggestions about the app. Reports are reviewed on the Super Admin dashboard."
                aria-label="Report a bug or suggestion about the app">
@@ -655,14 +659,6 @@
               </svg>
               <span>Report Bug or Suggestion</span>
             </button>
-          </div>
-          <!-- School Name Banner - Shows on all admin pages -->
-          <div class="school-banner" id="adminSchoolBanner">
-            <div class="school-banner-icon"></div>
-            <div class="school-banner-info">
-              <span class="school-banner-name" id="adminSchoolBannerName">My School</span>
-              <span class="school-banner-subtitle">Administrator Dashboard</span>
-            </div>
           </div>
           <!-- Trial Version Countdown Banner (only visible while the school is on TRIAL) -->
           <div id="adminTrialBanner" style="display:none;margin-top:0.85rem;padding:0.85rem 1rem;border:1px solid #fde68a;border-radius:12px;background:linear-gradient(135deg,#fffbeb,#fef3c7);flex-wrap:wrap;gap:0.85rem;align-items:center;justify-content:space-between;">

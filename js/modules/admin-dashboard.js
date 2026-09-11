@@ -289,11 +289,6 @@ function propagateSchoolName() {
   if (sidebarSchoolName) sidebarSchoolName.textContent = schoolName;
   const bannerName = document.getElementById('adminSchoolBannerName');
   if (bannerName) bannerName.textContent = schoolName;
-  const adminWelcome = document.getElementById('adminWelcome');
-  if (adminWelcome) {
-    // Make the school name BOLD and prominent on the admin dashboard
-    adminWelcome.innerHTML = `<span style="display:inline-flex;align-items:center;gap:0.5rem;">${svgIcon('school')}<span style="font-size:1.6rem;font-weight:800;color:var(--primary-dark);letter-spacing:0.5px;">${schoolName}</span></span>`;
-  }
   document.title = `Admission Portal - ${schoolName}`;
   document.querySelectorAll('.school-name-display').forEach(el => {
     el.textContent = schoolName;
