@@ -8,6 +8,16 @@ import { getEl, showMessage, clearMessage, setLoading, getCurrentSchoolId, forma
 import { sendFeePaymentSms } from './sms-gateway.js';
 import { buildFeeClassChartHtml, animateFeeClassChart, formatPct } from './fee-class-chart.js';
 
+/** Escape a value for safe injection into innerHTML templates. */
+function esc(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/'/g, '&#39;');
+}
+
 // ================================================================
 // HELPER: Check if student has unpaid balance from previous terms
 // ================================================================
@@ -702,9 +712,9 @@ async function loadAccountantFeesPage() {
       </div>
     </div>
     <div id="accFeeTab-payment" class="acc-fee-content" style="display:none;">
-      <p class="subtitle">Enter student ID to load their fee information and record a payment. A receipt will be automatically generated.</p>
+      <p class="subtitle">Search by student ID or name to load their fee information and record a payment. A receipt will be automatically generated.</p>
       <div class="form-row" style="max-width:600px;">
-        <div class="form-group"><label>Student ID *</label><input type="text" id="accFeeStudentId" placeholder="Enter student ID and press Enter" style="font-size:1rem;padding:0.6rem;" /></div>
+        <div class="form-group"><label>Student ID or Name *</label><input type="text" id="accFeeStudentId" placeholder="Search by student ID or name, press Enter" style="font-size:1rem;padding:0.6rem;" /></div>
       </div>
       <div id="accFeeStudentInfo" style="margin:1rem 0;"><div style="text-align:center;padding:1rem;color:var(--text-muted);">Enter a student ID to begin.</div></div>
       <div class="acc-card" style="max-width:600px;">
@@ -877,18 +887,62 @@ window.accRecordPayment = async function(studentId) {
 };
 
 async function loadAccFeeStudentInfo() {
-  const studentId = getEl('accFeeStudentId').value.trim();
-  if (!studentId) return;
+  const raw = getEl('accFeeStudentId').value.trim();
+  if (!raw) return;
 
   const infoEl = getEl('accFeeStudentInfo');
   infoEl.innerHTML = '<div style="text-align:center;padding:1rem;color:var(--text-muted);">Loading...</div>';
 
-  const { data: student } = await supabaseClient.from('applications')
-    .select('*').eq('student_id', studentId).maybeSingle();
+  // Exact student_id match first (fast path — also set by the Student Fees
+  // tab "Pay" button and the name-search picker below).
+  let { data: student } = await supabaseClient.from('applications')
+    .select('*').eq('student_id', raw).maybeSingle();
+
+  // If no exact ID match, search by NAME or partial ID.
   if (!student) {
-    infoEl.innerHTML = '<div style="text-align:center;padding:1rem;color:var(--danger);">Student not found</div>';
-    return;
+    const schoolId = await _getSchoolId();
+    let appQuery = supabaseClient.from('applications')
+      .select('student_id, first_name, middle_name, last_name, class_applying');
+    if (schoolId) appQuery = appQuery.eq('school_id', schoolId);
+    const { data: apps } = await appQuery;
+
+    const term = raw.toLowerCase();
+    const matches = (apps || []).filter(a => {
+      const name = `${a.first_name || ''} ${a.middle_name || ''} ${a.last_name || ''}`.toLowerCase();
+      return name.includes(term) || (a.student_id || '').toLowerCase().includes(term);
+    });
+
+    if (matches.length === 0) {
+      infoEl.innerHTML = '<div style="text-align:center;padding:1rem;color:var(--danger);">Student not found. Check the ID or the name.</div>';
+      return;
+    }
+
+    if (matches.length === 1) {
+      student = matches[0];
+      getEl('accFeeStudentId').value = student.student_id;
+    } else {
+      const top = matches.slice(0, 15);
+      const picker = `
+        <div style="padding:1rem;">
+          <div style="margin:0 0 0.75rem 0;font-size:0.9rem;color:var(--text-muted);">
+            <strong>${matches.length} students</strong> match "${esc(raw)}". Select one to record a payment:
+          </div>
+          <div style="display:flex;flex-direction:column;gap:0.45rem;max-height:320px;overflow-y:auto;">
+            ${top.map(s => {
+              const nm = `${s.first_name || ''} ${s.middle_name || ''} ${s.last_name || ''}`.replace(/\s+/g, ' ').trim();
+              return `<button type="button" class="btn btn-secondary" style="justify-content:flex-start;text-align:left;white-space:normal;" onclick="selectAccPayStudent('${esc(s.student_id)}')">
+                <strong>${esc(s.student_id)}</strong> — ${esc(nm)}${s.class_applying ? ` (${esc(s.class_applying)})` : ''}
+              </button>`;
+            }).join('')}
+            ${matches.length > 15 ? `<div style="text-align:center;font-size:0.85rem;color:var(--text-muted);">+ ${matches.length - 15} more — refine your search.</div>` : ''}
+          </div>
+        </div>`;
+      infoEl.innerHTML = picker;
+      return;
+    }
   }
+
+  const studentId = student.student_id;
 
   const { data: fees } = await supabaseClient.from('fees')
     .select('*').eq('student_id', studentId).order('academic_year').order('term');
@@ -991,6 +1045,12 @@ async function loadAccFeeStudentInfo() {
   html += statusHtml;
   infoEl.innerHTML = html;
 }
+
+// Called by the name-search picker to load the selected student's fee info.
+window.selectAccPayStudent = function(studentId) {
+  getEl('accFeeStudentId').value = studentId;
+  loadAccFeeStudentInfo();
+};
 
 // ================================================================
 // ACCOUNTANT PAYMENT PROCESSING (uses main form fields in payment tab)

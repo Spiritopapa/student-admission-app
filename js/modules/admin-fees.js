@@ -741,23 +741,65 @@ function filterFeeRecords() {
 // ================================================================
 
 async function loadStudentFeeInfo() {
-  const studentId = getEl('feePaymentStudentId').value.trim();
-  if (!studentId) return;
+  const raw = getEl('feePaymentStudentId').value.trim();
+  if (!raw) return;
 
   clearMessage('feePaymentMessage');
   const infoEl = getEl('feeStudentInfo');
   infoEl.innerHTML = '<div style="text-align:center;padding:1rem;color:var(--text-muted);">Loading...</div>';
 
-  // Get student
-  const { data: student } = await supabaseClient.from('applications')
+  // Exact student_id match first (fast path — also set by the Students tab
+  // "Pay" button and by the name-search picker below).
+  let { data: student } = await supabaseClient.from('applications')
     .select('*')
-    .eq('student_id', studentId)
+    .eq('student_id', raw)
     .maybeSingle();
 
+  // If no exact ID match, search by NAME or partial ID.
   if (!student) {
-    infoEl.innerHTML = '<div style="text-align:center;padding:1rem;color:var(--danger);">Student not found</div>';
-    return;
+    const schoolId = await getCurrentSchoolId();
+    let appQuery = supabaseClient.from('applications')
+      .select('student_id, first_name, middle_name, last_name, class_applying');
+    if (schoolId) appQuery = appQuery.eq('school_id', schoolId);
+    const { data: apps } = await appQuery;
+
+    const term = raw.toLowerCase();
+    const matches = (apps || []).filter(a => {
+      const name = `${a.first_name || ''} ${a.middle_name || ''} ${a.last_name || ''}`.toLowerCase();
+      return name.includes(term) || (a.student_id || '').toLowerCase().includes(term);
+    });
+
+    if (matches.length === 0) {
+      infoEl.innerHTML = '<div style="text-align:center;padding:1rem;color:var(--danger);">Student not found. Check the ID or the name.</div>';
+      return;
+    }
+
+    if (matches.length === 1) {
+      student = matches[0];
+      getEl('feePaymentStudentId').value = student.student_id;
+    } else {
+      const top = matches.slice(0, 15);
+      const picker = `
+        <div style="padding:1rem;">
+          <div style="margin:0 0 0.75rem 0;font-size:0.9rem;color:var(--text-muted);">
+            <strong>${matches.length} students</strong> match "${escapeAttr(raw)}". Select one to record a payment:
+          </div>
+          <div style="display:flex;flex-direction:column;gap:0.45rem;max-height:320px;overflow-y:auto;">
+            ${top.map(s => {
+              const nm = `${s.first_name || ''} ${s.middle_name || ''} ${s.last_name || ''}`.replace(/\s+/g, ' ').trim();
+              return `<button type="button" class="btn btn-secondary" style="justify-content:flex-start;text-align:left;white-space:normal;" onclick="selectFeePaymentStudent('${escapeAttr(s.student_id)}')">
+                <strong>${escapeAttr(s.student_id)}</strong> — ${escapeAttr(nm)}${s.class_applying ? ` (${escapeAttr(s.class_applying)})` : ''}
+              </button>`;
+            }).join('')}
+            ${matches.length > 15 ? `<div style="text-align:center;font-size:0.85rem;color:var(--text-muted);">+ ${matches.length - 15} more — refine your search.</div>` : ''}
+          </div>
+        </div>`;
+      infoEl.innerHTML = picker;
+      return;
+    }
   }
+
+  const studentId = student.student_id;
 
   // Get fee records
   const { data: fees } = await supabaseClient.from('fees')
@@ -982,6 +1024,12 @@ window.openFeePayment = async function(studentId) {
 
   getEl('feePaymentStudentId').value = studentId;
   await loadStudentFeeInfo();
+};
+
+// Called by the name-search picker to load the selected student's fee info.
+window.selectFeePaymentStudent = function(studentId) {
+  getEl('feePaymentStudentId').value = studentId;
+  loadStudentFeeInfo();
 };
 
 async function recordPayment() {
