@@ -91,7 +91,7 @@ export function setupFeesListeners() {
   });
 
   // Today's receipts
-  getEl('feeTodayReceipts')?.addEventListener('click', showTodayReceipts);
+  getEl('feeTodayReceipts')?.addEventListener('click', () => showTodayReceipts());
 
   // Bulk carry forward
   getEl('feeBulkCarryForward')?.addEventListener('click', bulkCarryForward);
@@ -2098,6 +2098,7 @@ window.printReceiptList = function() {
       <style>
         @media print {
           body { margin: 0; padding: 10px; }
+          .no-print { display: none; }
           table { page-break-inside: auto; }
           tr { page-break-inside: avoid; page-break-after: auto; }
           thead { display: table-header-group; }
@@ -2780,15 +2781,26 @@ window.printDebtorsList = async function() {
 // ================================================================
 
 /**
- * Shows a modal with all receipts created today and the total amount collected.
+ * Shows a modal with receipts for a selectable date range (defaults to today)
+ * and the total amount collected for that range. Date inputs at the top of the
+ * modal let the user view receipts by date — e.g. a previous day or backdated
+ * payments recorded with the payment date selector.
+ * @param {string} [fromDate] - Filter "from" date (YYYY-MM-DD).
+ * @param {string} [toDate]   - Filter "to" date (YYYY-MM-DD).
  */
-window.showTodayReceipts = async function() {
+window.showTodayReceipts = async function(fromDate, toDate) {
   const schoolId = await getCurrentSchoolId();
   
-  // Get today's date range (start of day to end of day)
+  // Resolve the filter range: explicit args > modal date inputs > today.
+  // (The click listener passes an Event object, so only accept strings.)
+  if (typeof fromDate !== 'string') fromDate = undefined;
+  if (typeof toDate !== 'string') toDate = undefined;
   const today = new Date();
-  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString();
-  const todayEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999).toISOString();
+  const todayInput = today.toISOString().slice(0, 10);
+  const fromDateEl = getEl('feeReceiptsFromDate');
+  const toDateEl = getEl('feeReceiptsToDate');
+  fromDate = fromDate || (fromDateEl ? fromDateEl.value : '') || todayInput;
+  toDate = toDate || (toDateEl ? toDateEl.value : '') || todayInput;
 
   // Get school name
   let schoolName = 'School';
@@ -2797,19 +2809,32 @@ window.showTodayReceipts = async function() {
     if (school) schoolName = school.name;
   }
 
-  // Query receipts created today
-  let query = supabaseClient.from('receipts')
-    .select('*')
-    .gte('created_at', todayStart)
-    .lte('created_at', todayEnd)
-    .order('created_at', { ascending: false });
+  // Query receipts for the selected date range. receipt_date is the date the
+  // payment was actually received, so backdated payments appear under their
+  // own date rather than the day they were recorded.
+  let rangeError = '';
+  let receipts = [];
+  if (fromDate > toDate) {
+    rangeError = '<div style="margin:0 0 12px 0;padding:0.75rem;background:#fee2e2;border:1px solid #ef4444;border-radius:6px;color:#991b1b;">The "From" date cannot be after the "To" date. Please adjust the date range and click View.</div>';
+  } else {
+    const fromStart = new Date(fromDate + 'T00:00:00').toISOString();
+    const toEnd = new Date(toDate + 'T23:59:59.999').toISOString();
 
-  if (schoolId) query = query.eq('school_id', schoolId);
+    let query = supabaseClient.from('receipts')
+      .select('*')
+      .gte('receipt_date', fromStart)
+      .lte('receipt_date', toEnd)
+      .order('receipt_date', { ascending: false })
+      .limit(2000);
 
-  const { data: receipts } = await query;
+    if (schoolId) query = query.eq('school_id', schoolId);
+
+    const { data: receiptData } = await query;
+    receipts = receiptData || [];
+  }
 
   // Get student names for all receipt student IDs
-  const studentIds = receipts ? [...new Set(receipts.map(r => r.student_id))] : [];
+  const studentIds = [...new Set(receipts.map(r => r.student_id))];
   const nameMap = {};
   if (studentIds.length > 0) {
     const { data: studentNames } = await supabaseClient.from('applications')
@@ -2822,21 +2847,33 @@ window.showTodayReceipts = async function() {
     }
   }
 
-  const todayFormatted = today.toLocaleDateString('en-GB', {
+  const fmtDate = (d) => new Date(d + 'T12:00:00').toLocaleDateString('en-GB', {
     day: 'numeric', month: 'long', year: 'numeric'
   });
+  const isRange = fromDate !== toDate;
+  const dateLabel = isRange ? `${fmtDate(fromDate)} - ${fmtDate(toDate)}` : fmtDate(fromDate);
 
-  const totalAmount = receipts ? receipts.reduce((sum, r) => sum + Number(r.amount), 0) : 0;
-  const receiptCount = receipts ? receipts.length : 0;
+  const totalAmount = receipts.reduce((sum, r) => sum + Number(r.amount), 0);
+  const receiptCount = receipts.length;
 
   // Build HTML
   let html = `
     <div style="font-family:Arial,sans-serif;padding:10px;">
       <div style="text-align:center;margin-bottom:15px;border-bottom:2px solid #1e3a5f;padding-bottom:10px;">
         <h2 style="margin:0;font-size:20px;color:#1e3a5f;">${schoolName}</h2>
-        <h3 style="margin:5px 0;font-size:16px;">TODAY'S RECEIPTS</h3>
-        <p style="margin:5px 0;font-size:13px;color:#555;">${todayFormatted}</p>
+        <h3 style="margin:5px 0;font-size:16px;">RECEIPTS</h3>
+        <p style="margin:5px 0;font-size:13px;color:#555;">${dateLabel}</p>
       </div>
+      <div class="no-print" style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center;margin:0 0 12px 0;padding:0.6rem 0.8rem;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;">
+        <span style="font-size:0.85rem;font-weight:600;color:#1d4ed8;">View receipts by date:</span>
+        <label style="font-size:0.8rem;margin:0;">From</label>
+        <input type="date" id="feeReceiptsFromDate" value="${fromDate}" style="max-width:160px;" />
+        <label style="font-size:0.8rem;margin:0;">To</label>
+        <input type="date" id="feeReceiptsToDate" value="${toDate}" style="max-width:160px;" />
+        <button type="button" class="btn btn-sm btn-primary" onclick="showTodayReceipts()" style="margin:0;">View</button>
+        <button type="button" class="btn btn-sm btn-secondary" onclick="showTodayReceipts('${todayInput}','${todayInput}')" style="margin:0;" title="Show receipts for today">Today</button>
+      </div>
+      ${rangeError}
       <div style="display:flex;gap:1rem;margin-bottom:15px;flex-wrap:wrap;">
         <div style="flex:1;padding:12px;background:#f0fdf4;border-radius:6px;text-align:center;border:1px solid #bbf7d0;">
           <div style="font-size:12px;color:#166534;">Total Receipts</div>
@@ -2849,7 +2886,7 @@ window.showTodayReceipts = async function() {
       </div>`;
 
   if (!receipts || receipts.length === 0) {
-    html += '<div style="text-align:center;padding:2rem;color:var(--text-muted);">No receipts recorded today.</div>';
+    html += '<div style="text-align:center;padding:2rem;color:var(--text-muted);">No receipts found for the selected date range.</div>';
   } else {
     html += `<div class="table-wrapper">
       <table class="app-table" style="font-size:12px;">
@@ -2874,7 +2911,7 @@ window.showTodayReceipts = async function() {
               ? `${studentInfo.first_name} ${studentInfo.middle_name || ''} ${studentInfo.last_name}`
               : r.student_id;
             const className = studentInfo.class_applying || '';
-            const time = new Date(r.created_at).toLocaleTimeString('en-GB', {
+            const time = new Date(r.receipt_date || r.created_at).toLocaleTimeString('en-GB', {
               hour: '2-digit', minute: '2-digit'
             });
             return `<tr>
@@ -2913,7 +2950,10 @@ window.showTodayReceipts = async function() {
   if (modal) {
     // Update modal title
     const title = modal.querySelector('.modal-header h3');
-    if (title) title.textContent = `Today's Receipts - ${todayFormatted}`;
+    const titleText = (fromDate === todayInput && toDate === todayInput)
+      ? `Today's Receipts - ${dateLabel}`
+      : `Receipts - ${dateLabel}`;
+    if (title) title.textContent = titleText;
     modal.style.display = 'flex';
   }
 };
