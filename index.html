@@ -607,8 +607,8 @@
             <span class="sidebar-school-name" id="sidebarSchoolName">My School</span>
             <span class="sidebar-school-sub">Administrator Portal</span>
           </div>
-          <div class="dash-profile">
-            <div class="dash-avatar"></div>
+          <div class="dash-profile" id="adminProfileButton" title="View / edit your administrator profile">
+            <div class="dash-avatar" title="View / edit your administrator profile"></div>
             <div class="dash-avatar-info">
               <span id="sidebarAdminName" class="dash-sidebar-name">Admin</span>
               <span class="dash-sidebar-role-badge">Administrator</span>
@@ -634,7 +634,7 @@
             <button type="button" class="dash-nav-link" data-admin-page="sms-monitoring">SMS Monitoring</button>
             <button type="button" class="dash-nav-link" data-admin-page="backup">Backup & Restore</button>
             <button type="button" class="dash-nav-link" data-admin-page="settings">Settings</button>
-            <button type="button" class="dash-nav-link" data-admin-page="profile">Change Password</button>
+            <button type="button" class="dash-nav-link" data-admin-page="profile">My Profile</button>
           </nav>
           <div class="sidebar-logout">
             <button type="button" class="dash-nav-link" onclick="handleLogout()">Logout</button>
@@ -2223,8 +2223,11 @@
 
     <!-- ==================== ADMIN PROFILE & PASSWORD CHANGE ==================== -->
     <section id="page-admin-profile" class="page">
-      <h2>Change Password</h2>
-      <p class="subtitle">Manage your administrator account password.</p>
+      <h2>My Profile</h2>
+      <p class="subtitle">View the details captured when your account was created and keep them up to date.</p>
+
+      <!-- Profile Overview (populated by js/modules/admin-dashboard.js) -->
+      <div id="adminProfilePageRoot" class="status-card" style="padding:1.5rem;max-width:680px;margin:0 auto 1.25rem;"></div>
 
       <!-- Change Password Section -->
       <div class="status-card" style="padding:1.5rem;max-width:600px;margin:0 auto;">

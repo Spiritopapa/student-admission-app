@@ -478,7 +478,7 @@ const ADMIN_MODULE_CATEGORIES = [
     modules: [
       { page: 'sms-monitoring', label: 'SMS Monitoring', icon: 'message-square' },
       { page: 'settings', label: 'Settings', icon: 'settings' },
-      { page: 'profile', label: 'Change Password', icon: 'key' },
+      { page: 'profile', label: 'My Profile', icon: 'user' },
     ],
   },
 ];

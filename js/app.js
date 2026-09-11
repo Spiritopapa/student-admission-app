@@ -10,7 +10,7 @@ import supabaseClient from './supabase-config.js';
 import { initAuth, setupRegisterStudentForm, setupRegisterParentForm, setupRegisterSchoolForm, setupRegisterTeacherForm, setupRegisterSubAdminForm, setupRegisterAccountantForm, setupRegisterSuperAdminForm, setupLoginForm, initSession, checkAndGuardSuperAdminRegistration } from './modules/auth.js';
 import { initNavigation } from './modules/navigation.js';
 import { initAdminStudents, setupAdmitForm, setupStudentSearchListeners, setupEditStudent, setupPrintClassList, setupPromoteClass, ensureAdmitClassDropdown, renderAdminSubStudentsTable, setupStudentCSVHandlers, loadAdmitFeeItems } from './modules/admin-students.js';
-import { initAdminDashboard, loadAdminDashboardHome, refreshDashboardData, cleanupDashboardRealtime, setupAdminPasswordChange } from './modules/admin-dashboard.js';
+import { initAdminDashboard, loadAdminDashboardHome, refreshDashboardData, cleanupDashboardRealtime, setupAdminPasswordChange, loadAdminProfilePage } from './modules/admin-dashboard.js';
 import { initAdminSearch, setupAdminSearch, refreshSearchCache } from './modules/admin-search.js';
 import { initAdminClasses, setupClassForm, renderClassesTable } from './modules/admin-classes.js';
 import { initAdminSubjects, setupSubjectForm, renderSubjectsTable } from './modules/admin-subjects.js';
@@ -372,7 +372,7 @@ const ADMIN_PAGE_ICONS = {
   'sms-monitoring': 'message-square',
   backup: 'archive',
   settings: 'settings',
-  profile: 'key',
+  profile: 'user',
 };
 
 async function loadAdminSubPage(page) {
@@ -439,7 +439,7 @@ async function loadAdminSubPage(page) {
     'sms-monitoring': { id: 'page-admin-sms-monitoring', title: 'SMS Monitoring' },
     backup: { id: 'page-admin-backup', title: 'Backup & Restore' },
     settings: { id: 'page-admin-settings', title: 'Settings' },
-    profile: { id: 'page-admin-profile', title: 'Change Password' },
+    profile: { id: 'page-admin-profile', title: 'My Profile' },
   };
   const targetPage = getEl(map[page]?.id);
   if (targetPage) targetPage.classList.add('active-page');
@@ -474,7 +474,7 @@ async function loadAdminSubPage(page) {
       await loadAdmitFeeItems();
       break;
     case 'settings': await loadSettingsPage(); break;
-    case 'profile': break; // Password change form is static HTML; no dynamic load needed
+    case 'profile': await loadAdminProfilePage(); break; // Full profile view + edit; the Change Password card is static HTML below
   }
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }

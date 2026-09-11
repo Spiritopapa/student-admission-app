@@ -602,11 +602,13 @@ legend {
   border-radius: var(--radius); margin-bottom: 0.75rem; border: 1px solid var(--glass-border);
 }
 
-/* ===== ADMIN PHOTO ZOOM (LIGHTBOX) ===== */
-/* The admin's sidebar photo is tappable — enlarge it into a lightbox. */
+/* ===== ADMIN PHOTO / PROFILE (LIGHTBOX + PROFILE MODAL) ===== */
+/* Tapping the admin's sidebar photo (or the empty avatar) opens the full
+   administrator profile (view + edit). The lightbox styles below are still
+   used by the profile's "View photo" button. */
 #adminSidebar .dash-avatar,
 #adminSidebar .dash-avatar img {
-  cursor: zoom-in;
+  cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
 #adminSidebar .dash-avatar img {
@@ -657,6 +659,40 @@ legend {
   .photo-zoom-card .modal-body img {
     max-height: 78vh;
   }
+}
+
+/* ===== ADMIN PROFILE (photo tap → profile modal + My Profile page) ===== */
+#adminSidebar .dash-profile {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.admin-profile-card { max-width: 640px; }
+.admin-profile-body { max-height: 80vh; overflow-y: auto; }
+.admin-profile-head {
+  display: flex; gap: 1rem; align-items: center;
+  padding-bottom: 1rem; border-bottom: 1px solid var(--glass-border);
+}
+.admin-profile-photo-wrap { flex-shrink: 0; text-align: center; }
+.admin-profile-photo {
+  display: block; width: 128px; height: 160px; object-fit: contain;
+  border-radius: 10px; border: 1px solid var(--glass-border);
+  background: #fff; box-shadow: var(--glass-shadow);
+}
+.admin-profile-photo-placeholder {
+  border: 2px dashed var(--border);
+  background: rgba(99, 102, 241, 0.06);
+  text-align: center; display: flex; align-items: center; justify-content: center;
+}
+.admin-profile-head-info { min-width: 0; }
+.admin-profile-name { margin: 0 0 0.25rem; font-size: 1.25rem; color: var(--text); }
+.admin-profile-school { margin: 0.4rem 0 0; font-size: 0.85rem; color: var(--text-muted); }
+.admin-profile-actions {
+  display: flex; flex-wrap: wrap; gap: 0.6rem;
+  margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--glass-border);
+}
+@media (max-width: 520px) {
+  .admin-profile-head { flex-direction: column; align-items: center; text-align: center; }
+  .admin-profile-actions { justify-content: center; }
 }
 
 /* Zoom affordance on the student photo thumbnails that open the lightbox. */

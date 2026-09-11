@@ -11,7 +11,7 @@
  * - Module lock filtering (hides sections for locked modules)
  */
 
-import { getEl, buildStudentName, formatDate, formatDateTime, statusBadge, getCurrentSchoolId, showMessage, clearMessage, setLoading, openPhotoLightbox, getLastSignInTime, getLastLogoutTime } from './utils.js';
+import { getEl, buildStudentName, formatDate, formatDateTime, statusBadge, getCurrentSchoolId, showMessage, clearMessage, setLoading, openPhotoLightbox, getLastSignInTime, getLastLogoutTime, uploadPhoto, framedPhotoPreview } from './utils.js';
 import { buildFeeClassChartHtml, animateFeeClassChart } from './fee-class-chart.js';
 import { svgIcon } from './icons.js';
 
@@ -29,6 +29,11 @@ let trialStatus = { isTrial: false, endsAt: null }; // Trial version countdown s
 let _trialTimerId = null;
 let lastSignInAt = null; // PREVIOUS sign-in timestamp to display (rotated at each login, via localStorage)
 let lastLogoutAt = null; // Last logout timestamp (persisted in localStorage)
+
+// Administrator profile state (view + edit of the account-creation details)
+let _adminProfileData = null;      // latest { school, profile, user }
+let _profileEditPhotoFile = null;  // newly selected framed photo (File)
+let _profileModalEl = null;        // open admin profile modal overlay element
 
 // ================================================================
 // Realtime subscription references (for cleanup)
@@ -147,19 +152,23 @@ function formatLastLogout() {
 }
 
 /**
- * Zoom the administrator's sidebar photo into the shared lightbox.
+ * Opens the Administrator Profile modal (view + edit) when the admin taps
+ * their photo / avatar — or the whole profile block — in the sidebar.
  *
  * The admin picture can be injected by two places
  * (applyAdminAvatar() here or loadAdminDashboard() in admin-students.js),
- * so a delegated document-level listener reliably reacts to the photo
- * no matter which module rendered it. Tapping the avatar enlarges it;
- * tapping the backdrop, the × button, or pressing Escape closes it.
+ * so a delegated document-level listener reliably reacts to the photo no
+ * matter which module rendered it — and also handles the case where no
+ * photo has been uploaded yet (the empty avatar placeholder).
  */
 function setupAdminPhotoZoom() {
   document.addEventListener('click', (e) => {
-    const img = e.target.closest('#adminSidebar .dash-avatar img');
-    if (!img || !img.src) return;
-    openPhotoLightbox(img.src, 'Administrator', 'Administrator');
+    const el = e.target.closest('#adminProfileButton, #adminSidebar .dash-avatar');
+    if (!el) return;
+    // Never swallow clicks meant for nested interactive elements.
+    if (e.target.closest('button, a, input, select, [data-action], [data-close-modal]')) return;
+    e.preventDefault();
+    openAdminProfileModal();
   });
 }
 
@@ -1462,6 +1471,428 @@ function renderRecentStudents() {
       </div>
     `;
   }).join('');
+}
+
+// ================================================================
+// Administrator Profile (view & edit)
+// ---------------------------------------------------------------
+// The administrator details captured during school registration
+// (wizard stage 3) live on the `schools` row: admin_name,
+// admin_photo_url, email, phone, school_type, location and
+// student_population. The auth `profiles` row holds the sign-in
+// name / email. Clicking the sidebar photo (or the "My Profile"
+// page) shows the full account-creation profile and lets the
+// administrator edit the details.
+// ================================================================
+
+/** Escape text for safe insertion into innerHTML templates. */
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+/** Show a message directly on an element (avoids global-id collisions). */
+function showProfileMessageEl(el, text, type = 'info') {
+  if (!el) return;
+  el.textContent = text;
+  el.className = 'message ' + type;
+  el.style.display = 'block';
+  clearTimeout(el._hideTimer);
+  el._hideTimer = setTimeout(() => { el.style.display = 'none'; }, 6000);
+}
+
+/**
+ * Loads the administrator's full profile: the school row written during
+ * account creation plus the auth profile row for this user.
+ */
+async function fetchAdminProfile() {
+  const { data: { user } } = await supabaseClient.auth.getUser();
+  if (!user) return null;
+  const [schoolRes, profileRes] = await Promise.all([
+    supabaseClient.from('schools')
+      .select('*')
+      .eq('user_id', user.id)
+      .maybeSingle(),
+    supabaseClient.from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .maybeSingle(),
+  ]);
+  return { school: schoolRes.data || null, profile: profileRes.data || null, user };
+}
+
+/** Push the current profile back into the sidebar avatar + name. */
+function applyAdminProfileToSidebar(info) {
+  if (!info) return;
+  const displayName = info.profile?.full_name || info.school?.admin_name || 'Admin';
+  const nameEl = getEl('sidebarAdminName');
+  if (nameEl) nameEl.textContent = displayName;
+  const avatarEl = document.querySelector('#adminSidebar .dash-avatar');
+  if (!avatarEl) return;
+  const photoUrl = info.school?.admin_photo_url;
+  if (photoUrl) {
+    avatarEl.innerHTML = `<img src="${escapeHtml(photoUrl)}" alt="Administrator" />`;
+  } else if (avatarEl.querySelector('img')) {
+    avatarEl.innerHTML = '';
+  }
+}
+
+/**
+ * Renders the profile summary (view mode) inside a container element.
+ * @param {HTMLElement} container - The element to render into
+ * @param {Object|null} info      - { school, profile, user }
+ * @param {Object} [opts]         - { showClose } adds a Close button (modal)
+ */
+function renderAdminProfileView(container, info, opts = {}) {
+  const school = info?.school || {};
+  const profile = info?.profile || {};
+  const photoUrl = school.admin_photo_url || '';
+  const photoHtml = photoUrl
+    ? `<img src="${escapeHtml(photoUrl)}" class="admin-profile-photo" alt="Administrator photo" />`
+    : '<div class="admin-profile-photo admin-profile-photo-placeholder"><span aria-hidden="true"></span></div>';
+
+  const field = (label, value) => {
+    const v = value != null && String(value).trim() !== '' ? escapeHtml(value) : '—';
+    return `<div class="detail-item"><span class="detail-label">${label}</span><span class="detail-value">${v}</span></div>`;
+  };
+
+  const schoolFields = school.registration_id ? `
+    ${field('Registration ID', school.registration_id)}
+    ${field('School Type', school.school_type ? (school.school_type === 'private' ? 'Private' : 'Public') : '')}
+    ${field('Location', school.location || school.address || '')}
+    ${field('Student Population', school.student_population != null ? Number(school.student_population).toLocaleString() : '')}
+    ${field('Account Created', school.created_at ? formatDate(school.created_at) : '')}
+  ` : '';
+
+  const closeBtn = opts.showClose
+    ? '<button type="button" class="btn btn-secondary" data-action="close">Close</button>'
+    : '';
+  const zoomBtn = photoUrl
+    ? '<button type="button" class="btn btn-secondary" data-action="zoom">View photo</button>'
+    : '';
+
+  container.innerHTML = `
+    <div class="admin-profile-message message" style="display:none;margin-bottom:0.75rem;"></div>
+    <div class="admin-profile-head">
+      <div class="admin-profile-photo-wrap">${photoHtml}</div>
+      <div class="admin-profile-head-info">
+        <h3 class="admin-profile-name">${escapeHtml(profile.full_name || school.admin_name || 'Administrator')}</h3>
+        <span class="dash-sidebar-role-badge">Administrator</span>
+        ${school.name ? `<p class="admin-profile-school">${escapeHtml(school.name)}</p>` : ''}
+      </div>
+    </div>
+    <div class="profile-detail">
+      ${field('Email', school.email || profile.email || '')}
+      ${field('Mobile / Phone', school.phone || profile.phone || '')}
+      ${schoolFields}
+    </div>
+    <div class="admin-profile-actions">
+      <button type="button" class="btn btn-primary" data-action="edit">Edit Profile</button>
+      ${closeBtn}
+      ${zoomBtn}
+    </div>
+  `;
+}
+
+/**
+ * Renders the editable profile form (edit mode) inside a container element.
+ */
+function renderAdminProfileEdit(container, info) {
+  const school = info?.school || {};
+  const profile = info?.profile || {};
+  _profileEditPhotoFile = null;
+  const existingPhoto = school.admin_photo_url || '';
+
+  const schoolForm = school.registration_id ? `
+    <div class="form-group photo-upload-group">
+      <label>Administrator Picture <span style="color:var(--text-muted);font-weight:400;">(a decorative frame will be added)</span></label>
+      <div class="photo-upload-wrapper">
+        <div class="photo-preview" id="adminProfilePhotoPreview" style="width:140px;height:172px;">
+          <img id="adminProfilePhotoPreviewImg" src="${existingPhoto ? escapeHtml(existingPhoto) : '#'}" alt="Admin preview" style="display:${existingPhoto ? 'block' : 'none'};width:100%;height:100%;object-fit:contain;" />
+          <span id="adminProfilePhotoPlaceholder" style="display:${existingPhoto ? 'none' : ''};">No picture</span>
+        </div>
+        <div class="photo-actions">
+          <input type="file" id="adminProfilePhoto" accept="image/*" />
+          <label for="adminProfilePhoto" class="btn btn-secondary btn-sm">${existingPhoto ? 'Change Photo' : 'Choose File'}</label>
+          <button type="button" class="btn btn-sm btn-clear" id="adminProfilePhotoClear" style="display:${existingPhoto ? 'inline-block' : 'none'};">Remove</button>
+        </div>
+        <small style="color:var(--text-muted);font-size:0.75rem;">JPG/PNG up to 5MB. The picture is framed and saved to your profile.</small>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>School Administrator Name *</label><input type="text" id="adminProfileName" required value="${escapeHtml(profile.full_name || school.admin_name || '')}" /></div>
+      <div class="form-group"><label>School Email</label><input type="email" id="adminProfileEmail" placeholder="admin@school.com" value="${escapeHtml(school.email || '')}" /></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Mobile Number * (for password reset)</label><input type="tel" id="adminProfilePhone" required value="${escapeHtml(school.phone || profile.phone || '')}" /></div>
+      <div class="form-group"><label>School Type *</label>
+        <select id="adminProfileSchoolType" required>
+          <option value="" disabled ${!school.school_type ? 'selected' : ''}>Select type</option>
+          <option value="public" ${school.school_type === 'public' ? 'selected' : ''}>Public</option>
+          <option value="private" ${school.school_type === 'private' ? 'selected' : ''}>Private</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Location *</label><input type="text" id="adminProfileLocation" required value="${escapeHtml(school.location || school.address || '')}" /></div>
+      <div class="form-group"><label>Student Population *</label><input type="number" id="adminProfilePopulation" required min="0" step="1" value="${Number(school.student_population ?? 0)}" /></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>School Name (read-only)</label><input type="text" readonly value="${escapeHtml(school.name || '')}" style="background:var(--bg);font-weight:700;" /></div>
+      <div class="form-group"><label>Registration ID (read-only)</label><input type="text" readonly value="${escapeHtml(school.registration_id || '')}" style="background:var(--bg);font-weight:700;letter-spacing:1px;color:var(--primary);" /></div>
+    </div>
+  ` : `
+    <div class="form-group"><label>Full Name *</label><input type="text" id="adminProfileName" required value="${escapeHtml(profile.full_name || '')}" /></div>
+    <div class="form-row">
+      <div class="form-group"><label>Email</label><input type="email" id="adminProfileEmail" value="${escapeHtml(profile.email || '')}" /></div>
+      <div class="form-group"><label>Mobile Number</label><input type="tel" id="adminProfilePhone" value="${escapeHtml(profile.phone || '')}" /></div>
+    </div>
+  `;
+
+  container.innerHTML = `
+    <div class="admin-profile-message message" style="display:none;margin-bottom:0.75rem;"></div>
+    <form id="adminProfileEditForm" class="admission-form" style="box-shadow:none;border:none;padding:0;" novalidate>
+      ${schoolForm}
+      <div class="admin-profile-actions">
+        <button type="submit" class="btn btn-primary" id="adminProfileSaveBtn">Save Changes</button>
+        <button type="button" class="btn btn-secondary" data-action="view">Cancel</button>
+      </div>
+    </form>
+  `;
+
+// ---- Photo picker: frame + live preview (identical to the registration wizard) ----
+  const photoInput = container.querySelector('#adminProfilePhoto');
+  if (photoInput) {
+    const previewImg = container.querySelector('#adminProfilePhotoPreviewImg');
+    const placeholder = container.querySelector('#adminProfilePhotoPlaceholder');
+    const clearBtn = container.querySelector('#adminProfilePhotoClear');
+    photoInput.addEventListener('change', async () => {
+      const file = photoInput.files[0];
+      if (!file) return;
+      try {
+        const framed = await framedPhotoPreview(
+          file, previewImg, placeholder, clearBtn,
+          { primary: '#1e3a5f', accent: '#d4af37' }
+        );
+        _profileEditPhotoFile = framed;
+      } catch (err) {
+        console.warn('Admin profile photo framing failed:', err.message);
+        showProfileMessageEl(container.querySelector('.admin-profile-message'), 'Could not frame the selected picture: ' + err.message, 'error');
+        photoInput.value = '';
+        _profileEditPhotoFile = null;
+      }
+    });
+    if (clearBtn) {
+      clearBtn.addEventListener('click', () => {
+        photoInput.value = '';
+        _profileEditPhotoFile = null;
+        if (previewImg) {
+          if (previewImg._framedUrl) URL.revokeObjectURL(previewImg._framedUrl);
+          previewImg._framedUrl = null;
+          previewImg.src = '#';
+          previewImg.style.display = 'none';
+        }
+        if (placeholder) { placeholder.style.display = ''; placeholder.textContent = 'No picture'; }
+        clearBtn.style.display = 'none';
+      });
+    }
+  }
+
+  const form = container.querySelector('#adminProfileEditForm');
+  if (form) form.addEventListener('submit', (e) => saveAdminProfile(e, container, info));
+}
+
+/**
+ * Persists the edited profile. For the school admin this writes the onboarding
+ * fields through the same RPC used at account creation, uploads a newly framed
+ * photo when one was chosen, and keeps the auth profile name / phone in sync.
+ */
+async function saveAdminProfile(e, container, info) {
+  e.preventDefault();
+  const school = info?.school || {};
+  const profile = info?.profile || {};
+  const messageEl = container.querySelector('.admin-profile-message');
+  const btn = container.querySelector('#adminProfileSaveBtn');
+
+  const name = (container.querySelector('#adminProfileName')?.value || '').trim();
+  const email = (container.querySelector('#adminProfileEmail')?.value || '').trim();
+  const phone = (container.querySelector('#adminProfilePhone')?.value || '').trim();
+  const schoolType = container.querySelector('#adminProfileSchoolType')?.value || (school.school_type || '');
+  const location = (container.querySelector('#adminProfileLocation')?.value || '').trim();
+  const populationRaw = container.querySelector('#adminProfilePopulation')?.value;
+
+  // ---- Validation ----
+  if (!name) {
+    showProfileMessageEl(messageEl, 'Please enter the administrator name.', 'error');
+    return;
+  }
+  if (school.registration_id && (!schoolType || !location || populationRaw === '' || !phone)) {
+    showProfileMessageEl(messageEl, 'Please complete all required school information fields.', 'error');
+    return;
+  }
+  let population = null;
+  if (school.registration_id) {
+    population = Number(populationRaw);
+    if (!Number.isFinite(population) || population < 0) {
+      showProfileMessageEl(messageEl, 'Student population must be a valid number.', 'error');
+      return;
+    }
+  }
+
+  setLoading(btn, true, 'Saving...');
+  try {
+    // 1. Keep the auth profile name (+ phone / email) in sync.
+    const profileUpdates = { full_name: name, phone: phone || null };
+    if (!school.registration_id) profileUpdates.email = email || null;
+    if (profile?.id) {
+      const { error: profErr } = await supabaseClient
+        .from('profiles')
+        .update(profileUpdates)
+        .eq('id', profile.id);
+      if (profErr) console.warn('Could not update profile row:', profErr.message);
+    }
+
+    // 2. For the school admin, persist the onboarding fields via the same RPC
+    //    that captured them at account creation (allows user_id = auth.uid()).
+    if (school.registration_id) {
+      const { data: ok, error: saveErr } = await supabaseClient.rpc('save_school_onboarding_info', {
+        p_registration_id: school.registration_id,
+        p_admin_name: name,
+        p_school_type: schoolType,
+        p_location: location,
+        p_email: email || null,
+        p_phone: phone,
+        p_student_population: population,
+      });
+      if (saveErr) throw saveErr;
+      if (ok === false) throw new Error('Could not update the profile. Please try again.');
+
+      // 3. Upload a newly selected (framed) photo and persist its URL.
+      if (_profileEditPhotoFile) {
+        const photoUrl = await uploadPhoto(
+          supabaseClient,
+          'staff-photos',
+          _profileEditPhotoFile,
+          `admin_${school.id || school.registration_id}`
+        );
+        if (photoUrl) {
+          const { error: photoErr } = await supabaseClient
+            .from('schools')
+            .update({ admin_photo_url: photoUrl })
+            .eq('registration_id', school.registration_id);
+          if (photoErr) console.warn('Could not save the updated photo:', photoErr.message);
+        }
+        _profileEditPhotoFile = null;
+      }
+    }
+
+    // 4. Re-fetch, refresh sidebar/banner and re-render the summary view.
+    const fresh = await fetchAdminProfile();
+    _adminProfileData = fresh;
+    applyAdminProfileToSidebar(fresh);
+    await fetchSchoolName();
+    propagateSchoolName();
+    renderAdminProfileView(container, fresh, { showClose: Boolean(_profileModalEl && container.closest('#adminProfileModal')) });
+    showProfileMessageEl(container.querySelector('.admin-profile-message'), 'Profile updated successfully.', 'success');
+  } catch (err) {
+    console.warn('Could not save profile:', err.message);
+    showProfileMessageEl(messageEl, 'Error: ' + err.message, 'error');
+    if (btn) setLoading(btn, false, 'Save Changes');
+  }
+}
+
+/** One delegated click listener per profile container (modal body / page root). */
+function attachAdminProfileListeners(container) {
+  if (container.dataset.profileListener) return;
+  container.dataset.profileListener = '1';
+  container.addEventListener('click', (e) => {
+    const actionBtn = e.target.closest('[data-action]');
+    if (!actionBtn) return;
+    const action = actionBtn.getAttribute('data-action');
+    if (action === 'edit') {
+      renderAdminProfileEdit(container, _adminProfileData);
+    } else if (action === 'view') {
+      renderAdminProfileView(container, _adminProfileData, { showClose: Boolean(_profileModalEl && container.closest('#adminProfileModal')) });
+    } else if (action === 'zoom') {
+      const url = _adminProfileData?.school?.admin_photo_url;
+      if (url) openPhotoLightbox(url, 'Administrator', 'Administrator');
+    } else if (action === 'close') {
+      closeAdminProfileModal();
+    }
+  });
+}
+
+/**
+ * Opens the Administrator Profile modal (view + edit). Triggered by clicking
+ * the admin's photo / avatar (or the whole profile block) in the sidebar.
+ */
+async function openAdminProfileModal() {
+  closeAdminProfileModal();
+  const info = await fetchAdminProfile();
+  _adminProfileData = info;
+  if (!info) {
+    alert('Could not load your profile information. Please try again.');
+    return;
+  }
+
+  const overlay = document.createElement('div');
+  overlay.id = 'adminProfileModal';
+  overlay.className = 'modal-overlay';
+  overlay.style.display = 'flex';
+  overlay.innerHTML = `
+    <div class="modal-card admin-profile-card">
+      <div class="modal-header">
+        <h3>Administrator Profile</h3>
+        <button type="button" class="modal-close" data-close-modal aria-label="Close" title="Close">&times;</button>
+      </div>
+      <div class="modal-body admin-profile-body"></div>
+    </div>`;
+  document.body.appendChild(overlay);
+  _profileModalEl = overlay;
+
+  const onKeyDown = (ev) => { if (ev.key === 'Escape') closeAdminProfileModal(); };
+  document.addEventListener('keydown', onKeyDown);
+  overlay._onKeyDown = onKeyDown;
+
+  overlay.addEventListener('click', (ev) => {
+    if (ev.target === overlay || ev.target.closest('[data-close-modal]')) closeAdminProfileModal();
+  });
+
+  const bodyEl = overlay.querySelector('.modal-body');
+  attachAdminProfileListeners(bodyEl);
+  renderAdminProfileView(bodyEl, info, { showClose: true });
+}
+
+/** Closes the Administrator Profile modal if it is open. */
+function closeAdminProfileModal() {
+  const el = _profileModalEl;
+  if (!el) return;
+  if (el._onKeyDown) document.removeEventListener('keydown', el._onKeyDown);
+  el.remove();
+  _profileModalEl = null;
+  _profileEditPhotoFile = null;
+}
+
+/**
+ * Populates the admin "My Profile" page with the full account-creation
+ * profile and inline editing (the Change Password card sits below it).
+ */
+export async function loadAdminProfilePage() {
+  const root = getEl('adminProfilePageRoot');
+  if (!root) return;
+  root.innerHTML = '<div class="dash-empty" style="padding:1.5rem;">Loading profile…</div>';
+  const info = await fetchAdminProfile();
+  _adminProfileData = info;
+  if (!info) {
+    root.innerHTML = '<div class="dash-empty" style="padding:1.5rem;">Could not load your profile information. Please try again.</div>';
+    return;
+  }
+  attachAdminProfileListeners(root);
+  renderAdminProfileView(root, info, { showClose: false });
 }
 
 // ================================================================
