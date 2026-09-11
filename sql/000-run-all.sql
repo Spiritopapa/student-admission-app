@@ -478,6 +478,15 @@
 --          (enforced server-side for the transport workspace in
 --          js/modules/transport-shared.js and admin-transport.js).
 \i 065-transport-payment-delete-restrict.sql
+
+-- Step 59: One Student = One Bus Destination
+-- A student may ride only ONE bus destination at a time. Adds a partial
+-- UNIQUE index on transport_enrollments(student_id) WHERE is_active so the
+-- database itself rejects adding a student to a second destination (they
+-- must first be removed from their current one). De-duplicates any legacy
+-- data and the Enroll Students UI disables already-assigned students.
+-- Used by: js/modules/admin-transport.js (Enroll Students tab).
+\i 066-transport-one-route-per-student.sql
 -- ============================================================
 --  SCHEMA DEPLOYMENT COMPLETE
 -- ============================================================

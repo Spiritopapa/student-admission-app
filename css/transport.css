@@ -402,6 +402,18 @@
 }
 
 .tr-enroll-student-item small { font-size: 0.72rem; color: var(--text-muted); }
+
+/* One student rides one destination only: students already assigned to
+   ANOTHER destination are locked (cannot be ticked here) until they are
+   removed from their current destination. */
+.tr-enroll-student-item.is-other-route {
+  opacity: 0.62;
+  background: rgba(180, 83, 9, 0.06);
+  border-style: dashed;
+}
+.tr-enroll-student-item.is-other-route .tr-enroll-check {
+  cursor: not-allowed;
+}
 /* ---------- History / ledger ---------- */
 .tr-history-filters {
   display: flex;
@@ -450,6 +462,12 @@
   padding: 0.25rem 0.7rem;
   font-size: 0.75rem;
   font-weight: 700;
+}
+
+/* Warn chip — student currently rides another destination */
+.tr-chip-other {
+  background: rgba(180, 83, 9, 0.14);
+  color: #b45309;
 }
 
 /* ---------- Responsive ---------- */

@@ -631,9 +631,25 @@ async function loadEnrollTab() {
     return;
   }
 
-  const enrolledSet = new Set(
-    _enrollments.filter((e) => e.route_id === routeId).map((e) => e.student_id)
+  // ---- One student = one bus destination ----
+  // Map each student to the destination they are CURRENTLY (actively) on.
+  // A student already on ANOTHER destination cannot be ticked for this one —
+  // they must first be removed from their current destination.
+  const routeNameById = new Map(_routes.map((r) => [r.id, r.name]));
+  const activeRouteOfStudent = {};
+  _enrollments.forEach((e) => {
+    if (e.student_id && e.is_active && !activeRouteOfStudent[e.student_id]) {
+      activeRouteOfStudent[e.student_id] = e.route_id;
+    }
+  });
+
+  // Students actively riding THIS destination (checked + "On bus")
+  const activeOnThisRoute = new Set(
+    _enrollments
+      .filter((e) => e.route_id === routeId && e.is_active)
+      .map((e) => e.student_id)
   );
+
   // Only admitted students can be enrolled on the bus
   let students = _students.filter((s) => s.status === 'admitted');
   students = students
@@ -648,11 +664,20 @@ async function loadEnrollTab() {
   }
 
   const items = students.map((s) => {
-    const checked = enrolledSet.has(s.student_id) ? 'checked' : '';
-    const alreadyEnrolled = enrolledSet.has(s.student_id);
-    const tag = alreadyEnrolled ? '<span class="tr-chip">On bus</span>' : '';
-    return `<div class="tr-enroll-student-item">
-      <input type="checkbox" class="tr-enroll-check" id="trEnrollCheck_${esc(s.student_id)}" value="${esc(s.student_id)}" ${checked} />
+    const onThisRoute = activeOnThisRoute.has(s.student_id);
+    const otherRouteId = activeRouteOfStudent[s.student_id];
+    const onOtherRoute = Boolean(otherRouteId) && otherRouteId !== routeId;
+    const checked = onThisRoute ? 'checked' : '';
+    // Students already on another destination cannot be picked here.
+    const disabled = onOtherRoute ? 'disabled' : '';
+    const tag = onThisRoute
+      ? '<span class="tr-chip">On bus</span>'
+      : onOtherRoute
+        ? `<span class="tr-chip tr-chip-other" title="Already assigned to another destination">On ${esc(routeNameById.get(otherRouteId) || 'another destination')}</span>`
+        : '';
+    const itemClass = onOtherRoute ? 'tr-enroll-student-item is-other-route' : 'tr-enroll-student-item';
+    return `<div class="${itemClass}">
+      <input type="checkbox" class="tr-enroll-check" id="trEnrollCheck_${esc(s.student_id)}" value="${esc(s.student_id)}" ${checked} ${disabled} />
       <span class="tr-student-name">${esc(fullName(s))}</span>
       <small>${esc(s.student_id)} · ${esc(s.class_applying || '—')}</small>
       ${tag}
@@ -660,14 +685,23 @@ async function loadEnrollTab() {
   }).join('');
 
   listEl.innerHTML = items;
+  const otherRouteCount = students.filter((s) => {
+    const rid = activeRouteOfStudent[s.student_id];
+    return rid && rid !== routeId;
+  }).length;
   if (infoEl) infoEl.innerHTML = `<span class="tr-chip">${students.length} admitted student(s) shown</span>`
-    + ` <span class="tr-chip">${students.filter((s) => enrolledSet.has(s.student_id)).length} already on this bus</span>`;
+    + ` <span class="tr-chip">${students.filter((s) => activeOnThisRoute.has(s.student_id)).length} already on this bus</span>`
+    + (otherRouteCount ? ` <span class="tr-chip tr-chip-other" title="Remove them from their current destination first">${otherRouteCount} already on another destination</span>` : '');
 }
 
 window.onEnrollCheckAll = function () {
   const checkAll = getEl('trEnrollCheckAll');
   const all = checkAll.checked;
-  listAllEnrollChecks().forEach((c) => { c.checked = all; });
+  listAllEnrollChecks().forEach((c) => {
+    // Never tick students already assigned to another destination —
+    // they are locked out of this destination until removed elsewhere.
+    if (!c.disabled) c.checked = all;
+  });
 };
 
 function listAllEnrollChecks() {
@@ -683,12 +717,30 @@ async function saveEnrollments() {
   const wanted = listAllEnrollChecks().filter((c) => c.checked).map((c) => c.value);
   const existing = _enrollments.filter((e) => e.route_id === routeId);
   const existingIds = new Set(existing.map((e) => e.student_id));
-  const existingById = {};
-  existing.forEach((e) => { existingById[e.student_id] = e; });
 
-  const added = wanted.filter((s) => !existingIds.has(s));
+  // One student = one bus destination. Guarded twice: the UI disables these
+  // checkboxes, but also skip here defensively (stale DOM / tampered input)
+  // so a student who is ACTIVE on another destination is never ADDED or
+  // re-ACTIVATED here — the database unique index also rejects it.
+  const activeRouteOfStudent = {};
+  _enrollments.forEach((e) => {
+    if (e.student_id && e.is_active && !activeRouteOfStudent[e.student_id]) {
+      activeRouteOfStudent[e.student_id] = e.route_id;
+    }
+  });
+  const isOnOtherRoute = (sid) => Boolean(activeRouteOfStudent[sid]) && activeRouteOfStudent[sid] !== routeId;
+
+  const allAdded = wanted.filter((s) => !existingIds.has(s));
+  const added = allAdded.filter((s) => !isOnOtherRoute(s));
+  const skippedAdded = allAdded.filter((s) => isOnOtherRoute(s));
+
   const removed = existing.filter((e) => e.is_active && !wanted.includes(e.student_id));
-  const reactivated = existing.filter((e) => !e.is_active && wanted.includes(e.student_id));
+
+  const allReactivated = existing.filter((e) => !e.is_active && wanted.includes(e.student_id));
+  const reactivated = allReactivated.filter((e) => !isOnOtherRoute(e.student_id));
+  const skippedReactivated = allReactivated.filter((e) => isOnOtherRoute(e.student_id));
+
+  const skippedCount = skippedAdded.length + skippedReactivated.length;
 
   try {
     if (added.length) {
@@ -710,8 +762,14 @@ async function saveEnrollments() {
     if (added.length) msg.push(`${added.length} student(s) added`);
     if (removed.length) msg.push(`${removed.length} student(s) removed`);
     if (msg.length === 0) msg.push('No changes');
-    showMessage('transportEnrollMessage', `✔ ${msg.join(', ')} on "${route.name}".`, 'success');
-    await logSubAdminActivity(`Updated bus enrollment for "${route.name}" (+${added.length} / -${removed.length})`, 'transport');
+    let result = `${msg.join(', ')} on "${route.name}".`;
+    if (skippedCount > 0) {
+      result = `${skippedCount} student(s) skipped — already assigned to another destination. Remove them from their current destination first. ${result}`;
+      showMessage('transportEnrollMessage', result, 'info');
+    } else {
+      showMessage('transportEnrollMessage', `✔ ${result}`, 'success');
+    }
+    await logSubAdminActivity(`Updated bus enrollment for "${route.name}" (+${added.length} / -${removed.length} / skipped ${skippedCount})`, 'transport');
 
     // Refresh local data + re-render
     const { data, error: enrErr } = await supabaseClient.from('transport_enrollments').select('*').eq('school_id', _schoolId);

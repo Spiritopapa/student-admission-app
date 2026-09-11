@@ -238,14 +238,14 @@ The **Transport** module on the Admin Dashboard tracks the **daily transport col
 ### Key features
 - **Today's Collection sheet** — pick a date (defaults to today), see every enrolled bus student grouped per destination, and tap **Pay · GHC xx** to mark a student paid (their destination's fee is auto-applied) or **✕** to undo. A "Mark all paid" / "Reset all" action handles whole destinations. Live summary cards show Expected / Collected / Outstanding / Bus Students with a per-route progress bar.
 - **Routes & Fees** — create, edit, activate/deactivate and delete bus destinations. Each destination (e.g. *Madina*, *East Legon*) carries its **own daily fee (GHC)** which is snapshotted into every collection, so history stays accurate even if the fee changes later.
-- **Enroll Students** — choose which admitted students ride the school bus and on which destination (route). Only enrolled students appear on the daily collection sheet.
+- **Enroll Students** — choose which admitted students ride the school bus and on which destination (route). Only enrolled students appear on the daily collection sheet. **A student can ride only ONE destination** — a student already assigned to a destination is shown locked (disabled checkbox + *On {destination}* chip) and cannot be added to another until they are removed from their current one (`sql/066-transport-one-route-per-student.sql`, Step 59, enforces the same rule in the database).
 - **Payments History** — searchable, date-range ledger across all destinations with totals, per-entry removal and a printable daily sheet + ledger.
 - **No SMS for transport** — parent SMS notifications are deliberately **disabled** for transport fee collections (the transport modules no longer call the SMS gateway at all; the school-fee SMS system is unaffected).
 - **Mobile friendly** — route cards replace wide tables on phones, big tap targets, and the standard stacked-card table layout is used for the ledger.
 
 ### Database (`sql/063-student-transport.sql`)
 - `transport_routes` — bus destinations with their own daily `fee` (school-scoped).
-- `transport_enrollments` — which student rides which route (`is_active`).
+- `transport_enrollments` — which student rides which route (`is_active`). A partial unique index (`sql/066-transport-one-route-per-student.sql`, Step 59) guarantees a student can be **active on at most one destination**.
 - `transport_fee_payments` — one row per student per destination per day (fee amount, method, reference, collected_by), unique per `(student_id, collection_date, route_id)`.
 - Registers the `transport` module so the Super Admin can lock/unlock it per school like every other module.
 
