@@ -495,7 +495,31 @@ function buildAdminModuleDock(bottomNav) {
     btn.setAttribute('aria-label', `${cat.label} menu`);
     btn.setAttribute('title', cat.label);
     btn.innerHTML = `<span class="bottom-nav-icon">${svgIcon(cat.icon)}</span>`;
-    btn.addEventListener('click', () => toggleAdminDockCategory(cat.key));
+    // Open the sheet on the FIRST tap. Some mobile browsers / the Android
+    // WebView consume the synthesized `click` (tap-highlight, focus,
+    // double-tap detection), which made the chips feel like they needed two
+    // taps. Opening on pointerdown responds instantly; calling preventDefault
+    // also suppresses the follow-up `click` so the same tap cannot immediately
+    // toggle the sheet closed again.
+    btn.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      btn.dataset.dockTapHandled = '1';
+      toggleAdminDockCategory(cat.key);
+    });
+    // Keyboard activation (Enter/Space) has no pointerdown — open on click.
+    // The guard swallows a stray click on browsers that still fire one after
+    // a pointerdown that already opened the sheet.
+    btn.addEventListener('click', () => {
+      if (btn.dataset.dockTapHandled === '1') {
+        delete btn.dataset.dockTapHandled;
+        return;
+      }
+      toggleAdminDockCategory(cat.key);
+    });
+    btn.addEventListener('pointercancel', () => { delete btn.dataset.dockTapHandled; });
+    btn.addEventListener('pointerleave', (e) => {
+      if (e.pointerType === 'touch') delete btn.dataset.dockTapHandled;
+    });
     bottomNav.appendChild(btn);
   });
 
