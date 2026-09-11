@@ -504,6 +504,7 @@ function buildAdminModuleDock(bottomNav) {
     btn.addEventListener('pointerdown', (e) => {
       e.preventDefault();
       btn.dataset.dockTapHandled = '1';
+      spawnAdminDockRipple(btn, e);
       toggleAdminDockCategory(cat.key);
     });
     // Keyboard activation (Enter/Space) has no pointerdown — open on click.
@@ -555,6 +556,21 @@ function positionAdminDockSheet() {
   const off = bottomNav.offsetHeight;
   sheet.style.bottom = `${off}px`;
   sheet.style.setProperty('--dock-hide-offset', `${off}px`);
+}
+/** Spawns a material-style ripple at the tap point inside the chip's icon. */
+function spawnAdminDockRipple(btn, e) {
+  const iconWrap = btn.querySelector('.bottom-nav-icon');
+  const target = iconWrap || btn;
+  if (!target) return;
+  const rect = target.getBoundingClientRect();
+  const x = Math.max(0, Math.min(rect.width, e.clientX - rect.left));
+  const y = Math.max(0, Math.min(rect.height, e.clientY - rect.top));
+  const ripple = document.createElement('span');
+  ripple.className = 'admin-dock-ripple';
+  ripple.style.left = `${x}px`;
+  ripple.style.top = `${y}px`;
+  ripple.addEventListener('animationend', () => ripple.remove());
+  target.appendChild(ripple);
 }
 
 function toggleAdminDockCategory(key) {

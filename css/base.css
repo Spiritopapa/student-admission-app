@@ -539,6 +539,8 @@ input, textarea, select, [contenteditable="true"] {
     width: 46px;
     height: 46px;
     border-radius: 50%;
+    position: relative;
+    overflow: hidden;
     transition: transform 0.3s var(--spring), background 0.25s ease, box-shadow 0.25s ease;
   }
 
@@ -546,6 +548,26 @@ input, textarea, select, [contenteditable="true"] {
     width: 24px;
     height: 24px;
     display: block;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Material-style tap ripple spawned at the touch point (JS injects it). */
+  .admin-dock-ripple {
+    position: absolute;
+    width: 44px;
+    height: 44px;
+    margin-left: -22px;
+    margin-top: -22px;
+    border-radius: 50%;
+    pointer-events: none;
+    background: radial-gradient(circle, rgba(99, 102, 241, 0.38) 0%, rgba(99, 102, 241, 0.14) 45%, transparent 72%);
+    animation: adminDockRipple 0.55s var(--ease-out-expo) forwards;
+  }
+
+  @keyframes adminDockRipple {
+    from { transform: scale(0.15); opacity: 0.95; }
+    to   { transform: scale(2.4);  opacity: 0; }
   }
 
   /* Tiny caption under each chip so the categories are instantly
@@ -569,14 +591,27 @@ input, textarea, select, [contenteditable="true"] {
     background: var(--primary-gradient);
     transform: translateY(-2px) scale(1.12);
     box-shadow: 0 8px 18px rgba(99, 102, 241, 0.28);
+    animation: adminDockChipPop 0.45s var(--spring);
+  }
+
+  @keyframes adminDockChipPop {
+    from { transform: scale(0.78); }
+    60%  { transform: scale(1.2);  }
+    to   { transform: translateY(-2px) scale(1.08); }
   }
 
   .mobile-admin-dock-item.active .admin-dock-item-label {
     color: #fff;
   }
 
+  /* Press feedback: the whole chip dips and the icon squashes, then
+     springs back on release — visible even though the sheet opens instantly. */
+  .mobile-admin-dock-item:active {
+    transform: translateY(1px) scale(0.94);
+  }
+
   .mobile-admin-dock-item:active .bottom-nav-icon {
-    transform: scale(0.86);
+    transform: scale(0.82) translateY(1px);
   }
 }
 /* ============================================================
