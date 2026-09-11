@@ -1421,10 +1421,14 @@ export function generateReceiptHTML(data) {
   const verifyWarning = verifyInfo.isLocal
     ? '<div class="receipt-generated" style="margin-top:0.35rem;font-size:0.6rem;color:#b45309;line-height:1.35;">QR link is local — not scannable from a phone. Set RECEIPT_VERIFY_BASE_URL in js/supabase-config.js to your public URL (e.g. your Vercel site).</div>'
     : '';
-  const now = new Date().toLocaleDateString('en-GB', {
+  const fmtStamp = (d) => new Date(d).toLocaleString('en-GB', {
     day: 'numeric', month: 'long', year: 'numeric',
     hour: '2-digit', minute: '2-digit'
   });
+  // Actual payment date (from the payment-date selector — may be backdated or
+  // forward-dated). Falls back to the generation time for legacy receipts.
+  const paidOnLabel = data.receipt_date ? fmtStamp(data.receipt_date) : '';
+  const generatedOnLabel = fmtStamp(new Date().toISOString());
 
   const overpaidAmount = Number(data.overpaid_amount || 0);
   const remainingBalance = Number(data.remaining_balance || 0);
@@ -1480,7 +1484,8 @@ export function generateReceiptHTML(data) {
         <div class="receipt-number">#${data.receipt_number}</div>
       </div>
       <div class="receipt-body">
-        <div class="receipt-date">Date: ${now}</div>
+        <div class="receipt-date"><strong>Date Paid:</strong> ${paidOnLabel || generatedOnLabel}</div>
+        <div class="receipt-generated" style="font-size:0.75rem;color:#555;margin-top:0.25rem;"><strong>Receipt generated on:</strong> ${generatedOnLabel}</div>
         <div class="receipt-divider"></div>
         <div class="receipt-student-info">
           <div><strong>Student:</strong> ${data.student_name}</div>
