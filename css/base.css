@@ -520,15 +520,17 @@ input, textarea, select, [contenteditable="true"] {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 2px;
-    flex: 1;
-    max-width: 78px;
+    gap: 4px;
+    flex: 0 0 auto;
+    width: 64px;
     border: none;
     background: transparent;
     color: var(--text-muted);
     padding: 0;
     cursor: pointer;
-    transition: color 0.25s ease, transform 0.25s var(--spring);
+    /* Only color transitions on the button — transforms are limited to the
+       round icon below so the label/gap never warp or shift. */
+    transition: color 0.25s ease;
     -webkit-tap-highlight-color: transparent;
   }
 
@@ -539,8 +541,11 @@ input, textarea, select, [contenteditable="true"] {
     width: 46px;
     height: 46px;
     border-radius: 50%;
+    /* Center-origin so a press always squashes the icon in place. */
+    transform-origin: center;
     position: relative;
     overflow: hidden;
+    will-change: transform;
     transition: transform 0.3s var(--spring), background 0.25s ease, box-shadow 0.25s ease;
   }
 
@@ -552,28 +557,30 @@ input, textarea, select, [contenteditable="true"] {
     z-index: 1;
   }
 
-  /* Material-style tap ripple spawned at the touch point (JS injects it). */
+  /* Material-style tap ripple — JS only spawns it when the tap lands INSIDE
+     the round icon, so it always bursts from the icon centre and is clipped
+     cleanly by its border-radius. */
   .admin-dock-ripple {
     position: absolute;
-    width: 44px;
-    height: 44px;
-    margin-left: -22px;
-    margin-top: -22px;
+    width: 42px;
+    height: 42px;
+    margin-left: -21px;
+    margin-top: -21px;
     border-radius: 50%;
     pointer-events: none;
-    background: radial-gradient(circle, rgba(99, 102, 241, 0.38) 0%, rgba(99, 102, 241, 0.14) 45%, transparent 72%);
-    animation: adminDockRipple 0.55s var(--ease-out-expo) forwards;
+    background: rgba(255, 255, 255, 0.45);
+    animation: adminDockRipple 0.5s var(--ease-out-expo) forwards;
   }
 
   @keyframes adminDockRipple {
-    from { transform: scale(0.15); opacity: 0.95; }
-    to   { transform: scale(2.4);  opacity: 0; }
+    from { transform: scale(0.12); opacity: 0.9; }
+    to   { transform: scale(1.9);  opacity: 0; }
   }
 
   /* Tiny caption under each chip so the categories are instantly
      identifiable (Home · Academic · Finance · Others). */
   .admin-dock-item-label {
-    max-width: 68px;
+    max-width: 60px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -582,36 +589,28 @@ input, textarea, select, [contenteditable="true"] {
     color: var(--text-muted);
   }
 
-  /* Active chip: gradient pill + pop up, like a modern app dock. */
+  /* Active category: crisp gradient pill, settled scale. No keyframe
+     animation — animations overriding the press transform caused wobble. */
   .mobile-admin-dock-item.active {
     color: #fff;
   }
 
   .mobile-admin-dock-item.active .bottom-nav-icon {
     background: var(--primary-gradient);
-    transform: translateY(-2px) scale(1.12);
-    box-shadow: 0 8px 18px rgba(99, 102, 241, 0.28);
-    animation: adminDockChipPop 0.45s var(--spring);
-  }
-
-  @keyframes adminDockChipPop {
-    from { transform: scale(0.78); }
-    60%  { transform: scale(1.2);  }
-    to   { transform: translateY(-2px) scale(1.08); }
+    transform: scale(1.08);
+    box-shadow: 0 6px 16px rgba(99, 102, 241, 0.25);
   }
 
   .mobile-admin-dock-item.active .admin-dock-item-label {
     color: #fff;
   }
 
-  /* Press feedback: the whole chip dips and the icon squashes, then
-     springs back on release — visible even though the sheet opens instantly. */
-  .mobile-admin-dock-item:active {
-    transform: translateY(1px) scale(0.94);
-  }
-
-  .mobile-admin-dock-item:active .bottom-nav-icon {
-    transform: scale(0.82) translateY(1px);
+  /* Press feedback lives ONLY on the round icon and is applied via JS
+     (`.icon-pressed`) when the click lands directly on the icon — never on
+     the label or empty chip edges. Clean, uniform squash that springs back,
+     with the label and rest of the chip staying perfectly still. */
+  .mobile-admin-dock-item.icon-pressed .bottom-nav-icon {
+    transform: scale(0.88);
   }
 }
 /* ============================================================

@@ -504,8 +504,20 @@ function buildAdminModuleDock(bottomNav) {
     btn.addEventListener('pointerdown', (e) => {
       e.preventDefault();
       btn.dataset.dockTapHandled = '1';
-      spawnAdminDockRipple(btn, e);
+      const iconWrap = btn.querySelector('.bottom-nav-icon');
+      // Press squash + ripple only when the click lands DIRECTLY on the
+      // round icon — clicks on the label or empty chip edges just open the
+      // sheet without any misplaced/distorted feedback.
+      if (iconWrap && iconPointerInside(iconWrap, e)) {
+        btn.classList.add('icon-pressed');
+        spawnAdminDockRipple(iconWrap, e);
+      }
       toggleAdminDockCategory(cat.key);
+    });
+    btn.addEventListener('pointerup', () => btn.classList.remove('icon-pressed'));
+    btn.addEventListener('pointercancel', () => {
+      btn.classList.remove('icon-pressed');
+      delete btn.dataset.dockTapHandled;
     });
     // Keyboard activation (Enter/Space) has no pointerdown — open on click.
     // The guard swallows a stray click on browsers that still fire one after
@@ -517,8 +529,8 @@ function buildAdminModuleDock(bottomNav) {
       }
       toggleAdminDockCategory(cat.key);
     });
-    btn.addEventListener('pointercancel', () => { delete btn.dataset.dockTapHandled; });
     btn.addEventListener('pointerleave', (e) => {
+      btn.classList.remove('icon-pressed');
       if (e.pointerType === 'touch') delete btn.dataset.dockTapHandled;
     });
     bottomNav.appendChild(btn);
@@ -557,12 +569,20 @@ function positionAdminDockSheet() {
   sheet.style.bottom = `${off}px`;
   sheet.style.setProperty('--dock-hide-offset', `${off}px`);
 }
-/** Spawns a material-style ripple at the tap point inside the chip's icon. */
-function spawnAdminDockRipple(btn, e) {
-  const iconWrap = btn.querySelector('.bottom-nav-icon');
-  const target = iconWrap || btn;
-  if (!target) return;
-  const rect = target.getBoundingClientRect();
+/** True when the pointer is inside the round icon (circular hit-test). */
+function iconPointerInside(iconWrap, e) {
+  const rect = iconWrap.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  const r = rect.width / 2;
+  return (x - r) * (x - r) + (y - r) * (y - r) <= r * r;
+}
+
+/** Spawns the ripple centred on the icon — callers already checked the tap
+ * landed inside the circle, so it always bursts from the icon cleanly. */
+function spawnAdminDockRipple(iconWrap, e) {
+  if (!iconWrap) return;
+  const rect = iconWrap.getBoundingClientRect();
   const x = Math.max(0, Math.min(rect.width, e.clientX - rect.left));
   const y = Math.max(0, Math.min(rect.height, e.clientY - rect.top));
   const ripple = document.createElement('span');
@@ -570,7 +590,7 @@ function spawnAdminDockRipple(btn, e) {
   ripple.style.left = `${x}px`;
   ripple.style.top = `${y}px`;
   ripple.addEventListener('animationend', () => ripple.remove());
-  target.appendChild(ripple);
+  iconWrap.appendChild(ripple);
 }
 
 function toggleAdminDockCategory(key) {
