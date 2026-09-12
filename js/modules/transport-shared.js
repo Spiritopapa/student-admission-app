@@ -24,6 +24,7 @@
 
 import { getEl, showMessage, clearMessage, getCurrentSchoolId, formatCurrency, logSubAdminActivity, logStaffActivity, openPrintWindow, buildStudentName } from './utils.js';
 import { svgIcon } from './icons.js';
+import { openTransportBulkPay } from './transport-bulk-pay.js';
 
 let supabaseClient = null;
 
@@ -420,7 +421,7 @@ function renderDailyCards() {
         </div>`;
       }
       const payBtn = manageMode()
-        ? `<button type="button" class="tr-mark-paid-btn" onclick="tsMarkPaid('${s.student_id}','${route.id}')">Pay · GHC ${formatCurrency(route.fee)}</button>`
+        ? `<button type="button" class="tr-mark-paid-btn" onclick="tsOpenBulkPay('${s.student_id}','${route.id}')">Pay · GHC ${formatCurrency(route.fee)}</button>`
         : '<span style="font-size:0.75rem;color:var(--danger,#dc2626);font-weight:700;">Unpaid</span>';
       return `<div class="tr-student-row">
         <span class="tr-student-avatar">${avatar}</span>
@@ -529,6 +530,35 @@ window.tsMarkPaid = async function (studentId, routeId) {
     console.error('[TransportWS] mark paid error:', err);
     showMessage('tsDailyMsg', `Failed to record payment: ${err.message}`, 'error');
   }
+};
+/** Open the bulk-payment modal for a single student — pick several days
+ *  to collect the route fee for at once (records one row per day). */
+window.tsOpenBulkPay = async function (studentId, routeId) {
+  if (!manageMode()) return;
+  const student = W.studentMap[studentId];
+  const route = W.routes.find((r) => r.id === routeId);
+  if (!student || !route) return;
+  let collectedBy = null;
+  try {
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    collectedBy = user?.id || null;
+  } catch (e) { /* collected_by stays null */ }
+  openTransportBulkPay({
+    supabase: supabaseClient,
+    schoolId: W.schoolId,
+    student,
+    route,
+    defaultDate: W.date || todayISO(),
+    collectedBy,
+    getMethod: () => getEl('tsMethod')?.value || 'Cash',
+    onSaved: async (info) => {
+      await logStaffActivity(info.message, { role: 'teacher', entityType: 'transport', entityDetails: `${studentId} · ${info.inserted.length} day(s) · GHC ${formatCurrency(info.totalAmount)}` });
+      await logSubAdminActivity(info.message, 'transport');
+      await loadDailyPayments();
+      renderDailyCards();
+    },
+    onPageMessage: (msg, type) => showMessage('tsDailyMsg', msg, type),
+  });
 };
 
 /** Mark every unpaid student on a route as PAID for the shown date. */

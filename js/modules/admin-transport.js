@@ -21,6 +21,7 @@
 
 import { getEl, showMessage, clearMessage, getCurrentSchoolId, formatCurrency, logSubAdminActivity, openPrintWindow, buildStudentName } from './utils.js';
 import { svgIcon } from './icons.js';
+import { openTransportBulkPay } from './transport-bulk-pay.js';
 
 let supabaseClient = null;
 let _schoolId = null;
@@ -312,7 +313,7 @@ async function renderDailyTab() {
       return `<div class="tr-student-row">
         <span class="tr-student-avatar">${avatar}</span>
         <span class="tr-student-info"><span class="tr-student-name">${esc(name)}</span><small>${sub}</small></span>
-        <button type="button" class="tr-mark-paid-btn" onclick="trTogglePaid('${s.student_id}','${route.id}')">Pay · GHC ${formatCurrency(route.fee)}</button>
+        <button type="button" class="tr-mark-paid-btn" onclick="trOpenBulkPay('${s.student_id}','${route.id}')">Pay · GHC ${formatCurrency(route.fee)}</button>
       </div>`;
     }).join('');
 
@@ -408,6 +409,29 @@ window.trTogglePaid = async function (studentId, routeId) {
     console.error('[Transport] toggle error:', err);
     showMessage('transportMessage', `Failed to update payment: ${err.message}`, 'error');
   }
+};
+/**
+ * Open the bulk-payment modal for a single student — pick several days
+ * to collect the route fee for at once (records one row per day).
+ */
+window.trOpenBulkPay = function (studentId, routeId) {
+  const student = _studentMap[studentId];
+  const route = _routes.find((r) => r.id === routeId);
+  const date = getEl('trDailyDate')?.value || todayISO();
+  if (!student || !route) return;
+  openTransportBulkPay({
+    supabase: supabaseClient,
+    schoolId: _schoolId,
+    student,
+    route,
+    defaultDate: date,
+    getMethod: () => getEl('trDailyMethod')?.value || 'Cash',
+    onSaved: async (info) => {
+      await logSubAdminActivity(info.message, 'transport');
+      await renderDailyTab();
+    },
+    onPageMessage: (msg, type) => showMessage('transportMessage', msg, type),
+  });
 };
 
 /** Mark every unpaid student on a route as PAID for the shown date. */

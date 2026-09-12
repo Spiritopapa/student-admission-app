@@ -470,6 +470,154 @@
   color: #b45309;
 }
 
+/* ---------- Bulk payment modal (Today's Collection → Pay) ---------- */
+.tr-bulkpay-overlay { z-index: 1000; }
+.tr-bulkpay-card { max-width: 520px; }
+
+.tr-bulkpay-student {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid var(--border-soft, rgba(15, 23, 42, 0.08));
+  border-radius: 10px;
+  background: rgba(99, 102, 241, 0.06);
+  margin-bottom: 0.75rem;
+}
+
+.tr-bulkpay-student .tr-bulkpay-student-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--primary-light, #e0e7ff);
+  color: var(--primary, #6366f1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.8rem;
+  flex: 0 0 auto;
+}
+
+.tr-bulkpay-student .tr-bulkpay-student-text {
+  min-width: 0;
+  flex: 1;
+  line-height: 1.2;
+}
+
+.tr-bulkpay-student .tr-bulkpay-student-text .tr-bulkpay-student-name {
+  display: block;
+  font-weight: 700;
+  font-size: 0.88rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tr-bulkpay-student .tr-bulkpay-student-text small { font-size: 0.72rem; color: var(--text-muted); }
+.tr-bulkpay-student .tr-bulkpay-student-fee { font-size: 0.9rem; font-weight: 800; color: var(--primary, #6366f1); text-align: right; }
+.tr-bulkpay-student .tr-bulkpay-student-fee small { display: block; font-size: 0.68rem; color: var(--text-muted); }
+
+.tr-bulkpay-hint { font-size: 0.78rem; color: var(--text-muted); margin: 0 0 0.6rem 0; }
+
+.tr-bulkpay-range {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+  margin-bottom: 0.55rem;
+}
+
+.tr-bulkpay-range label { font-size: 0.75rem; color: var(--text-muted); font-weight: 600; }
+
+.tr-bulkpay-day-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.65rem;
+}
+
+.tr-bulkpay-day-actions button {
+  border-radius: 8px;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  color: var(--text);
+}
+
+.tr-bulkpay-day-list {
+  max-height: 240px;
+  overflow-y: auto;
+  border: 1px solid var(--border-soft, rgba(15, 23, 42, 0.08));
+  border-radius: 10px;
+}
+
+.tr-bulkpay-day {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.7rem;
+  cursor: pointer;
+}
+
+.tr-bulkpay-day:not(:last-child) { border-bottom: 1px solid var(--border-soft, rgba(15, 23, 42, 0.06)); }
+
+.tr-bulkpay-day input[type="checkbox"].tr-bulkpay-check {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary, #6366f1);
+  flex: 0 0 auto;
+  -webkit-appearance: checkbox;
+  appearance: auto;
+}
+
+.tr-bulkpay-day.is-paid { opacity: 0.62; cursor: not-allowed; }
+
+.tr-bulkpay-day .tr-bulkpay-day-label {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  font-size: 0.83rem;
+}
+
+.tr-bulkpay-day .tr-bulkpay-day-label em.tr-bulkpay-today {
+  font-style: normal;
+  color: var(--primary, #6366f1);
+  font-size: 0.7rem;
+}
+
+.tr-bulkpay-day .tr-bulkpay-day-fee { font-size: 0.75rem; font-weight: 700; color: var(--primary, #6366f1); }
+
+.tr-bulkpay-day .tr-bulkpay-day-paid {
+  font-size: 0.7rem;
+  color: var(--success, #059669);
+  background: rgba(5, 150, 105, 0.12);
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  font-weight: 700;
+}
+
+.tr-bulkpay-empty { padding: 1rem; text-align: center; color: var(--text-muted); font-size: 0.82rem; }
+
+.tr-bulkpay-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.55rem 0.8rem;
+  background: rgba(99, 102, 241, 0.07);
+  border-radius: 10px;
+  margin-top: 0.5rem;
+}
+
+.tr-bulkpay-summary .tr-bulkpay-summary-count { font-size: 0.78rem; color: var(--text-muted); font-weight: 600; }
+.tr-bulkpay-summary .tr-bulkpay-summary-total { font-size: 0.9rem; font-weight: 800; color: var(--primary, #6366f1); }
+
+.tr-bulkpay-footer { display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 0.75rem; }
+.tr-bulkpay-footer .btn { border-radius: 999px; padding: 0.45rem 1rem; font-weight: 700; font-size: 0.85rem; }
+
 /* ---------- Responsive ---------- */
 @media (max-width: 768px) {
   .tr-summary-cards { grid-template-columns: 1fr 1fr; gap: 0.6rem; }
