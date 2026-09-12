@@ -111,6 +111,21 @@ function initialsOf(name) {
   const parts = String(name || '?').trim().split(/\s+/).filter(Boolean);
   return (parts[0]?.[0] || '?') + (parts.length > 1 ? parts[parts.length - 1][0] : '');
 }
+
+/**
+ * Student photo (applications.student_photo_url) rendered as a round
+ * thumbnail, falling back to the initials avatar when the student has
+ * no photo yet. Pass sm=true for the smaller 30px size (used in the
+ * enrollment list and the payments-history table).
+ */
+function studentThumb(s, sm) {
+  const photoCls = sm ? 'tr-student-photo tr-student-photo-sm' : 'tr-student-photo';
+  const avatarCls = sm ? 'tr-student-avatar tr-student-photo-sm' : 'tr-student-avatar';
+  if (s?.student_photo_url) {
+    return `<img src="${esc(s.student_photo_url)}" class="${photoCls}" alt="" loading="lazy" />`;
+  }
+  return `<span class="${avatarCls}">${esc(initialsOf(fullName(s)))}</span>`;
+}
 // ================================================================
 // Data loading
 // ================================================================
@@ -171,7 +186,7 @@ async function loadTransportData(force = false) {
   // All application records for name/class lookup
   const { data: students, error: stuErr } = await supabaseClient
     .from('applications')
-    .select('student_id, first_name, middle_name, last_name, class_applying, status, parent_contact')
+    .select('student_id, first_name, middle_name, last_name, class_applying, status, parent_contact, student_photo_url')
     .eq('school_id', _schoolId);
   if (stuErr) throw stuErr;
   _students = students || [];
@@ -339,7 +354,6 @@ async function renderDailyTab() {
       const pay = _dailyPaymentsByKey[`${s.student_id}|${route.id}`];
       const paid = Boolean(pay);
       const name = fullName(s);
-      const avatar = esc(initialsOf(name));
       const sub = `${esc(s.student_id)} · ${esc(s.class_applying || '—')}`;
       if (paid) {
         const bulk = _dailyBulk[`${s.student_id}|${route.id}`];
@@ -347,14 +361,14 @@ async function renderDailyTab() {
           ? `✓ Paid · GHC ${formatCurrency(bulk.total)} for ${bulk.count} days`
           : `✓ Paid · GHC ${formatCurrency(pay.fee_amount)}`;
         return `<div class="tr-student-row">
-          <span class="tr-student-avatar">${avatar}</span>
+          ${studentThumb(s)}
           <span class="tr-student-info"><span class="tr-student-name">${esc(name)}</span><small>${sub}</small></span>
           <span class="tr-student-paid-badge">${paidBadge}</span>
           <button type="button" class="tr-mark-unpaid-btn" onclick="trTogglePaid('${s.student_id}','${route.id}')" title="Mark as unpaid">✕</button>
         </div>`;
       }
       return `<div class="tr-student-row">
-        <span class="tr-student-avatar">${avatar}</span>
+        ${studentThumb(s)}
         <span class="tr-student-info"><span class="tr-student-name">${esc(name)}</span><small>${sub}</small></span>
         <button type="button" class="tr-mark-paid-btn" onclick="trOpenBulkPay('${s.student_id}','${route.id}')">Pay · GHC ${formatCurrency(route.fee)}</button>
       </div>`;
@@ -745,6 +759,7 @@ async function loadEnrollTab() {
     const itemClass = onOtherRoute ? 'tr-enroll-student-item is-other-route' : 'tr-enroll-student-item';
     return `<div class="${itemClass}">
       <input type="checkbox" class="tr-enroll-check" id="trEnrollCheck_${esc(s.student_id)}" value="${esc(s.student_id)}" ${checked} ${disabled} />
+      ${studentThumb(s, true)}
       <span class="tr-student-name">${esc(fullName(s))}</span>
       <small>${esc(s.student_id)} · ${esc(s.class_applying || '—')}</small>
       ${tag}
@@ -921,7 +936,7 @@ function renderHistoryRows(payments) {
     const time = p.created_at ? new Date(p.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—';
     return `<tr data-amount="${esc(p.fee_amount)}">
       <td data-label="Date">${esc(p.collection_date)}<br/><small style="color:var(--text-muted);font-size:0.72rem;">${esc(time)}</small></td>
-      <td data-label="Student">${esc(studentName)}<br/><small style="color:var(--text-muted);font-size:0.72rem;">${esc(p.student_id)}${s?.class_applying ? ' · ' + esc(s.class_applying) : ''}</small></td>
+      <td data-label="Student"><span class="tr-student-cell">${studentThumb(s, true)}<span class="tr-student-cell-text">${esc(studentName)}<br/><small style="color:var(--text-muted);font-size:0.72rem;">${esc(p.student_id)}${s?.class_applying ? ' · ' + esc(s.class_applying) : ''}</small></span></span></td>
       <td data-label="Destination">${route ? esc(route.name) : '<span style="color:var(--text-muted);">(deleted)</span>'}</td>
       <td data-label="Amount" style="text-align:right;font-weight:700;color:var(--success);">GHC ${formatCurrency(p.fee_amount)}</td>
       <td data-label="Method">${esc(p.payment_method || 'Cash')}</td>

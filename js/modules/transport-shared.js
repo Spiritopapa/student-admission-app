@@ -98,6 +98,21 @@ function initialsOf(name) {
   return (parts[0]?.[0] || '?') + (parts.length > 1 ? parts[parts.length - 1][0] : '');
 }
 
+/**
+ * Student photo (applications.student_photo_url) rendered as a round
+ * thumbnail, falling back to the initials avatar when the student has
+ * no photo yet. Pass sm=true for the smaller 30px size (used in the
+ * enrollment list and the payments-history table).
+ */
+function studentThumb(s, sm) {
+  const photoCls = sm ? 'tr-student-photo tr-student-photo-sm' : 'tr-student-photo';
+  const avatarCls = sm ? 'tr-student-avatar tr-student-photo-sm' : 'tr-student-avatar';
+  if (s?.student_photo_url) {
+    return `<img src="${esc(s.student_photo_url)}" class="${photoCls}" alt="" loading="lazy" />`;
+  }
+  return `<span class="${avatarCls}">${esc(initialsOf(fullName(s)))}</span>`;
+}
+
 function manageMode() {
   return W.mode === 'manage';
 }
@@ -178,7 +193,7 @@ async function loadRefData() {
 
   const { data: students, error: stuErr } = await supabaseClient
     .from('applications')
-    .select('student_id, first_name, middle_name, last_name, class_applying, status, parent_contact')
+    .select('student_id, first_name, middle_name, last_name, class_applying, status, parent_contact, student_photo_url')
     .eq('school_id', W.schoolId);
   if (stuErr) throw stuErr;
   W.students = students || [];
@@ -446,7 +461,6 @@ function renderDailyCards() {
       const pay = W.paymentsByKey[`${s.student_id}|${route.id}`];
       const paid = Boolean(pay);
       const name = fullName(s);
-      const avatar = esc(initialsOf(name));
       const sub = `${esc(s.student_id)} · ${esc(s.class_applying || '—')}`;
       if (paid) {
         // Only the Admin can undo / delete a recorded collection — collectors
@@ -457,7 +471,7 @@ function renderDailyCards() {
           ? `✓ Paid · GHC ${formatCurrency(bulk.total)} for ${bulk.count} days`
           : `✓ Paid · GHC ${formatCurrency(pay.fee_amount)}`;
         return `<div class="tr-student-row">
-          <span class="tr-student-avatar">${avatar}</span>
+          ${studentThumb(s)}
           <span class="tr-student-info"><span class="tr-student-name">${esc(name)}</span><small>${sub}</small></span>
           <span class="tr-student-paid-badge">${paidBadge}</span>
         </div>`;
@@ -466,7 +480,7 @@ function renderDailyCards() {
         ? `<button type="button" class="tr-mark-paid-btn" onclick="tsOpenBulkPay('${s.student_id}','${route.id}')">Pay · GHC ${formatCurrency(route.fee)}</button>`
         : '<span style="font-size:0.75rem;color:var(--danger,#dc2626);font-weight:700;">Unpaid</span>';
       return `<div class="tr-student-row">
-        <span class="tr-student-avatar">${avatar}</span>
+        ${studentThumb(s)}
         <span class="tr-student-info"><span class="tr-student-name">${esc(name)}</span><small>${sub}</small></span>
         ${payBtn}
       </div>`;
@@ -721,7 +735,7 @@ function renderHistoryRows(payments) {
     const time = p.created_at ? new Date(p.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—';
     return `<tr>
       <td data-label="Date">${esc(p.collection_date)}<br/><small style="color:var(--text-muted);font-size:0.72rem;">${esc(time)}</small></td>
-      <td data-label="Student">${esc(fullName(s))}<br/><small style="color:var(--text-muted);font-size:0.72rem;">${esc(p.student_id)}${s?.class_applying ? ' · ' + esc(s.class_applying) : ''}</small></td>
+      <td data-label="Student"><span class="tr-student-cell">${studentThumb(s, true)}<span class="tr-student-cell-text">${esc(fullName(s))}<br/><small style="color:var(--text-muted);font-size:0.72rem;">${esc(p.student_id)}${s?.class_applying ? ' · ' + esc(s.class_applying) : ''}</small></span></span></td>
       <td data-label="Destination">${route ? esc(route.name) : '<span style="color:var(--text-muted);">(deleted)</span>'}</td>
       <td data-label="Amount" style="text-align:right;font-weight:700;color:var(--success);">GHC ${formatCurrency(p.fee_amount)}</td>
       <td data-label="Method">${esc(p.payment_method || 'Cash')}</td>

@@ -1170,7 +1170,7 @@ export function closePhotoLightbox() {
 export function initPhotoZoom() {
   document.addEventListener('click', (e) => {
     const img = e.target.closest(
-      'img.dash-photo, img.dash-recent-photo, img.student-photo-thumb, img.student-profile-photo'
+      'img.dash-photo, img.dash-recent-photo, img.student-photo-thumb, img.student-profile-photo, img.tr-student-photo, img.tr-bulkpay-student-photo'
     );
     if (!img || !img.src) return;
     // Don't hijack photos with existing inline click / double-click handlers.

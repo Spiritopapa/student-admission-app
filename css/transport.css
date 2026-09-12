@@ -208,6 +208,52 @@
   flex: 0 0 auto;
 }
 
+/* ---------- Student photo thumbnails ----------
+   Real photos (applications.student_photo_url) replace the initials
+   avatars across the Transport module; the initials avatar stays as
+   the fallback for students without a photo. */
+.tr-student-photo {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--border-soft, rgba(15, 23, 42, 0.12));
+  flex: 0 0 auto;
+}
+
+.tr-student-photo-sm {
+  width: 30px;
+  height: 30px;
+}
+
+.tr-student-avatar.tr-student-photo-sm {
+  width: 30px;
+  height: 30px;
+  font-size: 0.72rem;
+}
+
+/* History / ledger student cell: photo + name/id aligned in one row */
+.tr-student-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.tr-student-cell-text {
+  min-width: 0;
+  line-height: 1.2;
+}
+
+/* Bulk-pay modal student header */
+.tr-bulkpay-student .tr-bulkpay-student-photo {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--border-soft, rgba(15, 23, 42, 0.12));
+  flex: 0 0 auto;
+}
+
 .tr-student-row .tr-student-info { min-width: 0; flex: 1; line-height: 1.2; }
 
 .tr-student-row .tr-student-info .tr-student-name {
@@ -642,4 +688,5 @@
     white-space: nowrap;
   }
   .tr-student-row .tr-student-avatar { width: 30px; height: 30px; }
+  .tr-student-row .tr-student-photo { width: 30px; height: 30px; }
 }

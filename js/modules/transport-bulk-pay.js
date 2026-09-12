@@ -147,8 +147,11 @@ function setStudentInfo() {
   const el = getEl('trBulkPayStudent');
   if (!el || !state.student) return;
   const name = fullName(state.student);
+  const thumb = state.student?.student_photo_url
+    ? `<img src="${esc(state.student.student_photo_url)}" class="tr-bulkpay-student-photo" alt="" loading="lazy" />`
+    : `<span class="tr-bulkpay-student-avatar">${esc(initialsOf(name))}</span>`;
   el.innerHTML = `
-    <span class="tr-bulkpay-student-avatar">${esc(initialsOf(name))}</span>
+    ${thumb}
     <span class="tr-bulkpay-student-text">
       <span class="tr-bulkpay-student-name">${esc(name)}</span>
       <small>${esc(state.student.student_id || '')} · ${esc(state.student.class_applying || '—')} · ${esc(state.route?.name || 'Route')}</small>
