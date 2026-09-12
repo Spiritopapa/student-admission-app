@@ -8,11 +8,65 @@
  * Updated to support multiple class and subject assignments.
  */
 
-import { getEl, showMessage, clearMessage, setLoading, buildStudentName, formatDate, statusBadge, getGrade, getSubjectGrade, getPerformanceLevel, getTeacherRemarks, getHeadTeacherRemarks, formatCurrency, getCurrentSchoolId, getCurrentSchoolInitials, openPrintWindow, logStaffActivity } from './utils.js';
+import { getEl, showMessage, clearMessage, setLoading, buildStudentName, formatDate, statusBadge, getGrade, getSubjectGrade, getPerformanceLevel, getTeacherRemarks, getHeadTeacherRemarks, formatCurrency, getCurrentSchoolId, getCurrentSchoolType, getCurrentSchoolInitials, openPrintWindow, logStaffActivity } from './utils.js';
 import { uploadToCloudinary, isCloudinaryReady, getCloudinaryPublicIdFromUrl, deleteCloudinaryFile, isUnservableCloudinaryDocument } from './cloudinary.js';
 import { loadTeacherAssessmentsPage } from './teacher-assessments.js';
 
 let supabaseClient = null;
+
+// ================================================================
+// Private-school staff profile restrictions (teacher "My Profile" form)
+// Public-sector (GES) fields are deactivated for private schools and the
+// matching keys are forced to NULL on save so they are never persisted.
+// ================================================================
+const PRIVATE_SCHOOL_PROFILE_FIELD_IDS = [
+  'teacherProfileStaffId',                 // staff id
+  'teacherProfileEmis',                    // emis code
+  'teacherProfileRank',                    // rank
+  'teacherProfileSalaryScale',             // salary scale
+  'teacherProfileSalaryStep',              // salary step
+  'teacherProfileSchoolName',              // name of school
+  'teacherProfileSchoolRegion',            // region of school
+  'teacherProfileCircuit',                 // circuit
+  'teacherProfileDistrict',                // district
+  'teacherProfileDateFirstAppointment',    // date of appointment in the district
+  'teacherProfileDateTransfer',            // date of transfer to last school
+  'teacherProfileDatePromoted',            // date promoted to present rank
+  'teacherProfileDateUpgrading',           // date of last upgrading
+  'teacherProfileDateAssumptionDistrict',  // date of assumption in the district
+  'teacherProfileDateAssumptionStation',   // date of assumption in present station
+  'teacherProfileSalaryLevel'              // salary level
+];
+
+const PRIVATE_SCHOOL_PROFILE_PAYLOAD_KEYS = [
+  'staff_id',
+  'emis_code',
+  'rank',
+  'salary_scale',
+  'salary_step',
+  'school_name',
+  'school_region',
+  'circuit',
+  'district',
+  'date_first_appointment_district',
+  'date_transfer_last_school',
+  'date_promoted_present_rank',
+  'date_last_upgrading',
+  'date_assumption_district',
+  'date_assumption_present_station',
+  'salary_level'
+];
+
+/**
+ * Deactivate (or re-enable) the public-sector staff profile fields based on
+ * whether the teacher's school is private.
+ */
+function applyPrivateSchoolProfileRestrictions(disabled) {
+  PRIVATE_SCHOOL_PROFILE_FIELD_IDS.forEach(id => {
+    const el = getEl(id);
+    if (el) el.disabled = !!disabled;
+  });
+}
 let teacherAttendanceCache = [];
 let teacherScoreCache = {};
 
@@ -2631,6 +2685,11 @@ async function saveTeacherProfile(e) {
       academic_qualification: getEl('teacherProfileAcademicQualification').value.trim() || null,
     };
 
+    // Private schools: never store the deactivated GES/salary/appointment fields
+    if ((await getCurrentSchoolType()) === 'private') {
+      PRIVATE_SCHOOL_PROFILE_PAYLOAD_KEYS.forEach(k => { payload[k] = null; });
+    }
+
     // Update teacher record
     const { error: teacherErr } = await supabaseClient.from('teachers').update(payload).eq('id', teacher.id);
     if (teacherErr) throw teacherErr;
@@ -2713,6 +2772,10 @@ export async function loadTeacherProfileForm(teacher) {
   setVal('teacherProfileAreaSpecialization', teacher.area_of_specialization || '');
   setVal('teacherProfileProfessionalQualification', teacher.professional_qualification || '');
   setVal('teacherProfileAcademicQualification', teacher.academic_qualification || '');
+  
+  // Deactivate public-sector (GES/salary/appointment) fields for private schools
+  const schoolType = await getCurrentSchoolType();
+  applyPrivateSchoolProfileRestrictions(schoolType === 'private');
   
   // Show existing photo in the preview frame
   const previewImg = getEl('teacherProfilePhotoPreview');

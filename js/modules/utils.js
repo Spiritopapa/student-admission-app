@@ -38,6 +38,8 @@ export function setLoading(btn, loading, text) {
 
 let _cachedSchoolId = null;
 let _cachedSchoolIdUser = null;
+let _cachedSchoolType = null;
+let _cachedSchoolTypeUser = null;
 let _supabaseForSchoolId = null;
 
 /**
@@ -82,11 +84,45 @@ export async function getCurrentSchoolId() {
 }
 
 /**
+ * Get the CURRENT user's school type ('public' | 'private' | null).
+ * Resolved from the user's school record and cached per USER so a sign-out
+ * (or switch to a different account) can NEVER leak another school's type.
+ * Used to deactivate public-sector staff profile fields in private schools.
+ */
+export async function getCurrentSchoolType() {
+  if (!_supabaseForSchoolId) return null;
+  try {
+    const { data: { user } } = await _supabaseForSchoolId.auth.getUser();
+    if (!user) return null;
+    // Only reuse the cache if it belongs to the CURRENT user
+    if (_cachedSchoolType && _cachedSchoolTypeUser === user.id) return _cachedSchoolType;
+
+    const schoolId = await getCurrentSchoolId();
+    if (!schoolId) return null;
+
+    const { data: school } = await _supabaseForSchoolId.from('schools')
+      .select('school_type')
+      .eq('id', schoolId)
+      .maybeSingle();
+
+    const schoolType = school?.school_type || null;
+    _cachedSchoolType = schoolType;
+    _cachedSchoolTypeUser = user.id;
+    return schoolType;
+  } catch (err) {
+    console.warn('Failed to get school type:', err.message);
+    return null;
+  }
+}
+
+/**
  * Clear cached school_id (e.g., on logout)
  */
 export function clearSchoolIdCache() {
   _cachedSchoolId = null;
   _cachedSchoolIdUser = null;
+  _cachedSchoolType = null;
+  _cachedSchoolTypeUser = null;
   _cachedSchoolInitials = null;
   _cachedSchoolInitialsSchool = null;
 }

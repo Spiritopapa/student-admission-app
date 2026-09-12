@@ -3,10 +3,71 @@
  * Updated to support multiple class and subject assignments per teacher
  */
 
-import { getEl, showMessage, clearMessage, setLoading, logSubAdminActivity, getCurrentSchoolId, parseCSVLine, openPrintWindow, formatDateTime } from './utils.js';
+import { getEl, showMessage, clearMessage, setLoading, logSubAdminActivity, getCurrentSchoolId, getCurrentSchoolType, parseCSVLine, openPrintWindow, formatDateTime } from './utils.js';
 import { isUnservableCloudinaryDocument } from './cloudinary.js';
 
 let supabaseClient = null;
+
+// ================================================================
+// Private-school staff profile restrictions
+// Public-sector (GES) fields are deactivated for private schools so the
+// admin can never enter / overwrite them. The same keys are forced to
+// NULL on save (form + CSV import) so they are never persisted.
+// ================================================================
+const PRIVATE_SCHOOL_STAFF_FIELD_IDS = [
+  'teacherStaffId',                 // staff id
+  'teacherEmis',                    // emis code
+  'teacherRank',                    // rank
+  'teacherSalaryScale',             // salary scale
+  'teacherSalaryStep',              // salary step
+  'teacherSchoolName',              // name of school
+  'teacherSchoolRegion',            // region of school
+  'teacherCircuit',                 // circuit
+  'teacherDistrict',                // district
+  'teacherDateFirstAppointment',    // date of appointment in the district
+  'teacherDateTransfer',            // date of transfer to last school
+  'teacherDatePromoted',            // date promoted to present rank
+  'teacherDateUpgrading',           // date of last upgrading
+  'teacherDateAssumptionDistrict',  // date of assumption in the district
+  'teacherDateAssumptionStation',   // date of assumption in present station
+  'teacherSalaryLevel'              // salary level
+];
+
+const PRIVATE_SCHOOL_STAFF_PAYLOAD_KEYS = [
+  'staff_id',
+  'emis_code',
+  'rank',
+  'salary_scale',
+  'salary_step',
+  'school_name',
+  'school_region',
+  'circuit',
+  'district',
+  'date_first_appointment_district',
+  'date_transfer_last_school',
+  'date_promoted_present_rank',
+  'date_last_upgrading',
+  'date_assumption_district',
+  'date_assumption_present_station',
+  'salary_level'
+];
+
+// Becomes true when the current user's school type is 'private'.
+let _privateSchoolStaff = false;
+
+/**
+ * Deactivate (or re-enable) the public-sector staff profile fields based on
+ * the current school type. Returns true when the school is private.
+ */
+async function syncPrivateSchoolStaffRestrictions() {
+  const schoolType = await getCurrentSchoolType();
+  _privateSchoolStaff = schoolType === 'private';
+  PRIVATE_SCHOOL_STAFF_FIELD_IDS.forEach(id => {
+    const el = getEl(id);
+    if (el) el.disabled = _privateSchoolStaff;
+  });
+  return _privateSchoolStaff;
+}
 
 // Per-class subject assignment state for the teacher form.
 // teacherSubjectMatch: { className: [subjectName, ...] } loaded from the junction table.
@@ -34,6 +95,7 @@ export function setupTeacherForm() {
     teacherLegacySubjects = [];
     await populateTeacherFormDropdowns();
     renderTeacherClassSubjectBlocks();
+    await syncPrivateSchoolStaffRestrictions();
     getEl('teacherFormSection').open = true;
   });
 
@@ -110,6 +172,11 @@ export function setupTeacherForm() {
       professional_qualification: getEl('teacherProfessionalQualification')?.value.trim() || null,
       academic_qualification: getEl('teacherAcademicQualification')?.value.trim() || null,
     };
+
+    // Private schools: never store the deactivated GES/salary/appointment fields
+    if (_privateSchoolStaff) {
+      PRIVATE_SCHOOL_STAFF_PAYLOAD_KEYS.forEach(k => { payload[k] = null; });
+    }
     
     try {
       if (editId) {
@@ -395,6 +462,7 @@ window.editTeacher = async function (id) {
     
     // Populate dropdowns
     await populateTeacherFormDropdowns();
+    await syncPrivateSchoolStaffRestrictions();
     
     // Clear any previously rendered per-class subject blocks before loading this teacher
     const classSubjectsContainer = getEl('teacherClassSubjects');
@@ -1052,6 +1120,7 @@ async function importTeachersCSV() {
     
     const schoolId = await getCurrentSchoolId();
     const { data: { user } } = await supabaseClient.auth.getUser();
+    const isPrivateSchool = (await getCurrentSchoolType()) === 'private';
     let imported = 0, skipped = 0;
     
     for (let i = 1; i < lines.length; i++) {
@@ -1117,6 +1186,11 @@ async function importTeachersCSV() {
         created_by: user?.id || null,
         is_approved: true,
       };
+
+      // Private schools: never import GES/salary/appointment staff fields
+      if (isPrivateSchool) {
+        PRIVATE_SCHOOL_STAFF_PAYLOAD_KEYS.forEach(k => { payload[k] = null; });
+      }
       
       try {
         const { error } = await supabaseClient.from('teachers').insert([payload]);
