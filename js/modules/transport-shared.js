@@ -43,6 +43,7 @@ const W = {
   studentMap: {},        // student_id -> application
   payments: [],          // transport_fee_payments for date
   paymentsByKey: {},     // "studentId|routeId" -> payment row
+  bulkByKey: {},         // "studentId|routeId" -> { count, total } bulk group covering the shown date
   date: '',
   tab: 'daily',          // 'daily' | 'history'
   // daily filter state
@@ -84,6 +85,12 @@ function toISODate(d) {
 
 function todayISO() {
   return toISODate(new Date());
+}
+
+function addDaysISO(iso, n) {
+  const d = new Date(iso + 'T00:00:00');
+  d.setDate(d.getDate() + n);
+  return toISODate(d);
 }
 
 function initialsOf(name) {
@@ -180,7 +187,7 @@ async function loadRefData() {
 }
 
 async function loadDailyPayments() {
-  if (!W.date) { W.payments = []; W.paymentsByKey = {}; return; }
+  if (!W.date) { W.payments = []; W.paymentsByKey = {}; W.bulkByKey = {}; return; }
   const { data, error } = await supabaseClient
     .from('transport_fee_payments')
     .select('*')
@@ -190,6 +197,36 @@ async function loadDailyPayments() {
   W.payments = data || [];
   W.paymentsByKey = {};
   W.payments.forEach((p) => { W.paymentsByKey[`${p.student_id}|${p.route_id}`] = p; });
+
+  // Bulk-payment context: the rows of ONE bulk collection are written by a
+  // single INSERT, so they share the exact same created_at (Postgres now()
+  // is transaction-stable). For each shown-date payment, group the window of
+  // payments around that date by created_at — if that group spans 2+ days,
+  // record the bulk total so the sheet can show "✓ Paid · GHC X for N days".
+  W.bulkByKey = {};
+  try {
+    const { data: windowRows, error: windowErr } = await supabaseClient
+      .from('transport_fee_payments')
+      .select('student_id, route_id, collection_date, fee_amount, created_at')
+      .eq('school_id', W.schoolId)
+      .gte('collection_date', addDaysISO(W.date, -40))
+      .lte('collection_date', addDaysISO(W.date, 40));
+    if (!windowErr && windowRows) {
+      W.payments.forEach((p) => {
+        const key = `${p.student_id}|${p.route_id}`;
+        if (!p.created_at) return;
+        const group = windowRows.filter((r) =>
+          r.student_id === p.student_id && r.route_id === p.route_id && r.created_at === p.created_at);
+        const days = new Set(group.map((r) => r.collection_date));
+        if (days.size >= 2) {
+          const total = group.reduce((sum, r) => sum + Number(r.fee_amount || 0), 0);
+          W.bulkByKey[key] = { count: days.size, total };
+        }
+      });
+    }
+  } catch (bulkErr) {
+    console.warn('[TransportWS] bulk context load error:', bulkErr.message);
+  }
 }
 
 function enrolledStudentIdsForRoute(routeId) {
@@ -413,11 +450,16 @@ function renderDailyCards() {
       const sub = `${esc(s.student_id)} · ${esc(s.class_applying || '—')}`;
       if (paid) {
         // Only the Admin can undo / delete a recorded collection — collectors
-        // and the accountant simply see the PAID badge.
+        // and the accountant simply see the PAID badge. For bulk payments the
+        // badge shows the bulk total, e.g. "✓ Paid · GHC 25.00 for 5 days".
+        const bulk = W.bulkByKey[`${s.student_id}|${route.id}`];
+        const paidBadge = bulk
+          ? `✓ Paid · GHC ${formatCurrency(bulk.total)} for ${bulk.count} days`
+          : `✓ Paid · GHC ${formatCurrency(pay.fee_amount)}`;
         return `<div class="tr-student-row">
           <span class="tr-student-avatar">${avatar}</span>
           <span class="tr-student-info"><span class="tr-student-name">${esc(name)}</span><small>${sub}</small></span>
-          <span class="tr-student-paid-badge">✓ Paid · GHC ${formatCurrency(pay.fee_amount)}</span>
+          <span class="tr-student-paid-badge">${paidBadge}</span>
         </div>`;
       }
       const payBtn = manageMode()

@@ -634,5 +634,12 @@
     padding: 0.35rem 0.85rem;
     font-size: 0.85rem;
   }
+  .tr-student-row .tr-student-paid-badge {
+    font-size: 0.65rem;
+    max-width: 48%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
   .tr-student-row .tr-student-avatar { width: 30px; height: 30px; }
 }
