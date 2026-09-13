@@ -22,6 +22,7 @@ let allAnnouncements = [];
 let allTeachers = [];
 let todayAttendance = []; // [{ class_name, present, absent }] for today
 let allTransportToday = 0; // GHC collected in transport fees today
+let allSchoolFeesToday = 0; // GHC collected in school fees today
 let schoolName = '';
 let lastUpdated = null;
 let activityLog = [];
@@ -67,6 +68,7 @@ export async function loadAdminDashboardHome() {
       fetchTeachers(),
       fetchTodayAttendance(),
       fetchTransportToday(),
+      fetchSchoolFeesToday(),
       fetchSchoolName(),
       fetchTrialStatus(),
       applyAdminAvatar(),
@@ -449,6 +451,38 @@ async function fetchTransportToday() {
   allTransportToday = (data || []).reduce((sum, p) => sum + (Number(p.fee_amount) || 0), 0);
 }
 
+/**
+ * Fetches the total school fees collected today for the current school
+ * (sum of today's payment_transactions.amount_paid). Shown on the
+ * Fee Overview card with a distinct highlight animation.
+ */
+async function fetchSchoolFeesToday() {
+  // Skip fetching payment transactions if the fees module is locked
+  if (lockedModules.has('fees')) {
+    allSchoolFeesToday = 0;
+    return;
+  }
+  const schoolId = await getCurrentSchoolId();
+  // CRITICAL SECURITY: Fail closed. Never fetch without a school_id filter.
+  if (!schoolId) { allSchoolFeesToday = 0; return; }
+  // Today's local-day range (same convention as the accountant's receipts tab)
+  const today = new Date();
+  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString();
+  const todayEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999).toISOString();
+  const { data, error } = await supabaseClient
+    .from('payment_transactions')
+    .select('amount_paid')
+    .gte('payment_date', todayStart)
+    .lte('payment_date', todayEnd)
+    .eq('school_id', schoolId);
+  if (error) {
+    console.warn('Failed to fetch today\'s school fee collections:', error.message);
+    allSchoolFeesToday = 0;
+    return;
+  }
+  allSchoolFeesToday = (data || []).reduce((sum, t) => sum + (Number(t.amount_paid) || 0), 0);
+}
+
 async function fetchAnnouncements() {
   // Skip fetching announcements if the announcements module is locked
   if (lockedModules.has('announcements')) {
@@ -531,6 +565,7 @@ export async function refreshDashboardData(source = 'realtime') {
       fetchTeachers(),
       fetchTodayAttendance(),
       fetchTransportToday(),
+      fetchSchoolFeesToday(),
       fetchTrialStatus(),
     ]);
 
@@ -816,7 +851,7 @@ function updateLastUpdated() {
 // Counter Animation with Pulse
 // ================================================================
 
-function animateCounter(element, targetValue, isFee = false, isPct = false) {
+function animateCounter(element, targetValue, isFee = false, isPct = false, pulseClass = 'counter-pulse') {
   if (!element) return;
 
   const duration = 1000;
@@ -854,10 +889,10 @@ function animateCounter(element, targetValue, isFee = false, isPct = false) {
       } else {
         element.textContent = Math.round(targetValue);
       }
-      // Add pulse animation
-      element.classList.remove('counter-pulse');
+      // Add pulse animation (distinct class for the school-fees "today" stat)
+      element.classList.remove(pulseClass);
       void element.offsetWidth; // force reflow
-      element.classList.add('counter-pulse');
+      element.classList.add(pulseClass);
     }
   }
   requestAnimationFrame(update);
@@ -1201,6 +1236,14 @@ function animateDashboardCounters() {
         }, 700);
       }
     }
+
+    // School fees collected today — uses a distinct highlight animation
+    const schoolFeesEl = document.getElementById('feeSchoolFeesToday');
+    if (schoolFeesEl) {
+      setTimeout(() => {
+        animateCounter(schoolFeesEl, allSchoolFeesToday, true, false, 'school-fees-pulse');
+      }, 400);
+    }
   }
 }
 
@@ -1280,6 +1323,15 @@ function renderFeeOverview() {
   // Outstanding Balance = what's still owed after all payments
   const outstandingBalance = Math.max(totalExpected - totalPaid, 0);
 
+  // School fees collected today — highlighted full-width banner that uses a
+  // distinct pulse animation when its counter lands.
+  const schoolFeesStat = `
+    <div class="dash-fee-stat dash-fee-stat-today">
+      <span class="dash-fee-label">School Fees Collected Today</span>
+      <span class="dash-fee-value" id="feeSchoolFeesToday">GHC 0.00</span>
+    </div>
+  `;
+
   // Transport fees collected today (hidden when the transport module is locked)
   const transportStat = !lockedModules.has('transport') ? `
     <div class="dash-fee-stat">
@@ -1289,6 +1341,7 @@ function renderFeeOverview() {
   ` : '';
 
   return `
+    ${schoolFeesStat}
     <div class="dash-fee-stat">
       <span class="dash-fee-label">Total Expected</span>
       <span class="dash-fee-value" id="feeTotalAmount">GHC 0.00</span>

@@ -1766,6 +1766,31 @@ async function loadAccFeeOverview() {
     const transportEl = getEl('accFeeTransportToday');
     if (transportEl) transportEl.textContent = `GHC ${formatCurrency(transportToday)}`;
 
+    // School fees collected today (sum of today's payment_transactions)
+    let schoolFeesToday = 0;
+    const sToday = new Date();
+    const schoolDayStart = new Date(sToday.getFullYear(), sToday.getMonth(), sToday.getDate()).toISOString();
+    const schoolDayEnd = new Date(sToday.getFullYear(), sToday.getMonth(), sToday.getDate(), 23, 59, 59, 999).toISOString();
+    let sfq = supabaseClient.from('payment_transactions')
+      .select('amount_paid')
+      .gte('payment_date', schoolDayStart)
+      .lte('payment_date', schoolDayEnd);
+    if (schoolId) sfq = sfq.eq('school_id', schoolId);
+    const { data: schoolPayments, error: schoolPayErr } = await sfq;
+    if (schoolPayErr) {
+      console.warn('[ACC] school fees today query error:', schoolPayErr.message);
+    } else {
+      schoolFeesToday = (schoolPayments || []).reduce((sum, t) => sum + (Number(t.amount_paid) || 0), 0);
+    }
+    const schoolFeesEl = getEl('accFeeSchoolFeesToday');
+    if (schoolFeesEl) {
+      schoolFeesEl.textContent = `GHC ${formatCurrency(schoolFeesToday)}`;
+      // Distinct highlight animation on load / dashboard refresh
+      schoolFeesEl.classList.remove('school-fees-pulse');
+      void schoolFeesEl.offsetWidth; // force reflow to restart the animation
+      schoolFeesEl.classList.add('school-fees-pulse');
+    }
+
     // Collection rate percentage (based on total expected, not just total_amount)
     const pctEl = getEl('accFeePct');
     const fillEl = getEl('accFeeProgressFill');

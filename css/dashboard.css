@@ -618,6 +618,27 @@
   font-size: 0.7rem;
 }
 
+/* Highlighted full-width stat for "School Fees Collected Today" */
+.dash-fee-stat-today {
+  grid-column: 1 / -1;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.10), rgba(245, 158, 11, 0.16));
+  border: 1.5px solid rgba(245, 158, 11, 0.35);
+}
+
+.dash-fee-stat-today .dash-fee-label::after {
+  content: '●';
+  display: inline-block;
+  margin-left: 0.35rem;
+  color: var(--warning);
+  font-size: 0.55rem;
+  animation: pulseLive 2s ease-in-out infinite;
+}
+
+.dash-fee-stat-today .dash-fee-value {
+  display: inline-block;
+  color: var(--success);
+}
+
 .dash-fee-counts {
   grid-column: 1 / -1;
   display: flex;
@@ -1190,6 +1211,18 @@
   0% { transform: scale(1); }
   50% { transform: scale(1.08); color: var(--primary); }
   100% { transform: scale(1); }
+}
+
+/* Distinct pulse for the "School Fees Collected Today" highlight */
+.school-fees-pulse {
+  animation: schoolFeesPulse 0.9s ease;
+}
+
+@keyframes schoolFeesPulse {
+  0%   { transform: scale(1); }
+  25%  { transform: scale(1.16); color: var(--warning); text-shadow: 0 0 14px rgba(245, 158, 11, 0.65); }
+  60%  { transform: scale(0.97); }
+  100% { transform: scale(1); color: var(--success); text-shadow: none; }
 }
 
 /* Live data indicator dots */
