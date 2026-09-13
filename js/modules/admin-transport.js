@@ -37,6 +37,9 @@ let _activeTab = 'daily';
 let _collapsedRoutes = new Set(); // route IDs collapsed in the Today's Collection sheet
 let _collectorStaff = [];          // teachers flagged as transport collectors
 let _collectorAssignments = [];    // transport_collector_routes mapping teachers → routes
+let _coverageFrom = '';            // Destination Coverage date range (From)
+let _coverageTo = '';              // Destination Coverage date range (To)
+let _coveragePayments = [];        // transport_fee_payments within the coverage range
 
 // ================================================================
 // Init / Listeners
@@ -77,6 +80,16 @@ export function setupTransportListeners() {
   getEl('trCollectorStaff')?.addEventListener('change', renderCollectorRoutesChecklist);
   getEl('trAssignRoutesBtn')?.addEventListener('click', saveCollectorAssignments);
   getEl('trRefreshAssignmentsBtn')?.addEventListener('click', loadCollectorAssignmentsTab);
+
+  // ----- Destination Coverage date filter -----
+  getEl('trCoverageApply')?.addEventListener('click', loadCollectorCoverage);
+  getEl('trCoverageFrom')?.addEventListener('change', loadCollectorCoverage);
+  getEl('trCoverageTo')?.addEventListener('change', loadCollectorCoverage);
+
+  // Close the collector collections modal when the overlay background is clicked
+  getEl('collectorCollectionsModal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'collectorCollectionsModal') closeCollectorCollectionsModal();
+  });
   getEl('trHistoryFrom')?.addEventListener('change', loadHistoryTab);
   getEl('trHistoryTo')?.addEventListener('change', loadHistoryTab);
   getEl('trHistoryRoute')?.addEventListener('change', loadHistoryTab);
@@ -1015,7 +1028,7 @@ async function loadCollectorAssignmentsTab() {
   clearMessage('trCollectorMessage');
   try {
     const staffQ = supabaseClient.from('teachers')
-      .select('id, full_name, registration_id, phone, email')
+      .select('id, full_name, registration_id, phone, email, user_id')
       .eq('school_id', _schoolId)
       .eq('is_transport_collector', true)
       .eq('is_active', true)
@@ -1034,7 +1047,7 @@ async function loadCollectorAssignmentsTab() {
     populateCollectorStaffSelect();
     renderCollectorRoutesChecklist();
     renderCollectorAssignmentsTable();
-    renderCollectorRouteDetailsTable();
+    await loadCollectorCoverage();
   } catch (err) {
     console.error('[Transport] collector assignments load error:', err);
     showMessage('trCollectorMessage', `Failed to load collector assignments: ${err.message}`, 'error');
@@ -1191,6 +1204,118 @@ function renderCollectorAssignmentsTable() {
   }).join('');
 }
 
+/**
+ * Loads the transport payments for the Destination Coverage date range
+ * (defaults to the last 30 days → today) and re-renders the coverage table.
+ */
+async function loadCollectorCoverage() {
+  const fromInput = getEl('trCoverageFrom');
+  const toInput = getEl('trCoverageTo');
+
+  // Default range: last 30 days → today (only set once, then keep user choice)
+  if (fromInput && toInput && !_coverageFrom) {
+    const now = new Date();
+    const from = new Date(now);
+    from.setDate(from.getDate() - 30);
+    _coverageFrom = toISODate(from);
+    _coverageTo = toISODate(now);
+    fromInput.value = _coverageFrom;
+    toInput.value = _coverageTo;
+  }
+
+  _coverageFrom = fromInput?.value || '';
+  _coverageTo = toInput?.value || '';
+
+  try {
+    let q = supabaseClient.from('transport_fee_payments')
+      .select('collected_by, collection_date, fee_amount')
+      .eq('school_id', _schoolId);
+    if (_coverageFrom) q = q.gte('collection_date', _coverageFrom);
+    if (_coverageTo) q = q.lte('collection_date', _coverageTo);
+    const { data, error } = await q;
+    if (error) throw error;
+    _coveragePayments = data || [];
+  } catch (err) {
+    console.error('[Transport] coverage payments load error:', err);
+    _coveragePayments = [];
+    showMessage('trCollectorMessage', `Failed to load collection amounts: ${err.message}`, 'error');
+  }
+  renderCollectorRouteDetailsTable();
+}
+
+/** Show the per-date collection detail for one collector in a modal. */
+window.openCollectorCollections = function (teacherId) {
+  const staff = _collectorStaff.find((s) => s.id === teacherId);
+  const modal = getEl('collectorCollectionsModal');
+  const infoEl = getEl('collectorCollectionsStaffInfo');
+  const summaryEl = getEl('collectorCollectionsSummary');
+  const bodyEl = getEl('collectorCollectionsBody');
+  if (!modal || !staff) return;
+
+  if (infoEl) {
+    infoEl.innerHTML = `<strong>${esc(staff.full_name)}</strong>`
+      + (staff.registration_id ? ` · <small>Staff ID: ${esc(staff.registration_id)}</small>` : '')
+      + `<div style="font-size:0.85rem;color:var(--text-muted);margin-top:0.2rem;">`
+      + [staff.phone ? `Phone: ${esc(staff.phone)}` : '', staff.email ? `Email: ${esc(staff.email)}` : ''].filter(Boolean).join(' · ')
+      + `</div>`;
+  }
+
+  const periodLabel = `Period: <strong>${esc(_coverageFrom || 'start')}</strong> → <strong>${esc(_coverageTo || 'today')}</strong>`;
+
+  if (!staff.user_id) {
+    if (summaryEl) summaryEl.innerHTML = `<span class="tr-history-total">${periodLabel}</span> <span class="tr-history-total">No login linked</span>`;
+    if (bodyEl) bodyEl.innerHTML = '<tr><td colspan="3" style="text-align:center;padding:2rem;color:var(--text-muted);">This staff member has no login account linked, so no collections can be attributed to them.</td></tr>';
+    modal.style.display = 'flex';
+    return;
+  }
+
+  const recs = _coveragePayments.filter((p) => p.collected_by === staff.user_id);
+  const grandTotal = recs.reduce((sum, p) => sum + Number(p.fee_amount || 0), 0);
+
+  if (summaryEl) {
+    summaryEl.innerHTML = `<span class="tr-history-total">${periodLabel}</span>`
+      + `<span class="tr-history-total">${recs.length} payment(s)</span>`
+      + `<span class="tr-history-total">Total: GHC ${formatCurrency(grandTotal)}</span>`;
+  }
+  if (!bodyEl) return;
+
+  if (!recs.length) {
+    bodyEl.innerHTML = '<tr><td colspan="3" style="text-align:center;padding:2rem;color:var(--text-muted);">No transport collections recorded for this staff member in the selected period.</td></tr>';
+    modal.style.display = 'flex';
+    return;
+  }
+
+  // Group by collection_date (newest first)
+  const perDate = {};
+  recs.forEach((p) => {
+    const d = p.collection_date;
+    if (!perDate[d]) perDate[d] = { count: 0, total: 0 };
+    perDate[d].count += 1;
+    perDate[d].total += Number(p.fee_amount || 0);
+  });
+  const dates = Object.keys(perDate).sort().reverse();
+
+  bodyEl.innerHTML = dates.map((d) => `
+    <tr>
+      <td data-label="Date"><strong>${esc(d)}</strong></td>
+      <td data-label="Payments" style="text-align:center;">${perDate[d].count}</td>
+      <td data-label="Amount" style="text-align:right;font-weight:700;color:var(--success);">GHC ${formatCurrency(perDate[d].total)}</td>
+    </tr>`).join('')
+    + `<tr style="background:rgba(255,255,255,0.35);">
+         <td><strong>Total</strong></td>
+         <td style="text-align:center;"><strong>${recs.length}</strong></td>
+         <td style="text-align:right;font-weight:800;color:var(--success);">GHC ${formatCurrency(grandTotal)}</td>
+       </tr>`;
+
+  modal.style.display = 'flex';
+};
+
+/** Close the collector collections modal. */
+window.closeCollectorCollectionsModal = function () {
+  const modal = getEl('collectorCollectionsModal');
+  if (modal) modal.style.display = 'none';
+};
+
 /** Route-centric view: which collection staff handle each destination. */
 function renderCollectorRouteDetailsTable() {
   const tbody = getEl('transportCollectorRouteDetailsBody');
@@ -1215,13 +1340,19 @@ function renderCollectorRouteDetailsTable() {
       .sort((a, b) => a.full_name.localeCompare(b.full_name));
 
     const cells = staffList.length
-      ? staffList.map((s) => `
+      ? staffList.map((s) => {
+          const recs = _coveragePayments.filter((p) => p.collected_by === s.user_id);
+          const total = recs.reduce((sum, p) => sum + Number(p.fee_amount || 0), 0);
+          return `
           <div style="padding:0.4rem 0;border-bottom:1px dashed var(--glass-border);">
             <strong>${esc(s.full_name)}</strong>
             ${s.registration_id ? `<div><small style="color:var(--text-muted);">Staff ID: ${esc(s.registration_id)}</small></div>` : ''}
             ${s.phone ? `<div><small>Phone: ${esc(s.phone)}</small></div>` : ''}
             ${s.email ? `<div><small>Email: ${esc(s.email)}</small></div>` : ''}
-          </div>`).join('')
+            <div style="margin-top:0.35rem;font-size:0.85rem;font-weight:700;color:var(--success);">Collected in range: GHC ${formatCurrency(total)} (${recs.length} payment(s))</div>
+            <button type="button" class="action-btn confirm" style="margin-top:0.4rem;font-size:0.78rem;" onclick="openCollectorCollections('${s.id}')">View Collections by Date</button>
+          </div>`;
+        }).join('')
       : '<span style="color:var(--text-muted);font-size:0.85rem;">No collector assigned — assign one above.</span>';
 
     return `<tr>

@@ -2155,7 +2155,12 @@
 
         <div style="margin-top:1.5rem;">
           <h3 style="margin:0 0 0.35rem 0;font-size:1.05rem;">Destination Coverage</h3>
-          <p style="font-size:0.85rem;color:var(--text-muted);margin:0 0 0.75rem 0;">For each bus destination, the collection staff assigned to handle its daily fees, with their contact details.</p>
+          <p style="font-size:0.85rem;color:var(--text-muted);margin:0 0 0.5rem 0;">For each bus destination, the collection staff assigned to handle its daily fees, with their contact details and amount collected within the selected date range.</p>
+          <div class="form-row" style="margin-bottom:0.75rem;">
+            <div class="form-group"><label>From Date</label><input type="date" id="trCoverageFrom" class="search-input" /></div>
+            <div class="form-group"><label>To Date</label><input type="date" id="trCoverageTo" class="search-input" /></div>
+            <div class="form-group"><label>&nbsp;</label><button type="button" class="btn btn-primary" id="trCoverageApply">Apply Filter</button></div>
+          </div>
           <div class="table-wrapper">
             <table class="app-table">
               <thead>
@@ -3924,6 +3929,30 @@
         <div style="display:flex;gap:0.75rem;justify-content:flex-end;">
           <button type="button" class="btn btn-secondary" onclick="closeDeleteClassFeeModal()">Cancel</button>
           <button type="button" class="btn btn-danger" id="deleteClassFeeConfirmBtn" disabled style="opacity:0.5;cursor:not-allowed;">Delete Fee Record</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== COLLECTOR COLLECTIONS MODAL ==================== -->
+  <div id="collectorCollectionsModal" class="modal-overlay" style="display:none;">
+    <div class="modal-card" style="max-width:640px;max-height:90vh;overflow-y:auto;">
+      <div class="modal-header">
+        <h3>Collector Collections by Date</h3>
+        <button class="modal-close" onclick="closeCollectorCollectionsModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <div id="collectorCollectionsStaffInfo" style="background:var(--secondary-light);border:1px solid var(--glass-border);border-radius:8px;padding:0.85rem 1rem;margin-bottom:0.75rem;"></div>
+        <div id="collectorCollectionsSummary" style="margin:0.75rem 0;"></div>
+        <div class="table-wrapper">
+          <table class="app-table">
+            <thead>
+              <tr><th>Date</th><th>Payments</th><th>Amount (GHC)</th></tr>
+            </thead>
+            <tbody id="collectorCollectionsBody">
+              <tr><td colspan="3" style="text-align:center;padding:2rem;color:var(--text-muted);">Loading...</td></tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
