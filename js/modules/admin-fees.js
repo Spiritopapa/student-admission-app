@@ -13,6 +13,8 @@ let supabaseClient = null;
 // Class Fee" form. When null, the next save is treated as a NEW creation and
 // is disallowed if a fee already exists for the same class, term & academic year.
 let editingClassFeeId = null;
+// Snapshot of the currently filtered Student Fees view (used by the Print button).
+let _feeViewSnapshot = null;
 
 export function initAdminFees(supabase) {
   supabaseClient = supabase;
@@ -88,6 +90,9 @@ export function setupFeesListeners() {
 
   // Bulk print A5 fees reminders for the selected class / all students
   getEl('feePrintRemindersBtn')?.addEventListener('click', printClassFeeReminders);
+
+  // Print the student fees list exactly as currently filtered
+  getEl('feePrintStudentsBtn')?.addEventListener('click', printFilteredStudentFees);
 
   // Debtors list refresh
   getEl('feeRefreshDebtors')?.addEventListener('click', loadDebtorsList);
@@ -700,7 +705,7 @@ async function loadStudentFeesTab() {
   let appQuery = supabaseClient.from('applications').select('student_id, first_name, middle_name, last_name, class_applying, student_photo_url');
   if (schoolId) appQuery = appQuery.eq('school_id', schoolId);
   const { data: students } = await appQuery;
-  if (!students) return;
+  if (!students) { _feeViewSnapshot = null; return; }
 
   // Get all fee records for this school
   let feeQuery = supabaseClient.from('fees').select('*');
@@ -731,6 +736,17 @@ async function loadStudentFeesTab() {
       || getStudentFeeStatus(feeMap[s.student_id] || [], termFilter) === statusFilter;
     return matchesSearch && matchesClass && matchesStatus;
   });
+
+  // Cache the exact filtered view so the toolbar Print button reproduces
+  // what is currently on screen (search, class, term and status filters).
+  _feeViewSnapshot = {
+    filtered,
+    feeMap,
+    search: (getEl('feeSearchStudent')?.value || '').trim(),
+    classFilter,
+    termFilter,
+    statusFilter,
+  };
 
   if (filtered.length === 0) {
     tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--text-muted);">No students found.</td></tr>';
@@ -801,6 +817,124 @@ async function loadStudentFeesTab() {
 
 function filterFeeRecords() {
   loadStudentFeesTab();
+}
+
+/** Print the currently filtered Student Fees list (A4 landscape). */
+async function printFilteredStudentFees() {
+  const snap = _feeViewSnapshot;
+  if (!snap) { alert('The student fees list has not been loaded yet. Open the Student Fees tab first.'); return; }
+
+  let schoolName = 'School';
+  try {
+    const schoolId = await getCurrentSchoolId();
+    if (schoolId) {
+      const { data: school } = await supabaseClient.from('schools').select('name').eq('id', schoolId).maybeSingle();
+      if (school?.name) schoolName = school.name;
+    }
+  } catch (e) { /* ignore */ }
+
+  const { filtered, feeMap, search, classFilter, termFilter, statusFilter } = snap;
+  const termsOrder = ['First', 'Second', 'Third'];
+
+  const esc = (v) => String(v ?? '')
+    .replace(/&/g, '&amp;').replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/'/g, '&#39;');
+
+  // Build the per-term fee details (mirrors the on-screen rows, incl. term scope).
+  const buildTermRows = (fees) => {
+    const list = fees
+      .filter((f) => !termFilter || f.term === termFilter)
+      .sort((a, b) => termsOrder.indexOf(a.term) - termsOrder.indexOf(b.term));
+    if (!list.length) return '<em style="color:#64748b;">No fee records</em>';
+    return list.map((f) => {
+      const total = Number(f.total_amount) + Number(f.debt || 0);
+      const paid = Number(f.amount_paid);
+      const bal = total - paid;
+      const overpaid = Number(f.overpaid_amount || 0);
+      let status = bal <= 0 ? 'paid' : (paid > 0 ? 'partial' : 'unpaid');
+      if (bal < 0) status = 'paid';
+      const balanceTxt = bal < 0
+        ? `<span style="color:#0d9488;">Credit: GHC ${formatCurrency(Math.abs(bal))}</span>`
+        : `Bal: GHC ${formatCurrency(bal)}`;
+      return `<div class="fee-term">
+        <strong>${esc(f.term)} ${esc(f.academic_year)}:</strong>
+        Total GHC ${formatCurrency(total)} · Paid GHC ${formatCurrency(paid)} · ${balanceTxt}
+        ${overpaid > 0 ? `<em>(Credit GHC ${formatCurrency(overpaid)})</em>` : ''}
+        <span class="badge-${status}">${status}</span>
+      </div>`;
+    }).join('');
+  };
+
+const rows = filtered.map((s, idx) => {
+    const fees = feeMap[s.student_id] || [];
+    const name = `${s.first_name} ${s.middle_name || ''} ${s.last_name}`;
+    const totalBalance = fees.reduce((sum, f) =>
+      sum + Math.max((Number(f.total_amount) + Number(f.debt || 0)) - Number(f.amount_paid), 0), 0);
+    return `<tr>
+      <td style="text-align:center;">${idx + 1}</td>
+      <td>${esc(s.student_id)}</td>
+      <td>${esc(name)}</td>
+      <td>${esc(s.class_applying || '—')}</td>
+      <td>${buildTermRows(fees)}</td>
+      <td style="text-align:right;font-weight:700;">GHC ${formatCurrency(totalBalance)}</td>
+    </tr>`;
+  }).join('');
+
+  const grandBalance = filtered.reduce((sum, s) => {
+    const fees = feeMap[s.student_id] || [];
+    return sum + fees.reduce((s2, f) =>
+      s2 + Math.max((Number(f.total_amount) + Number(f.debt || 0)) - Number(f.amount_paid), 0), 0);
+  }, 0);
+
+  const statusLabel = statusFilter ? statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1) : 'All';
+  const termLabel = termFilter || 'All Term';
+  const classLabel = classFilter || 'All Classes';
+  const searchLabel = search ? `"${search}"` : 'None';
+  const now = new Date().toLocaleString('en-GB', {
+    day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
+  });
+
+  const body = filtered.length
+    ? `<table>
+        <thead><tr>
+          <th>#</th><th>Student ID</th><th>Name</th><th>Class</th><th>Fee Details by Term</th><th>Total Balance (GHC)</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot><tr>
+          <td colspan="4">TOTAL &mdash; ${filtered.length} student(s)</td>
+          <td></td>
+          <td style="text-align:right;">GHC ${formatCurrency(grandBalance)}</td>
+        </tr></tfoot>
+      </table>`
+    : '<p style="text-align:center;color:#b91c1c;font-weight:700;margin-top:2rem;">No students match the current filters.</p>';
+
+  const html = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>Student Fees — ${esc(classLabel)}</title>
+<style>
+  @page { size: A4 landscape; margin: 10mm; }
+  * { box-sizing: border-box; }
+  body { font-family: Arial, sans-serif; margin: 0; padding: 0; color: #0f172a; font-size: 12px; }
+  h2 { margin: 0 0 2px; font-size: 20px; }
+  .sub { color: #475569; margin: 0 0 8px; font-size: 11px; }
+  .filter-line { font-size: 11px; color: #334155; margin: 6px 0 10px; padding: 8px; background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 6px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 6px; }
+  th, td { border: 1px solid #cbd5e1; padding: 5px 7px; font-size: 11px; vertical-align: top; text-align: left; }
+  th { background: #1e3a5f; color: #fff; }
+  tfoot td { background: #eef2ff; font-weight: 800; }
+  .fee-term { margin: 3px 0; line-height: 1.4; }
+  .badge-paid { color: #059669; font-weight: 800; }
+  .badge-partial { color: #d97706; font-weight: 800; }
+  .badge-unpaid { color: #dc2626; font-weight: 800; }
+  .footer { margin-top: 12px; font-size: 10px; color: #64748b; }
+</style></head><body>
+  <h2>${esc(schoolName)}</h2>
+  <div class="sub">Student Fees Summary &mdash; generated ${esc(now)}</div>
+  <div class="filter-line">
+    <strong>Filters:</strong> Search: ${esc(searchLabel)} · Class: ${esc(classLabel)} · Term: ${esc(termLabel)} · Status: ${esc(statusLabel)} · Students shown: ${filtered.length}
+  </div>
+  ${body}
+  <div class="footer">Generated by Student Admission Portal</div>
+</body></html>`;
+  openPrintWindow(html, `Student Fees - ${classLabel}`);
 }
 
 // ================================================================
