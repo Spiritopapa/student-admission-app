@@ -556,22 +556,34 @@ export function buildPaymentTimestamp(dateStr) {
 /**
  * Determines a student's overall fee status for the fees-list status filter.
  * When a term filter is active, only that term's fee records are considered;
- * otherwise ALL of the student's fee records are combined using
- * "worst status wins" (any unpaid → 'unpaid', else any partial → 'partial',
- * else 'paid'). Overpaid/credit records (balance ≤ 0) count as paid.
- * Returns null when there are no fee records to judge (student is excluded
+ * otherwise ALL of the student's fee records are combined.
+ *
+ *   'paid'    → the student has PAID and has NO balance (overpaid credits count as paid)
+ *   'partial' → the student has paid PART of the fees and still HAS a balance
+ *   'unpaid'  → the student has NOT made any payment and HAS a balance
+ *
+ * Returns null when there are no fee records to judge (the student is excluded
  * from any specific status filter).
  */
 export function getStudentFeeStatus(fees = [], termFilter = '') {
   const list = !termFilter ? fees : fees.filter((f) => f.term === termFilter);
   if (!list.length) return null;
-  let hasPartial = false;
+
+  let totalPaid = 0;
+  let totalBalance = 0;
   for (const f of list) {
-    const bal = (Number(f.total_amount) + Number(f.debt || 0)) - Number(f.amount_paid);
-    if (bal > 0 && Number(f.amount_paid) <= 0) return 'unpaid'; // worst case → stop
-    if (bal > 0) hasPartial = true;
+    const paid = Number(f.amount_paid) || 0;
+    totalPaid += paid;
+    const bal = (Number(f.total_amount) + Number(f.debt || 0)) - paid;
+    totalBalance += Math.max(bal, 0);
   }
-  return hasPartial ? 'partial' : 'paid';
+
+  // 1. Paid → fully paid, no balance left.
+  if (totalBalance <= 0) return 'paid';
+  // 2. Unpaid → made NO payment at all and still owes.
+  if (totalPaid <= 0) return 'unpaid';
+  // 3. Partial → paid part of the fees but still has a balance.
+  return 'partial';
 }
 
 export function formatCurrency(amount) {
