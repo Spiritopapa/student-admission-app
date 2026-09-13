@@ -8,6 +8,8 @@ import { getGradeForScore, getGradingScaleHTML, fetchSchoolGrades } from './admi
 let supabaseClient = null;
 let currentExamWorkspace = { examId: null, classVal: null };
 let examSheetCache = [];
+let reportStudentsCache = [];
+let transcriptStudentsCache = [];
 
 export function initAdminExams(supabase) {
   supabaseClient = supabase;
@@ -73,6 +75,10 @@ export function setupExamListeners() {
     if (!classVal) { alert('Please select a class to batch print transcripts.'); return; }
     batchPrintTranscripts(classVal);
   });
+
+  // Student search boxes (report cards & transcripts)
+  getEl('reportStudentSearch')?.addEventListener('input', filterReportStudents);
+  getEl('transcriptStudentSearch')?.addEventListener('input', filterTranscriptStudents);
 }
 
 // ================================================================
@@ -844,7 +850,7 @@ export async function loadReportStudents() {
   const sel = getEl('reportStudent');
   if (!sel) return;
   const examId = currentExamWorkspace.examId;
-  if (!examId) { sel.innerHTML = '<option value="">— Select Student —</option>'; return; }
+  if (!examId) { sel.innerHTML = '<option value="">— Select Student —</option>'; reportStudentsCache = []; return; }
   try {
     const classVal = currentExamWorkspace.classVal;
     const schoolId = await getCurrentSchoolId();
@@ -853,8 +859,11 @@ export async function loadReportStudents() {
     const { data: apps } = await appsQuery;
     let filtered = apps || [];
     if (classVal) filtered = filtered.filter(a => a.class_applying === classVal);
-    sel.innerHTML = '<option value="">— Select Student —</option>' + filtered.map(a => `<option value="${a.student_id}">${a.student_id} - ${buildStudentName(a.first_name, a.middle_name, a.last_name)} (${a.class_applying})</option>`).join('');
-    
+    reportStudentsCache = filtered;
+    const search = getEl('reportStudentSearch');
+    if (search) search.value = '';
+    renderReportStudentOptions(filtered);
+
     // Populate the batch print class filter
     const classFilter = getEl('reportClassFilter');
     if (classFilter) {
@@ -863,6 +872,29 @@ export async function loadReportStudents() {
       if (classVal) classFilter.value = classVal;
     }
   } catch (err) { console.error('Failed to load report students:', err); }
+}
+
+/** Render students into the Report Card student select (escaped). */
+function renderReportStudentOptions(list) {
+  const sel = getEl('reportStudent');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">— Select Student —</option>' + (list || [])
+    .map(a => `<option value="${_trEsc(a.student_id)}">${_trEsc(a.student_id)} - ${_trEsc(buildStudentName(a.first_name, a.middle_name, a.last_name))} (${_trEsc(a.class_applying)})</option>`)
+    .join('');
+}
+
+/** Live filter of the Report Card student list by name or ID. */
+function filterReportStudents() {
+  const input = getEl('reportStudentSearch');
+  const q = (input?.value || '').trim().toLowerCase();
+  if (!q) { renderReportStudentOptions(reportStudentsCache); return; }
+  const list = reportStudentsCache.filter(a => {
+    const name = buildStudentName(a.first_name, a.middle_name, a.last_name).toLowerCase();
+    return String(a.student_id || '').toLowerCase().includes(q)
+      || name.includes(q)
+      || String(a.class_applying || '').toLowerCase().includes(q);
+  });
+  renderReportStudentOptions(list);
 }
 
 /**
@@ -1707,9 +1739,10 @@ export async function loadTranscriptStudents() {
     const { data: apps } = await appsQuery;
     let filtered = apps || [];
     if (classVal) filtered = filtered.filter(a => a.class_applying === classVal);
-    sel.innerHTML = '<option value="">— Select Student —</option>' + filtered
-      .map(a => `<option value="${_trEsc(a.student_id)}">${_trEsc(a.student_id)} - ${_trEsc(buildStudentName(a.first_name, a.middle_name, a.last_name))} (${_trEsc(a.class_applying)})</option>`)
-      .join('');
+    transcriptStudentsCache = filtered;
+    const search = getEl('transcriptStudentSearch');
+    if (search) search.value = '';
+    renderTranscriptStudentOptions(filtered);
 
     const classFilter = getEl('transcriptClassFilter');
     if (classFilter) {
@@ -1718,6 +1751,29 @@ export async function loadTranscriptStudents() {
       if (classVal) classFilter.value = classVal;
     }
   } catch (err) { console.error('Failed to load transcript students:', err); }
+}
+
+/** Render students into the Transcript student select (escaped). */
+function renderTranscriptStudentOptions(list) {
+  const sel = getEl('transcriptStudent');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">— Select Student —</option>' + (list || [])
+    .map(a => `<option value="${_trEsc(a.student_id)}">${_trEsc(a.student_id)} - ${_trEsc(buildStudentName(a.first_name, a.middle_name, a.last_name))} (${_trEsc(a.class_applying)})</option>`)
+    .join('');
+}
+
+/** Live filter of the Transcript student list by name or ID. */
+function filterTranscriptStudents() {
+  const input = getEl('transcriptStudentSearch');
+  const q = (input?.value || '').trim().toLowerCase();
+  if (!q) { renderTranscriptStudentOptions(transcriptStudentsCache); return; }
+  const list = transcriptStudentsCache.filter(a => {
+    const name = buildStudentName(a.first_name, a.middle_name, a.last_name).toLowerCase();
+    return String(a.student_id || '').toLowerCase().includes(q)
+      || name.includes(q)
+      || String(a.class_applying || '').toLowerCase().includes(q);
+  });
+  renderTranscriptStudentOptions(list);
 }
 // ================================================================
 // Transcript data aggregation

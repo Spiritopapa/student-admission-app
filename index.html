@@ -1555,7 +1555,8 @@
             <h3>Student Report Cards</h3>
             <p class="subtitle">Preview and print full report cards with scores, ranks, and class averages.</p>
             <div class="card-toolbar">
-              <select id="reportStudent" class="filter-select"><option value="">— Select Student —</option></select>
+              <input type="text" id="reportStudentSearch" class="search-input" placeholder="Search student by name or ID..." style="max-width:230px;" />
+              <select id="reportStudent" class="filter-select" style="min-width:200px;"><option value="">— Select Student —</option></select>
               <button type="button" class="btn btn-primary" id="btnPreviewReport">Preview Report Card</button>
               <button type="button" class="btn btn-secondary" id="btnPrintReport">Print Single</button>
               <select id="reportClassFilter" class="filter-select" style="min-width:160px;"><option value="">— Select Class —</option></select>
@@ -1585,7 +1586,8 @@
             <h3>Student Academic Transcripts</h3>
             <p class="subtitle">Combine every per-term exam the student has sat into one detailed, printable A4 transcript and use the history to make an academic judgement about their overall performance — complete with modern performance graphs.</p>
             <div class="card-toolbar" style="flex-wrap:wrap;">
-              <select id="transcriptStudent" class="filter-select" style="min-width:260px;"><option value="">— Select Student —</option></select>
+              <input type="text" id="transcriptStudentSearch" class="search-input" placeholder="Search student by name or ID..." style="max-width:240px;" />
+              <select id="transcriptStudent" class="filter-select" style="min-width:220px;"><option value="">— Select Student —</option></select>
               <button type="button" class="btn btn-primary" id="btnPreviewTranscript">Preview Transcript</button>
               <button type="button" class="btn btn-secondary" id="btnPrintTranscript">Print Single</button>
               <span style="color:var(--text-muted);font-size:0.85rem;">|</span>
