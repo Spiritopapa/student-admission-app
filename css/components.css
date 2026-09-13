@@ -561,6 +561,15 @@ legend {
   align-items: center; justify-content: center;
   z-index: 999; padding: 1rem; animation: fadeIn 0.2s ease;
 }
+
+/* The payment receipt modal must always render ON TOP of every other fixed
+   overlay — the header / mobile bottom nav (z-index 1000), sidebars &
+   backdrops (1002/1003) and announcement popups (10000). Without this the
+   receipt can pop up "behind" those elements when it is shown (e.g. when
+   reprinting a fees receipt). */
+#receiptModal {
+  z-index: 10050;
+}
 .modal-card {
   background: var(--glass-bg-strong);
   backdrop-filter: var(--glass-blur);
