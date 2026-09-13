@@ -1929,7 +1929,7 @@ if (termRecords.length === 0) return '<p style="color:var(--text-muted);text-ali
     </div>`;
   }).join('');
 
-  // ---- Matrix + term summary table HTML ----
+  // ---- Subject × term matrix with a merged term-average footer row ----
   const matrixHeaderCells = termRecords.map(t =>
     `<th>${_trEsc(t.term)} TERM<br><small style="font-weight:400;">${_trEsc(t.year)}</small></th>`).join('');
   const matrixBodyHtml = matrixRows.map(r => `<tr>
@@ -1943,11 +1943,12 @@ if (termRecords.length === 0) return '<p style="color:var(--text-muted);text-ali
           </div>
         </td>`
       : '<td class="tr-cell tr-cell-empty">—</td>').join('')}
-    <td class="tr-cell tr-cell-avg">${_trNum(r.subAvg)}</td>
+    <td class="tr-cell tr-cell-avg">${_trNum(r.subAvg)}%</td>
     <td class="tr-cell"><span class="rc-grade-badge ${r.subGrade.cls || 'grade-f'}">${_trEsc(r.subGrade.grade || '-')}</span></td>
   </tr>`).join('');
 
-  const termRowsHtml = termRecords.map((t, i) => {
+  // Merged "TERM AVERAGE" footer row — replaces the separate summary table.
+  const termFooterCells = termRecords.map((t, i) => {
     const trend = i === 0 ? '<span class="tr-trend flat">—</span>'
       : (() => {
           const diff = t.avg - termRecords[i - 1].avg;
@@ -1955,17 +1956,14 @@ if (termRecords.length === 0) return '<p style="color:var(--text-muted);text-ali
           if (diff < 0) return `<span class="tr-trend down">▼ -${_trNum(Math.abs(diff))}</span>`;
           return '<span class="tr-trend flat">▬ 0.0</span>';
         })();
-    return `<tr>
-      <td class="tr-td-term"><strong>${_trEsc(t.label)}</strong><br><small style="font-weight:400;color:#64748b;">${_trEsc(t.examName)}</small></td>
-      <td class="tr-center">${_trEsc(t.year)}</td>
-      <td class="tr-center">${t.count}</td>
-      <td class="tr-center">${_trNum(t.total)}</td>
-      <td class="tr-center"><strong>${_trNum(t.avg)}%</strong></td>
-      <td class="tr-center"><span class="rc-grade-badge ${t.avgGradeCls}">${_trEsc(t.avgGrade)}</span></td>
-      <td class="tr-center">${_trPositionSuffix(t.position)}</td>
-      <td class="tr-center">${trend}</td>
-      <td class="tr-remark">${_trEsc(t.remarks) || '—'}</td>
-    </tr>`;
+    return `<td>
+      <div class="tr-cell-total">${_trNum(t.avg)}%</div>
+      <div class="tr-cell-sub">
+        <span class="rc-grade-badge ${t.avgGradeCls}">${_trEsc(t.avgGrade)}</span>
+        <span class="tr-cell-cs">Pos ${_trPositionSuffix(t.position)}</span>
+        ${trend}
+      </div>
+    </td>`;
   }).join('');
 
   const yearsCovered = termRecords.length
@@ -1991,21 +1989,21 @@ return `
       <p class="tr-school-address">${_trEsc(settings?.school_address || 'Excellence in Education')}</p>
       <p class="tr-school-motto">${_trEsc(settings?.school_motto || 'Knowledge, Character, Service')}</p>
     </div>
-    <div class="tr-header-badge">ACADEMIC<br>TRANSCRIPT</div>
+    <div class="tr-header-badge">ACADEMIC TRANSCRIPT</div>
   </div>
 
   <div class="tr-student-section">
     <div class="tr-student-photo">${photoHtml}</div>
-    <table class="tr-info-table">
-      <tr><td class="tr-label">Student Name</td><td class="tr-colon">:</td><td class="tr-value">${_trEsc(name)}</td></tr>
-      <tr><td class="tr-label">Student ID</td><td class="tr-colon">:</td><td class="tr-value">${_trEsc(studentId)}</td></tr>
-      <tr><td class="tr-label">Class / Grade</td><td class="tr-colon">:</td><td class="tr-value">${_trEsc(app.class_applying || '-')}</td></tr>
-      <tr><td class="tr-label">Gender</td><td class="tr-colon">:</td><td class="tr-value">${_trEsc(app.gender || '-')}</td></tr>
-      <tr><td class="tr-label">Date of Birth</td><td class="tr-colon">:</td><td class="tr-value">${app.date_of_birth ? formatDate(app.date_of_birth) : '-'}</td></tr>
-      <tr><td class="tr-label">Parent / Guardian</td><td class="tr-colon">:</td><td class="tr-value">${_trEsc(app.parent_name || app.guardian_name || '-')}</td></tr>
-      <tr><td class="tr-label">Academic Years</td><td class="tr-colon">:</td><td class="tr-value">${_trEsc(yearsCovered || '-')}</td></tr>
-      <tr><td class="tr-label">Terms Completed</td><td class="tr-colon">:</td><td class="tr-value">${termRecords.length} examination${termRecords.length === 1 ? '' : 's'} recorded</td></tr>
-    </table>
+    <div class="tr-info-grid">
+      <div class="tr-info-item"><span>Student Name</span><strong>${_trEsc(name)}</strong></div>
+      <div class="tr-info-item"><span>Student ID</span><strong>${_trEsc(studentId)}</strong></div>
+      <div class="tr-info-item"><span>Class / Grade</span><strong>${_trEsc(app.class_applying || '-')}</strong></div>
+      <div class="tr-info-item"><span>Gender</span><strong>${_trEsc(app.gender || '-')}</strong></div>
+      <div class="tr-info-item"><span>Date of Birth</span><strong>${app.date_of_birth ? formatDate(app.date_of_birth) : '-'}</strong></div>
+      <div class="tr-info-item"><span>Parent / Guardian</span><strong>${_trEsc(app.parent_name || app.guardian_name || '-')}</strong></div>
+      <div class="tr-info-item"><span>Academic Years</span><strong>${_trEsc(yearsCovered || '-')}</strong></div>
+      <div class="tr-info-item"><span>Terms Completed</span><strong>${termRecords.length}</strong></div>
+    </div>
   </div>
 
   <div class="tr-summary-cards">
@@ -2031,74 +2029,55 @@ return `
     </div>
   </div>
 
-  <div class="tr-block">
-    <h4 class="tr-block-title">Term Performance Graph</h4>
-    <div class="tr-chart tr-term-chart">
-      ${termBarRows}
-      ${cumulativeBar}
+  <div class="tr-charts-row">
+    <div class="tr-chart-col">
+      <h4 class="tr-block-title">Term Performance</h4>
+      <div class="tr-chart tr-term-chart">
+        ${termBarRows}
+        ${cumulativeBar}
+      </div>
     </div>
-    <p class="tr-chart-note">Average score achieved in each per-term examination. Bars are colour-coded using the school's grading scale; arrows show the change from the previous term.</p>
-  </div>
-<div class="tr-block">
-    <h4 class="tr-block-title">Subject Strength Chart</h4>
-    <div class="tr-chart tr-subject-chart">
-      ${subjectBars || '<p class="tr-empty-note">No subject results available.</p>'}
+    <div class="tr-chart-col">
+      <h4 class="tr-block-title">Subject Strength</h4>
+      <div class="tr-chart tr-subject-chart">
+        ${subjectBars || '<p class="tr-empty-note">No subject results available.</p>'}
+      </div>
     </div>
   </div>
 
   <div class="tr-block">
-    <h4 class="tr-block-title">Subject Performance by Term</h4>
+    <h4 class="tr-block-title">Subject Performance by Term <span class="tr-title-note">score / grade (CS/ES) — last columns: subject average &amp; grade; yellow row: term average</span></h4>
     <div class="tr-scroll">
       <table class="tr-table tr-matrix-table">
         <thead>
-          <tr><th class="tr-th-subject">SUBJECT</th>${matrixHeaderCells}<th>AVERAGE</th><th>GRADE</th></tr>
-        </thead>
-        <tbody>${matrixBodyHtml}</tbody>
-      </table>
-    </div>
-    <p class="tr-chart-note">Each cell shows the <strong>Total (100)</strong>; the small line beneath shows <strong>Grade · Class Score / Exam Score</strong> (each on the 50-point scale).</p>
-  </div>
-
-  <div class="tr-block">
-    <h4 class="tr-block-title">Term-by-Term Examination Summary</h4>
-    <div class="tr-scroll">
-      <table class="tr-table tr-term-table">
-        <thead>
-          <tr><th>TERM / EXAM</th><th>YEAR</th><th>SUBJECTS</th><th>TOTAL</th><th>AVERAGE</th><th>GRADE</th><th>POSITION</th><th>TREND</th><th>REMARK</th></tr>
+          <tr><th class="tr-th-subject">SUBJECT</th>${matrixHeaderCells}<th>AVG</th><th>GRADE</th></tr>
         </thead>
         <tbody>
-          ${termRowsHtml}
-          <tr class="tr-cumulative-row">
-            <td><strong>ALL TERMS COMBINED</strong></td>
-            <td class="tr-center">—</td>
-            <td class="tr-center">${totalCountAll}</td>
-            <td class="tr-center">${_trNum(totalMarksAll)}</td>
-            <td class="tr-center"><strong>${_trNum(cumulativeAvg)}%</strong></td>
-            <td class="tr-center"><span class="rc-grade-badge ${cumGrade.cls || 'grade-f'}">${_trEsc(cumGrade.grade || '-')}</span></td>
-            <td class="tr-center">${avgPosition === '-' ? '-' : _trPositionSuffix(avgPosition)}</td>
-            <td class="tr-center">—</td>
-            <td class="tr-remark"><strong>${_trEsc(verdict.verdict)}</strong></td>
+          ${matrixBodyHtml}
+          <tr class="tr-term-footer">
+            <td>TERM AVERAGE</td>
+            ${termFooterCells}
+            <td class="tr-cell tr-cell-avg">${_trNum(cumulativeAvg)}%</td>
+            <td class="tr-cell"><span class="rc-grade-badge ${cumGrade.cls || 'grade-f'}">${_trEsc(cumGrade.grade || '-')}</span></td>
           </tr>
         </tbody>
       </table>
     </div>
   </div>
 
-  <div class="tr-block">
-    <h4 class="tr-block-title">Academic Judgement</h4>
+  <div class="tr-judgement-grid">
     <div class="tr-verdict ${verdict.cls}">
       <div><span class="tr-verdict-tag">VERDICT</span> <strong>${_trEsc(verdict.verdict)}</strong></div>
       <div class="tr-verdict-desc">${_trEsc(verdict.desc)}</div>
       ${bestTerm ? `<div class="tr-verdict-facts">
-        <span>Best term: <strong>${_trEsc(bestTerm.label)}</strong> (${_trNum(bestTerm.avg)}%)</span>
-        <span>Weakest term: <strong>${_trEsc(worstTerm.label)}</strong> (${_trNum(worstTerm.avg)}%)</span>
+        <span>Best: <strong>${_trEsc(bestTerm.label)}</strong> ${_trNum(bestTerm.avg)}%</span>
+        <span>Weakest: <strong>${_trEsc(worstTerm.label)}</strong> ${_trNum(worstTerm.avg)}%</span>
       </div>` : ''}
     </div>
     <div class="tr-promotion ${promotion.ok ? 'tr-promotion-pass' : 'tr-promotion-fail'}">
-      <div class="tr-promotion-title">PROMOTION RECOMMENDATION <span class="tr-promotion-decision">${_trEsc(promotion.decision)}</span></div>
-      <div>${_trEsc(promotion.note)}</div>
+      <div class="tr-promotion-title">PROMOTION <span class="tr-promotion-decision">${_trEsc(promotion.decision)}</span></div>
+      <div class="tr-promotion-note">${_trEsc(promotion.note)}</div>
     </div>
-    <p class="tr-verdict-note">This academic judgement is derived from the student's performance in the per-term examinations listed above. Term averages are weighted by the number of subjects scored in each exam; the cumulative average is the combined average over all subjects and terms, graded with the school's grading system.</p>
   </div>
 
   <div class="tr-key"><span class="tr-key-title">Grading Scale:</span> ${gradingScaleHTML}</div>
@@ -2161,16 +2140,15 @@ async function previewTranscript() {
 
 function _trPrintCss() {
   return `
-    body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;padding:0;margin:0;background:#fff;font-size:12px;color:#1e293b;}
-    @page{size:A4 portrait;margin:10mm 12mm;}
+    body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;padding:0;margin:0;background:#fff;font-size:11px;color:#1e293b;}
+    @page{size:A4 portrait;margin:7mm 8mm;}
     @media print{
       body{padding:0;margin:0;background:#fff;}
-      .tr-container{box-shadow:none;border:1px solid #cbd5e1;padding:1.4rem;max-width:100%;margin:0;page-break-after:always;}
+      .tr-container{box-shadow:none;border:1px solid #cbd5e1;padding:0.9rem;max-width:100%;margin:0;page-break-inside:avoid;page-break-after:always;}
       .tr-container:last-child{page-break-after:auto;}
-      .tr-block{page-break-inside:auto;}
-      .tr-chart,.tr-summary-cards,.tr-student-section,.tr-verdict,.tr-promotion,.tr-signatures,.tr-key,.tr-top-bar{page-break-inside:avoid;}
-      .tr-matrix-table thead,.tr-term-table thead{display:table-header-group;}
+      .tr-student-section,.tr-summary-cards,.tr-charts-row,.tr-verdict,.tr-promotion,.tr-signatures,.tr-key,.tr-top-bar{page-break-inside:avoid;}
       .tr-scroll{overflow:visible!important;}
+      .tr-matrix-table thead{display:table-header-group;}
       *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}
     }`;
 }

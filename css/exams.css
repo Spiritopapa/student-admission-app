@@ -1025,3 +1025,138 @@
   .tr-header-badge { width: 100%; text-align: center; }
   .tr-bar-label { flex-basis: 86px; font-size: 0.64rem; }
 }
+
+/* ============================================================
+   ACADEMIC TRANSCRIPT — COMPACT SINGLE-PAGE A4 LAYOUT
+   Dense but readable: uses the full A4 width, side-by-side graphs
+   and one integrated score table.
+   ============================================================ */
+
+.tr-container { font-size: 0.68rem; }
+.tr-top-bar { height: 4px; }
+
+/* Header */
+.tr-header { padding: 0.5rem 0.9rem 0.45rem; gap: 0.6rem; }
+.tr-logo, .tr-seal { width: 44px; height: 44px; }
+.tr-seal { font-size: 0.5rem; }
+.tr-school-name { font-size: 1.02rem; }
+.tr-school-address, .tr-school-motto { font-size: 0.6rem; margin-top: 0.05rem; }
+.tr-header-badge { font-size: 0.6rem; padding: 0.28rem 0.55rem; letter-spacing: 0.8px; }
+
+/* Student info — compact 4-column grid beside the photo */
+.tr-student-section { gap: 0.7rem; padding: 0.5rem 0.9rem; }
+.tr-photo { width: 50px; height: 62px; border-radius: 7px; }
+.tr-info-grid {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.16rem 0.7rem;
+}
+.tr-info-item { min-width: 0; }
+.tr-info-item span {
+  display: block;
+  font-size: 0.52rem;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+.tr-info-item strong {
+  display: block;
+  font-size: 0.64rem;
+  font-weight: 700;
+  color: #0f172a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Summary cards */
+.tr-summary-cards { grid-template-columns: repeat(4, 1fr); gap: 0.45rem; padding: 0.5rem 0.9rem; }
+.tr-summary-card { padding: 0.4rem 0.55rem; border-radius: 8px; }
+.tr-summary-label { font-size: 0.5rem; }
+.tr-summary-value { font-size: 1rem; }
+.tr-summary-sub { font-size: 0.5rem; }
+
+/* Side-by-side graphs */
+.tr-charts-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.9rem;
+  align-items: start;
+  padding: 0.35rem 0.9rem 0.45rem;
+  border-bottom: 1px solid #eef2f7;
+}
+.tr-chart-col { min-width: 0; }
+.tr-chart-col .tr-block-title { margin-bottom: 0.32rem; }
+.tr-chart { gap: 0.26rem; }
+.tr-bar-label { flex-basis: 82px; font-size: 0.58rem; }
+.tr-subject-name { font-size: 0.58rem; }
+.tr-bar-track { height: 13px; }
+.tr-cum-bar .tr-bar-track { height: 15px; }
+.tr-bar-fill { min-width: 30px; }
+.tr-bar-fill .tr-bar-value { font-size: 0.53rem; padding: 0 0.32rem; }
+.tr-bar-meta { min-width: 50px; gap: 0.14rem; }
+.tr-bar-meta .rc-grade-badge { font-size: 0.54rem; padding: 0.08rem 0.3rem; }
+.tr-trend { font-size: 0.54rem; }
+.tr-chart-note, .tr-empty-note { font-size: 0.54rem; margin-top: 0.25rem; }
+
+/* Blocks & table */
+.tr-block { padding: 0.35rem 0.9rem; }
+.tr-block-title {
+  font-size: 0.64rem;
+  margin-bottom: 0.3rem;
+  padding-left: 0.4rem;
+  border-left-width: 3px;
+}
+.tr-title-note { text-transform: none; font-weight: 500; color: #94a3b8; font-size: 0.52rem; margin-left: 0.4rem; }
+
+.tr-scroll { overflow-x: auto; }
+.tr-table { font-size: 0.56rem; }
+.tr-table th { padding: 0.2rem 0.28rem; font-size: 0.52rem; }
+.tr-table td { padding: 0.16rem 0.26rem; }
+.tr-subj-name { font-size: 0.58rem; }
+.tr-cell-total { font-size: 0.62rem; }
+.tr-cell-sub { gap: 0.18rem; margin-top: 0.06rem; }
+.tr-cell-cs { font-size: 0.48rem; }
+.tr-cell-avg { background: #eff6ff; font-size: 0.6rem; }
+.tr-term-footer td {
+  background: #fef9c3 !important;
+  color: #713f12;
+  border-top: 2px solid #facc15;
+  font-weight: 700;
+  font-size: 0.56rem;
+}
+
+/* Judgement — verdict & promotion side by side */
+.tr-judgement-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+  padding: 0.3rem 0.9rem 0.4rem;
+}
+.tr-verdict, .tr-promotion { margin-top: 0; padding: 0.5rem 0.65rem; font-size: 0.6rem; border-radius: 8px; }
+.tr-verdict strong { font-size: 0.68rem; }
+.tr-verdict-tag { font-size: 0.48rem; padding: 0.1rem 0.38rem; }
+.tr-verdict-desc { font-size: 0.58rem; margin-top: 0.18rem; }
+.tr-verdict-facts { margin-top: 0.28rem; font-size: 0.56rem; gap: 0.7rem; }
+.tr-promotion-title { font-size: 0.6rem; margin-bottom: 0.12rem; }
+.tr-promotion-decision { font-size: 0.52rem; padding: 0.1rem 0.45rem; }
+.tr-promotion-note { font-size: 0.56rem; }
+
+/* Key, signatures, footer */
+.tr-key { padding: 0.3rem 0.6rem; margin: 0 0.9rem 0.25rem; font-size: 0.54rem; gap: 0.2rem 0.7rem; border-radius: 6px; }
+.tr-key .rc-key-item { font-size: 0.54rem; white-space: nowrap; }
+.tr-signatures { padding: 0.5rem 0.9rem 0.25rem; gap: 1rem; }
+.tr-sig-line { margin-bottom: 0.12rem; }
+.tr-sig-role { font-size: 0.56rem; }
+.tr-sig-name { font-size: 0.52rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tr-footer { padding: 0.35rem 0.9rem 0.5rem; font-size: 0.52rem; gap: 0.5rem; }
+
+/* Mobile: stack charts & judgement */
+@media (max-width: 640px) {
+  .tr-info-grid { grid-template-columns: repeat(2, 1fr); }
+  .tr-charts-row, .tr-judgement-grid { grid-template-columns: 1fr; }
+  .tr-bar-label { flex-basis: 86px; }
+}
