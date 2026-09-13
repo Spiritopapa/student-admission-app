@@ -247,6 +247,7 @@ The **Transport** module on the Admin Dashboard tracks the **daily transport col
 - `transport_routes` — bus destinations with their own daily `fee` (school-scoped).
 - `transport_enrollments` — which student rides which route (`is_active`). A partial unique index (`sql/066-transport-one-route-per-student.sql`, Step 59) guarantees a student can be **active on at most one destination**.
 - `transport_fee_payments` — one row per student per destination per day (fee amount, method, reference, collected_by), unique per `(student_id, collection_date, route_id)`.
+- `transport_collector_routes` — maps a collection staff member (`teacher_id`) to the destination(s) (`route_id`) they are assigned to handle (`sql/068-transport-collector-assignments.sql`, Step 61).
 - Registers the `transport` module so the Super Admin can lock/unlock it per school like every other module.
 
 The migration is already included in `sql/000-run-all.sql` (Step 56). Backup & Restore, real-time refresh and the search cache all include the transport tables.
@@ -254,13 +255,14 @@ The migration is already included in `sql/000-run-all.sql` (Step 56). Backup & R
 ### Roles & access
 | Role | Access to the Transport module |
 |------|-------------------------------|
-| **Admin** | **Full access** — all four tabs: Today's Collection, Routes & Fees, Enroll Students, Payments History. **Only the Admin can delete / undo a transport payment** (daily ✕ undo, Reset all, and History → Remove). |
+| **Admin** | **Full access** — all five tabs: Today's Collection, Routes & Fees, Enroll Students, Payments History, Collector Destinations. **Only the Admin can delete / undo a transport payment** (daily ✕ undo, Reset all, and History → Remove). |
 | **Transport Fees Collector** (selected staff) | **Manage collections** — when the admin generates a staff ID (Staff → *Create Staff with Registration ID*) they can tick **"Transport Fees Collector"**. Flagged staff see a **Transport** tab on their own dashboard, where they can mark daily bus fees **PAID** per student and mark a whole destination paid, view the collection history, and print the daily sheet + ledger. They **cannot delete / undo a recorded collection** — deletion is admin-only (hidden buttons + database-level restriction). |
 | **Accountant** | **View & print** — a read-only **Transport** tab shows the daily collection sheet and payments history with the full print options; no edit buttons are shown. |
 
 - Delivery of the "delete only by Admin" rule is enforced **twice**: every delete/undo button is hidden for collectors/accountants in the UI (`js/modules/transport-shared.js`), and `sql/065-transport-payment-delete-restrict.sql` (Step 58) replaces the permissive RLS with **INSERT/UPDATE open to school staff but DELETE restricted to admin / sub-admin / super-admin**.
 - The collector flag is stored in `teachers.is_transport_collector` (`sql/064-transport-staff-collector.sql`, Step 57) and can be toggled anytime from Staff → *Add / Edit Staff*. It also shows a **Transport Collector** badge in the staff table and is exported/imported in the staff CSV.
 - The shared workspace lives in `js/modules/transport-shared.js` (`loadTransportWorkspace(containerId, mode)`, mode `'manage'` / `'view'`) and is embedded in the Teacher and Accountant dashboards.
+- **Collector Destinations** (Transport → **Collector Destinations**, Step 61): the Admin picks a collection staff member and ticks the bus destination(s) they should manage. A collector then **only sees and collects for the destination(s) assigned to them** on their dashboard (daily sheet, filters, history and prints) — if they have none assigned yet, they see a notice telling them to contact the Admin. The Accountant still sees all destinations (view & print).
 - **Today's Collection** (admin, collector and accountant) uses collapsible destination cards — click a destination's header (chevron shows the state) to expand / collapse its student payment list. Groups keep their collapsed state across refreshes.
 
 ---

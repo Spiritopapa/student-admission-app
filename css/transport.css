@@ -516,6 +516,23 @@
   color: #b45309;
 }
 
+/* Remove (×) button inside an assigned-destination chip */
+.tr-chip-remove {
+  border: none;
+  background: transparent;
+  color: #b45309;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 0.1rem;
+  border-radius: 50%;
+}
+
+.tr-chip-remove:hover {
+  background: rgba(180, 83, 9, 0.2);
+}
+
 /* ---------- Bulk payment modal (Today's Collection → Pay) ---------- */
 .tr-bulkpay-overlay { z-index: 1000; }
 .tr-bulkpay-card { max-width: 520px; }

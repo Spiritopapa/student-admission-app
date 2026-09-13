@@ -19,7 +19,7 @@
  * scrolling needed; tables use the shared stacked-card layout.
  */
 
-import { getEl, showMessage, clearMessage, getCurrentSchoolId, formatCurrency, logSubAdminActivity, openPrintWindow, buildStudentName } from './utils.js';
+import { getEl, showMessage, clearMessage, getCurrentSchoolId, formatCurrency, logSubAdminActivity, openPrintWindow, buildStudentName, setLoading } from './utils.js';
 import { svgIcon } from './icons.js';
 import { openTransportBulkPay } from './transport-bulk-pay.js';
 
@@ -35,6 +35,8 @@ let _dailyPaymentsByKey = {};   // "studentId|routeId" -> payment row
 let _dailyBulk = {};            // "studentId|routeId" -> { count, total } bulk group covering the shown date
 let _activeTab = 'daily';
 let _collapsedRoutes = new Set(); // route IDs collapsed in the Today's Collection sheet
+let _collectorStaff = [];          // teachers flagged as transport collectors
+let _collectorAssignments = [];    // transport_collector_routes mapping teachers → routes
 
 // ================================================================
 // Init / Listeners
@@ -70,6 +72,11 @@ export function setupTransportListeners() {
 
   // ----- History tab -----
   getEl('trHistoryRefresh')?.addEventListener('click', loadHistoryTab);
+
+  // ----- Collector Destinations tab -----
+  getEl('trCollectorStaff')?.addEventListener('change', renderCollectorRoutesChecklist);
+  getEl('trAssignRoutesBtn')?.addEventListener('click', saveCollectorAssignments);
+  getEl('trRefreshAssignmentsBtn')?.addEventListener('click', loadCollectorAssignmentsTab);
   getEl('trHistoryFrom')?.addEventListener('change', loadHistoryTab);
   getEl('trHistoryTo')?.addEventListener('change', loadHistoryTab);
   getEl('trHistoryRoute')?.addEventListener('change', loadHistoryTab);
@@ -264,6 +271,7 @@ export function switchTransportTab(tab) {
   else if (tab === 'routes') renderRoutesTab();
   else if (tab === 'enroll') loadEnrollTab();
   else if (tab === 'history') loadHistoryTab();
+  else if (tab === 'collectors') loadCollectorAssignmentsTab();
 }
 
 /** Fill route / class filter dropdowns shared by several tabs. */
@@ -962,6 +970,190 @@ window.trDeletePayment = async function (id) {
     showMessage('transportHistoryMessage', `Failed to remove entry: ${err.message}`, 'error');
   }
 };
+// ================================================================
+// TAB 5 — Collector Destinations (assign bus destinations to staff)
+// ================================================================
+
+/** Load collector staff + their route assignments and render the tab. */
+async function loadCollectorAssignmentsTab() {
+  clearMessage('trCollectorMessage');
+  try {
+    const staffQ = supabaseClient.from('teachers')
+      .select('id, full_name, registration_id')
+      .eq('school_id', _schoolId)
+      .eq('is_transport_collector', true)
+      .eq('is_active', true)
+      .order('full_name', { ascending: true });
+    const { data: staff, error: staffErr } = await staffQ;
+    if (staffErr) throw staffErr;
+    _collectorStaff = staff || [];
+
+    const assignQ = supabaseClient.from('transport_collector_routes')
+      .select('*')
+      .eq('school_id', _schoolId);
+    const { data: assigns, error: assignsErr } = await assignQ;
+    if (assignsErr) throw assignsErr;
+    _collectorAssignments = assigns || [];
+
+    populateCollectorStaffSelect();
+    renderCollectorRoutesChecklist();
+    renderCollectorAssignmentsTable();
+  } catch (err) {
+    console.error('[Transport] collector assignments load error:', err);
+    showMessage('trCollectorMessage', `Failed to load collector assignments: ${err.message}`, 'error');
+  }
+}
+
+function populateCollectorStaffSelect() {
+  const sel = getEl('trCollectorStaff');
+  if (!sel) return;
+  const current = sel.value;
+  const options = _collectorStaff
+    .map((s) => `<option value="${s.id}">${esc(s.full_name)}${s.registration_id ? ` (${esc(s.registration_id)})` : ''}</option>`)
+    .join('');
+  sel.innerHTML = '<option value="">— Select Staff —</option>' + options;
+  if (current && _collectorStaff.some((s) => s.id === current)) sel.value = current;
+}
+
+/** Set of route_ids already assigned to the given teacher. */
+function assignedRouteIdsForTeacher(teacherId) {
+  return new Set(_collectorAssignments.filter((a) => a.teacher_id === teacherId).map((a) => a.route_id));
+}
+
+/** Renders the checklist of destinations for the selected staff member. */
+function renderCollectorRoutesChecklist() {
+  const staffEl = getEl('trCollectorStaff');
+  const listEl = getEl('trCollectorRoutesList');
+  if (!staffEl || !listEl) return;
+
+  const teacherId = staffEl.value;
+  if (!teacherId) {
+    listEl.innerHTML = '<p class="tr-empty-state">Select a collection staff member above to assign destinations.</p>';
+    return;
+  }
+
+  const assigned = assignedRouteIdsForTeacher(teacherId);
+  const activeRoutes = _routes.filter((r) => r.is_active);
+  if (!activeRoutes.length) {
+    listEl.innerHTML = '<p class="tr-empty-state">No active destinations yet. Create one under <strong>Routes &amp; Fees</strong> first.</p>';
+    return;
+  }
+
+  listEl.innerHTML = '<p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:0.5rem;">Tick the destination(s) this staff member should collect for:</p>'
+    + activeRoutes.map((r) => `
+      <label class="checkbox-label" style="display:block;margin:0.35rem 0;">
+        <input type="checkbox" class="tr-collector-route-cb" value="${r.id}" ${assigned.has(r.id) ? 'checked' : ''} />
+        ${esc(r.name)} — GHC ${formatCurrency(r.fee)}/day
+      </label>`).join('');
+}
+
+/** Replace the selected staff member's destination assignments. */
+async function saveCollectorAssignments() {
+  const staffEl = getEl('trCollectorStaff');
+  if (!staffEl) return;
+  const teacherId = staffEl.value;
+  if (!teacherId) {
+    showMessage('trCollectorMessage', 'Select the collection staff member first.', 'error');
+    return;
+  }
+  const staff = _collectorStaff.find((s) => s.id === teacherId);
+  if (!staff) return;
+
+  const checked = [...document.querySelectorAll('.tr-collector-route-cb:checked')].map((cb) => cb.value);
+  const assignBtn = getEl('trAssignRoutesBtn');
+  setLoading(assignBtn, true, 'Saving...');
+
+  try {
+    // Replace all assignments for this teacher (delete then insert) so the
+    // saved state exactly matches the ticked checkboxes.
+    const { error: delErr } = await supabaseClient.from('transport_collector_routes')
+      .delete()
+      .eq('teacher_id', teacherId)
+      .eq('school_id', _schoolId);
+    if (delErr) throw delErr;
+
+    if (checked.length) {
+      const rows = checked.map((routeId) => ({
+        school_id: _schoolId,
+        teacher_id: teacherId,
+        route_id: routeId,
+      }));
+      const { error: insErr } = await supabaseClient.from('transport_collector_routes').insert(rows);
+      if (insErr) throw insErr;
+    }
+
+    const routeNames = checked.map((id) => _routes.find((r) => r.id === id)?.name).filter(Boolean);
+    await logSubAdminActivity(
+      checked.length
+        ? `Assigned ${staff.full_name} to bus destination(s): ${routeNames.join(', ')}`
+        : `Removed all bus destination assignments for ${staff.full_name}`,
+      'transport');
+
+    await loadCollectorAssignmentsTab();
+    showMessage('trCollectorMessage', `Assignments saved for ${staff.full_name} — ${checked.length} destination(s).`, 'success');
+  } catch (err) {
+    console.error('[Transport] save assignments error:', err);
+    showMessage('trCollectorMessage', `Failed to save assignments: ${err.message}`, 'error');
+  } finally {
+    setLoading(assignBtn, false, 'Save Assignments');
+  }
+}
+
+/** Remove a single destination from a staff member. */
+window.trRemoveCollectorAssignment = async function (teacherId, routeId) {
+  const staff = _collectorStaff.find((s) => s.id === teacherId);
+  const route = _routes.find((r) => r.id === routeId);
+  if (!staff || !route) return;
+  if (!confirm(`Remove "${route.name}" from ${staff.full_name}? They will no longer see or collect for this destination.`)) return;
+  try {
+    const { error } = await supabaseClient.from('transport_collector_routes')
+      .delete()
+      .eq('teacher_id', teacherId)
+      .eq('route_id', routeId)
+      .eq('school_id', _schoolId);
+    if (error) throw error;
+    await logSubAdminActivity(`Removed bus destination "${route.name}" from ${staff.full_name}`, 'transport');
+    await loadCollectorAssignmentsTab();
+  } catch (err) {
+    showMessage('trCollectorMessage', `Failed to remove assignment: ${err.message}`, 'error');
+  }
+};
+
+/** Load a staff member into the assignment form (from the table). */
+window.selectCollectorForEdit = function (teacherId) {
+  const sel = getEl('trCollectorStaff');
+  if (!sel) return;
+  sel.value = teacherId;
+  renderCollectorRoutesChecklist();
+  const formSection = document.querySelector('#transportTab-collectors .tr-route-form');
+  if (formSection) formSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+};
+
+function renderCollectorAssignmentsTable() {
+  const tbody = getEl('transportCollectorAssignmentsBody');
+  if (!tbody) return;
+  if (!_collectorStaff.length) {
+    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;padding:2rem;color:var(--text-muted);">No collection staff yet. Flag a staff member as a <strong>Transport Fees Collector</strong> in Staff → Add / Edit Staff first.</td></tr>';
+    return;
+  }
+
+  const routeName = (id) => _routes.find((r) => r.id === id)?.name || '(deleted destination)';
+  tbody.innerHTML = _collectorStaff.map((s) => {
+    const assigned = _collectorAssignments.filter((a) => a.teacher_id === s.id);
+    const chips = assigned.length
+      ? assigned.map((a) => `<span class="tr-chip" style="margin:0.15rem 0.35rem 0.15rem 0;">
+          ${esc(routeName(a.route_id))}
+          <button type="button" class="tr-chip-remove" onclick="trRemoveCollectorAssignment('${s.id}','${a.route_id}')" title="Remove destination">×</button>
+        </span>`).join('')
+      : '<span style="color:var(--text-muted);font-size:0.85rem;">No destinations assigned</span>';
+    return `<tr>
+      <td><strong>${esc(s.full_name)}</strong>${s.registration_id ? `<br/><small style="color:var(--text-muted);font-size:0.78rem;">${esc(s.registration_id)}</small>` : ''}</td>
+      <td>${chips}</td>
+      <td><button type="button" class="action-btn confirm" onclick="selectCollectorForEdit('${s.id}')">Edit</button></td>
+    </tr>`;
+  }).join('');
+}
+
 // ================================================================
 // Printing
 // ================================================================

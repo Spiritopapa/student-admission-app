@@ -84,6 +84,7 @@ const BACKUP_TABLES = [
 
   // Level 7b: Transport payments (reference applications + destinations)
   { name: 'transport_fee_payments', label: 'Transport Fee Payments', schoolScoped: true },
+  { name: 'transport_collector_routes', label: 'Transport Collector Assignments', schoolScoped: true },
   
   // Level 8: Activity logs (reference sub_admins)
   { name: 'sub_admin_activities', label: 'Sub Admin Activities', schoolScoped: true },

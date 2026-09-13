@@ -2005,6 +2005,7 @@
         <button type="button" class="transport-tab" data-transport-tab="routes">Routes &amp; Fees</button>
         <button type="button" class="transport-tab" data-transport-tab="enroll">Enroll Students</button>
         <button type="button" class="transport-tab" data-transport-tab="history">Payments History</button>
+        <button type="button" class="transport-tab" data-transport-tab="collectors">Collector Destinations</button>
       </div>
 
       <div id="transportMessage" class="message" style="display:none;margin-bottom:1rem;"></div>
@@ -2107,6 +2108,32 @@
             </thead>
             <tbody id="transportHistoryBody">
               <tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--text-muted);">Loading payments history...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ===== TAB: COLLECTOR DESTINATIONS ===== -->
+      <div id="transportTab-collectors" class="transport-tab-content">
+        <div class="tr-route-form">
+          <h3>Assign Bus Destinations to Collection Staff</h3>
+          <p>Pick a <strong>Transport Fees Collector</strong> below, tick the bus destination(s) they should manage, then save. The staff member will only see and collect for the destination(s) assigned here on their own dashboard.</p>
+          <div class="form-row">
+            <div class="form-group" style="flex:1.4;min-width:220px;"><label>Collection Staff *</label><select id="trCollectorStaff" class="filter-select" style="width:100%;"><option value="">— Select Staff —</option></select></div>
+          </div>
+          <div id="trCollectorRoutesList" style="margin:0.75rem 0;"></div>
+          <button type="button" class="btn btn-primary" id="trAssignRoutesBtn">Save Assignments</button>
+          <button type="button" class="btn btn-secondary" id="trRefreshAssignmentsBtn">Refresh</button>
+          <div id="trCollectorMessage" class="message" style="display:none;margin-top:0.75rem;"></div>
+        </div>
+
+        <div class="table-wrapper" style="margin-top:1rem;">
+          <table class="app-table">
+            <thead>
+              <tr><th>Staff Member</th><th>Assigned Destinations</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="transportCollectorAssignmentsBody">
+              <tr><td colspan="3" style="text-align:center;padding:2rem;color:var(--text-muted);">Loading staff assignments...</td></tr>
             </tbody>
           </table>
         </div>

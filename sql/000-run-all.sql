@@ -498,6 +498,14 @@
 -- Used by: js/modules/admin-fees.js (Fees Management → Record Payment)
 --          and js/modules/accountant-dashboard.js (Fees Management).
 \i 067-payment-date-selector.sql
+
+-- Step 61: Transport Collector Route Assignments
+-- Lets the Admin assign specific bus destinations to specific Transport
+-- Fees Collection staff. Flagged staff then only see / handle the
+-- destination(s) they were assigned to (enforced in
+-- js/modules/transport-shared.js manage mode and configured via the
+-- Transport → Collector Destinations tab in js/modules/admin-transport.js).
+\i 068-transport-collector-assignments.sql
 -- ============================================================
 --  SCHEMA DEPLOYMENT COMPLETE
 -- ============================================================

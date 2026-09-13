@@ -52,6 +52,7 @@ const W = {
   search: '',
   method: 'Cash',
   collapsedRoutes: new Set(), // route IDs collapsed in Today's Collection
+  allowedRouteIds: null,      // Set of route_ids a collector is assigned (manage mode)
   // history filter state
   hFrom: '',
   hTo: '',
@@ -182,7 +183,17 @@ async function loadRefData() {
     .eq('school_id', W.schoolId)
     .order('name', { ascending: true });
   if (routesErr) throw routesErr;
-  W.routes = routes || [];
+
+  // In manage mode (staff collector), only expose the destination(s) the Admin
+  // assigned to THIS user — they can only handle their own bus destination(s).
+  let visibleRoutes = routes || [];
+  if (manageMode()) {
+    await loadCollectorRouteScope();
+    if (W.allowedRouteIds) {
+      visibleRoutes = visibleRoutes.filter((r) => W.allowedRouteIds.has(r.id));
+    }
+  }
+  W.routes = visibleRoutes;
 
   const { data: enrollments, error: enrErr } = await supabaseClient
     .from('transport_enrollments')
@@ -199,6 +210,33 @@ async function loadRefData() {
   W.students = students || [];
   W.studentMap = {};
   W.students.forEach((s) => { W.studentMap[s.student_id] = s; });
+}
+
+/**
+ * In manage mode (staff collector), loads the destinations the Admin assigned
+ * to the CURRENT user and stores them in W.allowedRouteIds. An empty Set
+ * means "no destinations assigned yet"; null means "scope not loaded".
+ */
+async function loadCollectorRouteScope() {
+  W.allowedRouteIds = null;
+  try {
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    if (!user) { W.allowedRouteIds = new Set(); return; }
+    const { data: teacher } = await supabaseClient.from('teachers')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('school_id', W.schoolId)
+      .maybeSingle();
+    if (!teacher) { W.allowedRouteIds = new Set(); return; }
+    const { data: assigns } = await supabaseClient.from('transport_collector_routes')
+      .select('route_id')
+      .eq('teacher_id', teacher.id)
+      .eq('school_id', W.schoolId);
+    W.allowedRouteIds = new Set((assigns || []).map((a) => a.route_id));
+  } catch (err) {
+    console.warn('[TransportWS] collector scope load error:', err.message);
+    W.allowedRouteIds = new Set();
+  }
 }
 
 async function loadDailyPayments() {
@@ -269,6 +307,11 @@ function renderWorkspace() {
     ? '<span class="tr-chip">Collection manager</span>'
     : '<span class="tr-chip">View · Print only</span>';
 
+  // A collector with no assigned destinations yet sees a friendly notice.
+  const scopeNotice = (manageMode() && W.allowedRouteIds && W.allowedRouteIds.size === 0)
+    ? '<div class="tr-empty-state" style="margin-bottom:1rem;">You have not been assigned any bus destination yet. Contact the school Admin to assign destinations to you.</div>'
+    : '';
+
   const methodOptions = '<option>Cash</option><option>Mobile Money</option><option>Bank Transfer</option><option>Cheque</option><option>Other</option>';
   const methodSelect = manageMode()
     ? `<label>Method</label><select id="tsMethod" class="filter-select" style="max-width:150px;">${methodOptions}</select>`
@@ -279,6 +322,7 @@ function renderWorkspace() {
 
   container.innerHTML = `
     <div class="transport-workspace">
+      ${scopeNotice}
       <div class="transport-tabs" style="margin-bottom:1rem;">
         <button type="button" class="transport-tab ${W.tab === 'daily' ? 'active' : ''}" data-ts-tab="daily" onclick="tsWorkspaceTab('daily')">Today's Collection</button>
         <button type="button" class="transport-tab ${W.tab === 'history' ? 'active' : ''}" data-ts-tab="history" onclick="tsWorkspaceTab('history')">Payments History</button>
@@ -684,6 +728,14 @@ async function renderHistory() {
       .eq('school_id', W.schoolId)
       .order('collection_date', { ascending: false })
       .order('created_at', { ascending: false });
+    // Collectors only see history for the destination(s) assigned to them
+    if (manageMode() && W.allowedRouteIds) {
+      if (W.allowedRouteIds.size === 0) {
+        renderHistoryRows([]);
+        return;
+      }
+      q = q.in('route_id', [...W.allowedRouteIds]);
+    }
     if (W.hFrom) q = q.gte('collection_date', W.hFrom);
     if (W.hTo) q = q.lte('collection_date', W.hTo);
     if (W.hRoute) q = q.eq('route_id', W.hRoute);

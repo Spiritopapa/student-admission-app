@@ -195,6 +195,16 @@ const TABLE_ACTIONS = {
       refresh: 'refreshAccountantTransport',
     },
   ],
+  transport_collector_routes: [
+    {
+      pages: ['page-admin-transport'],
+      refresh: 'loadTransportPage',
+    },
+    {
+      pages: ['page-teacher-dashboard'],
+      refresh: 'refreshTeacherTransport',
+    },
+  ],
 };
 
 // ================================================================
