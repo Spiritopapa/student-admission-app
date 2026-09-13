@@ -914,6 +914,7 @@ async function loadHistoryTab() {
     }
 
     renderHistoryRows(payments);
+    renderDailyTotalsRows(payments);
   } catch (err) {
     console.error('[Transport] history error:', err);
     tbody.innerHTML = `<tr><td colspan="8">Failed to load history: ${esc(err.message)}</td></tr>`;
@@ -952,6 +953,41 @@ function renderHistoryRows(payments) {
       <td data-label="Actions"><button type="button" class="btn btn-sm btn-danger" onclick="trDeletePayment('${p.id}')">Remove</button></td>
     </tr>`;
   }).join('');
+}
+
+/** Renders the "Collected by Date" summary — total amount collected per day. */
+function renderDailyTotalsRows(payments) {
+  const tbody = getEl('transportDailyTotalsBody');
+  if (!tbody) return;
+
+  if (!payments.length) {
+    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;padding:2rem;color:var(--text-muted);">No payments for the selected filters.</td></tr>';
+    return;
+  }
+
+  // Group by collection_date respecting every active filter (dates, route, class, search)
+  const perDate = {};
+  payments.forEach((p) => {
+    const d = p.collection_date;
+    if (!perDate[d]) perDate[d] = { count: 0, total: 0 };
+    perDate[d].count += 1;
+    perDate[d].total += Number(p.fee_amount || 0);
+  });
+
+  const dates = Object.keys(perDate).sort().reverse(); // newest first
+  const grandTotal = payments.reduce((sum, p) => sum + Number(p.fee_amount || 0), 0);
+
+  tbody.innerHTML = dates.map((d) => `
+    <tr>
+      <td data-label="Date"><strong>${esc(d)}</strong></td>
+      <td data-label="Payments" style="text-align:center;">${perDate[d].count}</td>
+      <td data-label="Total Amount" style="text-align:right;font-weight:700;color:var(--success);">GHC ${formatCurrency(perDate[d].total)}</td>
+    </tr>`).join('')
+    + `<tr style="background:rgba(255,255,255,0.35);">
+         <td><strong>Total</strong></td>
+         <td style="text-align:center;"><strong>${payments.length}</strong></td>
+         <td style="text-align:right;font-weight:800;color:var(--success);">GHC ${formatCurrency(grandTotal)}</td>
+       </tr>`;
 }
 
 /** Remove a single transport payment entry. */
