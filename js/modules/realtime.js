@@ -575,7 +575,7 @@ window.refreshAdminExamWorkspace = async function () {
   if (!examsPage || !examsPage.classList.contains('active-page')) return;
 
   try {
-    const { loadScoreSheet, loadOverallScores, generateRankings, loadReportStudents } = await import('./admin-exams.js');
+    const { loadScoreSheet, loadOverallScores, generateRankings, loadReportStudents, loadTranscriptStudents } = await import('./admin-exams.js');
 
     // Determine which exam tab is currently active and refresh only that view
     const activeTab = document.querySelector('.exam-tab.active');
@@ -589,6 +589,8 @@ window.refreshAdminExamWorkspace = async function () {
       await loadReportStudents();
     } else if (tab === 'overallscores') {
       await loadOverallScores();
+    } else if (tab === 'transcript') {
+      await loadTranscriptStudents();
     }
   } catch (err) {
     console.warn('[Realtime] Admin exam workspace refresh error:', err.message);

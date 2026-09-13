@@ -1514,6 +1514,7 @@
           <button type="button" class="btn btn-secondary exam-tab" data-etab="rankings">Rankings</button>
           <button type="button" class="btn btn-secondary exam-tab" data-etab="reportcard">Report Cards</button>
           <button type="button" class="btn btn-secondary exam-tab" data-etab="overallscores">Overall Scores</button>
+          <button type="button" class="btn btn-secondary exam-tab" data-etab="transcript">Transcripts</button>
         </div>
 
         <div class="table-wrapper" style="margin-top:1rem;">
@@ -1578,6 +1579,21 @@
               </table>
             </div>
             <p id="noOverallScores" style="display:none;text-align:center;color:var(--text-muted);padding:2rem;">No scores found for the selected exam and class. Please save scores first.</p>
+          </div>
+
+          <div id="examTab-transcript" class="exam-tab-content" style="display:none;">
+            <h3>Student Academic Transcripts</h3>
+            <p class="subtitle">Combine every per-term exam the student has sat into one detailed, printable A4 transcript and use the history to make an academic judgement about their overall performance — complete with modern performance graphs.</p>
+            <div class="card-toolbar" style="flex-wrap:wrap;">
+              <select id="transcriptStudent" class="filter-select" style="min-width:260px;"><option value="">— Select Student —</option></select>
+              <button type="button" class="btn btn-primary" id="btnPreviewTranscript">Preview Transcript</button>
+              <button type="button" class="btn btn-secondary" id="btnPrintTranscript">Print Single</button>
+              <span style="color:var(--text-muted);font-size:0.85rem;">|</span>
+              <select id="transcriptClassFilter" class="filter-select" style="min-width:170px;"><option value="">— Select Class —</option></select>
+              <button type="button" class="btn btn-secondary" id="btnBatchPrintTranscripts">Batch Print All (by Class)</button>
+            </div>
+            <div id="transcriptMessage" class="message" style="display:none;margin-top:0.75rem;"></div>
+            <div id="transcriptPreview" style="margin-top:1rem;"></div>
           </div>
         </div>
       </div>

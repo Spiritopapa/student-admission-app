@@ -61,7 +61,17 @@ export function setupExamListeners() {
       if (tab === 'rankings') generateRankings();
       if (tab === 'reportcard') loadReportStudents();
       if (tab === 'overallscores') loadOverallScores();
+      if (tab === 'transcript') loadTranscriptStudents();
     });
+  });
+
+  // Transcript controls
+  getEl('btnPreviewTranscript')?.addEventListener('click', previewTranscript);
+  getEl('btnPrintTranscript')?.addEventListener('click', printTranscript);
+  getEl('btnBatchPrintTranscripts')?.addEventListener('click', () => {
+    const classVal = getEl('transcriptClassFilter')?.value;
+    if (!classVal) { alert('Please select a class to batch print transcripts.'); return; }
+    batchPrintTranscripts(classVal);
   });
 }
 
@@ -1587,3 +1597,649 @@ getEl('btnPrintOverallScores')?.addEventListener('click', () => {
     setTimeout(() => { win.print(); }, 600);
   }
 });
+
+// ================================================================
+// ACADEMIC TRANSCRIPTS (Printable A4)
+// Combines every per-term examination the student has sat into one
+// detailed, comprehensive document and derives an academic judgement
+// (verdict + promotion recommendation) from that history, complete
+// with modern performance charts built in pure CSS/HTML so they print
+// reliably on desktop (iframe) and mobile (html2pdf) alike.
+// ================================================================
+
+function _trEsc(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function _trNum(value, digits = 1) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n.toFixed(digits) : (0).toFixed(digits);
+}
+
+const _trTermOrder = { First: 1, Second: 2, Third: 3 };
+
+function _trSortExams(exams) {
+  return (exams || []).slice().sort((a, b) => {
+    const byYear = String(a.academic_year || '').localeCompare(String(b.academic_year || ''), undefined, { numeric: true });
+    if (byYear !== 0) return byYear;
+    return (_trTermOrder[a.term] || 9) - (_trTermOrder[b.term] || 9);
+  });
+}
+
+function _trPositionSuffix(pos) {
+  const n = Number(pos);
+  if (!Number.isFinite(n) || n <= 0) return '-';
+  const mod10 = n % 10, mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return `${n}st`;
+  if (mod10 === 2 && mod100 !== 12) return `${n}nd`;
+  if (mod10 === 3 && mod100 !== 13) return `${n}rd`;
+  return `${n}th`;
+}
+
+/** Academic judgement — overall verdict statement for a cumulative average. */
+function getAcademicVerdict(avg) {
+  if (avg >= 80) return { verdict: 'Excellent', desc: 'The student has consistently demonstrated outstanding academic performance across all per-term examinations.', cls: 'tr-verdict-excellent' };
+  if (avg >= 70) return { verdict: 'Very Good', desc: 'The student shows a strong command of the curriculum with solid and consistent results across all terms.', cls: 'tr-verdict-good' };
+  if (avg >= 60) return { verdict: 'Good', desc: 'The student is performing well and is on track, though a little more effort could unlock higher grades.', cls: 'tr-verdict-good' };
+  if (avg >= 50) return { verdict: 'Fair', desc: 'The student is passing but performing below expectation. Targeted revision and extra support are recommended.', cls: 'tr-verdict-fair' };
+  if (avg >= 40) return { verdict: 'Developing', desc: 'Performance is weak and requires serious improvement across most subjects.', cls: 'tr-verdict-weak' };
+  return { verdict: 'At Risk', desc: 'Performance is far below the acceptable standard. Urgent intervention and parent-teacher collaboration are required.', cls: 'tr-verdict-risk' };
+}
+
+/** Academic judgement — promotion recommendation for a cumulative average. */
+function getPromotionRecommendation(avg) {
+  if (avg >= 60) return { decision: 'PROMOTED', note: 'Recommended to progress to the next class without conditions.', ok: true };
+  if (avg >= 50) return { decision: 'PROMOTED WITH SUPPORT', note: 'Progresses to the next class with a remedial support plan for weaker subjects.', ok: true };
+  if (avg >= 40) return { decision: 'PROBATIONARY PROMOTION', note: 'Progresses conditionally. Must demonstrate clear improvement in the next academic year.', ok: false };
+  return { decision: 'REPEAT CLASS', note: 'Not ready to progress. Strongly recommended to repeat the current class.', ok: false };
+}
+
+/** Fallback per-exam class position when exam_student_details has none stored. */
+async function _trComputeTermPosition(examId, studentId, cls) {
+  try {
+    const { data: allResults } = await supabaseClient.from('exam_results')
+      .select('student_id, subject, marks_obtained').eq('exam_id', examId);
+    const classIds = new Set();
+    if (cls) {
+      const { data: classApps } = await supabaseClient.from('applications')
+        .select('student_id').eq('class_applying', cls);
+      (classApps || []).forEach(a => classIds.add(a.student_id));
+    } else {
+      (allResults || []).forEach(r => classIds.add(r.student_id));
+    }
+    const avgs = {};
+    (allResults || []).forEach(r => {
+      if (!classIds.has(r.student_id)) return;
+      if (!avgs[r.student_id]) avgs[r.student_id] = { total: 0, count: 0 };
+      avgs[r.student_id].total += (r.marks_obtained || 0);
+      avgs[r.student_id].count++;
+    });
+    const sorted = Object.keys(avgs)
+      .map(sid => ({ sid, avg: avgs[sid].count ? avgs[sid].total / avgs[sid].count : 0 }))
+      .sort((a, b) => b.avg - a.avg);
+    const idx = sorted.findIndex(s => s.sid === studentId);
+    return idx >= 0 ? idx + 1 : '';
+  } catch (err) {
+    console.warn('Failed to compute fallback term position:', err);
+    return '';
+  }
+}
+
+/**
+ * Populate the transcript student + class selects.
+ * Filtered by the exam workspace's active class filter when set.
+ */
+export async function loadTranscriptStudents() {
+  const sel = getEl('transcriptStudent');
+  if (!sel) return;
+  try {
+    const classVal = currentExamWorkspace.classVal;
+    const schoolId = await getCurrentSchoolId();
+    let appsQuery = supabaseClient.from('applications')
+      .select('student_id, first_name, middle_name, last_name, class_applying')
+      .eq('status', 'admitted');
+    if (schoolId) appsQuery = appsQuery.eq('school_id', schoolId);
+    const { data: apps } = await appsQuery;
+    let filtered = apps || [];
+    if (classVal) filtered = filtered.filter(a => a.class_applying === classVal);
+    sel.innerHTML = '<option value="">— Select Student —</option>' + filtered
+      .map(a => `<option value="${_trEsc(a.student_id)}">${_trEsc(a.student_id)} - ${_trEsc(buildStudentName(a.first_name, a.middle_name, a.last_name))} (${_trEsc(a.class_applying)})</option>`)
+      .join('');
+
+    const classFilter = getEl('transcriptClassFilter');
+    if (classFilter) {
+      const classes = [...new Set((apps || []).map(a => a.class_applying).filter(Boolean))].sort();
+      classFilter.innerHTML = '<option value="">— Select Class —</option>' + classes.map(c => `<option>${_trEsc(c)}</option>`).join('');
+      if (classVal) classFilter.value = classVal;
+    }
+  } catch (err) { console.error('Failed to load transcript students:', err); }
+}
+// ================================================================
+// Transcript data aggregation
+// ================================================================
+
+/**
+ * Build a complete, comprehensive A4 transcript HTML for one student.
+ * Combines every per-term exam into a single history and computes an
+ * academic judgement from the accumulated performance.
+ */
+async function buildTranscriptHTML(studentId) {
+  const { data: app } = await supabaseClient.from('applications').select('*').eq('student_id', studentId).maybeSingle();
+  if (!app) return '<p style="color:var(--text-muted);text-align:center;padding:2rem;">Student not found.</p>';
+
+  // ---- School identity (same fallback chain as report cards) ----
+  const schoolId = await getCurrentSchoolId();
+  let settings = null, schoolName = '', schoolLogoUrl = '';
+  if (schoolId) {
+    const { data: sd } = await supabaseClient.from('school_settings').select('*').eq('school_id', schoolId).maybeSingle();
+    if (sd) { settings = sd; schoolName = sd.school_name || ''; schoolLogoUrl = sd.logo_url || ''; }
+  }
+  if (!settings) {
+    let sq = supabaseClient.from('settings').select('*').eq('id', 'singleton');
+    if (schoolId) sq = sq.eq('school_id', schoolId);
+    const r = await sq.maybeSingle();
+    settings = r.data || null;
+    schoolName = settings?.school_name || schoolName;
+  }
+  if (!schoolName && schoolId) {
+    const { data: sch } = await supabaseClient.from('schools').select('name, logo_url').eq('id', schoolId).maybeSingle();
+    if (sch?.name) schoolName = sch.name;
+    if (!schoolLogoUrl && sch?.logo_url) schoolLogoUrl = sch.logo_url;
+  }
+  schoolName = schoolName || 'My School';
+
+  // ---- Exams + results for this student ----
+  let examsQuery = supabaseClient.from('exams')
+    .select('id, name, academic_year, term, start_date, end_date, closing_date, reopening_date');
+  if (schoolId) examsQuery = examsQuery.eq('school_id', schoolId);
+  const { data: allExams } = await examsQuery;
+  const { data: allStudentResults } = await supabaseClient.from('exam_results').select('*').eq('student_id', studentId);
+
+  const exams = _trSortExams(allExams || []).filter(ex => (allStudentResults || []).some(r => r.exam_id === ex.id));
+  if (exams.length === 0) return '<p style="color:var(--text-muted);text-align:center;padding:2rem;">No examination history found for this student.</p>';
+  const examIds = exams.map(ex => ex.id);
+// ---- Per-exam subjects (filtered to the student's class) ----
+  const { data: rawSubs } = examIds.length
+    ? await supabaseClient.from('exam_subjects').select('exam_id, subject, class_name').in('exam_id', examIds)
+    : { data: [] };
+  const subsByExam = new Map();
+  (rawSubs || []).forEach(s => {
+    if (app.class_applying && s.class_name && s.class_name !== app.class_applying) return;
+    if (!subsByExam.has(s.exam_id)) subsByExam.set(s.exam_id, []);
+    if (!subsByExam.get(s.exam_id).some(x => String(x).toLowerCase() === String(s.subject).toLowerCase())) {
+      subsByExam.get(s.exam_id).push(s.subject);
+    }
+  });
+
+  // ---- Per-exam student details (position, remarks) ----
+  const { data: detailsRows } = examIds.length
+    ? await supabaseClient.from('exam_student_details').select('*').in('exam_id', examIds).eq('student_id', studentId)
+    : { data: [] };
+  const detailsByExam = new Map((detailsRows || []).map(d => [d.exam_id, d]));
+
+  const resultsByExam = new Map();
+  (allStudentResults || []).forEach(r => {
+    if (!subsByExam.has(r.exam_id)) return;
+    if (!resultsByExam.has(r.exam_id)) resultsByExam.set(r.exam_id, new Map());
+    resultsByExam.get(r.exam_id).set(String(r.subject).toLowerCase(), r);
+  });
+
+  // ---- Build detailed per-term records ----
+  const termRecords = [];
+  for (const exam of exams) {
+    const subjectList = subsByExam.get(exam.id) || [];
+    const results = resultsByExam.get(exam.id) || new Map();
+    const subjDatas = [];
+    let termTotal = 0, termCount = 0;
+    for (const sub of subjectList) {
+      const r = results.get(String(sub).toLowerCase());
+      if (!r) continue;
+      const marks = r.marks_obtained != null ? Number(r.marks_obtained) : 0;
+      const classScore = r.class_score != null ? Number(r.class_score) : 0;
+      const examScore = r.exam_score != null ? Number(r.exam_score) : 0;
+      const gradeInfo = await getGradeForScore(marks, sub);
+      const perf = getPerformanceLevel(marks);
+      termTotal += marks; termCount++;
+      subjDatas.push({
+        subject: sub,
+        classScore, examScore, total: marks,
+        grade: gradeInfo.grade || '-',
+        cls: gradeInfo.cls || 'grade-f',
+        remark: perf ? perf.text : '-'
+      });
+    }
+    const avg = termCount ? termTotal / termCount : 0;
+    if (termCount === 0) continue;
+    const details = detailsByExam.get(exam.id);
+    let position = details?.overall_position || '';
+    if (!position) position = await _trComputeTermPosition(exam.id, studentId, app.class_applying);
+    if (!position) position = '-';
+    const avgGrade = await getGradeForScore(avg, null);
+    termRecords.push({
+      examId: exam.id,
+      examName: exam.name || `${exam.term} Term ${exam.academic_year}`,
+      year: exam.academic_year || '',
+      term: exam.term || '',
+      label: `${exam.term || ''} · ${exam.academic_year || ''}`,
+      closingDate: exam.closing_date ? formatDate(exam.closing_date) : '-',
+      reopeningDate: exam.reopening_date ? formatDate(exam.reopening_date) : '-',
+      subjects: subjDatas,
+      total: termTotal, count: termCount,
+      maxTotal: subjectList.length * 100,
+      avg,
+      avgGrade: avgGrade.grade || '-',
+      avgGradeDesc: avgGrade.desc || '',
+      avgGradeCls: avgGrade.cls || 'grade-f',
+      position,
+      remarks: details?.head_teacher_remarks || details?.class_teacher_remarks || ''
+    });
+  }
+
+if (termRecords.length === 0) return '<p style="color:var(--text-muted);text-align:center;padding:2rem;">No scorable examination results found for this student.</p>';
+
+// ---- Cumulative metrics + academic judgement ----
+  const totalMarksAll = termRecords.reduce((s, t) => s + t.total, 0);
+  const totalCountAll = termRecords.reduce((s, t) => s + t.count, 0);
+  const cumulativeAvg = totalCountAll ? totalMarksAll / totalCountAll : 0;
+  const cumGrade = await getGradeForScore(cumulativeAvg, null);
+  const positions = termRecords.map(t => Number(t.position)).filter(p => Number.isFinite(p) && p > 0);
+  const avgPosition = positions.length ? Math.round(positions.reduce((a, b) => a + b, 0) / positions.length) : '-';
+  const bestTerm = termRecords.length ? termRecords.reduce((a, b) => (b.avg > a.avg ? b : a)) : null;
+  const worstTerm = termRecords.length ? termRecords.reduce((a, b) => (b.avg < a.avg ? b : a)) : null;
+  const verdict = getAcademicVerdict(cumulativeAvg);
+  const promotion = getPromotionRecommendation(cumulativeAvg);
+  const gradingScaleHTML = await getGradingScaleHTML();
+
+  // ---- Subject × term score matrix (first-seen order, case-insensitive) ----
+  const subjectOrder = [];
+  const subjectMeta = new Map();
+  termRecords.forEach(t => {
+    t.subjects.forEach(sd => {
+      const key = String(sd.subject).toLowerCase();
+      if (!subjectMeta.has(key)) { subjectMeta.set(key, sd.subject); subjectOrder.push(key); }
+    });
+  });
+  const matrixRows = [];
+  for (const key of subjectOrder) {
+    const name = subjectMeta.get(key);
+    const cells = termRecords.map(t => {
+      const sd = t.subjects.find(x => String(x.subject).toLowerCase() === key);
+      return sd || null;
+    });
+    const present = cells.filter(Boolean);
+    const subAvg = present.length ? present.reduce((s, c) => s + c.total, 0) / present.length : 0;
+    const subGrade = present.length ? await getGradeForScore(subAvg, name) : { grade: '-', cls: 'grade-f' };
+    matrixRows.push({ name, cells, subAvg, subGrade });
+  }
+
+// ---- Term performance chart (bars + trend) ----
+  const termBarRows = termRecords.map((t, i) => {
+    const pct = Math.max(0, Math.min(100, t.avg));
+    const trend = i === 0 ? '<span class="tr-trend flat">—</span>'
+      : (() => {
+          const diff = t.avg - termRecords[i - 1].avg;
+          if (diff > 0) return `<span class="tr-trend up">▲ +${_trNum(diff)}</span>`;
+          if (diff < 0) return `<span class="tr-trend down">▼ -${_trNum(Math.abs(diff))}</span>`;
+          return '<span class="tr-trend flat">▬ 0.0</span>';
+        })();
+    return `<div class="tr-term-row">
+      <div class="tr-bar-label">${_trEsc(t.label)}</div>
+      <div class="tr-bar-track">
+        <div class="tr-bar-fill ${t.avgGradeCls}" data-w="${pct}" style="width:${pct}%">
+          <span class="tr-bar-value">${_trNum(t.avg)}%</span>
+        </div>
+      </div>
+      <div class="tr-bar-meta">
+        <span class="rc-grade-badge ${t.avgGradeCls}">${_trEsc(t.avgGrade)}</span>
+        ${trend}
+      </div>
+    </div>`;
+  }).join('');
+  const cumPct = Math.max(0, Math.min(100, cumulativeAvg));
+  const cumulativeBar = `<div class="tr-term-row tr-cum-bar">
+    <div class="tr-bar-label"><strong>All Terms</strong></div>
+    <div class="tr-bar-track">
+      <div class="tr-bar-fill ${cumGrade.cls || 'grade-f'}" data-w="${cumPct}" style="width:${cumPct}%">
+        <span class="tr-bar-value">${_trNum(cumulativeAvg)}%</span>
+      </div>
+    </div>
+    <div class="tr-bar-meta">
+      <span class="rc-grade-badge ${cumGrade.cls || 'grade-f'}">${_trEsc(cumGrade.grade || '-')}</span>
+    </div>
+  </div>`;
+
+  // ---- Subject strength chart ----
+  const subjectBars = matrixRows.map(r => {
+    const pct = Math.max(0, Math.min(100, r.subAvg));
+    return `<div class="tr-subject-row">
+      <div class="tr-bar-label tr-subject-name" title="${_trEsc(r.name)}">${_trEsc(r.name)}</div>
+      <div class="tr-bar-track">
+        <div class="tr-bar-fill ${r.subGrade.cls || 'grade-f'}" data-w="${pct}" style="width:${pct}%">
+          <span class="tr-bar-value">${_trNum(r.subAvg)}%</span>
+        </div>
+      </div>
+      <div class="tr-bar-meta">
+        <span class="rc-grade-badge ${r.subGrade.cls || 'grade-f'}">${_trEsc(r.subGrade.grade || '-')}</span>
+      </div>
+    </div>`;
+  }).join('');
+
+  // ---- Matrix + term summary table HTML ----
+  const matrixHeaderCells = termRecords.map(t =>
+    `<th>${_trEsc(t.term)} TERM<br><small style="font-weight:400;">${_trEsc(t.year)}</small></th>`).join('');
+  const matrixBodyHtml = matrixRows.map(r => `<tr>
+    <td class="tr-subj-name">${_trEsc(r.name)}</td>
+    ${r.cells.map(c => c
+      ? `<td class="tr-cell">
+          <div class="tr-cell-total">${_trNum(c.total)}</div>
+          <div class="tr-cell-sub">
+            <span class="rc-grade-badge ${c.cls}">${_trEsc(c.grade)}</span>
+            <span class="tr-cell-cs">${_trNum(c.classScore)}/${_trNum(c.examScore)}</span>
+          </div>
+        </td>`
+      : '<td class="tr-cell tr-cell-empty">—</td>').join('')}
+    <td class="tr-cell tr-cell-avg">${_trNum(r.subAvg)}</td>
+    <td class="tr-cell"><span class="rc-grade-badge ${r.subGrade.cls || 'grade-f'}">${_trEsc(r.subGrade.grade || '-')}</span></td>
+  </tr>`).join('');
+
+  const termRowsHtml = termRecords.map((t, i) => {
+    const trend = i === 0 ? '<span class="tr-trend flat">—</span>'
+      : (() => {
+          const diff = t.avg - termRecords[i - 1].avg;
+          if (diff > 0) return `<span class="tr-trend up">▲ +${_trNum(diff)}</span>`;
+          if (diff < 0) return `<span class="tr-trend down">▼ -${_trNum(Math.abs(diff))}</span>`;
+          return '<span class="tr-trend flat">▬ 0.0</span>';
+        })();
+    return `<tr>
+      <td class="tr-td-term"><strong>${_trEsc(t.label)}</strong><br><small style="font-weight:400;color:#64748b;">${_trEsc(t.examName)}</small></td>
+      <td class="tr-center">${_trEsc(t.year)}</td>
+      <td class="tr-center">${t.count}</td>
+      <td class="tr-center">${_trNum(t.total)}</td>
+      <td class="tr-center"><strong>${_trNum(t.avg)}%</strong></td>
+      <td class="tr-center"><span class="rc-grade-badge ${t.avgGradeCls}">${_trEsc(t.avgGrade)}</span></td>
+      <td class="tr-center">${_trPositionSuffix(t.position)}</td>
+      <td class="tr-center">${trend}</td>
+      <td class="tr-remark">${_trEsc(t.remarks) || '—'}</td>
+    </tr>`;
+  }).join('');
+
+  const yearsCovered = termRecords.length
+    ? (termRecords[0].year !== termRecords[termRecords.length - 1].year
+        ? `${termRecords[0].year} — ${termRecords[termRecords.length - 1].year}`
+        : termRecords[0].year)
+    : '';
+  const name = buildStudentName(app.first_name, app.middle_name, app.last_name) || studentId;
+  const photoHtml = app.student_photo_url
+    ? `<img src="${_trEsc(app.student_photo_url)}" alt="Student" class="tr-photo" />`
+    : '<div class="tr-photo tr-photo-placeholder"></div>';
+  const logoHtml = schoolLogoUrl
+    ? `<img src="${_trEsc(schoolLogoUrl)}" alt="School Logo" class="tr-logo" />`
+    : '<div class="tr-seal"></div>';
+return `
+<div class="tr-container">
+  <div class="tr-top-bar"></div>
+
+  <div class="tr-header">
+    ${logoHtml}
+    <div class="tr-school-info">
+      <h1 class="tr-school-name">${_trEsc(schoolName)}</h1>
+      <p class="tr-school-address">${_trEsc(settings?.school_address || 'Excellence in Education')}</p>
+      <p class="tr-school-motto">${_trEsc(settings?.school_motto || 'Knowledge, Character, Service')}</p>
+    </div>
+    <div class="tr-header-badge">ACADEMIC<br>TRANSCRIPT</div>
+  </div>
+
+  <div class="tr-student-section">
+    <div class="tr-student-photo">${photoHtml}</div>
+    <table class="tr-info-table">
+      <tr><td class="tr-label">Student Name</td><td class="tr-colon">:</td><td class="tr-value">${_trEsc(name)}</td></tr>
+      <tr><td class="tr-label">Student ID</td><td class="tr-colon">:</td><td class="tr-value">${_trEsc(studentId)}</td></tr>
+      <tr><td class="tr-label">Class / Grade</td><td class="tr-colon">:</td><td class="tr-value">${_trEsc(app.class_applying || '-')}</td></tr>
+      <tr><td class="tr-label">Gender</td><td class="tr-colon">:</td><td class="tr-value">${_trEsc(app.gender || '-')}</td></tr>
+      <tr><td class="tr-label">Date of Birth</td><td class="tr-colon">:</td><td class="tr-value">${app.date_of_birth ? formatDate(app.date_of_birth) : '-'}</td></tr>
+      <tr><td class="tr-label">Parent / Guardian</td><td class="tr-colon">:</td><td class="tr-value">${_trEsc(app.parent_name || app.guardian_name || '-')}</td></tr>
+      <tr><td class="tr-label">Academic Years</td><td class="tr-colon">:</td><td class="tr-value">${_trEsc(yearsCovered || '-')}</td></tr>
+      <tr><td class="tr-label">Terms Completed</td><td class="tr-colon">:</td><td class="tr-value">${termRecords.length} examination${termRecords.length === 1 ? '' : 's'} recorded</td></tr>
+    </table>
+  </div>
+
+  <div class="tr-summary-cards">
+    <div class="tr-summary-card tr-summary-cum">
+      <span class="tr-summary-label">CUMULATIVE AVERAGE</span>
+      <span class="tr-summary-value">${_trNum(cumulativeAvg)}%</span>
+      <span class="tr-summary-sub">weighted across ${totalCountAll} subject scores</span>
+    </div>
+    <div class="tr-summary-card tr-summary-grade">
+      <span class="tr-summary-label">OVERALL GRADE</span>
+      <span class="tr-summary-value">${_trEsc(cumGrade.grade || '-')}</span>
+      <span class="tr-summary-sub">${_trEsc(cumGrade.desc || verdict.verdict)}</span>
+    </div>
+    <div class="tr-summary-card tr-summary-terms">
+      <span class="tr-summary-label">TERMS COMPLETED</span>
+      <span class="tr-summary-value">${termRecords.length}</span>
+      <span class="tr-summary-sub">${_trEsc(yearsCovered || '—')}</span>
+    </div>
+    <div class="tr-summary-card tr-summary-pos">
+      <span class="tr-summary-label">AVERAGE POSITION</span>
+      <span class="tr-summary-value">${avgPosition === '-' ? '-' : _trPositionSuffix(avgPosition)}</span>
+      <span class="tr-summary-sub">in ${_trEsc(app.class_applying || 'class')}</span>
+    </div>
+  </div>
+
+  <div class="tr-block">
+    <h4 class="tr-block-title">Term Performance Graph</h4>
+    <div class="tr-chart tr-term-chart">
+      ${termBarRows}
+      ${cumulativeBar}
+    </div>
+    <p class="tr-chart-note">Average score achieved in each per-term examination. Bars are colour-coded using the school's grading scale; arrows show the change from the previous term.</p>
+  </div>
+<div class="tr-block">
+    <h4 class="tr-block-title">Subject Strength Chart</h4>
+    <div class="tr-chart tr-subject-chart">
+      ${subjectBars || '<p class="tr-empty-note">No subject results available.</p>'}
+    </div>
+  </div>
+
+  <div class="tr-block">
+    <h4 class="tr-block-title">Subject Performance by Term</h4>
+    <div class="tr-scroll">
+      <table class="tr-table tr-matrix-table">
+        <thead>
+          <tr><th class="tr-th-subject">SUBJECT</th>${matrixHeaderCells}<th>AVERAGE</th><th>GRADE</th></tr>
+        </thead>
+        <tbody>${matrixBodyHtml}</tbody>
+      </table>
+    </div>
+    <p class="tr-chart-note">Each cell shows the <strong>Total (100)</strong>; the small line beneath shows <strong>Grade · Class Score / Exam Score</strong> (each on the 50-point scale).</p>
+  </div>
+
+  <div class="tr-block">
+    <h4 class="tr-block-title">Term-by-Term Examination Summary</h4>
+    <div class="tr-scroll">
+      <table class="tr-table tr-term-table">
+        <thead>
+          <tr><th>TERM / EXAM</th><th>YEAR</th><th>SUBJECTS</th><th>TOTAL</th><th>AVERAGE</th><th>GRADE</th><th>POSITION</th><th>TREND</th><th>REMARK</th></tr>
+        </thead>
+        <tbody>
+          ${termRowsHtml}
+          <tr class="tr-cumulative-row">
+            <td><strong>ALL TERMS COMBINED</strong></td>
+            <td class="tr-center">—</td>
+            <td class="tr-center">${totalCountAll}</td>
+            <td class="tr-center">${_trNum(totalMarksAll)}</td>
+            <td class="tr-center"><strong>${_trNum(cumulativeAvg)}%</strong></td>
+            <td class="tr-center"><span class="rc-grade-badge ${cumGrade.cls || 'grade-f'}">${_trEsc(cumGrade.grade || '-')}</span></td>
+            <td class="tr-center">${avgPosition === '-' ? '-' : _trPositionSuffix(avgPosition)}</td>
+            <td class="tr-center">—</td>
+            <td class="tr-remark"><strong>${_trEsc(verdict.verdict)}</strong></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="tr-block">
+    <h4 class="tr-block-title">Academic Judgement</h4>
+    <div class="tr-verdict ${verdict.cls}">
+      <div><span class="tr-verdict-tag">VERDICT</span> <strong>${_trEsc(verdict.verdict)}</strong></div>
+      <div class="tr-verdict-desc">${_trEsc(verdict.desc)}</div>
+      ${bestTerm ? `<div class="tr-verdict-facts">
+        <span>Best term: <strong>${_trEsc(bestTerm.label)}</strong> (${_trNum(bestTerm.avg)}%)</span>
+        <span>Weakest term: <strong>${_trEsc(worstTerm.label)}</strong> (${_trNum(worstTerm.avg)}%)</span>
+      </div>` : ''}
+    </div>
+    <div class="tr-promotion ${promotion.ok ? 'tr-promotion-pass' : 'tr-promotion-fail'}">
+      <div class="tr-promotion-title">PROMOTION RECOMMENDATION <span class="tr-promotion-decision">${_trEsc(promotion.decision)}</span></div>
+      <div>${_trEsc(promotion.note)}</div>
+    </div>
+    <p class="tr-verdict-note">This academic judgement is derived from the student's performance in the per-term examinations listed above. Term averages are weighted by the number of subjects scored in each exam; the cumulative average is the combined average over all subjects and terms, graded with the school's grading system.</p>
+  </div>
+
+  <div class="tr-key"><span class="tr-key-title">Grading Scale:</span> ${gradingScaleHTML}</div>
+
+  <div class="tr-signatures">
+    <div class="tr-sig-item"><div class="tr-sig-line"></div><div class="tr-sig-role">Class Teacher</div><div class="tr-sig-name">${_trEsc(settings?.class_teacher_name || '')}</div></div>
+    <div class="tr-sig-item"><div class="tr-sig-line"></div><div class="tr-sig-role">Head Teacher</div><div class="tr-sig-name">${_trEsc(settings?.head_teacher_name || '')}</div></div>
+    <div class="tr-sig-item"><div class="tr-sig-line"></div><div class="tr-sig-role">Parent / Guardian</div><div class="tr-sig-name">${_trEsc(app.parent_name || app.guardian_name || '')}</div></div>
+  </div>
+
+  <div class="tr-footer">
+    <span>Issued: ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+    <span class="tr-footer-center">School Stamp / Official Seal</span>
+    <span>Closing: ${_trEsc(termRecords[termRecords.length - 1].closingDate)} · Reopening: ${_trEsc(termRecords[termRecords.length - 1].reopeningDate)}</span>
+  </div>
+</div>`;
+}
+
+// ================================================================
+// Transcript preview / print / batch print
+// ================================================================
+
+function _trMsg(text, type = 'info') {
+  showMessage('transcriptMessage', text, type);
+}
+
+function animateTranscriptCharts(root) {
+  if (!root) return;
+  const bars = root.querySelectorAll('.tr-bar-fill[data-w]');
+  if (bars.length === 0) return;
+  bars.forEach(bar => { bar.style.width = '0'; });
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      bars.forEach((bar, idx) => {
+        const w = Number(bar.getAttribute('data-w') || '0');
+        setTimeout(() => {
+          bar.style.width = Math.max(0, Math.min(100, w)) + '%';
+          bar.style.transition = 'width 0.9s cubic-bezier(0.22, 1, 0.36, 1)';
+        }, 120 + idx * 55);
+      });
+    });
+  });
+}
+
+async function previewTranscript() {
+  const studentId = getEl('transcriptStudent')?.value;
+  if (!studentId) { _trMsg('Please select a student first.', 'error'); return; }
+  const preview = getEl('transcriptPreview');
+  if (!preview) return;
+  preview.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-muted);"><span class="spinner"></span> Building transcript...</div>';
+  try {
+    const html = await buildTranscriptHTML(studentId);
+    preview.innerHTML = html;
+    animateTranscriptCharts(preview);
+  } catch (err) {
+    console.error('Failed to preview transcript:', err);
+    preview.innerHTML = `<p style="color:var(--danger);text-align:center;padding:2rem;">Error: ${_trEsc(err.message)}</p>`;
+  }
+}
+
+function _trPrintCss() {
+  return `
+    body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;padding:0;margin:0;background:#fff;font-size:12px;color:#1e293b;}
+    @page{size:A4 portrait;margin:10mm 12mm;}
+    @media print{
+      body{padding:0;margin:0;background:#fff;}
+      .tr-container{box-shadow:none;border:1px solid #cbd5e1;padding:1.4rem;max-width:100%;margin:0;page-break-after:always;}
+      .tr-container:last-child{page-break-after:auto;}
+      .tr-block{page-break-inside:auto;}
+      .tr-chart,.tr-summary-cards,.tr-student-section,.tr-verdict,.tr-promotion,.tr-signatures,.tr-key,.tr-top-bar{page-break-inside:avoid;}
+      .tr-matrix-table thead,.tr-term-table thead{display:table-header-group;}
+      .tr-scroll{overflow:visible!important;}
+      *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}
+    }`;
+}
+
+function printSingleTranscript(htmlContent) {
+  const styles = collectStyles() + _trPrintCss();
+  const win = openPrintWindow(
+    `<html><head><title>Academic Transcript</title><style>${styles}</style></head><body>${htmlContent}</body></html>`,
+    'Academic Transcript', 1000, 800
+  );
+  if (win) {
+    win.focus();
+    setTimeout(() => { win.print(); }, 700);
+  }
+}
+
+function printTranscript() {
+  const preview = getEl('transcriptPreview');
+  if (!preview || !preview.innerHTML.trim() || preview.innerHTML.includes('spinner')) {
+    _trMsg('Please preview a transcript first.', 'error');
+    return;
+  }
+  const trEl = preview.querySelector('.tr-container');
+  if (!trEl) { _trMsg('No transcript to print.', 'error'); return; }
+  printSingleTranscript(trEl.outerHTML);
+}
+
+window.batchPrintTranscripts = async function (classVal) {
+  const btn = getEl('btnBatchPrintTranscripts');
+  if (btn) setLoading(btn, true, 'Preparing...');
+  try {
+    const schoolId = await getCurrentSchoolId();
+    let appsQuery = supabaseClient.from('applications')
+      .select('student_id, first_name, middle_name, last_name, class_applying')
+      .eq('status', 'admitted')
+      .eq('class_applying', classVal);
+    if (schoolId) appsQuery = appsQuery.eq('school_id', schoolId);
+    appsQuery = appsQuery.order('first_name', { ascending: true });
+    const { data: apps } = await appsQuery;
+    const list = apps || [];
+    if (list.length === 0) { alert('No students found in this class.'); return; }
+
+    const allDocs = [];
+    for (const appObj of list) {
+      try {
+        const name = buildStudentName(appObj.first_name, appObj.middle_name, appObj.last_name);
+        const html = await buildTranscriptHTML(appObj.student_id);
+        if (html.includes('class="tr-container"') && !html.includes('No examination history found')) {
+          allDocs.push(html);
+        } else {
+          allDocs.push(`<div class="tr-container"><p style="text-align:center;color:#64748b;padding:2rem;">No examination history for ${_trEsc(name)} (${_trEsc(appObj.student_id)}).</p></div>`);
+        }
+      } catch (err) {
+        console.warn('Skipping student in batch transcript:', err.message);
+      }
+    }
+    if (allDocs.length === 0) { alert('No transcripts could be generated.'); return; }
+
+    const styles = collectStyles() + _trPrintCss();
+    const html = `<html><head><title>Academic Transcripts - ${_trEsc(classVal)}</title><style>${styles}</style></head><body>${allDocs.join('')}</body></html>`;
+    const win = openPrintWindow(html, 'Academic Transcripts', 1100, 800);
+    if (win) {
+      win.focus();
+      setTimeout(() => { win.print(); }, 800);
+    }
+  } catch (err) {
+    console.error('Batch transcript error:', err);
+    alert('Error preparing transcripts: ' + err.message);
+  } finally {
+    if (btn) setLoading(btn, false, 'Batch Print All (by Class)');
+  }
+};
