@@ -1962,16 +1962,20 @@ if (termRecords.length === 0) return '<p style="color:var(--text-muted);text-ali
     <div class="tr-vmeta"><span class="rc-grade-badge ${cumGrade.cls || 'grade-f'}">${_trEsc(cumGrade.grade || '-')}</span></div>
   </div>`;
 
-  // ---- Subject strength chart (vertical bars) ----
+  // ---- Subject strength chart (grouped multi-term vertical bars) ----
+  // One narrow bar per term, grouped under each subject, left→right =
+  // chronological order (First → last). Bars are coloured by grade.
   const subjectBars = matrixRows.map(r => {
-    const pct = Math.max(0, Math.min(100, r.subAvg));
-    return `<div class="tr-vcol" title="${_trEsc(r.name)} — ${_trNum(r.subAvg)}%">
-      <div class="tr-vvalue">${_trNum(r.subAvg)}%</div>
-      <div class="tr-vtrack">
-        <div class="tr-vbar ${r.subGrade.cls || 'grade-f'}" data-h="${pct}" style="height:${pct}%"></div>
-      </div>
+    const bars = r.cells.map((c, ti) => {
+      if (!c) return `<span class="tr-vsubbar tr-vsubbar-empty" title="${_trEsc(`${r.name} · ${termRecords[ti].label}: no score`)}"></span>`;
+      const pct = Math.max(0, Math.min(100, c.total));
+      return `<span class="tr-vsubbar ${c.cls}" data-h="${pct}" style="height:${pct}%"
+        title="${_trEsc(`${r.name} · ${termRecords[ti].label}: ${_trNum(c.total)}% (${c.grade})`)}"></span>`;
+    }).join('');
+    return `<div class="tr-vcol" title="${_trEsc(r.name)} — subject average ${_trNum(r.subAvg)}%">
+      <div class="tr-vgroups">${bars}</div>
       <div class="tr-vlabel tr-vsubj">${_trEsc(r.name)}</div>
-      <div class="tr-vmeta"><span class="rc-grade-badge ${r.subGrade.cls || 'grade-f'}">${_trEsc(r.subGrade.grade || '-')}</span></div>
+      <div class="tr-vmeta"><span class="tr-mgrade ${r.subGrade.cls || 'grade-f'}">${_trEsc(r.subGrade.grade || '-')}</span>${_trNum(r.subAvg)}%</div>
     </div>`;
   }).join('');
 
@@ -2076,19 +2080,18 @@ return `
     </div>
   </div>
 
-  <div class="tr-charts-row">
-    <div class="tr-chart-col">
-      <h4 class="tr-block-title">Term Performance</h4>
-      <div class="tr-vchart tr-term-chart">
-        ${termBarRows}
-        ${cumulativeBar}
-      </div>
+  <div class="tr-block">
+    <h4 class="tr-block-title">Term Performance <span class="tr-title-note">average per examination, coloured by grade</span></h4>
+    <div class="tr-vchart tr-term-chart">
+      ${termBarRows}
+      ${cumulativeBar}
     </div>
-    <div class="tr-chart-col">
-      <h4 class="tr-block-title">Subject Strength</h4>
-      <div class="tr-vchart tr-subject-chart">
-        ${subjectBars || '<p class="tr-empty-note">No subject results available.</p>'}
-      </div>
+  </div>
+
+  <div class="tr-block">
+    <h4 class="tr-block-title">Subject Strength by Term <span class="tr-title-note">each subject: one bar per term, left → right = chronological order (coloured by grade)</span></h4>
+    <div class="tr-vchart tr-subject-chart">
+      ${subjectBars || '<p class="tr-empty-note">No subject results available.</p>'}
     </div>
   </div>
 
@@ -2153,7 +2156,7 @@ function _trMsg(text, type = 'info') {
 
 function animateTranscriptCharts(root) {
   if (!root) return;
-  const bars = root.querySelectorAll('.tr-vbar[data-h]');
+  const bars = root.querySelectorAll('.tr-vbar[data-h], .tr-vsubbar[data-h]');
   if (bars.length === 0) return;
   bars.forEach(bar => { bar.style.height = '0'; });
   requestAnimationFrame(() => {
