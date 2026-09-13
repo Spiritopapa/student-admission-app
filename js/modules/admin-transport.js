@@ -979,7 +979,7 @@ async function loadCollectorAssignmentsTab() {
   clearMessage('trCollectorMessage');
   try {
     const staffQ = supabaseClient.from('teachers')
-      .select('id, full_name, registration_id')
+      .select('id, full_name, registration_id, phone, email')
       .eq('school_id', _schoolId)
       .eq('is_transport_collector', true)
       .eq('is_active', true)
@@ -998,6 +998,7 @@ async function loadCollectorAssignmentsTab() {
     populateCollectorStaffSelect();
     renderCollectorRoutesChecklist();
     renderCollectorAssignmentsTable();
+    renderCollectorRouteDetailsTable();
   } catch (err) {
     console.error('[Transport] collector assignments load error:', err);
     showMessage('trCollectorMessage', `Failed to load collector assignments: ${err.message}`, 'error');
@@ -1150,6 +1151,47 @@ function renderCollectorAssignmentsTable() {
       <td><strong>${esc(s.full_name)}</strong>${s.registration_id ? `<br/><small style="color:var(--text-muted);font-size:0.78rem;">${esc(s.registration_id)}</small>` : ''}</td>
       <td>${chips}</td>
       <td><button type="button" class="action-btn confirm" onclick="selectCollectorForEdit('${s.id}')">Edit</button></td>
+    </tr>`;
+  }).join('');
+}
+
+/** Route-centric view: which collection staff handle each destination. */
+function renderCollectorRouteDetailsTable() {
+  const tbody = getEl('transportCollectorRouteDetailsBody');
+  if (!tbody) return;
+
+  const routesToShow = _routes.filter((r) => r.is_active);
+  if (!routesToShow.length) {
+    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;padding:2rem;color:var(--text-muted);">No active destinations yet. Create one under <strong>Routes &amp; Fees</strong> first.</td></tr>';
+    return;
+  }
+
+  const staffById = new Map(_collectorStaff.map((s) => [s.id, s]));
+  const byRoute = {};
+  _collectorAssignments.forEach((a) => {
+    if (!byRoute[a.route_id]) byRoute[a.route_id] = [];
+    if (staffById.has(a.teacher_id)) byRoute[a.route_id].push(staffById.get(a.teacher_id));
+  });
+
+  tbody.innerHTML = routesToShow.map((r) => {
+    const staffList = (byRoute[r.id] || [])
+      .slice()
+      .sort((a, b) => a.full_name.localeCompare(b.full_name));
+
+    const cells = staffList.length
+      ? staffList.map((s) => `
+          <div style="padding:0.4rem 0;border-bottom:1px dashed var(--glass-border);">
+            <strong>${esc(s.full_name)}</strong>
+            ${s.registration_id ? `<div><small style="color:var(--text-muted);">Staff ID: ${esc(s.registration_id)}</small></div>` : ''}
+            ${s.phone ? `<div><small>Phone: ${esc(s.phone)}</small></div>` : ''}
+            ${s.email ? `<div><small>Email: ${esc(s.email)}</small></div>` : ''}
+          </div>`).join('')
+      : '<span style="color:var(--text-muted);font-size:0.85rem;">No collector assigned — assign one above.</span>';
+
+    return `<tr>
+      <td><strong>${esc(r.name)}</strong>${r.description ? `<br/><small style="color:var(--text-muted);font-size:0.78rem;">${esc(r.description)}</small>` : ''}</td>
+      <td>GHC ${formatCurrency(r.fee)}/day</td>
+      <td>${cells}</td>
     </tr>`;
   }).join('');
 }
