@@ -1749,6 +1749,23 @@ async function loadAccFeeOverview() {
     const balanceEl = getEl('accFeeTotalBalance');
     if (balanceEl) balanceEl.textContent = `GHC ${formatCurrency(outstandingBalance)}`;
 
+    // Transport fees collected today (sum of today's transport_fee_payments)
+    let transportToday = 0;
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    let tq = supabaseClient.from('transport_fee_payments')
+      .select('fee_amount')
+      .eq('collection_date', today);
+    if (schoolId) tq = tq.eq('school_id', schoolId);
+    const { data: transportPayments, error: transportErr } = await tq;
+    if (transportErr) {
+      console.warn('[ACC] transport today query error:', transportErr.message);
+    } else {
+      transportToday = (transportPayments || []).reduce((sum, p) => sum + (Number(p.fee_amount) || 0), 0);
+    }
+    const transportEl = getEl('accFeeTransportToday');
+    if (transportEl) transportEl.textContent = `GHC ${formatCurrency(transportToday)}`;
+
     // Collection rate percentage (based on total expected, not just total_amount)
     const pctEl = getEl('accFeePct');
     const fillEl = getEl('accFeeProgressFill');

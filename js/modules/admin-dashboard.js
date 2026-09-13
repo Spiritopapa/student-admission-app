@@ -21,6 +21,7 @@ let allFees = [];
 let allAnnouncements = [];
 let allTeachers = [];
 let todayAttendance = []; // [{ class_name, present, absent }] for today
+let allTransportToday = 0; // GHC collected in transport fees today
 let schoolName = '';
 let lastUpdated = null;
 let activityLog = [];
@@ -65,6 +66,7 @@ export async function loadAdminDashboardHome() {
       fetchAnnouncements(),
       fetchTeachers(),
       fetchTodayAttendance(),
+      fetchTransportToday(),
       fetchSchoolName(),
       fetchTrialStatus(),
       applyAdminAvatar(),
@@ -417,6 +419,36 @@ async function fetchFees() {
   allFees = data || [];
 }
 
+/**
+ * Fetches the total transport fees collected today for the current school
+ * (sum of transport_fee_payments.fee_amount where collection_date = today).
+ * Shown on the Fee Overview card.
+ */
+async function fetchTransportToday() {
+  // Skip fetching transport collections if the transport module is locked
+  if (lockedModules.has('transport')) {
+    allTransportToday = 0;
+    return;
+  }
+  const schoolId = await getCurrentSchoolId();
+  // CRITICAL SECURITY: Fail closed. Never fetch without a school_id filter.
+  if (!schoolId) { allTransportToday = 0; return; }
+  // Same local-date format used by the transport collection sheet
+  const now = new Date();
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const { data, error } = await supabaseClient
+    .from('transport_fee_payments')
+    .select('fee_amount')
+    .eq('collection_date', today)
+    .eq('school_id', schoolId);
+  if (error) {
+    console.warn('Failed to fetch today\'s transport collections:', error.message);
+    allTransportToday = 0;
+    return;
+  }
+  allTransportToday = (data || []).reduce((sum, p) => sum + (Number(p.fee_amount) || 0), 0);
+}
+
 async function fetchAnnouncements() {
   // Skip fetching announcements if the announcements module is locked
   if (lockedModules.has('announcements')) {
@@ -498,6 +530,7 @@ export async function refreshDashboardData(source = 'realtime') {
       fetchAnnouncements(),
       fetchTeachers(),
       fetchTodayAttendance(),
+      fetchTransportToday(),
       fetchTrialStatus(),
     ]);
 
@@ -1157,6 +1190,17 @@ function animateDashboardCounters() {
         animateCounter(pctEl, pct, false, true);
       }, 600);
     }
+
+    // Transport fees collected today (shown on the Fee Overview card when the
+    // transport module is enabled for the school)
+    if (!lockedModules.has('transport')) {
+      const transportEl = document.getElementById('feeTransportToday');
+      if (transportEl) {
+        setTimeout(() => {
+          animateCounter(transportEl, allTransportToday, true, false);
+        }, 700);
+      }
+    }
   }
 }
 
@@ -1236,6 +1280,14 @@ function renderFeeOverview() {
   // Outstanding Balance = what's still owed after all payments
   const outstandingBalance = Math.max(totalExpected - totalPaid, 0);
 
+  // Transport fees collected today (hidden when the transport module is locked)
+  const transportStat = !lockedModules.has('transport') ? `
+    <div class="dash-fee-stat">
+      <span class="dash-fee-label">Transport Collected Today</span>
+      <span class="dash-fee-value paid" id="feeTransportToday">GHC 0.00</span>
+    </div>
+  ` : '';
+
   return `
     <div class="dash-fee-stat">
       <span class="dash-fee-label">Total Expected</span>
@@ -1249,6 +1301,7 @@ function renderFeeOverview() {
       <span class="dash-fee-label">Outstanding Balance</span>
       <span class="dash-fee-value balance" id="feeTotalBalance">GHC 0.00</span>
     </div>
+    ${transportStat}
     <div class="dash-fee-counts">
       <span class="dash-fee-count-item"><span class="fee-dot paid-dot"></span>Paid: ${paidCount}</span>
       <span class="dash-fee-count-item"><span class="fee-dot partial-dot"></span>Partial: ${partialCount}</span>
