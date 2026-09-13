@@ -538,6 +538,21 @@ export function formatDateTime(dateStr) {
   return new Date(dateStr).toLocaleString();
 }
 
+/**
+ * Builds the timestamp used when recording a fee payment.
+ * Keeps the admin-selected payment DATE (so backdated / forward-dated
+ * receipts keep their intended date) but stamps the ACTUAL system clock
+ * TIME, so the receipt's "Date Paid" shows the real capture time instead
+ * of a fixed noon value. When no date is chosen, now() is returned.
+ */
+export function buildPaymentTimestamp(dateStr) {
+  const now = new Date();
+  if (!dateStr) return now.toISOString();
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const ts = new Date(y, m - 1, d, now.getHours(), now.getMinutes(), now.getSeconds(), now.getMilliseconds());
+  return ts.toISOString();
+}
+
 export function formatCurrency(amount) {
   return Number(amount || 0).toFixed(2);
 }

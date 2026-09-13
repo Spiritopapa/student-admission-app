@@ -4,7 +4,7 @@
  * If student names fail, still shows student IDs. NEVER silently fails.
  */
 
-import { getEl, showMessage, clearMessage, setLoading, getCurrentSchoolId, formatCurrency, formatDate, generateAcademicYearOptions, getDefaultAcademicYear, openPrintWindow, logStaffActivity } from './utils.js';
+import { getEl, showMessage, clearMessage, setLoading, getCurrentSchoolId, formatCurrency, formatDate, generateAcademicYearOptions, getDefaultAcademicYear, openPrintWindow, logStaffActivity, buildPaymentTimestamp } from './utils.js';
 import { sendFeePaymentSms } from './sms-gateway.js';
 import { buildFeeClassChartHtml, animateFeeClassChart, formatPct } from './fee-class-chart.js';
 
@@ -1139,12 +1139,12 @@ async function processAccPayment() {
       p_notes: getEl('accPayNotes').value.trim() || null,
       p_recorded_by: user?.id || null,
       p_school_id: schoolId,
-      p_payment_date: payDate ? new Date(payDate + 'T12:00:00').toISOString() : null,
+      p_payment_date: buildPaymentTimestamp(payDate),
     });
     if (error) throw error;
     if (!data.success) { showMessage('accPayMessage', 'Error: ' + (data.error || 'Failed'), 'error'); return; }
 
-    showMessage('accPayMessage', `Paid! Receipt: ${data.receipt_number}\nPayment Date: ${formatDate(payDate ? new Date(payDate + 'T12:00:00').toISOString() : new Date().toISOString())}`, 'success');
+    showMessage('accPayMessage', `Paid! Receipt: ${data.receipt_number}\nPayment Date: ${formatDate(buildPaymentTimestamp(payDate))}`, 'success');
     try { await logStaffActivity(`Recorded fee payment of GHC ${formatCurrency(amount)} for ${studentId} (Receipt: ${data.receipt_number})`, { role: 'accountant', entityType: 'payment', entityDetails: `${studentId} · ${term} Term ${academicYear} · GHC ${formatCurrency(amount)}` }); } catch (e) { console.warn(e); }
     // Notify the parent via SMS as soon as the payment is recorded
     sendFeePaymentSms({

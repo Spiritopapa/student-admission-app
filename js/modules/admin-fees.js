@@ -4,7 +4,7 @@
  * receipt generation, balance carry-forward, debt tracking across 3 terms
  */
 
-import { getEl, showMessage, clearMessage, setLoading, getCurrentSchoolId, formatCurrency, formatDate, logSubAdminActivity, logStaffActivity, generateAcademicYearOptions, getDefaultAcademicYear, openPrintWindow, getNextTerm, getNextAcademicYear } from './utils.js';
+import { getEl, showMessage, clearMessage, setLoading, getCurrentSchoolId, formatCurrency, formatDate, logSubAdminActivity, logStaffActivity, generateAcademicYearOptions, getDefaultAcademicYear, openPrintWindow, getNextTerm, getNextAcademicYear, buildPaymentTimestamp } from './utils.js';
 import { RECEIPT_VERIFY_BASE_URL } from '../supabase-config.js';
 import { sendFeePaymentSms, normalizeGhanaPhone, isSmsEnabledForSchool, getAdminContactForSchool, buildAssistanceLine } from './sms-gateway.js';
 
@@ -1186,7 +1186,7 @@ async function recordPayment() {
       p_notes: notes,
       p_recorded_by: user?.id || null,
       p_school_id: schoolId,
-      p_payment_date: payDate ? new Date(payDate + 'T12:00:00').toISOString() : null,
+      p_payment_date: buildPaymentTimestamp(payDate),
     });
 
     if (error) throw error;
@@ -1217,7 +1217,7 @@ async function recordPayment() {
       }
     }
 
-    const effectivePayDate = payDate ? new Date(payDate + 'T12:00:00').toISOString() : new Date().toISOString();
+    const effectivePayDate = buildPaymentTimestamp(payDate);
     let successMsg = `Payment recorded successfully!\nReceipt: ${data.receipt_number}\nAmount: GHC ${formatCurrency(data.amount_paid)}\nPayment Date: ${formatDate(effectivePayDate)}\nStatus: ${data.payment_status}`;
 
     showMessage('feePaymentMessage', successMsg, 'success');
