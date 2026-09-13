@@ -1228,7 +1228,7 @@ async function loadCollectorCoverage() {
 
   try {
     let q = supabaseClient.from('transport_fee_payments')
-      .select('collected_by, collection_date, fee_amount')
+      .select('collected_by, route_id, collection_date, fee_amount')
       .eq('school_id', _schoolId);
     if (_coverageFrom) q = q.gte('collection_date', _coverageFrom);
     if (_coverageTo) q = q.lte('collection_date', _coverageTo);
@@ -1243,9 +1243,10 @@ async function loadCollectorCoverage() {
   renderCollectorRouteDetailsTable();
 }
 
-/** Show the per-date collection detail for one collector in a modal. */
-window.openCollectorCollections = function (teacherId) {
+/** Show the per-date collection detail for one collector + destination in a modal. */
+window.openCollectorCollections = function (teacherId, routeId) {
   const staff = _collectorStaff.find((s) => s.id === teacherId);
+  const route = routeId ? _routes.find((x) => x.id === routeId) : null;
   const modal = getEl('collectorCollectionsModal');
   const infoEl = getEl('collectorCollectionsStaffInfo');
   const summaryEl = getEl('collectorCollectionsSummary');
@@ -1253,11 +1254,15 @@ window.openCollectorCollections = function (teacherId) {
   if (!modal || !staff) return;
 
   if (infoEl) {
+    const destLine = route
+      ? `<div style="font-size:0.85rem;color:var(--primary);font-weight:700;margin-top:0.2rem;">Destination: ${esc(route.name)}</div>`
+      : '';
     infoEl.innerHTML = `<strong>${esc(staff.full_name)}</strong>`
       + (staff.registration_id ? ` · <small>Staff ID: ${esc(staff.registration_id)}</small>` : '')
       + `<div style="font-size:0.85rem;color:var(--text-muted);margin-top:0.2rem;">`
       + [staff.phone ? `Phone: ${esc(staff.phone)}` : '', staff.email ? `Email: ${esc(staff.email)}` : ''].filter(Boolean).join(' · ')
-      + `</div>`;
+      + `</div>`
+      + destLine;
   }
 
   const periodLabel = `Period: <strong>${esc(_coverageFrom || 'start')}</strong> → <strong>${esc(_coverageTo || 'today')}</strong>`;
@@ -1269,7 +1274,9 @@ window.openCollectorCollections = function (teacherId) {
     return;
   }
 
-  const recs = _coveragePayments.filter((p) => p.collected_by === staff.user_id);
+  // Scope to THIS collector ON THIS destination only
+  const recs = _coveragePayments.filter((p) =>
+    p.collected_by === staff.user_id && (!routeId || p.route_id === routeId));
   const grandTotal = recs.reduce((sum, p) => sum + Number(p.fee_amount || 0), 0);
 
   if (summaryEl) {
@@ -1280,7 +1287,7 @@ window.openCollectorCollections = function (teacherId) {
   if (!bodyEl) return;
 
   if (!recs.length) {
-    bodyEl.innerHTML = '<tr><td colspan="3" style="text-align:center;padding:2rem;color:var(--text-muted);">No transport collections recorded for this staff member in the selected period.</td></tr>';
+    bodyEl.innerHTML = `<tr><td colspan="3" style="text-align:center;padding:2rem;color:var(--text-muted);">No transport collections recorded for this staff member${route ? ` on "${esc(route.name)}"` : ''} in the selected period.</td></tr>`;
     modal.style.display = 'flex';
     return;
   }
@@ -1341,7 +1348,9 @@ function renderCollectorRouteDetailsTable() {
 
     const cells = staffList.length
       ? staffList.map((s) => {
-          const recs = _coveragePayments.filter((p) => p.collected_by === s.user_id);
+          // THIS destination only — a collector may handle several routes, so
+          // we must NOT sum payments from their other assigned destinations.
+          const recs = _coveragePayments.filter((p) => p.collected_by === s.user_id && p.route_id === r.id);
           const total = recs.reduce((sum, p) => sum + Number(p.fee_amount || 0), 0);
           return `
           <div style="padding:0.4rem 0;border-bottom:1px dashed var(--glass-border);">
@@ -1350,7 +1359,7 @@ function renderCollectorRouteDetailsTable() {
             ${s.phone ? `<div><small>Phone: ${esc(s.phone)}</small></div>` : ''}
             ${s.email ? `<div><small>Email: ${esc(s.email)}</small></div>` : ''}
             <div style="margin-top:0.35rem;font-size:0.85rem;font-weight:700;color:var(--success);">Collected in range: GHC ${formatCurrency(total)} (${recs.length} payment(s))</div>
-            <button type="button" class="action-btn confirm" style="margin-top:0.4rem;font-size:0.78rem;" onclick="openCollectorCollections('${s.id}')">View Collections by Date</button>
+            <button type="button" class="action-btn confirm" style="margin-top:0.4rem;font-size:0.78rem;" onclick="openCollectorCollections('${s.id}','${r.id}')">View Collections by Date</button>
           </div>`;
         }).join('')
       : '<span style="color:var(--text-muted);font-size:0.85rem;">No collector assigned — assign one above.</span>';
