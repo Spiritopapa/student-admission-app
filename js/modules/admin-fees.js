@@ -9,6 +9,10 @@ import { RECEIPT_VERIFY_BASE_URL } from '../supabase-config.js';
 import { sendFeePaymentSms, normalizeGhanaPhone, isSmsEnabledForSchool, getAdminContactForSchool, buildAssistanceLine } from './sms-gateway.js';
 
 let supabaseClient = null;
+// Tracks the class_fees row currently being edited via the "Set / Update
+// Class Fee" form. When null, the next save is treated as a NEW creation and
+// is disallowed if a fee already exists for the same class, term & academic year.
+let editingClassFeeId = null;
 
 export function initAdminFees(supabase) {
   supabaseClient = supabase;
@@ -48,6 +52,19 @@ export function setupFeesListeners() {
         getEl('feeSetAmount').value = data.fee_amount;
       }
     }
+  });
+
+  // Changing any Set/Update Class Fee field exits edit mode, so the next
+  // click on "Set Fee" is treated as a NEW creation (and disallowed if the
+  // same class + term + academic year already exists).
+  ['feeSetClass', 'feeSetYear', 'feeSetTerm'].forEach(id => {
+    getEl(id)?.addEventListener('change', () => {
+      if (editingClassFeeId) {
+        editingClassFeeId = null;
+        const setBtn = getEl('feeSetStructureBtn');
+        if (setBtn) setBtn.textContent = 'Set Fee';
+      }
+    });
   });
 
   // Record payment
@@ -243,6 +260,12 @@ async function loadClassDropdowns() {
 // ================================================================
 
 async function loadFeeStructureTab() {
+  // Reloading the fee-structure tab cancels any in-progress edit so the next
+  // save is treated as a fresh creation rather than an update.
+  editingClassFeeId = null;
+  const structureBtn = getEl('feeSetStructureBtn');
+  if (structureBtn) structureBtn.textContent = 'Set Fee';
+
   const schoolId = await getCurrentSchoolId();
   const classFilter = getEl('feeStructureClass')?.value || '';
   const year = new Date().getFullYear() + '/' + (new Date().getFullYear() + 1);
@@ -292,15 +315,45 @@ async function setClassFeeStructure() {
   setLoading(btn, true, 'Saving...');
 
   try {
-    const { error } = await supabaseClient.from('class_fees').upsert({
+    // Disallow duplicates: if a class fee already exists for this class, term
+    // and academic year, block the save instead of silently overwriting it.
+    // When editing an existing row (via the Edit button), that row itself is
+    // excluded from the duplicate check.
+    let dupQuery = supabaseClient.from('class_fees')
+      .select('id')
+      .eq('class_name', className)
+      .eq('academic_year', year)
+      .eq('term', term);
+    if (schoolId) dupQuery = dupQuery.eq('school_id', schoolId);
+    if (editingClassFeeId) dupQuery = dupQuery.neq('id', editingClassFeeId);
+    dupQuery = dupQuery.limit(1);
+    const { data: dup, error: dupErr } = await dupQuery;
+    if (dupErr) throw dupErr;
+
+    if (dup && dup.length > 0) {
+      showMessage('feeStructureMessage',
+        `A class fee already exists for ${className} - ${term} Term ${year}. Use the Edit button to change its amount, or delete the existing entry first.`,
+        'error');
+      return;
+    }
+
+    const payload = {
       class_name: className,
       academic_year: year,
       term: term,
       fee_amount: amount,
       school_id: schoolId,
-    }, { onConflict: 'class_name,academic_year,term,school_id' });
+    };
 
-    if (error) throw error;
+    let result;
+    if (editingClassFeeId) {
+      // Updating an existing fee via the Edit button
+      result = await supabaseClient.from('class_fees').update(payload).eq('id', editingClassFeeId);
+    } else {
+      // Creating a brand-new class fee (no existing record for this combination)
+      result = await supabaseClient.from('class_fees').insert(payload);
+    }
+    if (result.error) throw result.error;
 
     // Also update fee records for all existing students in this class
     let studentsQuery = supabaseClient.from('applications')
@@ -414,11 +467,14 @@ async function setClassFeeStructure() {
     }
 
     logSubAdminActivity(`Set fee structure: ${className} ${term} Term = GHC ${amount}`, 'fee', `${className}/${term}`);
+    // Successfully saved – exit edit mode; loadFeeStructureTab() also resets
+    // the button label back to "Set Fee".
+    editingClassFeeId = null;
     await loadFeeStructureTab();
   } catch (err) {
     showMessage('feeStructureMessage', 'Error: ' + err.message, 'error');
   } finally {
-    setLoading(btn, false, 'Set Fee');
+    setLoading(btn, false, editingClassFeeId ? 'Update Fee' : 'Set Fee');
   }
 }
 
@@ -612,7 +668,13 @@ window.editClassFee = async function(feeId) {
   getEl('feeSetYear').value = fee.academic_year;
   getEl('feeSetTerm').value = fee.term;
   getEl('feeSetAmount').value = fee.fee_amount;
-  
+
+  // Enter edit mode: the next save updates THIS record instead of creating a
+  // new one, so the duplicate check allows it to proceed.
+  editingClassFeeId = feeId;
+  const editBtn = getEl('feeSetStructureBtn');
+  if (editBtn) editBtn.textContent = 'Update Fee';
+
   // Scroll to the form
   const formSection = document.querySelector('details.admit-section summary');
   if (formSection) {
