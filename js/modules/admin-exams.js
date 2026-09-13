@@ -1975,22 +1975,26 @@ if (termRecords.length === 0) return '<p style="color:var(--text-muted);text-ali
     </div>`;
   }).join('');
 
-  // ---- Subject × term matrix with a merged term-average footer row ----
+  // ---- Subject × term matrix (compact) with a merged term-average footer row ----
+  const shortYear = (y) => {
+    const m = String(y || '').split('/');
+    return m.length === 2 && m[0].length === 4 && m[1].length === 4
+      ? `${m[0].slice(2)}/${m[1].slice(2)}`
+      : String(y || '');
+  };
   const matrixHeaderCells = termRecords.map(t =>
-    `<th>${_trEsc(t.term)} TERM<br><small style="font-weight:400;">${_trEsc(t.year)}</small></th>`).join('');
+    `<th title="${_trEsc(t.label)}">${_trEsc(t.term)}&nbsp;<small>${_trEsc(shortYear(t.year))}</small></th>`).join('');
   const matrixBodyHtml = matrixRows.map(r => `<tr>
     <td class="tr-subj-name">${_trEsc(r.name)}</td>
     ${r.cells.map(c => c
-      ? `<td class="tr-cell">
-          <div class="tr-cell-total">${_trNum(c.total)}</div>
-          <div class="tr-cell-sub">
-            <span class="rc-grade-badge ${c.cls}">${_trEsc(c.grade)}</span>
-            <span class="tr-cell-cs">${_trNum(c.classScore)}/${_trNum(c.examScore)}</span>
-          </div>
+      ? `<td class="tr-cell" title="${_trEsc(`${c.subject}: CS ${_trNum(c.classScore)} | ES ${_trNum(c.examScore)} | Total ${_trNum(c.total)} (${c.grade})`)}">
+          <span class="tr-cell-total">${_trNum(c.total)}</span>
+          <span class="tr-cell-extra">${_trNum(c.classScore)}/${_trNum(c.examScore)}</span>
+          <span class="tr-mgrade ${c.cls}">${_trEsc(c.grade)}</span>
         </td>`
       : '<td class="tr-cell tr-cell-empty">—</td>').join('')}
-    <td class="tr-cell tr-cell-avg">${_trNum(r.subAvg)}%</td>
-    <td class="tr-cell"><span class="rc-grade-badge ${r.subGrade.cls || 'grade-f'}">${_trEsc(r.subGrade.grade || '-')}</span></td>
+    <td class="tr-cell tr-cell-avg" title="Subject average">${_trNum(r.subAvg)}%</td>
+    <td class="tr-cell"><span class="tr-mgrade ${r.subGrade.cls || 'grade-f'}">${_trEsc(r.subGrade.grade || '-')}</span></td>
   </tr>`).join('');
 
   // Merged "TERM AVERAGE" footer row — replaces the separate summary table.
@@ -1998,17 +2002,14 @@ if (termRecords.length === 0) return '<p style="color:var(--text-muted);text-ali
     const trend = i === 0 ? '<span class="tr-trend flat">—</span>'
       : (() => {
           const diff = t.avg - termRecords[i - 1].avg;
-          if (diff > 0) return `<span class="tr-trend up">▲ +${_trNum(diff)}</span>`;
-          if (diff < 0) return `<span class="tr-trend down">▼ -${_trNum(Math.abs(diff))}</span>`;
-          return '<span class="tr-trend flat">▬ 0.0</span>';
+          if (diff > 0) return `<span class="tr-trend up">▲+${_trNum(diff)}</span>`;
+          if (diff < 0) return `<span class="tr-trend down">▼-${_trNum(Math.abs(diff))}</span>`;
+          return '<span class="tr-trend flat">▬0.0</span>';
         })();
     return `<td>
-      <div class="tr-cell-total">${_trNum(t.avg)}%</div>
-      <div class="tr-cell-sub">
-        <span class="rc-grade-badge ${t.avgGradeCls}">${_trEsc(t.avgGrade)}</span>
-        <span class="tr-cell-cs">Pos ${_trPositionSuffix(t.position)}</span>
-        ${trend}
-      </div>
+      <span class="tr-cell-total">${_trNum(t.avg)}%</span>
+      <span class="tr-mgrade ${t.avgGradeCls}">${_trEsc(t.avgGrade)}</span>
+      <span class="tr-tf-meta">${_trPositionSuffix(t.position)}·${trend}</span>
     </td>`;
   }).join('');
 
@@ -2092,7 +2093,7 @@ return `
   </div>
 
   <div class="tr-block">
-    <h4 class="tr-block-title">Subject Performance by Term <span class="tr-title-note">score / grade (CS/ES) — last columns: subject average &amp; grade; yellow row: term average</span></h4>
+    <h4 class="tr-block-title">Subject Performance by Term <span class="tr-title-note">score · CS/ES · grade per term; yellow row: term average (avg · grade · pos · trend)</span></h4>
     <div class="tr-scroll">
       <table class="tr-table tr-matrix-table">
         <thead>
@@ -2104,7 +2105,7 @@ return `
             <td>TERM AVERAGE</td>
             ${termFooterCells}
             <td class="tr-cell tr-cell-avg">${_trNum(cumulativeAvg)}%</td>
-            <td class="tr-cell"><span class="rc-grade-badge ${cumGrade.cls || 'grade-f'}">${_trEsc(cumGrade.grade || '-')}</span></td>
+            <td class="tr-cell"><span class="tr-mgrade ${cumGrade.cls || 'grade-f'}">${_trEsc(cumGrade.grade || '-')}</span></td>
           </tr>
         </tbody>
       </table>

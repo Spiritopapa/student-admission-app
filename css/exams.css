@@ -1252,3 +1252,65 @@
 .tr-vmeta .rc-grade-badge { font-size: 0.5rem; padding: 0.06rem 0.28rem; }
 .tr-vcum .tr-vbar { background: linear-gradient(180deg, #2563eb, #1e40af) !important; }
 .tr-vcum .tr-vtrack { background: #e0e7ff; }
+
+/* ============================================================
+   TRANSCRIPT — COMPACT SUBJECT × TERM TABLE
+   Tiny single-line cells so all three term exams fit the page.
+   ============================================================ */
+.tr-matrix-table {
+  font-size: 0.5rem;
+  border-collapse: collapse;
+  width: 100%;
+}
+.tr-matrix-table thead th {
+  font-size: 0.5rem;
+  font-weight: 700;
+  padding: 0.14rem 0.18rem;
+  white-space: nowrap;
+  text-align: center;
+  border: 1px solid #334155;
+}
+.tr-matrix-table thead th.tr-th-subject { text-align: left; }
+.tr-matrix-table thead th small {
+  display: inline;
+  font-size: 0.46rem;
+  font-weight: 500;
+  color: #cbd5e1;
+}
+.tr-matrix-table td {
+  padding: 0.12rem 0.18rem;
+  font-size: 0.5rem;
+  border: 1px solid #e2e8f0;
+  vertical-align: middle;
+}
+.tr-matrix-table tbody tr:nth-child(even) { background: #f8fafc; }
+.tr-subj-name { font-size: 0.54rem; white-space: nowrap; }
+.tr-cell { white-space: nowrap; text-align: center; }
+.tr-cell-total { display: inline-block; font-size: 0.56rem; font-weight: 800; color: #0f172a; }
+.tr-cell-extra {
+  display: inline-block;
+  font-size: 0.42rem;
+  font-weight: 600;
+  color: #94a3b8;
+  margin-left: 1px;
+}
+.tr-mgrade { font-size: 0.46rem; font-weight: 800; margin-left: 2px; }
+.tr-mgrade.grade-a { color: #16a34a; }
+.tr-mgrade.grade-b { color: #65a30d; }
+.tr-mgrade.grade-c { color: #ca8a04; }
+.tr-mgrade.grade-d { color: #ea580c; }
+.tr-mgrade.grade-e { color: #dc2626; }
+.tr-mgrade.grade-f { color: #be123c; }
+.tr-mgrade:not([class*="grade-"]) { color: #3b82f6; }
+.tr-cell-empty { color: #cbd5e1; }
+.tr-cell-avg { background: #eff6ff; font-weight: 800; font-size: 0.52rem; }
+.tr-tf-meta { font-size: 0.44rem; color: #92400e; margin-left: 2px; font-weight: 700; }
+.tr-term-footer td {
+  font-size: 0.5rem;
+  padding: 0.14rem 0.18rem;
+  white-space: nowrap;
+  background: #fffbeb !important;
+  border-top: 2px solid #facc15;
+  font-weight: 700;
+  color: #713f12;
+}
