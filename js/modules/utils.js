@@ -553,6 +553,27 @@ export function buildPaymentTimestamp(dateStr) {
   return ts.toISOString();
 }
 
+/**
+ * Determines a student's overall fee status for the fees-list status filter.
+ * When a term filter is active, only that term's fee records are considered;
+ * otherwise ALL of the student's fee records are combined using
+ * "worst status wins" (any unpaid → 'unpaid', else any partial → 'partial',
+ * else 'paid'). Overpaid/credit records (balance ≤ 0) count as paid.
+ * Returns null when there are no fee records to judge (student is excluded
+ * from any specific status filter).
+ */
+export function getStudentFeeStatus(fees = [], termFilter = '') {
+  const list = !termFilter ? fees : fees.filter((f) => f.term === termFilter);
+  if (!list.length) return null;
+  let hasPartial = false;
+  for (const f of list) {
+    const bal = (Number(f.total_amount) + Number(f.debt || 0)) - Number(f.amount_paid);
+    if (bal > 0 && Number(f.amount_paid) <= 0) return 'unpaid'; // worst case → stop
+    if (bal > 0) hasPartial = true;
+  }
+  return hasPartial ? 'partial' : 'paid';
+}
+
 export function formatCurrency(amount) {
   return Number(amount || 0).toFixed(2);
 }

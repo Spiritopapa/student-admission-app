@@ -4,7 +4,7 @@
  * receipt generation, balance carry-forward, debt tracking across 3 terms
  */
 
-import { getEl, showMessage, clearMessage, setLoading, getCurrentSchoolId, formatCurrency, formatDate, logSubAdminActivity, logStaffActivity, generateAcademicYearOptions, getDefaultAcademicYear, openPrintWindow, getNextTerm, getNextAcademicYear, buildPaymentTimestamp } from './utils.js';
+import { getEl, showMessage, clearMessage, setLoading, getCurrentSchoolId, formatCurrency, formatDate, logSubAdminActivity, logStaffActivity, generateAcademicYearOptions, getDefaultAcademicYear, openPrintWindow, getNextTerm, getNextAcademicYear, buildPaymentTimestamp, getStudentFeeStatus } from './utils.js';
 import { RECEIPT_VERIFY_BASE_URL } from '../supabase-config.js';
 import { sendFeePaymentSms, normalizeGhanaPhone, isSmsEnabledForSchool, getAdminContactForSchool, buildAssistanceLine } from './sms-gateway.js';
 
@@ -724,7 +724,12 @@ async function loadStudentFeesTab() {
     const name = `${s.first_name} ${s.middle_name || ''} ${s.last_name}`.toLowerCase();
     const matchesSearch = !search || name.includes(search) || s.student_id.toLowerCase().includes(search);
     const matchesClass = !classFilter || s.class_applying === classFilter;
-    return matchesSearch && matchesClass;
+    // Status is judged on the student's fee records (scoped to the selected
+    // term when a term filter is active) — any unpaid → unpaid, else any
+    // partial → partial, else paid.
+    const matchesStatus = !statusFilter
+      || getStudentFeeStatus(feeMap[s.student_id] || [], termFilter) === statusFilter;
+    return matchesSearch && matchesClass && matchesStatus;
   });
 
   if (filtered.length === 0) {

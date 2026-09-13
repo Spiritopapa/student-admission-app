@@ -4,7 +4,7 @@
  * If student names fail, still shows student IDs. NEVER silently fails.
  */
 
-import { getEl, showMessage, clearMessage, setLoading, getCurrentSchoolId, formatCurrency, formatDate, generateAcademicYearOptions, getDefaultAcademicYear, openPrintWindow, logStaffActivity, buildPaymentTimestamp } from './utils.js';
+import { getEl, showMessage, clearMessage, setLoading, getCurrentSchoolId, formatCurrency, formatDate, generateAcademicYearOptions, getDefaultAcademicYear, openPrintWindow, logStaffActivity, buildPaymentTimestamp, getStudentFeeStatus } from './utils.js';
 import { sendFeePaymentSms } from './sms-gateway.js';
 import { buildFeeClassChartHtml, animateFeeClassChart, formatPct } from './fee-class-chart.js';
 
@@ -801,6 +801,8 @@ async function loadAccStudentFees() {
   const schoolId = await _getSchoolId();
   const search = (getEl('accFeeSearch')?.value || '').toLowerCase();
   const classFilter = getEl('accFeeClass')?.value || '';
+  const termFilter = getEl('accFeeSearchTerm')?.value || '';
+  const statusFilter = getEl('accFeeSearchStatus')?.value || '';
 
   let appQuery = supabaseClient.from('applications').select('student_id, first_name, middle_name, last_name, class_applying, student_photo_url');
   if (schoolId) appQuery = appQuery.eq('school_id', schoolId);
@@ -826,7 +828,12 @@ async function loadAccStudentFees() {
     const name = `${s.first_name} ${s.middle_name || ''} ${s.last_name}`.toLowerCase();
     const matchesSearch = !search || name.includes(search) || s.student_id.toLowerCase().includes(search);
     const matchesClass = !classFilter || s.class_applying === classFilter;
-    return matchesSearch && matchesClass;
+    // Status is judged on the student's fee records (scoped to the selected
+    // term when a term filter is active) — any unpaid → unpaid, else any
+    // partial → partial, else paid.
+    const matchesStatus = !statusFilter
+      || getStudentFeeStatus(feeMap[s.student_id] || [], termFilter) === statusFilter;
+    return matchesSearch && matchesClass && matchesStatus;
   });
 
   if (filtered.length === 0) {
@@ -840,7 +847,9 @@ async function loadAccStudentFees() {
     const photoHtml = s.student_photo_url
       ? `<img src="${s.student_photo_url}" alt="Photo" class="student-photo-thumb" />`
       : '<span class="dash-photo-placeholder"></span>';
-    const termDisplay = fees.sort((a, b) => {
+    const termDisplay = fees
+      .filter(f => !termFilter || f.term === termFilter)
+      .sort((a, b) => {
       const terms = ['First', 'Second', 'Third'];
       return terms.indexOf(a.term) - terms.indexOf(b.term) || a.academic_year.localeCompare(b.academic_year);
     }).map(f => {
