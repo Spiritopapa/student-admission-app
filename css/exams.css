@@ -1354,3 +1354,18 @@
 .tr-subject-chart .tr-vchart { min-height: 104px; }
 .tr-subject-chart .tr-vcol { overflow: visible; }
 .tr-subject-chart .tr-vmeta { font-size: 0.5rem; }
+
+/* ============================================================
+   TRANSCRIPT — COMPACT TERM PERFORMANCE GRAPH
+   Smaller bars, tighter text, clustered centred columns.
+   ============================================================ */
+.tr-term-chart { justify-content: center; gap: 0.22rem; min-height: 92px; }
+.tr-term-chart .tr-vcol { flex: 0 1 auto; min-width: 46px; max-width: 62px; gap: 0.12rem; }
+.tr-term-chart .tr-vvalue { font-size: 0.5rem; }
+.tr-term-chart .tr-vtrack { max-width: 36px; height: 54px; border-radius: 4px 4px 2px 2px; }
+.tr-term-chart .tr-vbar { border-radius: 3px 3px 0 0; }
+.tr-term-chart .tr-vlabel { font-size: 0.5rem; }
+.tr-term-chart .tr-vlabel small { font-size: 0.45rem; }
+.tr-term-chart .tr-vmeta { font-size: 0.46rem; gap: 0.14rem; }
+.tr-term-chart .tr-vmeta .rc-grade-badge { font-size: 0.48rem; padding: 0.05rem 0.26rem; }
+.tr-term-chart .tr-trend { font-size: 0.48rem; }
