@@ -1877,7 +1877,7 @@ if (termRecords.length === 0) return '<p style="color:var(--text-muted);text-ali
     matrixRows.push({ name, cells, subAvg, subGrade });
   }
 
-// ---- Term performance chart (bars + trend) ----
+// ---- Term performance chart (vertical bars + trend) ----
   const termBarRows = termRecords.map((t, i) => {
     const pct = Math.max(0, Math.min(100, t.avg));
     const trend = i === 0 ? '<span class="tr-trend flat">—</span>'
@@ -1887,45 +1887,35 @@ if (termRecords.length === 0) return '<p style="color:var(--text-muted);text-ali
           if (diff < 0) return `<span class="tr-trend down">▼ -${_trNum(Math.abs(diff))}</span>`;
           return '<span class="tr-trend flat">▬ 0.0</span>';
         })();
-    return `<div class="tr-term-row">
-      <div class="tr-bar-label">${_trEsc(t.label)}</div>
-      <div class="tr-bar-track">
-        <div class="tr-bar-fill ${t.avgGradeCls}" data-w="${pct}" style="width:${pct}%">
-          <span class="tr-bar-value">${_trNum(t.avg)}%</span>
-        </div>
+    return `<div class="tr-vcol" title="${_trEsc(t.label)}">
+      <div class="tr-vvalue">${_trNum(t.avg)}%</div>
+      <div class="tr-vtrack">
+        <div class="tr-vbar ${t.avgGradeCls}" data-h="${pct}" style="height:${pct}%"></div>
       </div>
-      <div class="tr-bar-meta">
-        <span class="rc-grade-badge ${t.avgGradeCls}">${_trEsc(t.avgGrade)}</span>
-        ${trend}
-      </div>
+      <div class="tr-vlabel"><strong>${_trEsc(t.term)}</strong><small>${_trEsc(t.year)}</small></div>
+      <div class="tr-vmeta"><span class="rc-grade-badge ${t.avgGradeCls}">${_trEsc(t.avgGrade)}</span> ${trend}</div>
     </div>`;
   }).join('');
   const cumPct = Math.max(0, Math.min(100, cumulativeAvg));
-  const cumulativeBar = `<div class="tr-term-row tr-cum-bar">
-    <div class="tr-bar-label"><strong>All Terms</strong></div>
-    <div class="tr-bar-track">
-      <div class="tr-bar-fill ${cumGrade.cls || 'grade-f'}" data-w="${cumPct}" style="width:${cumPct}%">
-        <span class="tr-bar-value">${_trNum(cumulativeAvg)}%</span>
-      </div>
+  const cumulativeBar = `<div class="tr-vcol tr-vcum" title="All Terms">
+    <div class="tr-vvalue">${_trNum(cumulativeAvg)}%</div>
+    <div class="tr-vtrack">
+      <div class="tr-vbar ${cumGrade.cls || 'grade-f'}" data-h="${cumPct}" style="height:${cumPct}%"></div>
     </div>
-    <div class="tr-bar-meta">
-      <span class="rc-grade-badge ${cumGrade.cls || 'grade-f'}">${_trEsc(cumGrade.grade || '-')}</span>
-    </div>
+    <div class="tr-vlabel"><strong>All Terms</strong><small>combined</small></div>
+    <div class="tr-vmeta"><span class="rc-grade-badge ${cumGrade.cls || 'grade-f'}">${_trEsc(cumGrade.grade || '-')}</span></div>
   </div>`;
 
-  // ---- Subject strength chart ----
+  // ---- Subject strength chart (vertical bars) ----
   const subjectBars = matrixRows.map(r => {
     const pct = Math.max(0, Math.min(100, r.subAvg));
-    return `<div class="tr-subject-row">
-      <div class="tr-bar-label tr-subject-name" title="${_trEsc(r.name)}">${_trEsc(r.name)}</div>
-      <div class="tr-bar-track">
-        <div class="tr-bar-fill ${r.subGrade.cls || 'grade-f'}" data-w="${pct}" style="width:${pct}%">
-          <span class="tr-bar-value">${_trNum(r.subAvg)}%</span>
-        </div>
+    return `<div class="tr-vcol" title="${_trEsc(r.name)} — ${_trNum(r.subAvg)}%">
+      <div class="tr-vvalue">${_trNum(r.subAvg)}%</div>
+      <div class="tr-vtrack">
+        <div class="tr-vbar ${r.subGrade.cls || 'grade-f'}" data-h="${pct}" style="height:${pct}%"></div>
       </div>
-      <div class="tr-bar-meta">
-        <span class="rc-grade-badge ${r.subGrade.cls || 'grade-f'}">${_trEsc(r.subGrade.grade || '-')}</span>
-      </div>
+      <div class="tr-vlabel tr-vsubj">${_trEsc(r.name)}</div>
+      <div class="tr-vmeta"><span class="rc-grade-badge ${r.subGrade.cls || 'grade-f'}">${_trEsc(r.subGrade.grade || '-')}</span></div>
     </div>`;
   }).join('');
 
@@ -2032,14 +2022,14 @@ return `
   <div class="tr-charts-row">
     <div class="tr-chart-col">
       <h4 class="tr-block-title">Term Performance</h4>
-      <div class="tr-chart tr-term-chart">
+      <div class="tr-vchart tr-term-chart">
         ${termBarRows}
         ${cumulativeBar}
       </div>
     </div>
     <div class="tr-chart-col">
       <h4 class="tr-block-title">Subject Strength</h4>
-      <div class="tr-chart tr-subject-chart">
+      <div class="tr-vchart tr-subject-chart">
         ${subjectBars || '<p class="tr-empty-note">No subject results available.</p>'}
       </div>
     </div>
@@ -2106,16 +2096,16 @@ function _trMsg(text, type = 'info') {
 
 function animateTranscriptCharts(root) {
   if (!root) return;
-  const bars = root.querySelectorAll('.tr-bar-fill[data-w]');
+  const bars = root.querySelectorAll('.tr-vbar[data-h]');
   if (bars.length === 0) return;
-  bars.forEach(bar => { bar.style.width = '0'; });
+  bars.forEach(bar => { bar.style.height = '0'; });
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
       bars.forEach((bar, idx) => {
-        const w = Number(bar.getAttribute('data-w') || '0');
+        const h = Number(bar.getAttribute('data-h') || '0');
         setTimeout(() => {
-          bar.style.width = Math.max(0, Math.min(100, w)) + '%';
-          bar.style.transition = 'width 0.9s cubic-bezier(0.22, 1, 0.36, 1)';
+          bar.style.height = Math.max(0, Math.min(100, h)) + '%';
+          bar.style.transition = 'height 0.9s cubic-bezier(0.22, 1, 0.36, 1)';
         }, 120 + idx * 55);
       });
     });
