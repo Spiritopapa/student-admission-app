@@ -82,12 +82,35 @@ async function populateClasses(selectedClass) {
     const { data: classes, error } = await query;
     if (error) throw error;
     if (classes && classes.length > 0) {
-      select.innerHTML = '<option value="">— Select —</option>' + classes.map((c) => `<option>${c.name}</option>`).join('');
+      select.innerHTML = '<option value="">— Select —</option>' + classes.map((c) => `<option>${escAttr(c.name)}</option>`).join('');
+    }
+    // Always make sure the student's current class is present and selected —
+    // even for records created before the class existed in the Classes module
+    // (e.g. data imported via CSV with classes that existed at import time).
+    // Without this the dropdown would silently show blank for such students.
+    if (selectedClass && !(classes || []).some((c) => c.name === selectedClass)) {
+      select.innerHTML += `<option>${escAttr(selectedClass)}</option>`;
     }
     select.value = selectedClass || '';
   } catch (err) {
     console.error('Failed to load classes for edit window:', err);
+    // Best-effort fallback so the edit form still lets the admin save the
+    // student's current class even if the classes query fails entirely.
+    if (selectedClass && select.options.length <= 1) {
+      select.innerHTML += `<option>${escAttr(selectedClass)}</option>`;
+      select.value = selectedClass;
+    }
   }
+}
+
+/** Escape an attribute/text value before injecting it into innerHTML. */
+function escAttr(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 /** Photo file input preview + remove handling. */

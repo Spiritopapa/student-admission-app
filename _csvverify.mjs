@@ -118,6 +118,7 @@ function makeQuery(table, params = {}) {
           { class_name: 'JHS 2A', term: 'Second', fee_amount: 600, academic_year: '2026/2027' },
         ];
       } else if (table === 'fees') data = Array.from(dbFees.values()).map((f) => ({ ...f }));
+      else if (table === 'classes') data = configuredClassNames.map((name) => ({ name }));
       return Promise.resolve({ data, error: null }).then(resolve);
     },
   };
@@ -133,6 +134,10 @@ const fakeSupabase = {
   },
   from: (table) => makeQuery(table),
 };
+
+// Classes configured for the school through the add-class (Classes) module.
+const configuredClassNames = ['JHS 1A', 'JHS 1A, Morning', 'JHS 2A'];
+function loadConfiguredClassesStub() { return Promise.resolve([...configuredClassNames]); }
 
 // ----------------------- GLOBALS -----------------------
 const allStudents = [];
@@ -158,6 +163,7 @@ const factory = new Function(
   'parseCSV', 'buildCSV', 'downloadCSV', 'buildStudentName',
   'getCurrentSchoolId', 'getCurrentAcademicYear', 'loadAllStudents',
   'logSubAdminActivity', 'showMessage', 'supabaseClient', 'getEl', 'allStudentsRef',
+  'loadConfiguredClasses',
   `let allStudents = allStudentsRef;
    ${csvSection}
    return { studentsToCSV, exportStudentsCSV, importStudentsCSV, downloadStudentImportTemplate, buildStudentColumnMap, normalizeDateCell };`
@@ -165,7 +171,8 @@ const factory = new Function(
 const module = factory(
   parseCSV, buildCSV, downloadCSVStub, buildStudentName,
   getCurrentSchoolId, getCurrentAcademicYear, loadAllStudentsFn,
-  logSubAdminActivity, showMessage, fakeSupabase, getEl, allStudents
+  logSubAdminActivity, showMessage, fakeSupabase, getEl, allStudents,
+  loadConfiguredClassesStub
 );
 // ===================== TEST 1: EXPORT =====================
 dbStudents.clear();
@@ -267,8 +274,30 @@ const test7 = capturedDownload.filename === 'student_import_template.csv' &&
   templateRows.length === 2 && templateRows[0].length === 18 && templateRows[1].length === 18;
 console.log(`[${test7 ? 'PASS' : 'FAIL'}] import template downloads with header (18 cols) + one example row`);
 
+// ===================== TEST 8: CLASS MUST EXIST (add-class connection) =====================
+const before8 = dbStudents.size;
+const classCsv =
+  'Student ID,First Name,Last Name,Class,Term,Gender,Date of Birth,Religion,Parent Name,Parent Contact,Status,Portal Confirmed\n' +
+  ',Esi,Ampofo,JHS 1A,First,Female,2013-03-03,Christian,Papa Ampofo,0553333333,admitted,No\n' +
+  ',Efua,Sarkodie,Grade X,First,Female,2013-04-04,Christian,Papa Sarkodie,0554444444,admitted,No\n' +
+  ',Abena,Owusu,jhs 1a,First,Female,2013-05-05,Christian,Papa Owusu,0555555555,admitted,No\n';
+els.csvStudentsImportInput.files = [{ name: 'classes.csv', text: async () => classCsv }];
+await module.importStudentsCSV();
+const classAlert = globalThis.__lastAlert || '';
+const ampofo = Array.from(dbStudents.values()).find((s) => s.first_name === 'Esi');
+const sarkodie = Array.from(dbStudents.values()).find((s) => s.first_name === 'Efua');
+const owusu = Array.from(dbStudents.values()).find((s) => s.first_name === 'Abena');
+const test8 = dbStudents.size === before8 + 2 &&
+  !!ampofo && ampofo.class_applying === 'JHS 1A' &&
+  !sarkodie &&
+  !!owusu && owusu.class_applying === 'JHS 1A' &&
+  classAlert.includes('1 row(s) skipped') && classAlert.includes('does not exist');
+console.log(`[${test8 ? 'PASS' : 'FAIL'}] import: class must exist in the Classes module (case-insensitive match, canonical name used)`);
+console.log('  alert:', classAlert.split('\n').slice(1, 3).join(' | '));
+globalThis.__lastAlert = undefined;
+
 // ===================== SUMMARY =====================
-const results = [test1, test2, test3, test4, test5, test6, test7];
+const results = [test1, test2, test3, test4, test5, test6, test7, test8];
 const passed = results.filter(Boolean).length;
 console.log(`\n===== ${passed}/${results.length} checks passed =====`);
 process.exitCode = passed === results.length ? 0 : 1;

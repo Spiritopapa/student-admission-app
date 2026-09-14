@@ -167,7 +167,7 @@ export async function loadTransportPage() {
   try {
     await loadTransportData(true);
     populateRouteFilters();
-    populateDropdowns();
+    await populateDropdowns();
     switchTransportTab(_activeTab);
   } catch (err) {
     console.error('[Transport] load failed:', err);
@@ -312,15 +312,31 @@ function populateRouteFilters() {
   }
 }
 
-function populateDropdowns() {
-  // Class filters (derived from admitted students)
-  const classes = [...new Set(_students.map((s) => s.class_applying).filter(Boolean))].sort();
+async function populateDropdowns() {
+  // Class filters: configured classes (Classes module) + classes present on
+  // student records, so filters work even before any student is admitted.
+  const configured = await loadConfiguredClassNames();
+  const fromStudents = _students.map((s) => s.class_applying || '').filter(Boolean);
+  const classes = [...new Set([...configured, ...fromStudents])].sort();
   const classOptions = '<option value="">All Classes</option>' + classes.map((c) => `<option>${esc(c)}</option>`).join('');
   ['trDailyClassFilter', 'trEnrollClass', 'trHistoryClass'].forEach((id) => {
     const el = getEl(id);
     if (!el || el.options.length > 1) return;
     el.innerHTML = classOptions;
   });
+}
+
+// Load the school's configured class names (Classes module).
+async function loadConfiguredClassNames() {
+  try {
+    let q = supabaseClient.from('classes').select('name').order('name', { ascending: true });
+    if (_schoolId) q = q.eq('school_id', _schoolId);
+    const { data } = await q;
+    return (data || []).map((c) => c.name);
+  } catch (err) {
+    console.error('Failed to load configured classes:', err);
+    return [];
+  }
 }
 // ================================================================
 // TAB 1 — Today's Collection (daily sheet grouped by destination)

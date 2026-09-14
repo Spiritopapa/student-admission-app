@@ -427,6 +427,11 @@ window.refreshClasses = async function () {
     const { renderClassesTable } = await import('./admin-classes.js');
     await renderClassesTable();
   }
+  // Keep the configured-classes cache used by every class filter in sync when
+  // classes are added/edited/removed from the Classes module.
+  if (typeof window.refreshConfiguredClassesCache === 'function') {
+    await window.refreshConfiguredClassesCache();
+  }
   // When classes change, student-related UI might need updates too
   const studentsPage = document.getElementById('page-admin-students');
   if (studentsPage && studentsPage.classList.contains('active-page')) {

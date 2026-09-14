@@ -15,6 +15,20 @@ export function initAdminExams(supabase) {
   supabaseClient = supabase;
 }
 
+// Load the school's configured class names (Classes module) so filters also
+// show classes before any student has been admitted.
+async function loadConfiguredClassNames(schoolId) {
+  try {
+    let q = supabaseClient.from('classes').select('name').order('name', { ascending: true });
+    if (schoolId) q = q.eq('school_id', schoolId);
+    const { data } = await q;
+    return (data || []).map((c) => c.name);
+  } catch (err) {
+    console.error('Failed to load configured classes:', err);
+    return [];
+  }
+}
+
 export function setupExamListeners() {
   getEl('adminExamsSearch')?.addEventListener('input', renderExamsTable);
   getEl('addExamBtn')?.addEventListener('click', () => {
@@ -867,7 +881,8 @@ export async function loadReportStudents() {
     // Populate the batch print class filter
     const classFilter = getEl('reportClassFilter');
     if (classFilter) {
-      const classes = [...new Set((apps || []).map(a => a.class_applying).filter(Boolean))].sort();
+      const configured = await loadConfiguredClassNames(schoolId);
+      const classes = [...new Set([...configured, ...(apps || []).map(a => a.class_applying).filter(Boolean)])].sort();
       classFilter.innerHTML = '<option value="">— Select Class —</option>' + classes.map(c => `<option>${c}</option>`).join('');
       if (classVal) classFilter.value = classVal;
     }
@@ -1746,7 +1761,8 @@ export async function loadTranscriptStudents() {
 
     const classFilter = getEl('transcriptClassFilter');
     if (classFilter) {
-      const classes = [...new Set((apps || []).map(a => a.class_applying).filter(Boolean))].sort();
+      const configured = await loadConfiguredClassNames(schoolId);
+      const classes = [...new Set([...configured, ...(apps || []).map(a => a.class_applying).filter(Boolean)])].sort();
       classFilter.innerHTML = '<option value="">— Select Class —</option>' + classes.map(c => `<option>${_trEsc(c)}</option>`).join('');
       if (classVal) classFilter.value = classVal;
     }

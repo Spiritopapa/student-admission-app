@@ -398,13 +398,30 @@ function renderWorkspace() {
   if (W.tab === 'daily') renderDailyCards();
   else renderHistory();
 }
-function populateClassSelects() {
-  const classes = [...new Set(W.students.map((s) => s.class_applying).filter(Boolean))].sort();
+async function populateClassSelects() {
+  // Class filters: configured classes (Classes module) + classes present on
+  // enrolled students, so filters work before any student is enrolled.
+  const configured = await loadConfiguredClassNames();
+  const fromStudents = W.students.map((s) => (s && s.class_applying) || '').filter(Boolean);
+  const classes = [...new Set([...configured, ...fromStudents])].sort();
   const classOptions = '<option value="">All Classes</option>' + classes.map((c) => `<option>${esc(c)}</option>`).join('');
   const dailySel = getEl('tsClassFilter');
   if (dailySel) { dailySel.innerHTML = classOptions; if (W.classFilter) dailySel.value = W.classFilter; }
   const histSel = getEl('tsHistClass');
   if (histSel) { histSel.innerHTML = classOptions; if (W.hClass) histSel.value = W.hClass; }
+}
+
+// Load the school's configured class names (Classes module).
+async function loadConfiguredClassNames() {
+  try {
+    let q = supabaseClient.from('classes').select('name').order('name', { ascending: true });
+    if (W.schoolId) q = q.eq('school_id', W.schoolId);
+    const { data } = await q;
+    return (data || []).map((c) => c.name);
+  } catch (err) {
+    console.error('[Transport workspace] Failed to load configured classes:', err);
+    return [];
+  }
 }
 
 function attachWorkspaceListeners() {

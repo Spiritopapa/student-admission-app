@@ -14,6 +14,11 @@ let allStudents = [];
 // detect when a different school signs in and force a reload. This prevents a
 // previously signed-in school's students from appearing in another school's list.
 let allStudentsSchoolId = null;
+// Cache of the school's configured classes (Classes module) so class filters
+// and the CSV import can reference them even before any student is admitted.
+let configuredClasses = [];
+let configuredClassesSchoolId = null;
+let configuredClassesLoaded = false;
 
 export function initAdminStudents(supabase) {
   supabaseClient = supabase;
@@ -30,6 +35,9 @@ export function setAllStudents(data) { allStudents = data || []; }
 export function resetAdminStudentsCache() {
   allStudents = [];
   allStudentsSchoolId = null;
+  configuredClasses = [];
+  configuredClassesSchoolId = null;
+  configuredClassesLoaded = false;
 }
 // Expose globally so auth.js can reset the cache on logout.
 window.resetAdminStudentsCache = resetAdminStudentsCache;
@@ -805,8 +813,50 @@ export async function renderAdminSubStudentsTable() {
 // Sync Class Filters
 // ================================================================
 
-function syncClassFilters() {
-  const classes = Array.from(new Set(allStudents.map((s) => s.class_applying).filter(Boolean))).sort();
+// Load the school's configured classes (from the Classes module). Results are
+// cached per school so repeated calls don't fire extra queries; the cache is
+// dropped on sign-out so class data can never leak between schools.
+async function loadConfiguredClasses() {
+  const schoolId = await getCurrentSchoolId();
+  if (!schoolId) {
+    configuredClasses = [];
+    configuredClassesSchoolId = null;
+    configuredClassesLoaded = false;
+    return [];
+  }
+  if (configuredClassesSchoolId === schoolId && configuredClassesLoaded) {
+    return configuredClasses;
+  }
+  try {
+    let q = supabaseClient.from('classes').select('name').order('name', { ascending: true });
+    if (schoolId) q = q.eq('school_id', schoolId);
+    const { data, error } = await q;
+    if (error) throw error;
+    configuredClasses = (data || []).map((c) => c.name);
+  } catch (err) {
+    console.error('Failed to load configured classes:', err);
+    configuredClasses = [];
+  }
+  configuredClassesSchoolId = schoolId;
+  configuredClassesLoaded = true;
+  return configuredClasses;
+}
+
+// Expose a way for realtime events (classes added/edited) to refresh the
+// configured-classes cache so every class filter updates immediately.
+window.refreshConfiguredClassesCache = async function () {
+  configuredClassesLoaded = false;
+  await syncClassFilters();
+};
+
+// Sync every class filter with BOTH the classes the school has configured in
+// the Classes module AND classes that actually appear on student records. This
+// guarantees the filters still show the configured classes before the first
+// student is even admitted.
+async function syncClassFilters() {
+  const configured = await loadConfiguredClasses();
+  const fromStudents = allStudents.map((s) => s.class_applying || '').filter(Boolean);
+  const classes = Array.from(new Set([...configured, ...fromStudents])).sort((a, b) => a.localeCompare(b));
   const opts = ['<option value="">All Classes</option>', ...classes.map((c) => `<option>${c}</option>`)].join('');
   const studentSub = getEl('adminStudentsClassFilter');
   if (studentSub) studentSub.innerHTML = opts;
@@ -1577,11 +1627,12 @@ async function importStudentsCSV() {
     // Automatically use the academic year derived from today's date.
     const academicYear = getCurrentAcademicYear();
 
-    // Load all existing students + the fee structure ONCE so per-row processing
-    // below avoids an N+1 query pattern.
-    const [{ data: existing }, { data: classFees }] = await Promise.all([
+    // Load all existing students + the fee structure + the school's configured
+    // classes ONCE so per-row processing below avoids an N+1 query pattern.
+    const [{ data: existing }, { data: classFees }, configured] = await Promise.all([
       supabaseClient.from('applications').select('student_id, first_name, last_name, date_of_birth').eq('school_id', schoolId),
-      supabaseClient.from('class_fees').select('class_name, term, fee_amount, academic_year').eq('school_id', schoolId)
+      supabaseClient.from('class_fees').select('class_name, term, fee_amount, academic_year').eq('school_id', schoolId),
+      loadConfiguredClasses()
     ]);
     const existingIds = new Set((existing || []).map((s) => s.student_id));
     const existingKeys = new Map(
@@ -1589,8 +1640,13 @@ async function importStudentsCSV() {
         .filter((s) => s.first_name && s.last_name && s.date_of_birth)
         .map((s) => [`${s.first_name.trim().toLowerCase()}|${s.last_name.trim().toLowerCase()}|${s.date_of_birth}`, true])
     );
+    // Classes configured in the Classes module → canonical spelling used on
+    // insert, so the import stays perfectly in sync with the add-class module.
+    const configuredClassMap = new Map(
+      (configured || []).map((name) => [String(name).trim().toLowerCase(), String(name).trim()])
+    );
     const feeMap = new Map(
-      (classFees || []).map((f) => [`${f.class_name}|||${f.term}`, Number(f.fee_amount) || 0])
+      (classFees || []).map((f) => [`${String(f.class_name).trim().toLowerCase()}|||${f.term}`, Number(f.fee_amount) || 0])
     );
 
     // --- Validate every data row in memory (no DB writes yet) --------------
@@ -1603,7 +1659,7 @@ async function importStudentsCSV() {
 
       const firstName = getVal('First Name');
       const lastName = getVal('Last Name');
-      const className = getVal('Class');
+      let className = getVal('Class');
       const parentName = getVal('Parent Name');
       const parentContact = getVal('Parent Contact');
       const dob = normalizeDateCell(getVal('Date of Birth'), `Row ${fileRow} Date of Birth`);
@@ -1612,7 +1668,21 @@ async function importStudentsCSV() {
       const problems = [];
       if (!firstName) problems.push('First Name is required');
       if (!lastName) problems.push('Last Name is required');
-      if (!className) problems.push('Class is required');
+      if (className) {
+        // The add-class module is the source of truth: only admit students into
+        // classes the school actually configured.
+        const canonicalClass = configuredClassMap.get(className.trim().toLowerCase());
+        if (!canonicalClass) {
+          const available = configured.length
+            ? ` ${configured.slice(0, 12).join(', ')}${configured.length > 12 ? '…' : ''}`
+            : ' none configured yet — add classes under Classes first.';
+          problems.push(`Class "${className}" does not exist. Available classes:${available}`);
+        } else {
+          className = canonicalClass;
+        }
+      } else {
+        problems.push('Class is required');
+      }
       if (!parentName) problems.push('Parent Name is required');
       if (!parentContact) problems.push('Parent Contact is required');
       if (!dob.value) problems.push('Date of Birth is required');
@@ -1743,7 +1813,7 @@ async function importStudentsCSV() {
       // Create fee records for every imported student using the school's fee
       // structure for the current academic year + term.
       const feeRows = insertRows.map((r) => {
-        const totalAmount = feeMap.get(`${r.class_applying}|||${r.term}`) ?? 0;
+        const totalAmount = feeMap.get(`${r.class_applying.trim().toLowerCase()}|||${r.term}`) ?? 0;
         return {
           student_id: r.student_id,
           academic_year: academicYear,
