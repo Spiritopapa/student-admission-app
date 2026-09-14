@@ -841,10 +841,17 @@
         <select id="adminStudentsGenderFilter" class="filter-select"><option value="">All Genders</option><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option></select>
         <button type="button" class="btn btn-primary" id="btnPrintPreview">Print Class List</button>
         <button type="button" class="btn btn-secondary" id="btnPromoteClass" style="margin-left:0.5rem;">Promote Class</button>
-        <button type="button" class="btn btn-secondary" id="btnExportStudentsCSV">Export CSV</button>
-        <button type="button" class="btn btn-secondary" id="btnImportStudentsCSV">Import CSV</button>
-        <input type="file" id="csvStudentsImportInput" accept=".csv" style="display:none;" />
+        <button type="button" class="btn btn-secondary" id="btnDownloadStudentTemplate" title="Download an empty import template with the correct columns">Download CSV Template</button>
+        <button type="button" class="btn btn-secondary" id="btnExportStudentsCSV" title="Export the student list (respects the current class/gender filters and search) as a CSV file">Export CSV</button>
+        <button type="button" class="btn btn-secondary" id="btnImportStudentsCSV" title="Import students from a CSV file (see Download CSV Template for the expected columns)">Import CSV</button>
+        <input type="file" id="csvStudentsImportInput" accept=".csv,text/csv" style="display:none;" />
       </div>
+      <p class="subtitle" style="margin-top:0.5rem;font-size:0.8rem;line-height:1.5;">
+        <strong>Import template columns:</strong>
+        <em>Student ID</em> (optional — auto-generated when blank), <em>First Name*</em>, <em>Middle Name</em>, <em>Last Name*</em>, <em>Class*</em>, <em>Term</em>, <em>Gender</em>, <em>Date of Birth*</em>, <em>Religion</em>, <em>Parent Name*</em>, <em>Parent Contact*</em>, <em>Home Town</em>, <em>Place of Stay</em>, <em>Teacher</em>, <em>Previous School</em>, <em>Admission Date</em>, <em>Status</em>, <em>Portal Confirmed</em>.
+        <span style="color:var(--danger, #dc2626);">* required.</span>
+        Use <strong>Download CSV Template</strong> for a ready-to-fill file. Re-importing an exported file will skip already-existing students instead of duplicating them.
+      </p>
       <div class="table-wrapper">
         <table class="app-table">
           <thead><tr><th>Student ID</th><th>Photo</th><th>Name</th><th>Gender</th><th>Class</th><th>Parent</th><th>Contact</th><th>Status</th><th>Portal</th><th>Action</th></tr></thead>

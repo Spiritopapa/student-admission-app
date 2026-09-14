@@ -2,7 +2,8 @@
  * Admin Students Module - Student management, admit, edit, delete
  */
 
-import { getEl, showMessage, clearMessage, setLoading, buildStudentName, formatDate, formatDateTime, statusBadge, portalBadge, uploadPhoto, previewFile, validateImageFile, logSubAdminActivity, getCurrentSchoolId, getCurrentSchoolInitials, parseCSVLine, openPrintWindow, getCurrentAcademicYear } from './utils.js';
+import { getEl, showMessage, clearMessage, setLoading, buildStudentName, formatDate, formatDateTime, statusBadge, portalBadge, uploadPhoto, previewFile, validateImageFile, logSubAdminActivity, getCurrentSchoolId, getCurrentSchoolInitials, openPrintWindow, getCurrentAcademicYear } from './utils.js';
+import { buildCSV, parseCSV, downloadCSV } from './csv-utils.js';
 import { deleteCloudinaryFile, getCloudinaryPublicIdFromUrl } from './cloudinary.js';
 import { loadAdmissionItems } from './admin-settings.js';
 import { openAdmissionForm } from './admission-form.js';
@@ -1361,34 +1362,89 @@ function getNextAcademicYear(currentYear) {
 // CSV Export - Bulk Export Students Template
 // ================================================================
 
-function escapeCSVCell(val) {
-  const str = String(val ?? '');
-  return str.includes(',') || str.includes('"') || str.includes('\n') ? `"${str.replace(/"/g, '""')}"` : str;
+// The canonical set of columns used by BOTH the export template and the import
+// parser. Keeping them in sync guarantees that any file downloaded from the app
+// can be edited and imported back without surprises.
+const STUDENT_CSV_HEADERS = [
+  'Student ID', 'First Name', 'Middle Name', 'Last Name', 'Class',
+  'Term', 'Gender', 'Date of Birth', 'Religion', 'Parent Name',
+  'Parent Contact', 'Home Town', 'Place of Stay', 'Teacher',
+  'Previous School', 'Admission Date', 'Status', 'Portal Confirmed'
+];
+
+// Accepted synonyms for each column (case-insensitive). Excel users sometimes
+// rename headers, so we normalise them instead of failing the import.
+const STUDENT_CSV_ALIASES = {
+  'Student ID': ['Student ID', 'student_id', 'Student_Id', 'StudentId', 'ID'],
+  'First Name': ['First Name', 'first_name', 'Firstname'],
+  'Middle Name': ['Middle Name', 'middle_name', 'Middlename'],
+  'Last Name': ['Last Name', 'last_name', 'Lastname', 'Surname'],
+  'Class': ['Class', 'Class Applying', 'Class/Form', 'Form/Class', 'Grade', 'class_applying'],
+  'Term': ['Term'],
+  'Gender': ['Gender'],
+  'Date of Birth': ['Date of Birth', 'DOB', 'Birth Date', 'date_of_birth'],
+  'Religion': ['Religion'],
+  'Parent Name': ['Parent Name', 'Guardian Name', 'Parent/Guardian Name', 'parent_name'],
+  'Parent Contact': ['Parent Contact', 'Parent Phone', 'Parent Telephone', 'Contact', 'parent_contact'],
+  'Home Town': ['Home Town', 'Hometown', 'home_town'],
+  'Place of Stay': ['Place of Stay', 'Residence', 'place_of_stay'],
+  'Teacher': ['Teacher', 'Class Teacher', 'Form Teacher'],
+  'Previous School': ['Previous School', 'PreviousSchool', 'previous_school'],
+  'Admission Date': ['Admission Date', 'admission_date', 'Date Admitted'],
+  'Status': ['Status'],
+  'Portal Confirmed': ['Portal Confirmed', 'Portal', 'Portal Confirmed?']
+};
+
+const STUDENT_GENDERS = ['Male', 'Female', 'Other'];
+const STUDENT_RELIGIONS = ['Christian', 'Muslim', 'Others'];
+const STUDENT_TERMS = ['First', 'Second', 'Third'];
+const STUDENT_STATUSES = ['pending', 'admitted'];
+const PORTAL_YES = new Set(['yes', 'true', '1', 'y', 'confirmed', 'confirm']);
+const PORTAL_NO = new Set(['no', 'false', '0', 'n', '', 'unconfirmed', 'not confirmed', 'pending']);
+
+// Normalise an enum value (gender / religion / term / status) to its canonical
+// spelling, falling back to `fallback` when the cell is blank.
+function toCanonical(value, allowed, fallback) {
+  const v = String(value ?? '').trim();
+  if (!v) return { value: fallback, error: null };
+  const hit = allowed.find((a) => a.toLowerCase() === v.toLowerCase());
+  if (hit) return { value: hit, error: null };
+  return { value: v, error: `"${v}" is not valid. Use one of: ${allowed.join(', ')}.` };
+}
+
+// Normalise a date cell into YYYY-MM-DD. Handles Excel serial dates and the
+// common DD/MM/YYYY style in addition to the canonical ISO form.
+function normalizeDateCell(raw, label) {
+  const v = String(raw ?? '').trim().replace(/\.0+$/, '');
+  if (!v) return { value: null, error: null };
+  // Excel serial date (days since 1899-12-30).
+  if (/^\d{4,6}$/.test(v) && Number(v) >= 25569) {
+    const dt = new Date(Math.round((Number(v) - 25569) * 86400000));
+    if (!Number.isNaN(dt.getTime())) return { value: dt.toISOString().slice(0, 10), error: null };
+  }
+  // Canonical YYYY-MM-DD.
+  if (/^\d{4}-\d{2}-\d{2}$/.test(v)) {
+    const dt = new Date(`${v}T00:00:00Z`);
+    if (!Number.isNaN(dt.getTime()) && dt.toISOString().slice(0, 10) === v) {
+      return { value: v, error: null };
+    }
+  }
+  // DD/MM/YYYY or DD-MM-YYYY.
+  const m = v.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
+  if (m) {
+    const d = Number(m[1]);
+    const mo = Number(m[2]);
+    const y = Number(m[3]);
+    if (mo >= 1 && mo <= 12 && d >= 1 && d <= 31) {
+      return { value: `${y}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}`, error: null };
+    }
+  }
+  return { value: v, error: `${label} "${v}" is not a valid date. Use YYYY-MM-DD.` };
 }
 
 function studentsToCSV(students) {
-  const header = [
-    'Student ID',
-    'First Name',
-    'Middle Name',
-    'Last Name',
-    'Class',
-    'Term',
-    'Gender',
-    'Date of Birth',
-    'Religion',
-    'Parent Name',
-    'Parent Contact',
-    'Home Town',
-    'Place of Stay',
-    'Teacher',
-    'Previous School',
-    'Admission Date',
-    'Status',
-    'Portal Confirmed'
-  ];
-  const rows = [header];
-  students.forEach(s => {
+  const rows = [STUDENT_CSV_HEADERS];
+  students.forEach((s) => {
     rows.push([
       s.student_id || '',
       s.first_name || '',
@@ -1410,7 +1466,7 @@ function studentsToCSV(students) {
       s.portal_confirmed ? 'Yes' : 'No'
     ]);
   });
-  return rows.map(r => r.map(escapeCSVCell).join(',')).join('\n');
+  return buildCSV(rows);
 }
 
 async function exportStudentsCSV() {
@@ -1420,24 +1476,78 @@ async function exportStudentsCSV() {
   }
   const classFilter = getEl('adminStudentsClassFilter')?.value || '';
   const genderFilter = getEl('adminStudentsGenderFilter')?.value || '';
+  const searchQ = (getEl('adminStudentsSearch')?.value || '').toLowerCase().trim();
   let data = [...allStudents];
-  if (classFilter) data = data.filter(s => s.class_applying === classFilter);
-  if (genderFilter) data = data.filter(s => (s.gender || 'Male') === genderFilter);
+  if (searchQ) {
+    data = data.filter((s) => {
+      const name = buildStudentName(s.first_name, s.middle_name, s.last_name).toLowerCase();
+      return name.includes(searchQ) || s.student_id?.toLowerCase().includes(searchQ) || s.parent_contact?.toLowerCase().includes(searchQ);
+    });
+  }
+  if (classFilter) data = data.filter((s) => s.class_applying === classFilter);
+  if (genderFilter) data = data.filter((s) => (s.gender || 'Male') === genderFilter);
 
   const csv = studentsToCSV(data);
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  const suffix = classFilter ? classFilter.replace(/\s+/g, '_') : 'all_students';
-  link.download = `student_admission_template_${suffix}.csv`;
-  link.click();
-  URL.revokeObjectURL(link.href);
+  const suffix = classFilter ? classFilter.replace(/\s+/g, '_') : (searchQ ? 'search_results' : 'all_students');
+  downloadCSV(`student_admission_template_${suffix}.csv`, csv);
   showMessage('editStudentMessage', `Exported ${data.length} student(s) to CSV.`, 'success');
+}
+
+// Download a blank, ready-to-fill import template (header row + one example
+// row). Every column shown is understood by the import parser, so admins can
+// simply open the file, replace the example with real students, and re-import.
+function downloadStudentImportTemplate() {
+  const example = [
+    '', 'Ama', 'Akosua', 'Mensah', 'JHS 1A', 'First', 'Female', '2013-04-15', 'Christian',
+    'Akosua Mensah', '0551234567', 'Kumasi', 'Deduako', '', "St. Mary's JHS", '2026-09-02',
+    'admitted', 'No'
+  ];
+  const csv = buildCSV([STUDENT_CSV_HEADERS, example]);
+  downloadCSV('student_import_template.csv', csv);
+  showMessage('editStudentMessage', 'Import template downloaded. Fill in the rows (keep the header) and use Import CSV.', 'success');
 }
 
 // ================================================================
 // CSV Import - Bulk Import Students
 // ================================================================
+
+// Build a normalised header → column index map, matching canonical column names
+// or any of their synonyms case-insensitively.
+function buildStudentColumnMap(headerRow) {
+  const colMap = {};
+  const normalizedHeaders = headerRow.map((h) =>
+    String(h ?? '').replace(/\uFEFF/g, '').trim().toLowerCase().replace(/\s+/g, ' ')
+  );
+  STUDENT_CSV_HEADERS.forEach((col) => {
+    const names = (STUDENT_CSV_ALIASES[col] || [col]).map((n) => n.toLowerCase().replace(/\s+/g, ' '));
+    const idx = normalizedHeaders.findIndex((h) => names.includes(h));
+    if (idx >= 0) colMap[col] = idx;
+  });
+  return colMap;
+}
+
+// Run a bounded number of async operations at once (used to generate student
+// IDs without flooding the server with hundreds of simultaneous RPC calls).
+async function mapWithConcurrency(items, limit, fn) {
+  const results = new Array(items.length);
+  let next = 0;
+  async function worker() {
+    while (next < items.length) {
+      const i = next++;
+      results[i] = await fn(items[i], i);
+    }
+  }
+  const workers = Array.from({ length: Math.min(limit, items.length) }, worker);
+  await Promise.all(workers);
+  return results;
+}
+
+// Some spreadsheet apps prefix text cells with an apostrophe (e.g. "'0551234567");
+// strip it so phone numbers / IDs import cleanly.
+function scrubCell(raw) {
+  const v = String(raw ?? '');
+  return v.startsWith("'") ? v.slice(1) : v;
+}
 
 async function importStudentsCSV() {
   const fileInput = getEl('csvStudentsImportInput');
@@ -1445,27 +1555,20 @@ async function importStudentsCSV() {
   if (!file) return;
   try {
     const text = await file.text();
-    const lines = text.split('\n').filter(l => l.trim());
-    if (lines.length < 2) {
-      alert('CSV file must have a header row and at least one data row.');
+    // Parse robustly (UTF-8 BOM, CRLF/LF line endings, quoted fields) and drop
+    // completely empty rows.
+    const rows = parseCSV(text).filter((r) => r.some((cell) => String(cell ?? '').trim() !== ''));
+    if (rows.length < 2) {
+      alert(`"${file.name}" must have a header row and at least one data row.`);
       fileInput.value = '';
       return;
     }
-    const header = parseCSVLine(lines[0]);
-    const colMap = {};
-    const expectedCols = [
-      'Student ID', 'First Name', 'Middle Name', 'Last Name', 'Class',
-      'Term', 'Gender', 'Date of Birth', 'Religion', 'Parent Name',
-      'Parent Contact', 'Home Town', 'Place of Stay', 'Teacher',
-      'Previous School', 'Admission Date', 'Status', 'Portal Confirmed'
-    ];
-    expectedCols.forEach(col => {
-      const idx = header.findIndex(h => h.toLowerCase().trim() === col.toLowerCase().trim());
-      if (idx >= 0) colMap[col] = idx;
-    });
 
-    if (!('First Name' in colMap) || !('Last Name' in colMap) || !('Class' in colMap)) {
-      alert('CSV must have at least "First Name", "Last Name", and "Class" columns.\n\nExpected columns:\n' + expectedCols.join(', '));
+    const colMap = buildStudentColumnMap(rows[0]);
+    const requiredCols = ['First Name', 'Last Name', 'Class', 'Date of Birth', 'Parent Name', 'Parent Contact'];
+    const missingRequiredCols = requiredCols.filter((col) => !(col in colMap));
+    if (missingRequiredCols.length > 0) {
+      alert(`"${file.name}" is missing required column(s): ${missingRequiredCols.join(', ')}.\n\nExpected columns:\n${STUDENT_CSV_HEADERS.join(', ')}\n\nDownload the CSV template and use it as a starting point.`);
       fileInput.value = '';
       return;
     }
@@ -1474,96 +1577,205 @@ async function importStudentsCSV() {
     // Automatically use the academic year derived from today's date.
     const academicYear = getCurrentAcademicYear();
 
-    let imported = 0;
-    let skipped = 0;
+    // Load all existing students + the fee structure ONCE so per-row processing
+    // below avoids an N+1 query pattern.
+    const [{ data: existing }, { data: classFees }] = await Promise.all([
+      supabaseClient.from('applications').select('student_id, first_name, last_name, date_of_birth').eq('school_id', schoolId),
+      supabaseClient.from('class_fees').select('class_name, term, fee_amount, academic_year').eq('school_id', schoolId)
+    ]);
+    const existingIds = new Set((existing || []).map((s) => s.student_id));
+    const existingKeys = new Map(
+      (existing || [])
+        .filter((s) => s.first_name && s.last_name && s.date_of_birth)
+        .map((s) => [`${s.first_name.trim().toLowerCase()}|${s.last_name.trim().toLowerCase()}|${s.date_of_birth}`, true])
+    );
+    const feeMap = new Map(
+      (classFees || []).map((f) => [`${f.class_name}|||${f.term}`, Number(f.fee_amount) || 0])
+    );
+
+    // --- Validate every data row in memory (no DB writes yet) --------------
+    const rowsToCreate = [];
     const errors = [];
 
-    for (let i = 1; i < lines.length; i++) {
-      const vals = parseCSVLine(lines[i]);
-      const getVal = (col) => (colMap[col] !== undefined ? vals[colMap[col]]?.trim() || '' : '');
+    rows.slice(1).forEach((vals, rowIndex) => {
+      const fileRow = rowIndex + 2; // 1-based; row 1 is the header
+      const getVal = (col) => (col in colMap && colMap[col] < vals.length ? scrubCell(vals[colMap[col]]).trim() : '');
 
       const firstName = getVal('First Name');
       const lastName = getVal('Last Name');
       const className = getVal('Class');
-      if (!firstName || !lastName || !className) {
-        skipped++;
-        continue;
+      const parentName = getVal('Parent Name');
+      const parentContact = getVal('Parent Contact');
+      const dob = normalizeDateCell(getVal('Date of Birth'), `Row ${fileRow} Date of Birth`);
+      const admissionDate = normalizeDateCell(getVal('Admission Date'), `Row ${fileRow} Admission Date`);
+
+      const problems = [];
+      if (!firstName) problems.push('First Name is required');
+      if (!lastName) problems.push('Last Name is required');
+      if (!className) problems.push('Class is required');
+      if (!parentName) problems.push('Parent Name is required');
+      if (!parentContact) problems.push('Parent Contact is required');
+      if (!dob.value) problems.push('Date of Birth is required');
+      if (dob.error) problems.push(dob.error);
+      if (admissionDate.error) problems.push(admissionDate.error);
+
+      const gender = toCanonical(getVal('Gender'), STUDENT_GENDERS, 'Male');
+      if (gender.error) problems.push(`Gender ${gender.error}`);
+      const religion = toCanonical(getVal('Religion'), STUDENT_RELIGIONS, 'Christian');
+      if (religion.error) problems.push(`Religion ${religion.error}`);
+      const term = toCanonical(getVal('Term'), STUDENT_TERMS, 'First');
+      if (term.error) problems.push(`Term ${term.error}`);
+      const status = toCanonical(getVal('Status'), STUDENT_STATUSES, 'admitted');
+      if (status.error) problems.push(`Status ${status.error}`);
+
+      const portalRaw = getVal('Portal Confirmed').toLowerCase();
+      let portal = false;
+      if (PORTAL_YES.has(portalRaw)) portal = true;
+      else if (!PORTAL_NO.has(portalRaw)) problems.push(`Portal Confirmed "${portalRaw}" must be Yes or No`);
+
+      const providedId = getVal('Student ID');
+      if (providedId && existingIds.has(providedId)) {
+        problems.push(`Student ID "${providedId}" already exists`);
       }
 
-      try {
-        // Generate student ID
-        const { data: idData, error: idError } = await supabaseClient.rpc('generate_student_id');
-        if (idError) throw new Error('ID generation failed: ' + idError.message);
-        const studentId = idData;
+      if (problems.length > 0) {
+        errors.push(`Row ${fileRow} (${firstName || '?'} ${lastName || ''}): ${problems.join('; ')}`);
+        return;
+      }
 
-        const term = getVal('Term') || 'First';
-        const gender = getVal('Gender') || 'Male';
-        const religion = getVal('Religion') || 'Christian';
-        const status = getVal('Status') || 'admitted';
-        const portalConfirmed = getVal('Portal Confirmed')?.toLowerCase() === 'yes';
+      // Natural-key duplicate guard: a student with the same first name, last
+      // name and date of birth is almost certainly the same person.
+      if (dob.value) {
+        const key = `${firstName.trim().toLowerCase()}|${lastName.trim().toLowerCase()}|${dob.value}`;
+        if (existingKeys.has(key)) {
+          errors.push(`Row ${fileRow} (${firstName} ${lastName}): looks like a duplicate of an existing student (same name & date of birth)`);
+          return;
+        }
+      }
 
-        const { error: insertError } = await supabaseClient.from('applications').insert([{
-          student_id: studentId,
-          first_name: firstName,
-          middle_name: getVal('Middle Name') || null,
-          last_name: lastName,
-          class_applying: className,
-          term: term,
-          gender: gender,
-          date_of_birth: getVal('Date of Birth') || null,
-          religion: religion,
-          parent_name: getVal('Parent Name') || null,
-          parent_contact: getVal('Parent Contact') || null,
-          home_town: getVal('Home Town') || null,
-          place_of_stay: getVal('Place of Stay') || null,
-          teacher: getVal('Teacher') || null,
-          previous_school: getVal('Previous School') || null,
-          admission_date: getVal('Admission Date') || null,
-          status: status,
-          portal_confirmed: portalConfirmed,
-          school_id: schoolId,
-        }]);
+      rowsToCreate.push({
+        student_id: providedId || null, // null → auto-generated below
+        first_name: firstName.trim(),
+        middle_name: getVal('Middle Name') || null,
+        last_name: lastName.trim(),
+        class_applying: className.trim(),
+        term: term.value,
+        gender: gender.value,
+        religion: religion.value,
+        date_of_birth: dob.value,
+        parent_name: parentName.trim(),
+        parent_contact: parentContact.trim(),
+        home_town: getVal('Home Town') || null,
+        place_of_stay: getVal('Place of Stay') || null,
+        teacher: getVal('Teacher') || null,
+        previous_school: getVal('Previous School') || null,
+        admission_date: admissionDate.value || null,
+        status: status.value,
+        portal_confirmed: portal,
+        school_id: schoolId,
+        fileRow
+      });
+    });
 
-        if (insertError) throw new Error('Insert failed: ' + insertError.message);
+    if (rowsToCreate.length === 0) {
+      alert(`No rows from "${file.name}" could be imported.\n\n${errors.slice(0, 10).join('\n')}${errors.length > 10 ? `\n...and ${errors.length - 10} more.` : ''}`);
+      fileInput.value = '';
+      return;
+    }
 
-        // Create fee record - use the current academic year and the class/term fee structure
-        const { data: classFee } = await supabaseClient.from('class_fees')
-          .select('fee_amount, academic_year')
-          .eq('class_name', className)
-          .eq('academic_year', academicYear)
-          .eq('term', term)
-          .maybeSingle();
-        const feeYear = classFee?.academic_year || academicYear;
-        const totalAmount = classFee?.fee_amount || 0;
-        await supabaseClient.from('fees').upsert([{
-          student_id: studentId,
-          academic_year: feeYear,
-          term: term,
+    // --- Write phase ------------------------------------------------------
+    let imported = 0;
+    try {
+      const providedRows = rowsToCreate.filter((r) => r.student_id);
+      const autoRows = rowsToCreate.filter((r) => !r.student_id);
+      // Generate IDs for the rows that didn't supply one (bounded concurrency).
+      if (autoRows.length > 0) {
+        const generatedIds = await mapWithConcurrency(autoRows, 8, async () => {
+          const { data: idData, error: idError } = await supabaseClient.rpc('generate_student_id');
+          if (idError) throw new Error('ID generation failed: ' + idError.message);
+          if (!idData) throw new Error('ID generation returned an empty result.');
+          return idData;
+        });
+        autoRows.forEach((r, i) => { r.student_id = generatedIds[i]; });
+      }
+
+      // Final duplicate pass (in-file duplicates + collisions with existing IDs).
+      const seen = new Set();
+      const insertRows = [];
+      for (const r of [...providedRows, ...autoRows]) {
+        const id = r.student_id;
+        if (seen.has(id) || existingIds.has(id)) {
+          errors.push(`Row ${r.fileRow} (${r.first_name} ${r.last_name}): Student ID "${id}" already exists`);
+          continue;
+        }
+        seen.add(id);
+        insertRows.push(r);
+      }
+
+      // Insert applications in chunks.
+      for (let i = 0; i < insertRows.length; i += 100) {
+        const chunk = insertRows.slice(i, i + 100).map((r) => ({
+          student_id: r.student_id,
+          first_name: r.first_name,
+          middle_name: r.middle_name,
+          last_name: r.last_name,
+          class_applying: r.class_applying,
+          term: r.term,
+          gender: r.gender,
+          religion: r.religion,
+          date_of_birth: r.date_of_birth,
+          parent_name: r.parent_name,
+          parent_contact: r.parent_contact,
+          home_town: r.home_town,
+          place_of_stay: r.place_of_stay,
+          teacher: r.teacher,
+          previous_school: r.previous_school,
+          admission_date: r.admission_date,
+          status: r.status,
+          portal_confirmed: r.portal_confirmed,
+          sub_admin_approved: r.portal_confirmed,
+          school_id: r.school_id
+        }));
+        const { error: insertError } = await supabaseClient.from('applications').insert(chunk);
+        if (insertError) throw new Error('Bulk insert failed: ' + insertError.message);
+      }
+
+      // Create fee records for every imported student using the school's fee
+      // structure for the current academic year + term.
+      const feeRows = insertRows.map((r) => {
+        const totalAmount = feeMap.get(`${r.class_applying}|||${r.term}`) ?? 0;
+        return {
+          student_id: r.student_id,
+          academic_year: academicYear,
+          term: r.term,
           total_amount: totalAmount,
           amount_paid: 0,
           debt: 0,
           payment_status: totalAmount > 0 ? 'unpaid' : 'paid',
           last_payment_date: null,
-          school_id: schoolId,
-        }], { onConflict: 'student_id,academic_year,term' });
-
-        imported++;
-      } catch (err) {
-        errors.push(`Row ${i + 1}: ${err.message}`);
-        skipped++;
+          school_id: schoolId
+        };
+      });
+      for (let i = 0; i < feeRows.length; i += 100) {
+        const chunk = feeRows.slice(i, i + 100);
+        const { error: feeError } = await supabaseClient.from('fees').upsert(chunk, { onConflict: 'student_id,academic_year,term' });
+        if (feeError) throw new Error('Fee record creation failed: ' + feeError.message);
       }
+
+      imported = insertRows.length;
+    } catch (err) {
+      errors.push(`Import stopped mid-way: ${err.message}`);
     }
 
     await loadAllStudents();
 
-    let msg = `Imported ${imported} student(s) successfully.`;
-    if (skipped > 0) msg += ` ${skipped} row(s) skipped.`;
+    let msg = `Imported ${imported} student(s) from "${file.name}".`;
     if (errors.length > 0) {
-      msg += `\n\nErrors:\n${errors.slice(0, 5).join('\n')}`;
-      if (errors.length > 5) msg += `\n...and ${errors.length - 5} more error(s).`;
+      msg += `\n\n${errors.length} row(s) skipped:\n${errors.slice(0, 8).join('\n')}`;
+      if (errors.length > 8) msg += `\n...and ${errors.length - 8} more.`;
     }
     alert(msg);
-    logSubAdminActivity(`Imported ${imported} student(s) via CSV (${skipped} skipped)`, 'student', `CSV import`);
+    logSubAdminActivity(`Imported ${imported} student(s) via CSV (${errors.length} skipped)`, 'student', 'CSV import');
   } catch (err) {
     alert('Error importing CSV: ' + err.message);
     console.error('Import CSV error:', err);
@@ -1577,6 +1789,7 @@ async function importStudentsCSV() {
 
 export function setupStudentCSVHandlers() {
   getEl('btnExportStudentsCSV')?.addEventListener('click', exportStudentsCSV);
+  getEl('btnDownloadStudentTemplate')?.addEventListener('click', downloadStudentImportTemplate);
   getEl('btnImportStudentsCSV')?.addEventListener('click', () => getEl('csvStudentsImportInput')?.click());
   getEl('csvStudentsImportInput')?.addEventListener('change', importStudentsCSV);
 }
