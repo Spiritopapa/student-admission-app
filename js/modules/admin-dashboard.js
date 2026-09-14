@@ -17,6 +17,7 @@ import { svgIcon } from './icons.js';
 
 let supabaseClient = null;
 let allStudents = [];
+let allClasses = []; // school classes in the order they were added (created_at ascending)
 let allFees = [];
 let allAnnouncements = [];
 let allTeachers = [];
@@ -63,6 +64,7 @@ export async function loadAdminDashboardHome() {
     await fetchLockedModules();
     await Promise.all([
       fetchStudents(),
+      fetchClasses(),
       fetchFees(),
       fetchAnnouncements(),
       fetchTeachers(),
@@ -402,6 +404,24 @@ async function fetchStudents() {
   allStudents = data || [];
 }
 
+/**
+ * Fetches the school's classes in the order they were added (earliest
+ * created_at first), matching the Classes management page. The dashboard
+ * charts use this order so the first class added appears at the top and the
+ * last class added appears at the bottom.
+ */
+async function fetchClasses() {
+  const schoolId = await getCurrentSchoolId();
+  // CRITICAL SECURITY: Fail closed. Never fetch without a school_id filter.
+  if (!schoolId) { allClasses = []; return; }
+  const { data } = await supabaseClient
+    .from('classes')
+    .select('name')
+    .eq('school_id', schoolId)
+    .order('created_at', { ascending: true });
+  allClasses = data || [];
+}
+
 async function fetchFees() {
   // Skip fetching fees if the fees module is locked
   if (lockedModules.has('fees')) {
@@ -560,6 +580,7 @@ export async function refreshDashboardData(source = 'realtime') {
     await fetchLockedModules();
     await Promise.all([
       fetchStudents(),
+      fetchClasses(),
       fetchFees(),
       fetchAnnouncements(),
       fetchTeachers(),
@@ -1251,6 +1272,34 @@ function animateDashboardCounters() {
 // Bar Chart
 // ================================================================
 
+/**
+ * Orders class names by when the class was added (earliest `created_at`
+ * first, matching the Classes management page), so the first class added
+ * appears at the top of the charts and the last class added at the bottom.
+ * Class names that are NOT in the classes table (e.g. legacy values or
+ * "Unassigned") are appended after the real classes in alphabetical order.
+ *
+ * @param {string[]} classNames Names present in the chart's data.
+ * @returns {string[]} Same names re-ordered (does not mutate the input).
+ */
+function sortClassNamesByCreation(classNames) {
+  const classOrder = allClasses.map((c) => c.name);
+  if (classOrder.length === 0) return [...classNames].sort((a, b) => a.localeCompare(b));
+
+  const seen = new Set();
+  const ordered = [];
+  classOrder.forEach((name) => {
+    if (classNames.includes(name) && !seen.has(name)) {
+      ordered.push(name);
+      seen.add(name);
+    }
+  });
+  const rest = classNames
+    .filter((n) => !seen.has(n))
+    .sort((a, b) => a.localeCompare(b));
+  return [...ordered, ...rest];
+}
+
 function renderBarChart() {
   const classMap = {};
   allStudents.forEach(s => {
@@ -1261,7 +1310,7 @@ function renderBarChart() {
     else classMap[cls].male++;
   });
 
-  const classNames = Object.keys(classMap).sort();
+  const classNames = sortClassNamesByCreation(Object.keys(classMap));
   const maxCount = Math.max(...classNames.map(c => classMap[c].total), 1);
 
   return classNames.map((cls, idx) => {
@@ -1416,7 +1465,9 @@ function renderFeeClassChart() {
     classMap[cls].outstanding += Math.max(total - paid, 0);
   });
 
-  return buildFeeClassChartHtml(classMap);
+  // Pass the class-creation order so the Fees by Class chart lines up with
+  // the Student Population chart (first class added at top, last at bottom).
+  return buildFeeClassChartHtml(classMap, sortClassNamesByCreation(Object.keys(classMap)));
 }
 
 // ================================================================

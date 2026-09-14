@@ -54,12 +54,33 @@ export function feeClassChartEmptyHtml(message = 'No fee data available yet.') {
  * @param {Object<string, {totalFees: number, collected: number, outstanding: number}>} classMap
  *   Keys are class names; values hold the aggregated total fees, collected
  *   amount and outstanding balance for that class.
+ * @param {string[]} [classOrder]
+ *   Optional list of class names in display order (top → bottom). When given,
+ *   rows follow this order (any classMap key not present in the list is
+ *   appended alphabetically). When omitted, classes are ordered alphabetically.
  * @returns {string} HTML markup (legend + one row per class).
  */
-export function buildFeeClassChartHtml(classMap) {
+export function buildFeeClassChartHtml(classMap, classOrder) {
   if (!classMap || typeof classMap !== 'object') return feeClassChartEmptyHtml();
 
-  const classNames = Object.keys(classMap).sort();
+  let classNames = Object.keys(classMap);
+  if (Array.isArray(classOrder) && classOrder.length > 0) {
+    // Honor the supplied order, appending any leftover keys alphabetically.
+    const seen = new Set();
+    const ordered = [];
+    classOrder.forEach((name) => {
+      if (classNames.includes(name) && !seen.has(name)) {
+        ordered.push(name);
+        seen.add(name);
+      }
+    });
+    const rest = classNames
+      .filter((n) => !seen.has(n))
+      .sort((a, b) => a.localeCompare(b));
+    classNames = [...ordered, ...rest];
+  } else {
+    classNames.sort();
+  }
   if (classNames.length === 0) return feeClassChartEmptyHtml();
 
   // Normalise values once so later math is safe
