@@ -1341,57 +1341,209 @@ async function printClassListDirect() {
 // ================================================================
 
 export function setupPromoteClass() {
-  getEl('btnPromoteClass')?.addEventListener('click', async () => {
-    const classFilter = getEl('adminStudentsClassFilter');
-    const selectedClass = classFilter?.value;
-    if (!selectedClass) { alert('Please select a class to promote.'); return; }
-    if (!confirm(`Promote all students from ${selectedClass} to the next class?\n\nThis will:\n1. Move students to the next class\n2. Keep their existing fee balances intact\n\nNo new fee records will be created. Fee records for the new class will be generated when the fee structure is set via "Set / Update Class Fee".`)) return;
-    try {
-      const schoolIdForPromote = await getCurrentSchoolId();
-      let classQuery = supabaseClient
-        .from('classes').select('name, level').order('level', { ascending: true }).order('name', { ascending: true });
-      if (schoolIdForPromote) classQuery = classQuery.eq('school_id', schoolIdForPromote);
-      const { data: classes, error: classesError } = await classQuery;
-      if (classesError) throw classesError;
-      const currentIndex = classes.findIndex(c => c.name === selectedClass);
-      if (currentIndex === -1) { alert('Selected class not found in classes list.'); return; }
-      const nextClass = classes[currentIndex + 1];
-      if (!nextClass) { alert(`No next class available after ${selectedClass}.`); return; }
+  // Open the promote-class modal when the toolbar button is clicked.
+  getEl('btnPromoteClass')?.addEventListener('click', openPromoteClassModal);
 
-      let studentsQuery = supabaseClient.from('applications').select('student_id').eq('class_applying', selectedClass);
-      if (schoolIdForPromote) studentsQuery = studentsQuery.eq('school_id', schoolIdForPromote);
-      const { data: students } = await studentsQuery;
-      if (!students || students.length === 0) { alert('No students found in this class.'); return; }
+  // Promote action inside the modal.
+  getEl('promoteClassSubmitBtn')?.addEventListener('click', submitPromoteClass);
 
-      let promoted = 0;
-      let errors = 0;
-
-      for (const student of students) {
-        try {
-          // Only update the student's class — do NOT create or modify any fee records
-          // Fee records for the new class will be created automatically when the admin
-          // sets the fee structure via "Set / Update Class Fee" in the Fees section.
-          // Existing fee balances from previous terms remain intact in the database.
-          await supabaseClient.from('applications').update({ 
-            class_applying: nextClass.name,
-            updated_at: new Date().toISOString()
-          }).eq('student_id', student.student_id);
-
-          promoted++;
-        } catch (e) {
-          console.error('Error promoting student:', student.student_id, e);
-          errors++;
-        }
-      }
-
-      let msg = `Successfully promoted ${promoted} student(s) from ${selectedClass} to ${nextClass.name}.\n\n`;
-      msg += `Students have been moved to ${nextClass.name} with their existing fee balances preserved.\n`;
-      msg += `To create fee records for the new class, go to Fees → "Set / Update Class Fee" and set the fee structure.`;
-      if (errors > 0) msg += `\n\n${errors} student(s) had errors during promotion.`;
-      alert(msg);
-      await loadAllStudents();
-    } catch (err) { alert('Error promoting class: ' + err.message); }
+  // "Select All" checkbox toggles every student checkbox in the list.
+  getEl('promoteSelectAll')?.addEventListener('change', (e) => {
+    document.querySelectorAll('#promoteStudentsBody .promote-student-check').forEach((cb) => {
+      cb.checked = e.target.checked;
+    });
+    updatePromoteSelectedCount();
   });
+
+  // Keep the running selection count in sync when individual checkboxes change,
+  // and un-check "Select All" as soon as any single checkbox is un-ticked.
+  getEl('promoteStudentsBody')?.addEventListener('change', (e) => {
+    if (e.target && e.target.classList.contains('promote-student-check')) {
+      updatePromoteSelectedCount();
+      const all = document.querySelectorAll('#promoteStudentsBody .promote-student-check');
+      const selectAll = getEl('promoteSelectAll');
+      if (selectAll) selectAll.checked = all.length > 0 && Array.from(all).every((cb) => cb.checked);
+    }
+  });
+
+  // Clicking the dimmed backdrop closes the modal.
+  getEl('promoteClassModal')?.addEventListener('click', (e) => {
+    if (e.target === getEl('promoteClassModal')) closePromoteClassModal();
+  });
+}
+
+// Close the Promote Class modal (also wired to the modal's close button).
+window.closePromoteClassModal = function () {
+  const modal = getEl('promoteClassModal');
+  if (modal) modal.style.display = 'none';
+};
+
+// Build and open the Promote Class modal with:
+//  1. every student visible under the current class / gender / search filters,
+//     each with its own checkbox (plus a "Select All" toggle), and
+//  2. a dropdown to pick the class students should be promoted to (the "next"
+//     class in the level order is pre-selected when a single source class is set).
+async function openPromoteClassModal() {
+  const modal = getEl('promoteClassModal');
+  const body = getEl('promoteStudentsBody');
+  const subtitle = getEl('promoteClassSubtitle');
+  const targetSelect = getEl('promoteToClass');
+  const selectAll = getEl('promoteSelectAll');
+  const countEl = getEl('promoteSelectedCount');
+  const submitBtn = getEl('promoteClassSubmitBtn');
+  if (!modal || !body) return;
+
+  const schoolId = await getCurrentSchoolId();
+  const classFilter = getEl('adminStudentsClassFilter');
+  const selectedClass = classFilter?.value || '';
+  const genderFilter = getEl('adminStudentsGenderFilter')?.value || '';
+  const searchQ = (getEl('adminStudentsSearch')?.value || '').toLowerCase().trim();
+
+  // Reset modal state.
+  body.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:1.25rem;color:var(--text-muted);">Loading students…</td></tr>';
+  if (subtitle) subtitle.textContent = selectedClass ? `Source class: ${selectedClass}` : 'Source: All classes';
+  if (selectAll) { selectAll.checked = false; selectAll.disabled = true; }
+  if (submitBtn) submitBtn.disabled = true;
+  if (countEl) countEl.textContent = '0';
+  if (targetSelect) targetSelect.innerHTML = '<option value="">— Select class —</option>';
+
+  try {
+    // Ordered by level then name so the "next" class matches class progression.
+    let classQuery = supabaseClient.from('classes').select('name, level')
+      .order('level', { ascending: true }).order('name', { ascending: true });
+    if (schoolId) classQuery = classQuery.eq('school_id', schoolId);
+    const { data: classes, error: classesError } = await classQuery;
+    if (classesError) throw classesError;
+    const classNames = (classes || []).map((c) => c.name);
+
+    // Fresh list of this school's students so the modal always reflects the DB.
+    let studentsQuery = supabaseClient.from('applications')
+      .select('student_id, first_name, middle_name, last_name, gender, class_applying, parent_contact');
+    if (schoolId) studentsQuery = studentsQuery.eq('school_id', schoolId);
+    const { data: students, error: studentsError } = await studentsQuery;
+    if (studentsError) throw studentsError;
+
+    let list = (students || []).filter((s) => s.student_id && s.class_applying);
+    if (selectedClass) list = list.filter((s) => s.class_applying === selectedClass);
+    if (genderFilter) list = list.filter((s) => (s.gender || 'Male') === genderFilter);
+    if (searchQ) {
+      list = list.filter((s) => {
+        const name = buildStudentName(s.first_name, s.middle_name, s.last_name).toLowerCase();
+        return name.includes(searchQ)
+          || (s.student_id || '').toLowerCase().includes(searchQ)
+          || (s.parent_contact || '').toLowerCase().includes(searchQ);
+      });
+    }
+    list.sort((a, b) => buildStudentName(a.first_name, a.middle_name, a.last_name)
+      .localeCompare(buildStudentName(b.first_name, b.middle_name, b.last_name)));
+
+    // Target classes: everything the school has configured. When a single
+    // source class is set, exclude it so students can't be "promoted" to the
+    // class they are already in.
+    let targetOptions = classNames;
+    if (selectedClass) targetOptions = classNames.filter((n) => n !== selectedClass);
+
+    if (targetOptions.length === 0) {
+      body.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:1.25rem;color:var(--text-muted);">No target class available to promote to. Add more classes in the Classes module first.</td></tr>';
+      modal.style.display = 'flex';
+      return;
+    }
+    if (targetSelect) {
+      targetSelect.innerHTML = '<option value="">— Select class —</option>'
+        + targetOptions.map((n) => `<option value="${n.replace(/"/g, '&quot;')}">${n}</option>`).join('');
+      // Pre-select the immediate next class in level order when promoting a
+      // single source class; otherwise leave it to the admin to choose.
+      const currentIndex = selectedClass ? classNames.indexOf(selectedClass) : -1;
+      const nextClass = currentIndex >= 0 ? classNames[currentIndex + 1] : null;
+      if (nextClass && targetOptions.includes(nextClass)) targetSelect.value = nextClass;
+    }
+
+    if (list.length === 0) {
+      let msg = 'No students found';
+      if (selectedClass) msg += ` in ${selectedClass}`;
+      msg += ' matching the current filters.';
+      body.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:1.25rem;color:var(--text-muted);">${msg}</td></tr>`;
+      modal.style.display = 'flex';
+      return;
+    }
+
+    body.innerHTML = list.map((s) => {
+      const name = buildStudentName(s.first_name, s.middle_name, s.last_name);
+      const esc = (val) => String(val || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      return `<tr>
+        <td style="text-align:center;"><input type="checkbox" class="promote-student-check" data-student-id="${esc(s.student_id)}" data-name="${esc(name)}" aria-label="Select ${esc(name)}" /></td>
+        <td><strong>${esc(s.student_id)}</strong></td>
+        <td>${esc(name)}</td>
+        <td>${esc(s.gender || 'Male')}</td>
+        <td>${esc(s.class_applying)}</td>
+      </tr>`;
+    }).join('');
+
+    if (selectAll) selectAll.disabled = false;
+    if (submitBtn) submitBtn.disabled = false;
+    modal.style.display = 'flex';
+  } catch (err) {
+    console.error('Error preparing Promote Class:', err);
+    alert('Error preparing Promote Class: ' + err.message);
+    closePromoteClassModal();
+  }
+}
+
+// Reflect the number of ticked checkboxes in the "N student(s) selected" label.
+function updatePromoteSelectedCount() {
+  const count = document.querySelectorAll('#promoteStudentsBody .promote-student-check:checked').length;
+  const el = getEl('promoteSelectedCount');
+  if (el) el.textContent = String(count);
+}
+
+// Promote only the manually-selected students to the chosen target class.
+async function submitPromoteClass() {
+  const targetClass = getEl('promoteToClass')?.value;
+  if (!targetClass) { alert('Please select the class to promote to.'); return; }
+
+  const selectedRows = Array.from(document.querySelectorAll('#promoteStudentsBody .promote-student-check:checked'));
+  if (selectedRows.length === 0) { alert('Please select at least one student to promote.'); return; }
+
+  const students = selectedRows.map((cb) => ({
+    student_id: cb.getAttribute('data-student-id'),
+    name: cb.getAttribute('data-name') || cb.getAttribute('data-student-id'),
+  }));
+
+  if (!confirm(`Promote ${students.length} student(s) to ${targetClass}?\n\nThis will:\n1. Move the selected students to ${targetClass}\n2. Keep their existing fee balances intact\n\nNo new fee records will be created. Fee records for the new class will be generated when the fee structure is set via "Set / Update Class Fee".`)) return;
+
+  const submitBtn = getEl('promoteClassSubmitBtn');
+  if (submitBtn) setLoading(submitBtn, true, 'Promoting...');
+
+  let promoted = 0;
+  let errors = 0;
+  for (const student of students) {
+    try {
+      // Only update the student's class — do NOT create or modify any fee
+      // records. Fee records for the new class are created when the admin
+      // sets the fee structure via "Set / Update Class Fee" in the Fees
+      // section. Existing fee balances from previous terms remain intact.
+      const { error } = await supabaseClient.from('applications').update({
+        class_applying: targetClass,
+        updated_at: new Date().toISOString()
+      }).eq('student_id', student.student_id);
+      if (error) throw error;
+
+      promoted++;
+    } catch (e) {
+      console.error('Error promoting student:', student.student_id, e);
+      errors++;
+    }
+  }
+  if (submitBtn) setLoading(submitBtn, false, 'Promote Selected Students');
+
+  let msg = `Successfully promoted ${promoted} student(s) to ${targetClass}.\n\n`;
+  msg += 'Students have been moved with their existing fee balances preserved.\n';
+  msg += `To create fee records for the new class, go to Fees → "Set / Update Class Fee" and set the fee structure.`;
+  if (errors > 0) msg += `\n\n${errors} student(s) had errors during promotion.`;
+  alert(msg);
+
+  await loadAllStudents();
+  closePromoteClassModal();
 }
 
 // Helper needed for promote
