@@ -101,13 +101,105 @@
   color: var(--text);
   margin-bottom: 1rem;
   letter-spacing: -1px;
+  position: relative;
+  /* Modern animated welcome: the headline slowly pops in (rise + scale +
+     de-blur + soft glow), holds, then drifts away — and repeats forever. */
+  animation: homeTitleReveal 10s ease-in-out infinite;
+  will-change: transform, opacity;
 }
 
 .home-title-gradient {
+  display: inline-block;
   background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 40%, #ec4899 100%);
+  background-size: 220% 220%;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  /* A slow colour-sweep shimmers through the gradient text while visible. */
+  animation: homeTitleGradientFlow 10s ease-in-out infinite;
+}
+
+/* Slow "pop-in" reveal: rise, de-blur, overshoot scale, settle, hold, then
+   drift out — the whole cycle repeats so the welcome stays alive. */
+@keyframes homeTitleReveal {
+  0% {
+    opacity: 0;
+    transform: translateY(20px) scale(0.88);
+    filter: blur(12px);
+    text-shadow: 0 0 0 rgba(99, 102, 241, 0);
+  }
+  12% {
+    opacity: 0.6;
+    transform: translateY(9px) scale(0.94);
+    filter: blur(6px);
+    text-shadow: 0 0 16px rgba(99, 102, 241, 0.3);
+  }
+  26% {
+    opacity: 1;
+    transform: translateY(0) scale(1.035);
+    filter: blur(0);
+    text-shadow: 0 0 22px rgba(99, 102, 241, 0.45);
+  }
+  36% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+    text-shadow: 0 0 18px rgba(99, 102, 241, 0.3);
+  }
+  82% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+    text-shadow: 0 0 12px rgba(99, 102, 241, 0.18);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-10px) scale(1.02);
+    filter: blur(8px);
+    text-shadow: 0 0 0 rgba(99, 102, 241, 0);
+  }
+}
+
+/* The gradient text's colour sweep slowly drifts back and forth. */
+@keyframes homeTitleGradientFlow {
+  0%, 26%, 82%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* A short gradient underline sweeps in with the pop and fades out with it. */
+.home-title::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -0.35rem;
+  width: 96px;
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #6366f1, #ec4899);
+  opacity: 0;
+  transform: scaleX(0);
+  transform-origin: left center;
+  animation: homeTitleUnderline 10s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes homeTitleUnderline {
+  0%, 8% { opacity: 0; transform: scaleX(0); }
+  26%, 80% { opacity: 1; transform: scaleX(1); }
+  94%, 100% { opacity: 0; transform: scaleX(1); }
+}
+
+/* Accessibility: users who prefer reduced motion see a static title. */
+@media (prefers-reduced-motion: reduce) {
+  .home-title,
+  .home-title-gradient,
+  .home-title::after {
+    animation: none;
+  }
+  .home-title::after {
+    opacity: 1;
+    transform: scaleX(1);
+  }
 }
 
 .home-subtitle {
