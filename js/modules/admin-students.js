@@ -22,6 +22,15 @@ let configuredClassesLoaded = false;
 
 export function initAdminStudents(supabase) {
   supabaseClient = supabase;
+  // Keyboard support for the mobile collapsible student cards: pressing
+  // Enter / Space on a focused card header toggles it like a tap would.
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const target = e.target;
+    if (!target || !target.classList || !target.classList.contains('stud-card-header')) return;
+    e.preventDefault();
+    window.toggleStudentCard(target);
+  });
 }
 
 // Expose loadAllStudents globally so realtime subscriptions can trigger it
@@ -711,6 +720,10 @@ export async function ensureAdmitClassDropdown() {
 // Render Admin Sub Students Table (sidebar view)
 // ================================================================
 
+// Holds the full mobile-cards markup so the "Show all students" button can swap
+// the 5-card preview for the complete list (mirrors the table's 5-row preview).
+let mobileCardsAllHtml = '';
+
 export async function renderAdminSubStudentsTable() {
   // Reload whenever the cached students don't belong to the current school
   // (e.g. after signing out of one school and into another). Otherwise a
@@ -736,78 +749,134 @@ export async function renderAdminSubStudentsTable() {
   if (classEl && classEl.value) data = data.filter((s) => s.class_applying === classEl.value);
   if (genderEl && genderEl.value) data = data.filter((s) => (s.gender || 'Male') === genderEl.value);
   if (!tbody) return;
-  if (data.length === 0) { tbody.innerHTML = ''; if (noResults) noResults.style.display = 'block'; return; }
+  if (data.length === 0) {
+    tbody.innerHTML = '';
+    mobileCardsAllHtml = '';
+    const cardsEl0 = getEl('adminStudentsCards');
+    if (cardsEl0) cardsEl0.innerHTML = '';
+    if (noResults) noResults.style.display = 'block';
+    return;
+  }
   if (noResults) noResults.style.display = 'none';
 
   const displayData = data.slice(0, 5);
   const hasMore = data.length > 5;
 
-  tbody.innerHTML = displayData.map((s) => {
-    const name = buildStudentName(s.first_name, s.middle_name, s.last_name);
-    const genderDisplay = s.gender || 'Male';
-    const photoHtml = s.student_photo_url
-      ? `<img src="${s.student_photo_url}" class="dash-photo" ondblclick="replaceStudentPhoto('${s.student_id}')" alt="Student photo" title="Double-click to replace photo" />`
-      : `<span class="dash-photo-placeholder" ondblclick="replaceStudentPhoto('${s.student_id}')" title="Double-click to add photo"></span>`;
-    const confirmBtn = s.portal_confirmed
-      ? '<span class="action-btn" style="background:var(--bg);color:var(--text-muted);cursor:default;">Done</span>'
-      : `<button class="action-btn confirm" onclick="confirmPortal('${s.student_id}')">Confirm Portal</button>`;
-    return `<tr>
-      <td><strong>${s.student_id}</strong></td>
-      <td>${photoHtml}</td>
-      <td>${name}</td>
-      <td>${genderDisplay}</td>
-      <td>${s.class_applying}</td>
-      <td>${s.parent_name}</td>
-      <td>${s.parent_contact}</td>
-      <td>${statusBadge(s.status)}</td>
-      <td>${portalBadge(s.portal_confirmed)}</td>
-      <td>
-        <button class="action-btn view" onclick="openStudentModal('${s.student_id}')">View Profile</button>
-        <button class="action-btn confirm" onclick="editStudent('${s.student_id}')">Edit</button>
-        ${confirmBtn}
-        <button class="action-btn" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:none;" onclick="openAdminResetPassword('student','${s.student_id}','${name.replace(/'/g, "\\'")}')">Password</button>
-        <button class="action-btn danger" onclick="deleteStudent('${s.student_id}')">Delete</button>
-      </td>
-    </tr>`;
-  }).join('');
+  // Desktop / tablet: classic table rows (CSS shows the table only on wide
+  // screens; on mobile it is hidden in favour of the collapsible cards).
+  tbody.innerHTML = displayData.map(buildStudentTableRow).join('');
 
   if (hasMore) {
     const showMoreRow = document.createElement('tr');
     showMoreRow.className = 'show-more-row';
     showMoreRow.innerHTML = `<td colspan="10">Show all ${data.length} students</td>`;
     showMoreRow.addEventListener('click', () => {
-      tbody.innerHTML = data.map((s) => {
-        const name = buildStudentName(s.first_name, s.middle_name, s.last_name);
-        const genderDisplay = s.gender || 'Male';
-        const photoHtml = s.student_photo_url
-          ? `<img src="${s.student_photo_url}" class="dash-photo" ondblclick="replaceStudentPhoto('${s.student_id}')" alt="Student photo" title="Double-click to replace photo" />`
-          : `<span class="dash-photo-placeholder" ondblclick="replaceStudentPhoto('${s.student_id}')" title="Double-click to add photo"></span>`;
-        const confirmBtn = s.portal_confirmed
-          ? '<span class="action-btn" style="background:var(--bg);color:var(--text-muted);cursor:default;">Done</span>'
-          : `<button class="action-btn confirm" onclick="confirmPortal('${s.student_id}')">Confirm Portal</button>`;
-        return `<tr>
-          <td><strong>${s.student_id}</strong></td>
-          <td>${photoHtml}</td>
-          <td>${name}</td>
-          <td>${genderDisplay}</td>
-          <td>${s.class_applying}</td>
-          <td>${s.parent_name}</td>
-          <td>${s.parent_contact}</td>
-          <td>${statusBadge(s.status)}</td>
-          <td>${portalBadge(s.portal_confirmed)}</td>
-          <td>
-            <button class="action-btn view" onclick="openStudentModal('${s.student_id}')">View Profile</button>
-            <button class="action-btn confirm" onclick="editStudent('${s.student_id}')">Edit</button>
-            ${confirmBtn}
-            <button class="action-btn" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:none;" onclick="openAdminResetPassword('student','${s.student_id}','${name.replace(/'/g, "\\'")}')">Password</button>
-            <button class="action-btn danger" onclick="deleteStudent('${s.student_id}')">Delete</button>
-          </td>
-        </tr>`;
-      }).join('');
+      tbody.innerHTML = data.map(buildStudentTableRow).join('');
     });
     tbody.appendChild(showMoreRow);
   }
+
+  // Mobile: collapsible student cards. Cards load collapsed; tapping a card
+  // header expands it with a smooth height transition (see CSS).
+  const cardsEl = getEl('adminStudentsCards');
+  if (cardsEl) {
+    mobileCardsAllHtml = data.map(buildStudentMobileCard).join('');
+    cardsEl.innerHTML = displayData.map(buildStudentMobileCard).join('');
+    if (hasMore) {
+      const showAllBtn = document.createElement('button');
+      showAllBtn.type = 'button';
+      showAllBtn.className = 'stud-card-show-all';
+      showAllBtn.textContent = `Show all ${data.length} students`;
+      showAllBtn.addEventListener('click', () => {
+        cardsEl.innerHTML = mobileCardsAllHtml;
+      });
+      cardsEl.appendChild(showAllBtn);
+    }
+  }
 }
+
+// Build a desktop / tablet table row for one student.
+function buildStudentTableRow(s) {
+  const name = buildStudentName(s.first_name, s.middle_name, s.last_name);
+  const genderDisplay = s.gender || 'Male';
+  const photoHtml = s.student_photo_url
+    ? `<img src="${s.student_photo_url}" class="dash-photo" ondblclick="replaceStudentPhoto('${s.student_id}')" alt="Student photo" title="Double-click to replace photo" />`
+    : `<span class="dash-photo-placeholder" ondblclick="replaceStudentPhoto('${s.student_id}')" title="Double-click to add photo"></span>`;
+  const confirmBtn = s.portal_confirmed
+    ? '<span class="action-btn" style="background:var(--bg);color:var(--text-muted);cursor:default;">Done</span>'
+    : `<button class="action-btn confirm" onclick="confirmPortal('${s.student_id}')">Confirm Portal</button>`;
+  return `<tr>
+    <td><strong>${s.student_id}</strong></td>
+    <td>${photoHtml}</td>
+    <td>${name}</td>
+    <td>${genderDisplay}</td>
+    <td>${s.class_applying}</td>
+    <td>${s.parent_name}</td>
+    <td>${s.parent_contact}</td>
+    <td>${statusBadge(s.status)}</td>
+    <td>${portalBadge(s.portal_confirmed)}</td>
+    <td>
+      <button class="action-btn view" onclick="openStudentModal('${s.student_id}')">View Profile</button>
+      <button class="action-btn confirm" onclick="editStudent('${s.student_id}')">Edit</button>
+      ${confirmBtn}
+      <button class="action-btn" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:none;" onclick="openAdminResetPassword('student','${s.student_id}','${name.replace(/'/g, "\\'")}')">Password</button>
+      <button class="action-btn danger" onclick="deleteStudent('${s.student_id}')">Delete</button>
+    </td>
+  </tr>`;
+}
+
+// Build a mobile collapsible card for one student. Cards load collapsed;
+// tapping the header calls toggleStudentCard(this) which flips data-collapsed
+// and triggers the smooth height transition (see components.css).
+function buildStudentMobileCard(s) {
+  const name = buildStudentName(s.first_name, s.middle_name, s.last_name);
+  const genderDisplay = s.gender || 'Male';
+  const photoHtml = s.student_photo_url
+    ? `<img src="${s.student_photo_url}" class="stud-card-photo" alt="Student photo" />`
+    : '<span class="stud-card-photo-placeholder" aria-hidden="true">&#128100;</span>';
+  const confirmBtn = s.portal_confirmed
+    ? '<span class="action-btn" style="background:var(--bg);color:var(--text-muted);cursor:default;">Done</span>'
+    : `<button class="action-btn confirm" onclick="confirmPortal('${s.student_id}')">Confirm Portal</button>`;
+  const esc = (val) => String(val || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return `<div class="stud-card" data-collapsed="true">
+  <div class="stud-card-header" onclick="toggleStudentCard(this)" role="button" tabindex="0" aria-expanded="false" title="Tap to expand / collapse">
+    ${photoHtml}
+    <span class="stud-card-info">
+      <strong>${esc(name)}</strong>
+      <small>${esc(s.student_id)} &middot; ${esc(s.class_applying || 'No class')}</small>
+    </span>
+    <span class="stud-card-chevron-holder" aria-hidden="true"><span class="stud-card-chevron"></span></span>
+  </div>
+  <div class="stud-card-body">
+    <div class="stud-card-body-inner">
+      <div class="stud-card-details">
+        <div><span class="stud-card-label">Gender</span><span class="stud-card-value">${esc(genderDisplay)}</span></div>
+        <div><span class="stud-card-label">Class</span><span class="stud-card-value">${esc(s.class_applying || '—')}</span></div>
+        <div><span class="stud-card-label">Parent</span><span class="stud-card-value">${esc(s.parent_name || '—')}</span></div>
+        <div><span class="stud-card-label">Contact</span><span class="stud-card-value">${esc(s.parent_contact || '—')}</span></div>
+        <div><span class="stud-card-label">Status</span><span class="stud-card-value">${statusBadge(s.status)}</span></div>
+        <div><span class="stud-card-label">Portal</span><span class="stud-card-value">${portalBadge(s.portal_confirmed)}</span></div>
+      </div>
+      <div class="stud-card-actions">
+        <button class="action-btn view" onclick="openStudentModal('${s.student_id}')">View Profile</button>
+        <button class="action-btn confirm" onclick="editStudent('${s.student_id}')">Edit</button>
+        ${confirmBtn}
+        <button class="action-btn" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:none;" onclick="openAdminResetPassword('student','${s.student_id}','${name.replace(/'/g, "\\'")}')">Password</button>
+        <button class="action-btn danger" onclick="deleteStudent('${s.student_id}')">Delete</button>
+      </div>
+    </div>
+  </div>
+</div>`;
+}
+
+// Toggle a mobile student card open / closed with a smooth transition.
+window.toggleStudentCard = function (headerEl) {
+  const card = headerEl && headerEl.closest ? headerEl.closest('.stud-card') : null;
+  if (!card) return;
+  const collapsed = card.getAttribute('data-collapsed') === 'true';
+  card.setAttribute('data-collapsed', String(!collapsed));
+  if (headerEl) headerEl.setAttribute('aria-expanded', String(!collapsed));
+};
 
 // ================================================================
 // Sync Class Filters

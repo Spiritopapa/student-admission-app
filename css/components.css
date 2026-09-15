@@ -464,6 +464,127 @@ legend {
   .app-table tbody tr:last-child td { border-bottom: none; }
 }
 
+/* ===== STUDENTS - MOBILE COLLAPSIBLE CARDS =====
+   On small screens the students table is replaced by tappable cards that
+   load collapsed and expand with a smooth height transition when tapped. */
+#adminStudentsCards { display: none; }
+
+@media (max-width: 768px) {
+  /* The stacked-label table is replaced by the collapsible card list. */
+  #adminStudentsTableWrap { display: none; }
+
+  #adminStudentsCards { display: block; margin-top: 0.75rem; }
+
+  .stud-card {
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--glass-shadow);
+    margin-bottom: 0.65rem;
+    overflow: hidden;
+  }
+
+  .stud-card-header {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.7rem 0.85rem;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(20, 184, 166, 0.08));
+    transition: background 0.2s ease;
+  }
+  .stud-card-header:active { background: rgba(99, 102, 241, 0.18); }
+
+  .stud-card-photo {
+    width: 42px; height: 42px; border-radius: 50%;
+    object-fit: cover; border: 2px solid var(--glass-border);
+    flex: 0 0 auto;
+  }
+  .stud-card-photo-placeholder {
+    width: 42px; height: 42px; border-radius: 50%;
+    background: rgba(255,255,255,0.5); border: 2px dashed var(--border);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 1.1rem; color: var(--text-muted); flex: 0 0 auto;
+  }
+
+  .stud-card-info {
+    flex: 1; min-width: 0;
+    display: flex; flex-direction: column; gap: 0.1rem;
+  }
+  .stud-card-info strong {
+    font-size: 0.92rem; font-weight: 700;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .stud-card-info small {
+    font-size: 0.72rem; color: var(--text-muted);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+
+  .stud-card-chevron-holder {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 28px; height: 28px; border-radius: 8px;
+    background: rgba(15, 23, 42, 0.06); flex: 0 0 auto;
+    transition: background 0.2s ease;
+  }
+  .stud-card-chevron {
+    width: 0; height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 6px solid var(--text-muted, #64748b);
+    transition: transform 0.25s ease;
+  }
+  /* Collapsed cards show a right-pointing chevron ("tap to open"). */
+  .stud-card[data-collapsed="true"] .stud-card-chevron { transform: rotate(-90deg); }
+
+  /* Smooth expand / collapse using the grid-template-rows transition trick —
+     animates from 0fr (collapsed) to 1fr (expanded) without needing a fixed
+     max-height. Works on modern iOS Safari and Android Chrome. */
+  .stud-card-body {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.35s ease;
+  }
+  .stud-card-body > .stud-card-body-inner { overflow: hidden; min-height: 0; }
+  .stud-card[data-collapsed="false"] .stud-card-body { grid-template-rows: 1fr; }
+
+  .stud-card-body-inner { padding: 0.75rem 0.85rem 0.9rem; }
+
+  .stud-card-details {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem 0.6rem;
+  }
+  .stud-card-details > div { display: flex; flex-direction: column; min-width: 0; }
+  .stud-card-details .stud-card-label {
+    font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.4px;
+    color: var(--text-muted); font-weight: 700;
+  }
+  .stud-card-details .stud-card-value {
+    font-size: 0.82rem; color: var(--text); word-break: break-word;
+  }
+
+  .stud-card-actions {
+    display: flex; flex-direction: column; gap: 0.5rem;
+    margin-top: 0.75rem; padding-top: 0.6rem;
+    border-top: 1px solid rgba(226,232,240,0.25);
+  }
+  .stud-card-actions .action-btn { width: 100%; text-align: center; }
+
+  .stud-card-show-all {
+    display: block; width: 100%; margin-top: 0.4rem;
+    padding: 0.7rem; border-radius: var(--radius-sm);
+    background: var(--glass-bg-strong); backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
+    color: var(--text); font-size: 0.85rem; font-weight: 600;
+    cursor: pointer; text-align: center; transition: var(--transition);
+  }
+  .stud-card-show-all:active { transform: scale(0.97); }
+}
+
 /* ===== DASHBOARD PHOTO ===== */
 .dash-photo {
   width: 40px; height: 40px; border-radius: 50%;

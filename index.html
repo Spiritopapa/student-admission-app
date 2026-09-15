@@ -852,12 +852,14 @@
         <span style="color:var(--danger, #dc2626);">* required.</span>
         Use <strong>Download CSV Template</strong> for a ready-to-fill file. Re-importing an exported file will skip already-existing students instead of duplicating them. The <em>Class</em> column must match a class added under the <strong>Classes</strong> module — rows with an unknown class are skipped and reported.
       </p>
-      <div class="table-wrapper">
+      <div class="table-wrapper" id="adminStudentsTableWrap">
         <table class="app-table">
           <thead><tr><th>Student ID</th><th>Photo</th><th>Name</th><th>Gender</th><th>Class</th><th>Parent</th><th>Contact</th><th>Status</th><th>Portal</th><th>Action</th></tr></thead>
           <tbody id="adminStudentsBody2"></tbody>
         </table>
       </div>
+      <!-- Mobile: collapsible student cards (the table above is hidden on mobile via CSS) -->
+      <div id="adminStudentsCards" class="students-mobile-cards"></div>
       <input type="file" id="replaceStudentPhotoInput" accept="image/*" style="display:none;" />
       <details class="admit-section" id="editStudentSectionStudents" style="margin-top:1rem;display:none;">
         <summary class="btn btn-secondary" style="cursor:pointer;">Edit Student</summary>
