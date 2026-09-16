@@ -257,6 +257,7 @@ function handleExamClassChange(e) {
   currentExamWorkspace.classVal = e.target.value || null;
   examSheetCache = [];
   renderExamSubjects();
+  populateSubjectSelect(true);
 }
 
 async function addExamSubject() {
@@ -270,6 +271,8 @@ async function addExamSubject() {
   if (error) { alert(error.message); return; }
   showMessage('examMessage', `Subject added to exam for ${classVal}.`, 'success');
   await renderExamSubjects();
+  // Refresh the subject dropdown so the just-added subject is no longer offered.
+  await populateSubjectSelect(true);
 }
 
 async function renderExamSubjects() {
@@ -296,6 +299,8 @@ window.deleteExamSubject = async function (id) {
     const { error } = await supabaseClient.from('exam_subjects').delete().eq('id', id);
     if (error) throw error;
     await renderExamSubjects();
+    // Bring removed subjects back into the add-dropdown.
+    await populateSubjectSelect(true);
   } catch (err) { alert('Error: ' + err.message); }
 };
 
@@ -305,11 +310,43 @@ async function populateSubjectSelect(forceRefresh = false) {
   try {
     const { getCurrentSchoolId } = await import('./utils.js');
     const schoolId = await getCurrentSchoolId();
-    let query = supabaseClient.from('subjects').select('name').order('name', { ascending: true });
-    if (schoolId) query = query.eq('school_id', schoolId);
-    const { data, error } = await query;
-    if (error) throw error;
-    sel.innerHTML = '<option value="">— Select Subject —</option>' + (data || []).map(s => `<option>${s.name}</option>`).join('');
+    const classVal = currentExamWorkspace.classVal;
+    const examId = currentExamWorkspace.examId;
+
+    let subjectNames = null;
+
+    // When a specific class is selected, prefer the class's canonical subject
+    // list (class_subjects) so the admin only adds subjects that actually
+    // belong to that class and teachers will see them.
+    if (classVal) {
+      let csQuery = supabaseClient.from('class_subjects').select('subject_name').eq('class_name', classVal);
+      if (schoolId) csQuery = csQuery.eq('school_id', schoolId);
+      const { data: classSubs } = await csQuery;
+      if (classSubs && classSubs.length > 0) {
+        subjectNames = [...new Set(classSubs.map((cs) => cs.subject_name))].sort();
+      }
+    }
+
+    // Fall back to the global subject list when no class is selected or the
+    // class has no canonical mapping yet.
+    if (!subjectNames) {
+      let query = supabaseClient.from('subjects').select('name').order('name', { ascending: true });
+      if (schoolId) query = query.eq('school_id', schoolId);
+      const { data } = await query;
+      subjectNames = (data || []).map((s) => s.name);
+    }
+
+    // Exclude subjects already added to this exam+class to avoid duplicates.
+    if (examId) {
+      let existingQuery = supabaseClient.from('exam_subjects').select('subject').eq('exam_id', examId);
+      if (classVal) existingQuery = existingQuery.eq('class_name', classVal);
+      const { data: existing } = await existingQuery;
+      const existingSubjects = (existing || []).map((e) => e.subject);
+      subjectNames = subjectNames.filter((s) => !existingSubjects.includes(s));
+    }
+
+    sel.innerHTML = '<option value="">— Select Subject —</option>' +
+      subjectNames.map((s) => `<option value="${s}">${s}</option>`).join('');
   } catch (err) { console.error('Failed to load subjects:', err); }
 }
 

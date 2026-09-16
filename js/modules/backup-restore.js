@@ -48,6 +48,7 @@ const BACKUP_TABLES = [
   { name: 'sub_admins', label: 'Sub Admins', schoolScoped: true },
   { name: 'classes', label: 'Classes', schoolScoped: true },
   { name: 'subjects', label: 'Subjects', schoolScoped: true },
+  { name: 'class_subjects', label: 'Class Subjects', schoolScoped: true },
   { name: 'grading_systems', label: 'Grading Systems', schoolScoped: true },
   
   // Level 3: Entities that reference schools + classes/subjects

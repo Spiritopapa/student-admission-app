@@ -445,8 +445,9 @@ window.refreshClasses = async function () {
 window.refreshSubjects = async function () {
   const subjectsPage = document.getElementById('page-admin-subjects');
   if (subjectsPage && subjectsPage.classList.contains('active-page')) {
-    const { renderSubjectsTable } = await import('./admin-subjects.js');
+    const { renderSubjectsTable, populateClassSubjectSelectors } = await import('./admin-subjects.js');
     await renderSubjectsTable();
+    await populateClassSubjectSelectors();
   }
   // Teachers page also shows subjects
   const teachersPage = document.getElementById('page-admin-teachers');

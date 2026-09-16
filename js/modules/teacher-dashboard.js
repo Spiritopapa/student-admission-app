@@ -135,8 +135,11 @@ export function setupTeacherDashboard() {
 
   // Exam listeners
   getEl('teacherBtnLoadExamStudents')?.addEventListener('click', loadTeacherExamStudents);
-  getEl('teacherExamSelect')?.addEventListener('change', () => {});
-  getEl('teacherExamClass')?.addEventListener('change', () => {});
+  // When the exam or class filter changes, re-scope the subject dropdown so
+  // the teacher only sees subjects they teach in the selected class for the
+  // selected exam.
+  getEl('teacherExamSelect')?.addEventListener('change', populateTeacherExamSubjectSelect);
+  getEl('teacherExamClass')?.addEventListener('change', populateTeacherExamSubjectSelect);
   getEl('teacherExamSubject')?.addEventListener('change', () => {});
   getEl('teacherBtnSaveScores')?.addEventListener('click', saveTeacherExamScores);
   getEl('teacherBtnAutoRank')?.addEventListener('click', autoRankTeacherSubjects);
@@ -216,31 +219,49 @@ async function getTeacherClasses(userId) {
       }
     }
     
-    if (!teacher) return { classes: [], subjects: [], teacher };
-    
+    if (!teacher) return { classes: [], subjects: [], subjectByClass: {}, teacher };
+
     // Get from junction table
     const { data: assignments } = await supabaseClient.from('teacher_classes_subjects')
       .select('class_name, subject_name')
       .eq('teacher_id', teacher.id);
-    
+
     if (assignments && assignments.length > 0) {
       const classes = [...new Set(assignments.map(a => a.class_name))].sort();
       const subjects = [...new Set(assignments.map(a => a.subject_name))].sort();
-      return { classes, subjects, teacher };
+      // Build the class → subjects map used to scope the exam subject filter
+      // by the selected class (e.g. JHS 1 → English, Mathematics; JHS 2 → Science).
+      const subjectByClass = {};
+      assignments.forEach(a => {
+        if (!a.class_name || !a.subject_name) return;
+        if (!subjectByClass[a.class_name]) subjectByClass[a.class_name] = [];
+        if (!subjectByClass[a.class_name].includes(a.subject_name)) subjectByClass[a.class_name].push(a.subject_name);
+      });
+      Object.keys(subjectByClass).forEach(k => subjectByClass[k].sort());
+      return { classes, subjects, subjectByClass, teacher };
     }
     
     // Fallback to comma-separated values
-    const classes = teacher.class_taught 
+    const classes = teacher.class_taught
       ? teacher.class_taught.split(',').map(c => c.trim()).filter(Boolean)
       : [];
-    const subjects = teacher.subject 
+    const subjects = teacher.subject
       ? teacher.subject.split(',').map(s => s.trim()).filter(Boolean)
       : [];
-    
-    return { classes, subjects, teacher };
+
+    // Legacy fallback: distribute the single subject list across each class
+    const subjectByClass = {};
+    if (subjects.length > 0) {
+      const legacyClasses = classes.length > 0 ? classes : ([teacher.class_taught] || []).filter(Boolean);
+      legacyClasses.forEach(cls => {
+        subjectByClass[cls] = [...subjects];
+      });
+    }
+
+    return { classes, subjects, subjectByClass, teacher };
   } catch (err) {
     console.error('Failed to get teacher classes:', err);
-    return { classes: [], subjects: [], teacher: null };
+    return { classes: [], subjects: [], subjectByClass: {}, teacher: null };
   }
 }
 
@@ -1747,12 +1768,57 @@ async function renderTeacherAttReport() {
 // EXAMS MANAGEMENT (Full score entry, rankings, report cards)
 // ================================================================
 
+/**
+ * Repopulate the teacher exam subject dropdown scoped to the selected
+ * class AND the selected exam.
+ * Uses the class → subjects mapping from teacher_classes_subjects so the
+ * teacher only sees the exact subjects they teach in the filtered class
+ * (e.g. JHS 1 → English & Mathematics, JHS 2 → Science).
+ */
+async function populateTeacherExamSubjectSelect() {
+  const subjectSel = getEl('teacherExamSubject');
+  if (!subjectSel) return;
+  try {
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    if (!user) return;
+    const { classes, subjectByClass } = await getTeacherClasses(user.id);
+    const classFilter = getEl('teacherExamClass')?.value || '';
+    const examId = getEl('teacherExamSelect')?.value || '';
+
+    // Teacher's subjects scoped to the selected class(es)
+    let subjects = classFilter
+      ? (subjectByClass[classFilter] || [])
+      : [...new Set(Object.values(subjectByClass).flat())];
+
+    // When an exam is selected, only keep subjects that are configured in
+    // that exam for the selected class.
+    if (examId) {
+      let examSubsQuery = supabaseClient.from('exam_subjects').select('subject').eq('exam_id', examId);
+      if (classFilter) examSubsQuery = examSubsQuery.eq('class_name', classFilter);
+      else examSubsQuery = examSubsQuery.in('class_name', classes);
+      const { data: examSubjects } = await examSubsQuery;
+      const examSubNames = (examSubjects || []).map(s => s.subject);
+      subjects = subjects.filter(s => examSubNames.some(es => es.toLowerCase() === s.toLowerCase()));
+    }
+
+    const previous = subjectSel.value;
+    subjectSel.innerHTML = '<option value="">— All Subjects —</option>' +
+      subjects.map(s => `<option value="${s}">${s}</option>`).join('');
+    // Restore the selected subject if it's still valid for the new scope
+    if (previous && subjects.some(s => s.toLowerCase() === previous.toLowerCase())) {
+      subjectSel.value = subjects.find(s => s.toLowerCase() === previous.toLowerCase());
+    }
+  } catch (err) {
+    console.error('Failed to populate teacher exam subject filter:', err);
+  }
+}
+
 async function loadTeacherExamsPage() {
   try {
     const { data: { user } } = await supabaseClient.auth.getUser();
     if (!user) return;
 
-    const { classes, subjects, teacher } = await getTeacherClasses(user.id);
+    const { classes, teacher } = await getTeacherClasses(user.id);
     if (classes.length === 0) {
       showMessage('teacherExamMessage', 'No classes assigned to you.', 'error');
       return;
@@ -1765,31 +1831,25 @@ async function loadTeacherExamsPage() {
         classes.map(c => `<option value="${c}">${c}</option>`).join('');
     }
 
-    // Show teacher's assigned subjects
-    if (subjects.length > 0) {
-      const subjectSel = getEl('teacherExamSubject');
-      if (subjectSel) {
-        subjectSel.innerHTML = '<option value="">— All Subjects —</option>' +
-          subjects.map(s => `<option value="${s}">${s}</option>`).join('');
-      }
-    }
-
     // Populate exam select
     const examSel = getEl('teacherExamSelect');
     let examsQuery = supabaseClient.from('exams')
       .select('id, name, academic_year, term')
       .eq('is_active', true);
-    
+
     if (teacher?.school_id) {
       examsQuery = examsQuery.eq('school_id', teacher.school_id);
     }
-    
+
     const { data: exams } = await examsQuery.order('created_at', { ascending: false });
 
     if (examSel) {
       examSel.innerHTML = '<option value="">— Select Exam —</option>' +
         (exams || []).map(e => `<option value="${e.id}">${e.name} (${e.academic_year} - ${e.term})</option>`).join('');
     }
+
+    // Populate the subject filter scoped to the selected class (and exam)
+    await populateTeacherExamSubjectSelect();
 
     // Clear score sheet
     getEl('teacherExamStudentsBody').innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--text-muted);">Select an exam and subject, then click "Load Students".</td></tr>';
@@ -1812,7 +1872,7 @@ export async function loadTeacherExamStudents() {
     const { data: { user } } = await supabaseClient.auth.getUser();
     if (!user) return;
 
-    const { classes, subjects, teacher } = await getTeacherClasses(user.id);
+    const { classes, subjectByClass, teacher } = await getTeacherClasses(user.id);
     if (classes.length === 0) {
       showMessage('teacherExamMessage', 'No classes assigned to you.', 'error');
       return;
@@ -1825,11 +1885,22 @@ export async function loadTeacherExamStudents() {
       return;
     }
 
-    // Get exam subjects (filtered by class if selected)
+    // The teacher's subjects scoped to the selected class(es):
+    //   class filter → only the subjects the teacher teaches in that class
+    //   no class     → union of subjects across all their assigned classes
+    const taughtSubjects = classFilter
+      ? (subjectByClass[classFilter] || [])
+      : [...new Set(Object.values(subjectByClass).flat())];
+
+    // Get exam subjects for the exam (scoped to the teacher's classes).
     let examSubsQuery = supabaseClient.from('exam_subjects')
       .select('subject')
       .eq('exam_id', examId);
-    if (classFilter) examSubsQuery = examSubsQuery.eq('class_name', classFilter);
+    if (classFilter) {
+      examSubsQuery = examSubsQuery.eq('class_name', classFilter);
+    } else {
+      examSubsQuery = examSubsQuery.in('class_name', classes);
+    }
     const { data: examSubjects, error: subjErr } = await examSubsQuery;
     if (subjErr) {
       console.error('Load exam subjects error:', subjErr);
@@ -1837,18 +1908,17 @@ export async function loadTeacherExamStudents() {
       return;
     }
 
-    // Filter subjects to only show the teacher's assigned subject(s)
+    // Only show subjects that (a) belong to this exam for the selected class
+    // AND (b) the teacher teaches in that class. This is what makes the filter
+    // show exactly JHS 1 → English & Mathematics, JHS 2 → Science.
     let availableSubjects = (examSubjects || []).map(s => s.subject);
-    
-    // If teacher has specific subjects assigned, only allow those subjects
-    if (subjects.length > 0) {
-      availableSubjects = availableSubjects.filter(s => 
-        subjects.some(ts => s.toLowerCase() === ts.toLowerCase())
-      );
-    }
-    
+    availableSubjects = availableSubjects.filter(s =>
+      taughtSubjects.some(ts => s.toLowerCase() === ts.toLowerCase())
+    );
+    availableSubjects = [...new Set(availableSubjects)];
+
     if (availableSubjects.length === 0) {
-      showMessage('teacherExamMessage', `No exam subjects match your assigned subjects.`, 'error');
+      showMessage('teacherExamMessage', `No exam subjects match your assigned subjects for this class.`, 'error');
       return;
     }
 

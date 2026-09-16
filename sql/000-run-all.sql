@@ -506,6 +506,20 @@
 -- js/modules/transport-shared.js manage mode and configured via the
 -- Transport → Collector Destinations tab in js/modules/admin-transport.js).
 \i 068-transport-collector-assignments.sql
+
+-- Step 62: Canonical Class Subjects
+-- Adds public.class_subjects as the single source of truth mapping each
+-- class to its subjects. The Admin Subjects page lets admins assign
+-- subjects to a selected class, and the teacher dashboard / exam module
+-- reads that mapping so each teacher sees exactly the subjects the admin
+-- configured for the filtered class (e.g. English & Maths for JHS 1,
+-- Science for JHS 2). Backfills from teacher_classes_subjects and
+-- exam_subjects so existing data is preserved.
+-- Used by: js/modules/admin-subjects.js (Assign Subjects to Classes),
+--          js/modules/admin-teachers.js (per-class subject pickers),
+--          js/modules/admin-exams.js (scoped exam subject selector),
+--          js/modules/teacher-dashboard.js (class-scoped exam subjects).
+\i 069-class-subjects-canonical.sql
 -- ============================================================
 --  SCHEMA DEPLOYMENT COMPLETE
 -- ============================================================

@@ -106,3 +106,37 @@ A comprehensive auto-marking multiple-choice assessment module. Teachers/admins 
 - Each student gets ONE fixed snapshot per assessment (resuming re-uses it; re-entering cannot re-randomize).
 - Students have NO direct SELECT on `assessment_questions` or the full `assessment_attempts` (which holds answers). They access own data only via the secure RPCs.
 - Grading happens server-side on submit.
+
+---
+
+# Class-Subject Consistency — Admin Assignments vs Teacher Dashboard
+
+## Problem
+Admin-per-class subject assignments did not match what teachers saw on their dashboard.
+`getTeacherClasses()` returned subjects as a flat **union across all classes**, so a
+teacher assigned English & Maths in JHS 1 and Science in JHS 2 saw all three subjects
+for every class filter. There was also no canonical admin UI to define "subjects of a class".
+
+## Fix / redesign
+- **`sql/069-class-subjects-canonical.sql` (new migration, registered in `000-run-all.sql`):**
+  new `public.class_subjects` table = single source of truth for class → subjects.
+  Backfills from `teacher_classes_subjects` and `exam_subjects` so existing data is preserved.
+- **`js/modules/admin-subjects.js` + `index.html`:** new "Assign Subjects to Classes"
+  section (class + subject selects, add/remove table) so the admin configures subjects
+  per selected class once.
+- **`js/modules/admin-teachers.js`:** per-class subject pickers in the Add/Edit Staff form
+  now offer only subjects from `class_subjects` for that class (global-list fallback when
+  the class has no mapping, so legacy data is not blocked).
+- **`js/modules/admin-exams.js`:** "Add Subject to Exam" dropdown is scoped to the selected
+  class's `class_subjects` and excludes already-added subjects; refreshes after adding.
+- **`js/modules/teacher-dashboard.js`:** `getTeacherClasses()` now returns a `subjectByClass`
+  map; the exam subject filter is re-scoped whenever the exam/class filter changes, and
+  `loadTeacherExamStudents()` intersects the exam's subjects for the class with the
+  teacher's subjects **for that class**. Filter JHS 1 → English & Mathematics; JHS 2 → Science.
+- **`js/modules/realtime.js` / `js/modules/backup-restore.js`:** class-subject UI refresh on
+  realtime updates; `class_subjects` included in school backups.
+
+## Verification
+- Proper ES-module syntax check (`node --check` on `.mjs` copies) passes for all edited modules.
+- Full flow reviewed end-to-end in `loadTeacherExamStudents` (class-scoped intersection
+  drives both the subject dropdown and the score-sheet columns).

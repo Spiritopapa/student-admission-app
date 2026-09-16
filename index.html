@@ -1028,6 +1028,27 @@
         </form>
         <div id="subjectMessage" class="message" style="display:none;"></div>
       </details>
+
+      <!-- Assign Subjects to Classes (canonical class → subject mapping) -->
+      <details class="admit-section" id="classSubjectsSection" style="margin-top:1.5rem;">
+        <summary class="btn btn-secondary" style="cursor:pointer;">Assign Subjects to Classes</summary>
+        <div style="margin-top:1rem;">
+          <p class="subtitle" style="font-size:0.85rem;">Pick a class and add the subjects that belong to it. Teachers will see exactly these subjects on their dashboard (e.g. English &amp; Maths for JHS 1, Science for JHS 2).</p>
+          <div class="form-row">
+            <div class="form-group" style="min-width:180px;"><label>Class *</label><select id="classSubjectClass" class="filter-select"><option value="">— Select Class —</option></select></div>
+            <div class="form-group" style="min-width:200px;"><label>Subject *</label><select id="classSubjectAdd" class="filter-select"><option value="">— Select Subject —</option></select></div>
+            <div class="form-group"><label>&nbsp;</label><button type="button" class="btn btn-primary" id="btnAddClassSubject">Add Subject to Class</button></div>
+          </div>
+          <div class="table-wrapper" style="margin-top:0.75rem;">
+            <table class="app-table">
+              <thead><tr><th>Class</th><th>Subject</th><th>Action</th></tr></thead>
+              <tbody id="classSubjectsBody"></tbody>
+            </table>
+          </div>
+          <p id="noClassSubjects" style="display:none;text-align:center;color:var(--text-muted);padding:1.25rem;">No subjects assigned yet. Select a class and add a subject above.</p>
+          <div id="classSubjectMessage" class="message" style="display:none;"></div>
+        </div>
+      </details>
     </section>
 
     <!-- ==================== ADMIN STAFF ==================== -->

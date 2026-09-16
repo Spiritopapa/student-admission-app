@@ -73,6 +73,9 @@ async function syncPrivateSchoolStaffRestrictions() {
 // teacherSubjectMatch: { className: [subjectName, ...] } loaded from the junction table.
 // teacherLegacySubjects: fallback list (from teachers.subject) when no junction rows exist.
 let subjectOptionsCache = [];
+// Canonical subject list per class (from public.class_subjects).
+// { className: [subjectName, ...] } — used to scope each class's subject options.
+let classSubjectsOptionCache = {};
 let teacherSubjectMatch = {};
 let teacherLegacySubjects = [];
 
@@ -303,7 +306,15 @@ function renderTeacherClassSubjectBlocks() {
       ? teacherSubjectMatch[cls]
       : (isLegacyMode ? teacherLegacySubjects : []);
 
-    (subjectOptionsCache || []).forEach(sub => {
+    // Prefer the canonical class_subjects mapping for this class so the
+    // admin only offers subjects that actually belong to that class.
+    // Falls back to the global subject list when the class has no mapping yet.
+    const classSubjects = (classSubjectsOptionCache[cls] && classSubjectsOptionCache[cls].length)
+      ? classSubjectsOptionCache[cls]
+      : (subjectOptionsCache || []);
+
+    const optionPool = [...new Set([...classSubjects, ...preselected])];
+    optionPool.forEach(sub => {
       const opt = document.createElement('option');
       opt.value = sub;
       opt.textContent = sub;
@@ -654,12 +665,32 @@ function toggleTeacherClassFields() {
   }
 }
 
+// Load the canonical class → subject mapping used to scope the per-class
+// subject pickers in the Add/Edit Staff form.
+async function loadClassSubjectsOptionCache() {
+  classSubjectsOptionCache = {};
+  try {
+    const schoolId = await getCurrentSchoolId();
+    let csQuery = supabaseClient.from('class_subjects').select('class_name, subject_name');
+    if (schoolId) csQuery = csQuery.eq('school_id', schoolId);
+    const { data } = await csQuery;
+    (data || []).forEach(r => {
+      if (!classSubjectsOptionCache[r.class_name]) classSubjectsOptionCache[r.class_name] = [];
+      if (!classSubjectsOptionCache[r.class_name].includes(r.subject_name)) classSubjectsOptionCache[r.class_name].push(r.subject_name);
+    });
+    Object.values(classSubjectsOptionCache).forEach(arr => arr.sort());
+  } catch (err) {
+    console.error('Failed to load class subject mapping:', err);
+  }
+}
+
 // Populate the class / subject multiple-selects in the "Generate ID" form.
 async function populateNewTeacherDropdowns() {
   const classSel = getEl('newTeacherClass');
   const subjSel = getEl('newTeacherSubject');
   if (!classSel && !subjSel) return;
   try {
+    await loadClassSubjectsOptionCache();
     const schoolId = await getCurrentSchoolId();
     let classesQuery = supabaseClient.from('classes').select('name').order('name', { ascending: true });
     let subjectsQuery = supabaseClient.from('subjects').select('name').order('name', { ascending: true });
@@ -677,6 +708,7 @@ async function populateTeacherFormDropdowns() {
   const classSelect = getEl('teacherClass');
   if (!classSelect) return;
   try {
+    await loadClassSubjectsOptionCache();
     const schoolId = await getCurrentSchoolId();
     let classesQuery = supabaseClient.from('classes').select('name').order('name', { ascending: true });
     let subjectsQuery = supabaseClient.from('subjects').select('name').order('name', { ascending: true });
