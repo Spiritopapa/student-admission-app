@@ -2010,14 +2010,44 @@ export async function loadTeacherExamStudents() {
   }
 }
 
+/**
+ * Build the per-student action buttons (Save / Delete Scores) HTML.
+ * The delete button only appears once at least one subject is saved.
+ */
+function buildTeacherRowActions(studentId) {
+  const { subjects, results } = teacherScoreCache;
+  const hasSavedScores = subjects.some(sub => results.has(studentId + '|' + sub));
+  return `<button type="button" class="action-btn confirm" onclick="saveTeacherStudentScores('${studentId}')">Save</button> ${
+    hasSavedScores
+      ? `<button type="button" class="action-btn danger" onclick="deleteTeacherStudentScores('${studentId}')">Delete Scores</button>`
+      : `<span style="font-size:0.7rem;color:var(--text-muted);">No scores saved</span>`
+  }`;
+}
+
+/**
+ * Update just one student's action cell after a row-level save/delete so the
+ * teacher's unsaved input in OTHER rows is never disturbed.
+ */
+function updateTeacherRowActions(studentId) {
+  const tbody = getEl('teacherExamStudentsBody');
+  if (!tbody) return;
+  const row = tbody.querySelector(`tr[data-student-id="${studentId}"]`);
+  if (!row) return;
+  const actionTd = row.querySelector('.teacher-row-actions');
+  if (!actionTd) return;
+  actionTd.innerHTML = buildTeacherRowActions(studentId);
+}
+
 function renderTeacherScoreSheet() {
   const tbody = getEl('teacherExamStudentsBody');
   if (!tbody) return;
 
   const { students, subjects, results } = teacherScoreCache;
+  const actionCol = `<th style="min-width:170px;">Action</th>`;
 
   if (!students || students.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--text-muted);">No students loaded.</td></tr>';
+    const colspan = 4 + (subjects ? subjects.length : 0);
+    tbody.innerHTML = `<tr><td colspan="${colspan}" style="text-align:center;padding:2rem;color:var(--text-muted);">No students loaded.</td></tr>`;
     return;
   }
 
@@ -2044,18 +2074,19 @@ function renderTeacherScoreSheet() {
       </td>`;
     });
 
-    html += `<tr>
+    html += `<tr data-student-id="${s.student_id}">
       <td><strong>${s.student_id}</strong></td>
       <td>${s.name}</td>
       <td>${s.class_applying || '-'}</td>
       ${subjectCells}
+      <td class="teacher-row-actions" style="white-space:nowrap;">${buildTeacherRowActions(s.student_id)}</td>
     </tr>`;
   });
 
-  // Update table header with subject columns
+  // Update table header with subject columns + action column
   const headerRow = document.querySelector('#teacherExamTable thead tr');
   if (headerRow) {
-    headerRow.innerHTML = `<th style="min-width:100px;">Student ID</th><th style="min-width:120px;">Name</th><th style="min-width:80px;">Class</th>${subjects.map(sub => `<th style="min-width:160px;">${sub} <span style="font-weight:400;font-size:0.65rem;color:var(--text-muted);">(Class/Exam/Total/Grade)</span></th>`).join('')}`;
+    headerRow.innerHTML = `<th style="min-width:100px;">Student ID</th><th style="min-width:120px;">Name</th><th style="min-width:80px;">Class</th>${subjects.map(sub => `<th style="min-width:160px;">${sub} <span style="font-weight:400;font-size:0.65rem;color:var(--text-muted);">(Class/Exam/Total/Grade)</span></th>`).join('')}${actionCol}`;
   }
 
   tbody.innerHTML = html;
@@ -2080,9 +2111,25 @@ function renderTeacherScoreSheet() {
   });
 }
 
-async function saveTeacherExamScores() {
+/**
+ * Persist exam scores for selected students (or all loaded students).
+ * @param {string[]|null} studentIds - student ids to save; null = everyone.
+ * @param {boolean} reloadAfter - reload the full sheet after saving (used by
+ *        "Save All Scores"). Per-student saves update the local cache and
+ *        re-render in place so the teacher can keep typing other rows.
+ */
+async function persistTeacherExamScores(studentIds = null, reloadAfter = true) {
   const { examId, students, subjects } = teacherScoreCache;
   if (!examId || !students) { alert('No exam data loaded. Please load students first.'); return; }
+
+  // Narrow to the requested students when saving a single row.
+  const targets = studentIds
+    ? (students || []).filter(s => studentIds.includes(s.student_id))
+    : students;
+  if (targets.length === 0) {
+    alert('No matching students in the loaded score sheet.');
+    return;
+  }
 
   const btn = getEl('teacherBtnSaveScores');
   setLoading(btn, true, 'Saving...');
@@ -2102,7 +2149,7 @@ async function saveTeacherExamScores() {
     const studentTotals = {};
     const studentSubjectCounts = {};
 
-    for (const student of students) {
+    for (const student of targets) {
       for (const subject of subjects) {
         const classScoreInput = document.querySelector(`.teacher-class-score[data-student="${student.student_id}"][data-subject="${subject}"]`);
         const examScoreInput = document.querySelector(`.teacher-exam-score[data-student="${student.student_id}"][data-subject="${subject}"]`);
@@ -2155,10 +2202,15 @@ async function saveTeacherExamScores() {
       }
     }
 
+    if (saved === 0 && updated === 0) {
+      showMessage('teacherExamMessage', studentIds ? 'No score entries found for this student.' : 'No score entries found to save.', 'error');
+      return;
+    }
+
     // Calculate and save overall positions + remarks to exam_student_details
     // so the admin dashboard and report cards show correct data immediately
-    const studentIds = Object.keys(studentTotals);
-    if (studentIds.length > 0) {
+    const affectedStudentIds = Object.keys(studentTotals);
+    if (affectedStudentIds.length > 0) {
       // Get all students' totals for this exam to compute relative positions
       const { data: allResults } = await supabaseClient.from('exam_results')
         .select('student_id, marks_obtained')
@@ -2178,7 +2230,7 @@ async function saveTeacherExamScores() {
         .sort((a, b) => b.avg - a.avg);
       
       // Assign positions and save details for each student with scores
-      for (const sid of studentIds) {
+      for (const sid of affectedStudentIds) {
         const avg = studentSubjectCounts[sid] > 0 ? (studentTotals[sid] / studentSubjectCounts[sid]) : 0;
         const position = sortedStudents.findIndex(s => s.student_id === sid) + 1;
         const remarks = getTeacherRemarks(avg);
@@ -2194,16 +2246,97 @@ async function saveTeacherExamScores() {
       }
     }
 
+    // Refresh the local results cache so the rendered sheet (totals, grades,
+    // saved indicators) reflects exactly what was just written.
+    for (const sid of affectedStudentIds) {
+      const { data: refreshed } = await supabaseClient.from('exam_results')
+        .select('*')
+        .eq('exam_id', examId)
+        .eq('student_id', sid);
+      (refreshed || []).forEach(r => {
+        teacherScoreCache.results.set(r.student_id + '|' + r.subject, r);
+      });
+    }
+
     showMessage('teacherExamMessage', `Scores saved! ${saved} new, ${updated} updated.`, 'success');
-    // Reload to refresh cache
-    await loadTeacherExamStudents();
     try { await logStaffActivity(`Entered examination marks (${saved} new, ${updated} updated)`, { role: 'teacher', entityType: 'exam', entityDetails: `${examId}` }); } catch (e) { /* noop */ }
+
+    if (reloadAfter) {
+      // Full reload keeps the previous "Save All Scores" behaviour.
+      await loadTeacherExamStudents();
+    } else {
+      // Per-student save: refresh only that row's actions, keeping the
+      // teacher's unsaved input in other rows intact.
+      affectedStudentIds.forEach(sid => updateTeacherRowActions(sid));
+    }
   } catch (err) {
     showMessage('teacherExamMessage', 'Error: ' + err.message, 'error');
   } finally {
     setLoading(btn, false, 'Save All Scores');
   }
 }
+
+async function saveTeacherExamScores() {
+  await persistTeacherExamScores(null, true);
+}
+
+/**
+ * Save the entered scores for ONE student (row button in the score sheet).
+ * Only that row's state is updated so the teacher can keep typing other rows.
+ */
+window.saveTeacherStudentScores = async function (studentId) {
+  await persistTeacherExamScores([studentId], false);
+};
+
+/**
+ * Delete all saved exam scores for ONE student in the current exam.
+ * Also removes the student's exam_student_details for this exam so report
+ * cards / rankings do not keep stale position & remarks.
+ */
+window.deleteTeacherStudentScores = async function (studentId) {
+  const { examId, students } = teacherScoreCache;
+  if (!examId) { alert('No exam data loaded. Please load students first.'); return; }
+  const student = (students || []).find(s => s.student_id === studentId);
+  const name = student?.name || studentId;
+
+  if (!confirm(`Delete ALL saved scores for ${name} (${studentId}) in this exam?\n\nThis will also remove their overall position and remarks from the report card. This CANNOT be undone.`)) return;
+
+  try {
+    // Count existing rows first so the confirmation reflects real data.
+    const { data: existing } = await supabaseClient.from('exam_results')
+      .select('id')
+      .eq('exam_id', examId)
+      .eq('student_id', studentId);
+    if (!existing || existing.length === 0) {
+      showMessage('teacherExamMessage', `No saved scores found for ${name}.`, 'error');
+      return;
+    }
+
+    const { error } = await supabaseClient.from('exam_results')
+      .delete()
+      .eq('exam_id', examId)
+      .eq('student_id', studentId);
+    if (error) { showMessage('teacherExamMessage', 'Error: ' + error.message, 'error'); return; }
+
+    // Remove the student's position/remarks details row for this exam.
+    await supabaseClient.from('exam_student_details')
+      .delete()
+      .eq('exam_id', examId)
+      .eq('student_id', studentId);
+
+    // Update the local cache + the row's action cell so the button state is
+    // accurate without disturbing unsaved input in other rows.
+    for (const key of Array.from(teacherScoreCache.results.keys())) {
+      if (key.startsWith(studentId + '|')) teacherScoreCache.results.delete(key);
+    }
+    updateTeacherRowActions(studentId);
+
+    showMessage('teacherExamMessage', `Deleted ${existing.length} score record(s) for ${name}.`, 'success');
+    try { await logStaffActivity(`Deleted exam scores for ${studentId} (${existing.length} records)`, { role: 'teacher', entityType: 'exam', entityDetails: `${examId}` }); } catch (e) { /* noop */ }
+  } catch (err) {
+    showMessage('teacherExamMessage', 'Error: ' + err.message, 'error');
+  }
+};
 
 async function autoRankTeacherSubjects() {
   const { examId, students, subjects } = teacherScoreCache;
