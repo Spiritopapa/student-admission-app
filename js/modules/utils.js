@@ -586,6 +586,41 @@ export function getStudentFeeStatus(fees = [], termFilter = '') {
   return 'partial';
 }
 
+/**
+ * Soft pastel palette used to tint each student's row in the fees tables.
+ * Shades are light enough to keep the dark table text readable while still
+ * giving every student a visually distinct background for easy spotting.
+ */
+const STUDENT_ROW_COLORS = [
+  '#fce4ec', // pink
+  '#fff3e0', // orange
+  '#fffde7', // yellow
+  '#f1f8e9', // light green
+  '#e8f5e9', // green
+  '#e0f2f1', // teal
+  '#e3f2fd', // blue
+  '#e8eaf6', // indigo
+  '#ede7f6', // deep purple
+  '#f3e5f5', // purple
+  '#fbe9e7', // deep orange
+  '#efebe9', // brown
+];
+
+/**
+ * Returns a stable, light background colour for a student's row in the fees
+ * tables. The colour is derived deterministically from the student_id, so the
+ * same student always keeps the same tint — making individual rows easy to
+ * identify and track across scrolls and filter changes.
+ */
+export function getStudentRowColor(studentId) {
+  const str = String(studentId || '');
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash * 31 + str.charCodeAt(i)) >>> 0;
+  }
+  return STUDENT_ROW_COLORS[hash % STUDENT_ROW_COLORS.length];
+}
+
 export function formatCurrency(amount) {
   return Number(amount || 0).toFixed(2);
 }

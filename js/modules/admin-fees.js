@@ -4,7 +4,7 @@
  * receipt generation, balance carry-forward, debt tracking across 3 terms
  */
 
-import { getEl, showMessage, clearMessage, setLoading, getCurrentSchoolId, formatCurrency, formatDate, logSubAdminActivity, logStaffActivity, generateAcademicYearOptions, getDefaultAcademicYear, openPrintWindow, getNextTerm, getNextAcademicYear, buildPaymentTimestamp, getStudentFeeStatus } from './utils.js';
+import { getEl, showMessage, clearMessage, setLoading, getCurrentSchoolId, formatCurrency, formatDate, logSubAdminActivity, logStaffActivity, generateAcademicYearOptions, getDefaultAcademicYear, openPrintWindow, getNextTerm, getNextAcademicYear, buildPaymentTimestamp, getStudentFeeStatus, getStudentRowColor } from './utils.js';
 import { RECEIPT_VERIFY_BASE_URL } from '../supabase-config.js';
 import { sendFeePaymentSms, normalizeGhanaPhone, isSmsEnabledForSchool, getAdminContactForSchool, buildAssistanceLine } from './sms-gateway.js';
 
@@ -797,7 +797,7 @@ async function loadStudentFeesTab() {
       return sum + Math.max(bal, 0);
     }, 0);
 
-    return `<tr>
+    return `<tr style="background-color:${getStudentRowColor(s.student_id)}">
       <td>${photoHtml}</td>
       <td><strong>${s.student_id}</strong></td>
       <td>${name}</td>

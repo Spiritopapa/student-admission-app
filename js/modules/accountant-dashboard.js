@@ -4,7 +4,7 @@
  * If student names fail, still shows student IDs. NEVER silently fails.
  */
 
-import { getEl, showMessage, clearMessage, setLoading, getCurrentSchoolId, formatCurrency, formatDate, generateAcademicYearOptions, getDefaultAcademicYear, openPrintWindow, logStaffActivity, buildPaymentTimestamp, getStudentFeeStatus } from './utils.js';
+import { getEl, showMessage, clearMessage, setLoading, getCurrentSchoolId, formatCurrency, formatDate, generateAcademicYearOptions, getDefaultAcademicYear, openPrintWindow, logStaffActivity, buildPaymentTimestamp, getStudentFeeStatus, getStudentRowColor } from './utils.js';
 import { sendFeePaymentSms } from './sms-gateway.js';
 import { buildFeeClassChartHtml, animateFeeClassChart, formatPct } from './fee-class-chart.js';
 
@@ -868,7 +868,7 @@ async function loadAccStudentFees() {
 
     const totalBalance = fees.reduce((sum, f) => sum + Math.max((Number(f.total_amount) + Number(f.debt || 0)) - Number(f.amount_paid), 0), 0);
 
-    return `<tr>
+    return `<tr style="background-color:${getStudentRowColor(s.student_id)}">
       <td>${photoHtml}</td>
       <td><strong>${s.student_id}</strong></td>
       <td>${name}</td>
