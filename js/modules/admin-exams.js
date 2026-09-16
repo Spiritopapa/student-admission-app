@@ -2,7 +2,7 @@
  * Admin Exams Module - Exam management, score entry, rankings, report cards
  */
 
-import { getEl, showMessage, clearMessage, setLoading, buildStudentName, formatDate, getTermDisplay, getGrade, getTeacherRemarks, getHeadTeacherRemarks, getSubjectGrade, getPerformanceLevel, collectStyles, openPrintWindow, parseCSVLine, getCurrentSchoolId } from './utils.js';
+import { getEl, showMessage, clearMessage, setLoading, buildStudentName, formatDate, getTermDisplay, getGrade, getTeacherRemarks, getHeadTeacherRemarks, getSubjectGrade, getPerformanceLevel, collectStyles, openPrintWindow, parseCSVLine, getCurrentSchoolId, generateAcademicYearOptions, getDefaultAcademicYear } from './utils.js';
 import { getGradeForScore, getGradingScaleHTML, fetchSchoolGrades } from './admin-grading.js';
 
 let supabaseClient = null;
@@ -29,11 +29,25 @@ async function loadConfiguredClassNames(schoolId) {
   }
 }
 
+// Populate the Academic Year dropdown with the current academic year preselected
+// and all future academic years automatically available (increments as the
+// calendar advances). The default is derived from today's date each time, so the
+// next academic year is always available and the current one is pre-selected.
+function populateExamAcademicYearSelect() {
+  const sel = getEl('examAcademicYear');
+  if (!sel) return;
+  const defaultYear = getDefaultAcademicYear();
+  sel.innerHTML = generateAcademicYearOptions(null, null, defaultYear);
+  sel.value = defaultYear;
+}
+
 export function setupExamListeners() {
+  populateExamAcademicYearSelect();
   getEl('adminExamsSearch')?.addEventListener('input', renderExamsTable);
   getEl('addExamBtn')?.addEventListener('click', () => {
     getEl('examEditId').value = '';
     getEl('examForm').reset();
+    getEl('examAcademicYear').value = getDefaultAcademicYear();
     getEl('examFormSection').open = true;
   });
   getEl('examForm')?.addEventListener('submit', saveExam);
@@ -124,7 +138,14 @@ window.editExam = async function (id) {
     if (!exam) { alert('Exam not found.'); return; }
     getEl('examEditId').value = exam.id;
     getEl('examName').value = exam.name || '';
-    getEl('examAcademicYear').value = exam.academic_year || '';
+    const yearSel = getEl('examAcademicYear');
+    const yearVal = exam.academic_year || getDefaultAcademicYear();
+    // Ensure the stored year is available as an option even if it falls outside
+    // the generated range (e.g. a much older exam being edited).
+    if (yearSel && ![...yearSel.options].some((o) => o.value === yearVal)) {
+      yearSel.appendChild(new Option(yearVal, yearVal));
+    }
+    if (yearSel) yearSel.value = yearVal;
     getEl('examTerm').value = exam.term || 'First';
     getEl('examStart').value = exam.start_date || '';
     getEl('examEnd').value = exam.end_date || '';
