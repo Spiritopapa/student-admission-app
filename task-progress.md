@@ -187,3 +187,26 @@ for every class filter. There was also no canonical admin UI to define "subjects
   - Called again in `saveTeacherProfile` so the sidebar updates immediately after the
     teacher uploads a new photo from "My Profile".
 - Admin and accountant sidebars already show their staff photos; teacher was the gap.
+
+---
+
+# Teacher Profile Cleanup + Sidebar Photo Hover
+
+## 1. Change Password separated from profile fields
+- **`index.html`:** removed the New Password / Confirm New Password fields from
+  `teacherProfileForm` and added a dedicated collapsible **"Change Password"** section
+  (`#teacherPasswordSection` / `#teacherPasswordForm`) below the profile form, with its
+  own message area (`#teacherPasswordMessage`).
+- **`js/modules/teacher-dashboard.js`:**
+  - Added `changeTeacherPassword(e)` — validates (min 6 chars, matching), calls
+    `supabaseClient.auth.updateUser({ password })`, clears the fields, collapses the
+    section, and logs the activity.
+  - Registered the new `teacherPasswordForm` submit listener in `setupTeacherDashboard`.
+  - Removed all password handling from `saveTeacherProfile` (reads, `updateUser`, field
+    clearing) so saving profile details never touches the password and vice versa.
+
+## 2. Hover-to-zoom on the sidebar staff photo
+- **`css/components.css`:** added
+  `#teacherSidebar .dash-avatar img { transition ... }` and
+  `#teacherSidebar .dash-avatar:hover img { transform: scale(1.06); box-shadow ... }`,
+  mirroring the existing admin sidebar hover zoom (only affects the photo when uploaded).

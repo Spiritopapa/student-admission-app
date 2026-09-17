@@ -155,6 +155,8 @@ export function setupTeacherDashboard() {
   getEl('teacherProfileForm')?.addEventListener('submit', saveTeacherProfile);
   getEl('teacherProfileDob')?.addEventListener('change', autoCalculateTeacherAge);
   getEl('teacherProfilePhoto')?.addEventListener('change', previewTeacherPhoto);
+  // Change Password is a separate form so profile fields stay independent.
+  getEl('teacherPasswordForm')?.addEventListener('submit', changeTeacherPassword);
 }
 
 function switchTeacherReportMode(mode) {
@@ -2852,8 +2854,6 @@ async function saveTeacherProfile(e) {
   const middleName = getEl('teacherProfileMiddleName').value.trim();
   const surname = getEl('teacherProfileSurname').value.trim();
   const dob = getEl('teacherProfileDob').value;
-  const password = getEl('teacherProfilePassword').value;
-  const confirmPw = getEl('teacherProfileConfirmPassword').value;
 
   if (!firstName || !surname) { showMessage('teacherProfileMessage', 'First Name and Surname are required.', 'error'); setLoading(btn, false, 'Save Profile'); return; }
   if (!dob) { showMessage('teacherProfileMessage', 'Date of Birth is required.', 'error'); setLoading(btn, false, 'Save Profile'); return; }
@@ -3011,16 +3011,7 @@ async function saveTeacherProfile(e) {
     // Update profile name
     await supabaseClient.from('profiles').update({ full_name: fullName }).eq('id', user.id);
 
-    // Update password if provided
-    if (password) {
-      if (password.length < 6) { showMessage('teacherProfileMessage', 'Password must be at least 6 characters.', 'error'); setLoading(btn, false, 'Save Profile'); return; }
-      if (password !== confirmPw) { showMessage('teacherProfileMessage', 'Passwords do not match.', 'error'); setLoading(btn, false, 'Save Profile'); return; }
-      await supabaseClient.auth.updateUser({ password });
-    }
-
     showMessage('teacherProfileMessage', 'Profile saved successfully.', 'success');
-    getEl('teacherProfilePassword').value = '';
-    getEl('teacherProfileConfirmPassword').value = '';
     getEl('teacherProfilePhoto').value = '';
     getEl('teacherProfileCertificateFile').value = '';
     getEl('teacherProfileAppointmentFile').value = '';
@@ -3035,6 +3026,44 @@ async function saveTeacherProfile(e) {
     showMessage('teacherProfileMessage', 'Error: ' + err.message, 'error');
   } finally {
     setLoading(btn, false, 'Save Profile');
+  }
+}
+
+/**
+ * Change the teacher's account password via its own form, separate from the
+ * profile details form. Calls Supabase auth directly so saving profile fields
+ * never touches the password (and vice versa).
+ */
+async function changeTeacherPassword(e) {
+  e.preventDefault();
+  clearMessage('teacherPasswordMessage');
+  const btn = getEl('teacherPasswordSubmitBtn');
+
+  const newPw = getEl('teacherPassword').value;
+  const confirmPw = getEl('teacherConfirmPassword').value;
+
+  if (newPw.length < 6) {
+    showMessage('teacherPasswordMessage', 'Password must be at least 6 characters.', 'error');
+    return;
+  }
+  if (newPw !== confirmPw) {
+    showMessage('teacherPasswordMessage', 'Passwords do not match.', 'error');
+    return;
+  }
+
+  setLoading(btn, true, 'Updating...');
+  try {
+    await supabaseClient.auth.updateUser({ password: newPw });
+    showMessage('teacherPasswordMessage', 'Password updated successfully.', 'success');
+    getEl('teacherPassword').value = '';
+    getEl('teacherConfirmPassword').value = '';
+    const section = getEl('teacherPasswordSection');
+    if (section) section.open = false;
+    try { await logStaffActivity('Changed account password', { role: 'teacher', entityType: 'profile', entityDetails: '' }); } catch (e) { /* noop */ }
+  } catch (err) {
+    showMessage('teacherPasswordMessage', 'Error: ' + err.message, 'error');
+  } finally {
+    setLoading(btn, false, 'Update Password');
   }
 }
 

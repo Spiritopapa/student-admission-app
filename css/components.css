@@ -749,6 +749,16 @@ legend {
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22);
 }
 
+/* Teacher sidebar avatar — hover over the staff photo to zoom it slightly.
+   Mirrors the admin sidebar behaviour. */
+#teacherSidebar .dash-avatar img {
+  transition: transform 0.2s var(--spring), box-shadow 0.2s ease;
+}
+#teacherSidebar .dash-avatar:hover img {
+  transform: scale(1.06);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22);
+}
+
 /* Generic photo lightbox used by BOTH the administrator avatar and every
    student photo thumbnail. Overrides the generic modal look so the
    enlarged picture fills the screen as large as possible. */
