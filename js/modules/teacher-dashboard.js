@@ -1852,7 +1852,10 @@ async function loadTeacherExamsPage() {
     await populateTeacherExamSubjectSelect();
 
     // Clear score sheet
-    getEl('teacherExamStudentsBody').innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--text-muted);">Select an exam and subject, then click "Load Students".</td></tr>';
+    const teacherExamTableEl = getEl('teacherExamTable');
+    if (teacherExamTableEl) {
+      teacherExamTableEl.innerHTML = '<tbody><tr><td colspan="4" style="text-align:center;padding:2rem;color:var(--text-muted);">Select an exam and subject, then click &quot;Load Students&quot;.</td></tr></tbody>';
+    }
 
   } catch (err) {
     console.error('Failed to load teacher exams page:', err);
@@ -1887,14 +1890,14 @@ export async function loadTeacherExamStudents() {
 
     // The teacher's subjects scoped to the selected class(es):
     //   class filter → only the subjects the teacher teaches in that class
-    //   no class     → union of subjects across all their assigned classes
+    //   no class     → a per-class map (JHS 1 → English & Mathematics, JHS 2 → Science)
     const taughtSubjects = classFilter
       ? (subjectByClass[classFilter] || [])
       : [...new Set(Object.values(subjectByClass).flat())];
 
     // Get exam subjects for the exam (scoped to the teacher's classes).
     let examSubsQuery = supabaseClient.from('exam_subjects')
-      .select('subject')
+      .select('subject, class_name')
       .eq('exam_id', examId);
     if (classFilter) {
       examSubsQuery = examSubsQuery.eq('class_name', classFilter);
@@ -1908,21 +1911,46 @@ export async function loadTeacherExamStudents() {
       return;
     }
 
-    // Only show subjects that (a) belong to this exam for the selected class
-    // AND (b) the teacher teaches in that class. This is what makes the filter
-    // show exactly JHS 1 → English & Mathematics, JHS 2 → Science.
-    let availableSubjects = (examSubjects || []).map(s => s.subject);
-    availableSubjects = availableSubjects.filter(s =>
-      taughtSubjects.some(ts => s.toLowerCase() === ts.toLowerCase())
-    );
-    availableSubjects = [...new Set(availableSubjects)];
+    // Build a class → [subjects] map so the score sheet loads separate subjects
+    // for EACH class. A class's subjects are those that (a) are configured in
+    // the exam for THAT class AND (b) the teacher teaches in THAT class.
+    let subjectsByClassMap = {};
+    if (classFilter) {
+      const clsAvail = (examSubjects || [])
+        .filter(es => es.class_name === classFilter)
+        .map(es => es.subject)
+        .filter(s => taughtSubjects.some(ts => s.toLowerCase() === ts.toLowerCase()));
+      subjectsByClassMap[classFilter] = [...new Set(clsAvail)];
+    } else {
+      classes.forEach(cls => {
+        const clsTaught = subjectByClass[cls] || [];
+        const clsAvail = (examSubjects || [])
+          .filter(es => es.class_name === cls)
+          .map(es => es.subject)
+          .filter(s => clsTaught.some(ts => s.toLowerCase() === ts.toLowerCase()));
+        if (clsAvail.length > 0) subjectsByClassMap[cls] = [...new Set(clsAvail)];
+      });
+    }
+
+    // Apply the subject filter to every class (e.g. only English everywhere).
+    if (subjectFilter) {
+      Object.keys(subjectsByClassMap).forEach(cls => {
+        subjectsByClassMap[cls] = subjectsByClassMap[cls].filter(s => s.toLowerCase() === subjectFilter.toLowerCase());
+      });
+      subjectsByClassMap = Object.fromEntries(
+        Object.entries(subjectsByClassMap).filter(([, subs]) => subs.length > 0)
+      );
+    }
+
+    // Union across classes (used for the subject filter dropdown).
+    const availableSubjects = [...new Set(Object.values(subjectsByClassMap).flat())];
 
     if (availableSubjects.length === 0) {
-      showMessage('teacherExamMessage', `No exam subjects match your assigned subjects for this class.`, 'error');
+      showMessage('teacherExamMessage', `No exam subjects match your assigned subjects for the selected class(es).`, 'error');
       return;
     }
 
-    // Populate subject select with all available subjects
+    // Populate subject select with all available subjects (union across classes)
     const subjectSel = getEl('teacherExamSubject');
     if (subjectSel) {
       subjectSel.innerHTML = '<option value="">— All Subjects —</option>' +
@@ -1933,10 +1961,10 @@ export async function loadTeacherExamStudents() {
       }
     }
 
-    // Determine which classes to load students from
-    let classesToLoad = classes;
+    // Determine which classes to load students from (only classes with subjects).
+    let classesToLoad = Object.keys(subjectsByClassMap);
     if (classFilter) {
-      classesToLoad = classes.filter(c => c === classFilter);
+      classesToLoad = [classFilter];
     }
 
     // Get students from the selected class(es)
@@ -1961,11 +1989,8 @@ export async function loadTeacherExamStudents() {
       return;
     }
 
-    // Apply subject filter - if a specific subject is selected, only show that subject column
-    let subjectsToShow = availableSubjects;
-    if (subjectFilter) {
-      subjectsToShow = availableSubjects.filter(s => s.toLowerCase() === subjectFilter.toLowerCase());
-    }
+    // Apply subject filter - if a specific subject is selected, only show
+    // that subject's column (already applied per class in subjectsByClassMap).
 
     // Get existing results
     let resultsQuery = supabaseClient.from('exam_results')
@@ -1998,12 +2023,15 @@ export async function loadTeacherExamStudents() {
         name: buildStudentName(s.first_name, s.middle_name, s.last_name),
         class_applying: s.class_applying,
       })),
-      subjects: subjectsToShow,
+      subjects: availableSubjects,
+      subjectsByClass: subjectsByClassMap,
       results: resultsMap,
     };
 
     renderTeacherScoreSheet();
-    showMessage('teacherExamMessage', `Loaded ${allStudents.length} students with ${subjectsToShow.length} subject${subjectsToShow.length !== 1 ? 's' : ''}. Enter scores below.`, 'success');
+    const classCount = Object.keys(subjectsByClassMap).length;
+    const subjectCount = availableSubjects.length;
+    showMessage('teacherExamMessage', `Loaded ${allStudents.length} students across ${classCount} class${classCount !== 1 ? 'es' : ''} with ${subjectCount} subject${subjectCount !== 1 ? 's' : ''} loaded per class. Enter scores below.`, 'success');
   } catch (err) {
     console.error('Failed to load exam students:', err);
     showMessage('teacherExamMessage', 'Error: ' + err.message, 'error');
@@ -2012,11 +2040,13 @@ export async function loadTeacherExamStudents() {
 
 /**
  * Build the per-student action buttons (Save / Delete Scores) HTML.
- * The delete button only appears once at least one subject is saved.
+ * The delete button only appears once at least one subject is saved for
+ * the student in their class. `cls` scopes the check to that class.
  */
-function buildTeacherRowActions(studentId) {
-  const { subjects, results } = teacherScoreCache;
-  const hasSavedScores = subjects.some(sub => results.has(studentId + '|' + sub));
+function buildTeacherRowActions(studentId, cls) {
+  const { subjectsByClass, subjects, results } = teacherScoreCache;
+  const studentSubjects = (cls && subjectsByClass && subjectsByClass[cls]) ? subjectsByClass[cls] : subjects;
+  const hasSavedScores = (studentSubjects || []).some(sub => results.has(studentId + '|' + sub));
   return `<button type="button" class="action-btn confirm" onclick="saveTeacherStudentScores('${studentId}')">Save</button> ${
     hasSavedScores
       ? `<button type="button" class="action-btn danger" onclick="deleteTeacherStudentScores('${studentId}')">Delete Scores</button>`
@@ -2029,70 +2059,107 @@ function buildTeacherRowActions(studentId) {
  * teacher's unsaved input in OTHER rows is never disturbed.
  */
 function updateTeacherRowActions(studentId) {
-  const tbody = getEl('teacherExamStudentsBody');
-  if (!tbody) return;
-  const row = tbody.querySelector(`tr[data-student-id="${studentId}"]`);
+  const row = document.querySelector(`#teacherExamTable tr[data-student-id="${studentId}"]`);
   if (!row) return;
   const actionTd = row.querySelector('.teacher-row-actions');
   if (!actionTd) return;
-  actionTd.innerHTML = buildTeacherRowActions(studentId);
+  const classTbody = row.closest('tbody');
+  const cls = classTbody ? classTbody.getAttribute('data-class') : '';
+  actionTd.innerHTML = buildTeacherRowActions(studentId, cls);
 }
 
+/**
+ * Render the score sheet grouped by class. In "All Classes" mode each class
+ * gets its own block (tbody) whose subject columns are exactly the subjects
+ * assigned to that class for the current exam, e.g.:
+ *   JHS 1 → English, Mathematics      JHS 2 → Science
+ */
 function renderTeacherScoreSheet() {
-  const tbody = getEl('teacherExamStudentsBody');
-  if (!tbody) return;
+  const table = getEl('teacherExamTable');
+  if (!table) return;
 
-  const { students, subjects, results } = teacherScoreCache;
-  const actionCol = `<th style="min-width:170px;">Action</th>`;
+  const { students, subjectsByClass, results } = teacherScoreCache;
 
   if (!students || students.length === 0) {
-    const colspan = 4 + (subjects ? subjects.length : 0);
-    tbody.innerHTML = `<tr><td colspan="${colspan}" style="text-align:center;padding:2rem;color:var(--text-muted);">No students loaded.</td></tr>`;
+    table.innerHTML = '<tbody><tr><td colspan="4" style="text-align:center;padding:2rem;color:var(--text-muted);">No students loaded.</td></tr></tbody>';
     return;
   }
 
-  // Build table with subjects as columns
-  let html = '';
-  students.forEach(s => {
-    let subjectCells = '';
-    subjects.forEach(sub => {
-      const key = s.student_id + '|' + sub;
-      const result = results.get(key);
-      const classScore = result?.class_score || '';
-      const examScore = result?.exam_score_input || '';
-      const total = (Number(classScore) + (Number(examScore) / 2)) || 0;
-      const grade = getSubjectGrade(total);
-
-      subjectCells += `<td>
-        <div style="display:flex;gap:2px;align-items:center;flex-wrap:nowrap;">
-          <input type="number" class="teacher-class-score" data-student="${s.student_id}" data-subject="${sub}" value="${classScore}" min="0" max="50" step="0.5" style="width:50px;padding:0.25rem;text-align:center;border:1px solid var(--border);border-radius:4px;font-size:0.75rem;" />
-          <span style="font-size:0.6rem;color:var(--text-muted);">/</span>
-          <input type="number" class="teacher-exam-score" data-student="${s.student_id}" data-subject="${sub}" value="${examScore}" min="0" max="100" step="0.5" style="width:50px;padding:0.25rem;text-align:center;border:1px solid var(--border);border-radius:4px;font-size:0.75rem;" />
-          <span class="teacher-total" style="font-size:0.7rem;font-weight:700;color:var(--primary);min-width:35px;text-align:center;">${total > 0 ? total : ''}</span>
-          <span class="teacher-grade-badge" style="font-size:0.65rem;font-weight:700;${grade.grade === 'F' ? 'color:var(--danger);' : 'color:var(--success);'}"}>${total > 0 ? grade.grade : ''}</span>
-        </div>
-      </td>`;
-    });
-
-    html += `<tr data-student-id="${s.student_id}">
-      <td><strong>${s.student_id}</strong></td>
-      <td>${s.name}</td>
-      <td>${s.class_applying || '-'}</td>
-      ${subjectCells}
-      <td class="teacher-row-actions" style="white-space:nowrap;">${buildTeacherRowActions(s.student_id)}</td>
-    </tr>`;
+  // Group students by their class so each class renders its own subject columns.
+  const grouped = {};
+  (students || []).forEach(s => {
+    const cls = s.class_applying || '';
+    (grouped[cls] = grouped[cls] || []).push(s);
   });
 
-  // Update table header with subject columns + action column
-  const headerRow = document.querySelector('#teacherExamTable thead tr');
-  if (headerRow) {
-    headerRow.innerHTML = `<th style="min-width:100px;">Student ID</th><th style="min-width:120px;">Name</th><th style="min-width:80px;">Class</th>${subjects.map(sub => `<th style="min-width:160px;">${sub} <span style="font-weight:400;font-size:0.65rem;color:var(--text-muted);">(Class/Exam/Total/Grade)</span></th>`).join('')}${actionCol}`;
+  const classOrder = Object.keys(grouped).sort();
+  const classList = classOrder.filter(cls => subjectsByClass && subjectsByClass[cls] && subjectsByClass[cls].length > 0);
+
+  if (classList.length === 0) {
+    table.innerHTML = '<tbody><tr><td colspan="4" style="text-align:center;padding:2rem;color:var(--text-muted);">No subject columns are available for the selected class(es).</td></tr></tbody>';
+    return;
   }
 
-  tbody.innerHTML = html;
+  const noSubjectClasses = classOrder.filter(cls => !classList.includes(cls));
 
-  // Add auto-calc listeners - scope within current <td> so multiple subjects work independently
-  tbody.querySelectorAll('.teacher-class-score, .teacher-exam-score').forEach(inp => {
+  const groupsHtml = classList.map(cls => {
+    const clsSubjects = subjectsByClass[cls];
+
+    // Per-class header row that lists exactly that class's subjects.
+    let head = `<tr class="teacher-class-group-head" style="background:var(--bg);">
+      <th style="min-width:100px;">Student ID</th>
+      <th style="min-width:120px;">Name</th>
+      <th style="min-width:80px;">Class</th>`;
+    head += clsSubjects.map(sub => `<th style="min-width:160px;">${sub} <span style="font-weight:400;font-size:0.65rem;color:var(--text-muted);">(Class/Exam/Total/Grade)</span></th>`).join('');
+    head += `<th style="min-width:170px;">Action</th></tr>`;
+
+    let rows = '';
+    grouped[cls].forEach(s => {
+      let subjectCells = '';
+      clsSubjects.forEach(sub => {
+        const key = s.student_id + '|' + sub;
+        const result = results.get(key);
+        const classScore = result?.class_score || '';
+        const examScore = result?.exam_score_input || '';
+        const total = (Number(classScore) + (Number(examScore) / 2)) || 0;
+        const grade = getSubjectGrade(total);
+
+        subjectCells += `<td>
+          <div style="display:flex;gap:2px;align-items:center;flex-wrap:nowrap;">
+            <input type="number" class="teacher-class-score" data-student="${s.student_id}" data-subject="${sub}" value="${classScore}" min="0" max="50" step="0.5" style="width:50px;padding:0.25rem;text-align:center;border:1px solid var(--border);border-radius:4px;font-size:0.75rem;" />
+            <span style="font-size:0.6rem;color:var(--text-muted);">/</span>
+            <input type="number" class="teacher-exam-score" data-student="${s.student_id}" data-subject="${sub}" value="${examScore}" min="0" max="100" step="0.5" style="width:50px;padding:0.25rem;text-align:center;border:1px solid var(--border);border-radius:4px;font-size:0.75rem;" />
+            <span class="teacher-total" style="font-size:0.7rem;font-weight:700;color:var(--primary);min-width:35px;text-align:center;">${total > 0 ? total : ''}</span>
+            <span class="teacher-grade-badge" style="font-size:0.65rem;font-weight:700;${grade.grade === 'F' ? 'color:var(--danger);' : 'color:var(--success);'}"}>${total > 0 ? grade.grade : ''}</span>
+          </div>
+        </td>`;
+      });
+
+      rows += `<tr data-student-id="${s.student_id}">
+        <td><strong>${s.student_id}</strong></td>
+        <td>${s.name}</td>
+        <td>${s.class_applying || '-'}</td>
+        ${subjectCells}
+        <td class="teacher-row-actions" style="white-space:nowrap;">${buildTeacherRowActions(s.student_id, cls)}</td>
+      </tr>`;
+    });
+
+    return `<tbody class="teacher-class-group" data-class="${cls}">
+      ${head}
+      ${rows}
+    </tbody>`;
+  });
+
+  let noteHtml = '';
+  if (noSubjectClasses.length > 0) {
+    noteHtml = `<tbody class="teacher-class-group"><tr><td colspan="5" style="text-align:center;color:var(--text-muted);font-size:0.8rem;padding:0.5rem;">No configured subjects for: ${noSubjectClasses.join(', ')} — scores cannot be entered for these classes in this exam.</td></tr></tbody>`;
+  }
+
+  table.innerHTML = groupsHtml.join('') + noteHtml;
+
+  // Attach auto-calc listeners (scoped to each cell) so totals/grades update
+  // live for every subject as the teacher types.
+  table.querySelectorAll('.teacher-class-score, .teacher-exam-score').forEach(inp => {
     inp.addEventListener('input', function() {
       const td = this.closest('td');
       if (!td) return;
@@ -2119,7 +2186,7 @@ function renderTeacherScoreSheet() {
  *        re-render in place so the teacher can keep typing other rows.
  */
 async function persistTeacherExamScores(studentIds = null, reloadAfter = true) {
-  const { examId, students, subjects } = teacherScoreCache;
+  const { examId, students, subjects, subjectsByClass } = teacherScoreCache;
   if (!examId || !students) { alert('No exam data loaded. Please load students first.'); return; }
 
   // Narrow to the requested students when saving a single row.
@@ -2150,7 +2217,12 @@ async function persistTeacherExamScores(studentIds = null, reloadAfter = true) {
     const studentSubjectCounts = {};
 
     for (const student of targets) {
-      for (const subject of subjects) {
+      // In "All Classes" mode each student's subjects come from their OWN class
+      // (e.g. JHS 1 → English & Mathematics; JHS 2 → Science).
+      const studentSubjects = (subjectsByClass && subjectsByClass[student.class_applying])
+        ? subjectsByClass[student.class_applying]
+        : subjects;
+      for (const subject of studentSubjects) {
         const classScoreInput = document.querySelector(`.teacher-class-score[data-student="${student.student_id}"][data-subject="${subject}"]`);
         const examScoreInput = document.querySelector(`.teacher-exam-score[data-student="${student.student_id}"][data-subject="${subject}"]`);
         
@@ -2339,7 +2411,7 @@ window.deleteTeacherStudentScores = async function (studentId) {
 };
 
 async function autoRankTeacherSubjects() {
-  const { examId, students, subjects } = teacherScoreCache;
+  const { examId, students, subjectsByClass, subjects } = teacherScoreCache;
   if (!examId || !students) { alert('Load students first.'); return; }
 
   try {
@@ -2353,9 +2425,29 @@ async function autoRankTeacherSubjects() {
       return;
     }
 
-    // Calculate rankings per subject
-    const rankingsHtml = subjects.map(subject => {
-      const subjectResults = results.filter(r => r.subject === subject);
+    // Track which (class, subject) pairs apply so ranking stays per class —
+    // e.g. English is ranked only among JHS 1 students, Science only among
+    // JHS 2 students. Falls back to the plain subject list when no per-class
+    // map exists.
+    const pairList = [];
+    if (subjectsByClass && Object.keys(subjectsByClass).length > 0) {
+      Object.keys(subjectsByClass).sort().forEach(cls => {
+        (subjectsByClass[cls] || []).forEach(subject => {
+          pairList.push({ cls, subject });
+        });
+      });
+    } else {
+      (subjects || []).forEach(subject => pairList.push({ cls: null, subject }));
+    }
+
+    const rankingsHtml = pairList.map(({ cls, subject }) => {
+      // Only rank students that belong to this subject's class.
+      const eligibleStudents = cls
+        ? students.filter(s => s.class_applying === cls)
+        : students;
+      const eligibleIds = new Set(eligibleStudents.map(s => s.student_id));
+
+      const subjectResults = results.filter(r => r.subject === subject && eligibleIds.has(r.student_id));
       const ranked = subjectResults
         .sort((a, b) => (b.marks_obtained || 0) - (a.marks_obtained || 0))
         .map((r, idx) => {
@@ -2363,10 +2455,11 @@ async function autoRankTeacherSubjects() {
           return { ...r, name: student?.name || r.student_id, rank: idx + 1 };
         });
 
+      const classLabel = cls ? ` — ${cls}` : '';
       return `
         <div class="ranking-card">
           <div class="ranking-header">
-            <h4>${subject}</h4>
+            <h4>${subject}${classLabel}</h4>
             <span class="ranking-subtitle">${ranked.length} students</span>
           </div>
           <div class="table-wrapper">
@@ -2397,7 +2490,7 @@ async function autoRankTeacherSubjects() {
 }
 
 async function printTeacherReportCards() {
-  const { examId, exam, students, subjects, results } = teacherScoreCache;
+  const { examId, exam, students, subjects, subjectsByClass, results } = teacherScoreCache;
   if (!examId || !students) { alert('Load students first.'); return; }
 
   const schoolIdFromTeacher = await getCurrentSchoolId();
@@ -2434,7 +2527,10 @@ async function printTeacherReportCards() {
 
   // Generate report cards for all students
   const reportCardsHtml = students.map(student => {
-    const studentResults = subjects.map(subject => {
+    // In "All Classes" mode only the student's own class subjects appear on
+    // their report card (e.g. Science for a JHS 2 student, not English/Maths).
+    const studentSubjects = (subjectsByClass && subjectsByClass[student.class_applying]) || subjects;
+    const studentResults = studentSubjects.map(subject => {
       const r = results.get(student.student_id + '|' + subject);
       return {
         subject,
@@ -2446,7 +2542,7 @@ async function printTeacherReportCards() {
     });
 
     const totalScore = studentResults.reduce((sum, r) => sum + r.total, 0);
-    const average = subjects.length > 0 ? (totalScore / subjects.length) : 0;
+    const average = studentSubjects.length > 0 ? (totalScore / studentSubjects.length) : 0;
     const gradeInfo = getGrade(average);
     const teacherRemarks = getTeacherRemarks(average);
     const headRemarks = getHeadTeacherRemarks(average);
@@ -2470,7 +2566,7 @@ async function printTeacherReportCards() {
           <div class="rc-student-data">
             <table class="rc-info-table">
               <tr><td class="rc-label">Student</td><td class="rc-colon">:</td><td class="rc-value">${student.name}</td>
-              <td class="rc-label">Class</td><td class="rc-colon">:</td><td class="rc-value">${exam?.class_applying || teacherScoreCache.class}</td></tr>
+              <td class="rc-label">Class</td><td class="rc-colon">:</td><td class="rc-value">${exam?.class_applying || student.class_applying || teacherScoreCache.class}</td></tr>
               <tr><td class="rc-label">Student ID</td><td class="rc-colon">:</td><td class="rc-value">${student.student_id}</td>
               <td class="rc-label">Term</td><td class="rc-colon">:</td><td class="rc-value">${exam?.term || ''} ${exam?.academic_year || ''}</td></tr>
             </table>

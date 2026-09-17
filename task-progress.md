@@ -140,3 +140,37 @@ for every class filter. There was also no canonical admin UI to define "subjects
 - Proper ES-module syntax check (`node --check` on `.mjs` copies) passes for all edited modules.
 - Full flow reviewed end-to-end in `loadTeacherExamStudents` (class-scoped intersection
   drives both the subject dropdown and the score-sheet columns).
+
+---
+
+# Teacher Exam Sheet — Per-Class Subjects + Per-Student Save/Delete
+
+## Round 2 (per-student actions)
+- **`js/modules/teacher-dashboard.js`:** added an `Action` column to the teacher score
+  sheet with per-student **Save** and **Delete Scores** buttons.
+  - `saveTeacherStudentScores(studentId)` → `persistTeacherExamScores([studentId], false)`
+    reuses the Save-All persistence logic but updates only that row's action cell, so
+    unsaved input in other rows is never lost.
+  - `deleteTeacherStudentScores(studentId)` deletes the student's `exam_results` for the
+    exam and their `exam_student_details`, with confirmation, then updates the row in place.
+  - `renderTeacherScoreSheet` refactored to build the sheet from a reusable
+    `buildTeacherRowActions / updateTeacherRowActions` pair.
+
+## Round 3 (All Classes = subjects per class + staff quick-form fix)
+- **Teacher dashboard "All Classes" mode now loads subjects separately per class:**
+  - `loadTeacherExamStudents` queries `exam_subjects` with `class_name` and builds a
+    `subjectsByClass` map (`{ 'JHS 1': ['English','Mathematics'], 'JHS 2': ['Science'] }`)
+    from (exam subjects for that class ∩ teacher's subjects for that class).
+  - `renderTeacherScoreSheet` groups students by class; each class gets its own block
+    (tbody) with its own subject columns. `persistTeacherExamScores`, `autoRankTeacherSubjects`
+    and `printTeacherReportCards` are all class-aware now.
+- **Staff quick-create ("Generate ID") form supports separate subjects per class:**
+  - `index.html` replaced the single global subject multi-select with
+    `#newTeacherClassSubjects`; `admin-teachers.js` adds `renderNewTeacherClassSubjectBlocks`
+    so each selected class gets its own (initially empty) subject picker scoped to that
+    class. `saveNewTeacher` now collects `subjectsByClass` per class, so
+    JHS 1 → English/Maths/Science and JHS 2 → Mathematics stay independent.
+
+## Verification
+- ES-module syntax checks pass for `teacher-dashboard.js` and `admin-teachers.js`.
+- No schema change needed for these rounds (frontend-only refinements).

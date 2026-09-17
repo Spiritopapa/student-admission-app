@@ -1089,9 +1089,12 @@
               <div class="form-group"><label>Classes Assigned (hold Ctrl to select multiple)</label>
                 <select id="newTeacherClass" multiple style="height:80px;width:100%;padding:0.3rem;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:0.85rem;font-family:inherit;"></select>
               </div>
-              <div class="form-group"><label>Subjects (hold Ctrl to select multiple)</label>
-                <select id="newTeacherSubject" multiple style="height:80px;width:100%;padding:0.3rem;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:0.85rem;font-family:inherit;"></select>
-              </div>
+            </div>
+            <!-- Per-class subject pickers are rendered here by admin-teachers.js so
+                 each class gets its own set of subjects (e.g. JHS 1 → English,
+                 Maths, Science and JHS 2 → Mathematics only). -->
+            <div id="newTeacherClassSubjects" style="margin-top:0.5rem;">
+              <p style="color:var(--text-muted);font-size:0.8rem;">No classes selected yet. Choose classes above, then select the subjects for each class separately.</p>
             </div>
           </div>
           <div class="form-row">
@@ -2775,15 +2778,9 @@
 
             <div class="table-wrapper" style="margin-top:0.5rem;">
               <table class="app-table" id="teacherExamTable">
-                <thead>
-                  <tr>
-                    <th style="min-width:100px;">Student ID</th>
-                    <th style="min-width:120px;">Name</th>
-                    <th id="teacherExamSubjectHeaders" style="min-width:160px;">Subjects (Class Score / Exam Score | Total | Grade)</th>
-                  </tr>
-                </thead>
+                <!-- Header rows are rendered per class group by renderTeacherScoreSheet -->
                 <tbody id="teacherExamStudentsBody">
-                  <tr><td colspan="4" style="text-align:center;padding:2rem;color:var(--text-muted);">Select an exam and click "Load Students" to begin.</td></tr>
+                  <tr><td colspan="4" style="text-align:center;padding:2rem;color:var(--text-muted);">Select an exam and click &quot;Load Students&quot; to begin.</td></tr>
                 </tbody>
               </table>
             </div>

@@ -215,6 +215,9 @@ export function setupTeacherForm() {
   });
 
   getEl('teacherClass')?.addEventListener('change', renderTeacherClassSubjectBlocks);
+  // When classes change in the quick "Create Staff" form, render per-class
+  // subject pickers so each class keeps its own subjects.
+  getEl('newTeacherClass')?.addEventListener('change', renderNewTeacherClassSubjectBlocks);
   getEl('adminTeachersSearch')?.addEventListener('input', renderTeachersTable);
   
   // Staff type toggles: show/hide the class & subject assignment fields.
@@ -363,13 +366,21 @@ async function saveNewTeacher(e) {
   const staffType = getEl('newTeacherStaffType')?.value || 'teaching';
   const isTeachingStaff = staffType === 'teaching';
   const classSel = getEl('newTeacherClass');
-  const subjSel = getEl('newTeacherSubject');
   const selectedClasses = isTeachingStaff && classSel ? Array.from(classSel.selectedOptions).map(o => o.value) : [];
-  const selectedSubjects = isTeachingStaff && subjSel ? Array.from(subjSel.selectedOptions).map(o => o.value) : [];
+
+  // Collect the subjects selected for EACH class separately so that e.g.
+  // JHS 1 → English/Maths/Science and JHS 2 → Mathematics never leak into
+  // each other on the teacher dashboard.
   const subjectsByClass = {};
   if (isTeachingStaff) {
-    selectedClasses.forEach(cls => { subjectsByClass[cls] = selectedSubjects; });
+    Array.from(getEl('newTeacherClassSubjects')?.querySelectorAll('.tcs-block') || []).forEach(block => {
+      const cls = block.getAttribute('data-class');
+      const sel = block.querySelector('select[data-class]');
+      if (!sel) return;
+      subjectsByClass[cls] = Array.from(sel.selectedOptions).map(o => o.value);
+    });
   }
+  const selectedSubjects = Array.from(new Set(Object.values(subjectsByClass).flat()));
   
   try {
     const { data: { user } } = await supabaseClient.auth.getUser();
@@ -640,9 +651,11 @@ function toggleNewTeacherClassFields() {
   if (!isTeaching) {
     // Non-teaching staff: clear any teaching-specific selections.
     const c = getEl('newTeacherClass');
-    const s = getEl('newTeacherSubject');
     if (c) Array.from(c.options).forEach(o => { o.selected = false; });
-    if (s) Array.from(s.options).forEach(o => { o.selected = false; });
+    const container = getEl('newTeacherClassSubjects');
+    if (container) container.innerHTML = '<p style="color:var(--text-muted);font-size:0.8rem;">No classes selected yet. Choose classes above, then select the subjects for each class separately.</p>';
+  } else {
+    renderNewTeacherClassSubjectBlocks();
   }
 }
 
@@ -684,11 +697,14 @@ async function loadClassSubjectsOptionCache() {
   }
 }
 
-// Populate the class / subject multiple-selects in the "Generate ID" form.
+// Populate the class dropdown in the "Generate ID" form and (re)render the
+// per-class subject pickers. Subjects for each class come from the canonical
+// class → subject mapping so e.g. JHS 1 → English/Maths/Science and
+// JHS 2 → Mathematics can be selected independently.
 async function populateNewTeacherDropdowns() {
   const classSel = getEl('newTeacherClass');
-  const subjSel = getEl('newTeacherSubject');
-  if (!classSel && !subjSel) return;
+  const subjectsContainer = getEl('newTeacherClassSubjects');
+  if (!classSel && !subjectsContainer) return;
   try {
     await loadClassSubjectsOptionCache();
     const schoolId = await getCurrentSchoolId();
@@ -700,8 +716,74 @@ async function populateNewTeacherDropdowns() {
     }
     const [classesRes, subjectsRes] = await Promise.all([classesQuery, subjectsQuery]);
     if (classSel) classSel.innerHTML = (classesRes.data || []).map(c => `<option value="${c.name}">${c.name}</option>`).join('');
-    if (subjSel) subjSel.innerHTML = (subjectsRes.data || []).map(s => `<option value="${s.name}">${s.name}</option>`).join('');
+    subjectOptionsCache = (subjectsRes.data || []).map(s => s.name);
+
+    if (subjectsContainer) subjectsContainer.innerHTML = '';
+    renderNewTeacherClassSubjectBlocks();
   } catch (err) { console.error('Failed to load class/subject lists:', err); }
+}
+
+/**
+ * Render one empty subject multi-select per selected class in the quick
+ * "Create Staff with Registration ID" form. Subjects options are scoped to
+ * the class (global list fallback when the class has no canonical mapping).
+ */
+function renderNewTeacherClassSubjectBlocks() {
+  const classSelect = getEl('newTeacherClass');
+  const container = getEl('newTeacherClassSubjects');
+  if (!classSelect || !container) return;
+
+  const selectedClasses = Array.from(classSelect.selectedOptions).map(o => o.value);
+  const existingBlocks = Array.from(container.querySelectorAll('.tcs-block'));
+  const existingClasses = existingBlocks.map(b => b.getAttribute('data-class'));
+
+  // Remove blocks for classes that are no longer selected.
+  existingBlocks.forEach(block => {
+    if (!selectedClasses.includes(block.getAttribute('data-class'))) block.remove();
+  });
+
+  // Add a subject multi-select for each newly selected class (starts empty).
+  selectedClasses.forEach(cls => {
+    if (existingClasses.includes(cls)) return;
+
+    const block = document.createElement('div');
+    block.className = 'form-group tcs-block';
+    block.setAttribute('data-class', cls);
+    block.style.cssText = 'margin-bottom:0.6rem;';
+
+    const label = document.createElement('label');
+    label.textContent = `Subjects for ${cls} (hold Ctrl to select multiple)`;
+
+    const sel = document.createElement('select');
+    sel.multiple = true;
+    sel.style.cssText = 'height:80px;width:100%;padding:0.3rem;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:0.85rem;font-family:inherit;';
+    sel.setAttribute('data-class', cls);
+
+    const classSubjects = (classSubjectsOptionCache[cls] && classSubjectsOptionCache[cls].length)
+      ? classSubjectsOptionCache[cls]
+      : (subjectOptionsCache || []);
+    (classSubjects || []).forEach(sub => {
+      const opt = document.createElement('option');
+      opt.value = sub;
+      opt.textContent = sub;
+      sel.appendChild(opt);
+    });
+
+    block.appendChild(label);
+    block.appendChild(sel);
+    container.appendChild(block);
+  });
+
+  // Keep the hint in sync.
+  const hint = container.querySelector('p');
+  const blockCount = container.querySelectorAll('.tcs-block').length;
+  if (blockCount === 0) {
+    if (!hint) {
+      container.innerHTML = '<p style="color:var(--text-muted);font-size:0.8rem;">No classes selected yet. Choose classes above, then select the subjects for each class separately.</p>';
+    }
+  } else if (hint) {
+    hint.remove();
+  }
 }
 
 async function populateTeacherFormDropdowns() {
