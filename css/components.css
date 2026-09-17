@@ -363,6 +363,14 @@ legend {
     background: var(--glass-bg);
   }
 
+  /* Teacher exam score sheet: the per-class header row's subject names are
+     redundant on mobile because every score cell is labeled with its subject
+     via data-label (e.g. "ENGLISH (CLASS/EXAM)"). Hide it so each student's
+     card is clean and identifies its own subjects. */
+  .app-table tbody tr.teacher-class-group-head {
+    display: none;
+  }
+
   .app-table td {
     display: flex;
     align-items: center;

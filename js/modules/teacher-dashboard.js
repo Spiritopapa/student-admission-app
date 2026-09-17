@@ -2129,7 +2129,7 @@ function renderTeacherScoreSheet() {
         const total = (Number(classScore) + (Number(examScore) / 2)) || 0;
         const grade = getSubjectGrade(total);
 
-        subjectCells += `<td>
+        subjectCells += `<td data-label="${sub} (Class/Exam)">
           <div style="display:flex;gap:2px;align-items:center;flex-wrap:nowrap;">
             <input type="number" class="teacher-class-score" data-student="${s.student_id}" data-subject="${sub}" value="${classScore}" min="0" max="50" step="0.5" style="width:50px;padding:0.25rem;text-align:center;border:1px solid var(--border);border-radius:4px;font-size:0.75rem;" />
             <span style="font-size:0.6rem;color:var(--text-muted);">/</span>
@@ -2141,11 +2141,11 @@ function renderTeacherScoreSheet() {
       });
 
       rows += `<tr data-student-id="${s.student_id}">
-        <td><strong>${s.student_id}</strong></td>
-        <td>${s.name}</td>
-        <td>${s.class_applying || '-'}</td>
+        <td data-label="Student ID"><strong>${s.student_id}</strong></td>
+        <td data-label="Name">${s.name}</td>
+        <td data-label="Class">${s.class_applying || '-'}</td>
         ${subjectCells}
-        <td class="teacher-row-actions" style="white-space:nowrap;">${buildTeacherRowActions(s.student_id, cls)}</td>
+        <td data-label="Action" class="teacher-row-actions" style="white-space:nowrap;">${buildTeacherRowActions(s.student_id, cls)}</td>
       </tr>`;
     });
 

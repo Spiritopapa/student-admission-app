@@ -210,3 +210,24 @@ for every class filter. There was also no canonical admin UI to define "subjects
   `#teacherSidebar .dash-avatar img { transition ... }` and
   `#teacherSidebar .dash-avatar:hover img { transform: scale(1.06); box-shadow ... }`,
   mirroring the existing admin sidebar hover zoom (only affects the photo when uploaded).
+
+---
+
+# Mobile Fix — Subject Names on Teacher Score Entry Cards
+
+## Problem
+On mobile view, the teacher exam score sheet stacked into cards but **no subject names
+showed** next to each score. Root cause: mobile labels come from `td[data-label]`
+(via `.app-table td::before { content: attr(data-label) }`), and `applyTableLabels()`
+only sets `data-label` when the table has a `<thead>`. The teacher score table no
+longer has a `<thead>` (per-class headers are rendered as `<tbody>` group rows), so
+`applyTableLabels()` returned early and no subject labels were ever attached.
+
+## Fix
+- **`js/modules/teacher-dashboard.js` (`renderTeacherScoreSheet`):** every score cell
+  now renders an explicit
+  `data-label="${sub} (Class/Exam)"` plus `data-label` on Student ID / Name / Class /
+  Action, so each mobile card identifies its subject (e.g. "ENGLISH (CLASS/EXAM)").
+- **`css/components.css`:** inside the `@media (max-width: 768px)` stacked-card block,
+  hide the redundant `.teacher-class-group-head` row per class — each student card now
+  labels its own subjects, so the header row is no longer needed on mobile.
