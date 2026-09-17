@@ -174,3 +174,16 @@ for every class filter. There was also no canonical admin UI to define "subjects
 ## Verification
 - ES-module syntax checks pass for `teacher-dashboard.js` and `admin-teachers.js`.
 - No schema change needed for these rounds (frontend-only refinements).
+
+---
+
+# Staff Photo on the Teacher Sidebar
+
+- **`js/modules/teacher-dashboard.js`:** added `updateTeacherSidebarPhoto(photoUrl)`
+  which injects the staff photo (`teachers.photo_url`) into the
+  `#teacherSidebar .dash-avatar` circle (the existing `.dash-avatar img` CSS makes
+  it a rounded cover-fit thumbnail; the default icon fallback stays when no photo).
+  - Called in `loadTeacherDashboard` so the photo appears every time a teacher logs in.
+  - Called again in `saveTeacherProfile` so the sidebar updates immediately after the
+    teacher uploads a new photo from "My Profile".
+- Admin and accountant sidebars already show their staff photos; teacher was the gap.

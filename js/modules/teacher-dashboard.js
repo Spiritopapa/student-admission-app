@@ -296,6 +296,9 @@ export async function loadTeacherDashboard(user) {
   // Get teacher's assigned classes and subjects
   const { classes, subjects, teacher } = await getTeacherClasses(user.id);
 
+  // Show the staff photo in the sidebar avatar (when uploaded).
+  updateTeacherSidebarPhoto(teacher?.photo_url);
+
   // Transport module access: only staff flagged as Transport Fees
   // Collectors see the Transport nav link on their dashboard.
   const transportNavBtn = document.querySelector('#teacherSidebar .dash-nav-link[data-teacher-page="transport"]');
@@ -2827,6 +2830,18 @@ async function deleteOldTeacherDocuments(teacherId, documentType) {
   }
 }
 
+/**
+ * Show the staff's photo in the teacher dashboard sidebar avatar.
+ * Uses teachers.photo_url (uploaded from the "My Profile" form). The existing
+ * .dash-avatar img CSS makes it a rounded, cover-fit thumbnail; when there is
+ * no photo yet, the default icon fallback stays in place.
+ */
+function updateTeacherSidebarPhoto(photoUrl) {
+  const avatarEl = document.querySelector('#teacherSidebar .dash-avatar');
+  if (!avatarEl || !photoUrl) return;
+  avatarEl.innerHTML = `<img src="${photoUrl}" alt="Staff Photo" />`;
+}
+
 async function saveTeacherProfile(e) {
   e.preventDefault();
   clearMessage('teacherProfileMessage');
@@ -3014,6 +3029,8 @@ async function saveTeacherProfile(e) {
     // Update sidebar name
     const sidebarName = getEl('teacherSidebarName');
     if (sidebarName) sidebarName.textContent = fullName;
+    // Update sidebar avatar with the latest staff photo
+    updateTeacherSidebarPhoto(payload.photo_url || null);
   } catch (err) {
     showMessage('teacherProfileMessage', 'Error: ' + err.message, 'error');
   } finally {
