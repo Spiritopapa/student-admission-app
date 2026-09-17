@@ -2776,6 +2776,11 @@
               <button type="button" class="btn btn-secondary" id="teacherBtnPrintReportCards">Print Report Cards</button>
             </div>
 
+            <div class="card-toolbar" style="margin-top:0.5rem;flex-wrap:wrap;">
+              <input type="text" id="teacherExamSearch" class="search-input" placeholder="Search student by name or ID..." style="max-width:320px;" />
+              <span style="font-size:0.85rem;color:var(--text-muted);" id="teacherExamSearchCount"></span>
+            </div>
+
             <div class="table-wrapper" style="margin-top:0.5rem;">
               <table class="app-table" id="teacherExamTable">
                 <!-- Header rows are rendered per class group by renderTeacherScoreSheet -->

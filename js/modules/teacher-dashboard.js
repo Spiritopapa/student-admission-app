@@ -141,6 +141,9 @@ export function setupTeacherDashboard() {
   getEl('teacherExamSelect')?.addEventListener('change', populateTeacherExamSubjectSelect);
   getEl('teacherExamClass')?.addEventListener('change', populateTeacherExamSubjectSelect);
   getEl('teacherExamSubject')?.addEventListener('change', () => {});
+  // Filter the loaded score sheet by student name or ID without re-rendering
+  // (so unsaved typed scores are never disturbed).
+  getEl('teacherExamSearch')?.addEventListener('input', filterTeacherExamStudents);
   getEl('teacherBtnSaveScores')?.addEventListener('click', saveTeacherExamScores);
   getEl('teacherBtnAutoRank')?.addEventListener('click', autoRankTeacherSubjects);
   getEl('teacherBtnPrintReportCards')?.addEventListener('click', printTeacherReportCards);
@@ -1861,6 +1864,10 @@ async function loadTeacherExamsPage() {
     if (teacherExamTableEl) {
       teacherExamTableEl.innerHTML = '<tbody><tr><td colspan="4" style="text-align:center;padding:2rem;color:var(--text-muted);">Select an exam and subject, then click &quot;Load Students&quot;.</td></tr></tbody>';
     }
+    // Reset the student search when leaving the score sheet.
+    const teacherSearchEl = getEl('teacherExamSearch');
+    if (teacherSearchEl) teacherSearchEl.value = '';
+    updateTeacherExamSearchCount();
 
   } catch (err) {
     console.error('Failed to load teacher exams page:', err);
@@ -2034,6 +2041,10 @@ export async function loadTeacherExamStudents() {
     };
 
     renderTeacherScoreSheet();
+    // A fresh sheet shows all students; reset any leftover search filter.
+    const teacherSearchEl = getEl('teacherExamSearch');
+    if (teacherSearchEl) teacherSearchEl.value = '';
+    updateTeacherExamSearchCount();
     const classCount = Object.keys(subjectsByClassMap).length;
     const subjectCount = availableSubjects.length;
     showMessage('teacherExamMessage', `Loaded ${allStudents.length} students across ${classCount} class${classCount !== 1 ? 'es' : ''} with ${subjectCount} subject${subjectCount !== 1 ? 's' : ''} loaded per class. Enter scores below.`, 'success');
@@ -2041,6 +2052,62 @@ export async function loadTeacherExamStudents() {
     console.error('Failed to load exam students:', err);
     showMessage('teacherExamMessage', 'Error: ' + err.message, 'error');
   }
+}
+
+/**
+ * Filter the loaded score sheet rows by student name or student ID. Works on
+ * the live DOM (hides/show rows + their class group) so unsaved typed scores
+ * in the inputs are never re-rendered or lost.
+ */
+function filterTeacherExamStudents() {
+  const query = (getEl('teacherExamSearch')?.value || '').trim().toLowerCase();
+  const table = getEl('teacherExamTable');
+  const countEl = getEl('teacherExamSearchCount');
+  if (!table) return;
+
+  const groups = table.querySelectorAll('tbody.teacher-class-group');
+  let visible = 0;
+  let total = 0;
+
+  groups.forEach(tbody => {
+    let groupVisible = 0;
+    const studentRows = Array.from(tbody.querySelectorAll('tr[data-student-id]'));
+    // Skip informational rows (e.g. no-subjects note) — no students to filter.
+    if (studentRows.length === 0) return;
+    total += studentRows.length;
+
+    studentRows.forEach(row => {
+      const text = row.textContent.toLowerCase() || '';
+      const match = !query || text.includes(query);
+      row.style.display = match ? '' : 'none';
+      if (match) groupVisible++;
+    });
+
+    const head = tbody.querySelector('tr.teacher-class-group-head');
+    if (head) head.style.display = groupVisible > 0 ? '' : 'none';
+    // Hide the whole class group when zero students match the search.
+    tbody.style.display = groupVisible > 0 ? '' : 'none';
+    visible += groupVisible;
+  });
+
+  if (countEl) {
+    countEl.textContent = total > 0 ? `${visible} / ${total} student(s) shown` : '';
+  }
+}
+
+/**
+ * Update the "X / Y students shown" label based on the current search filter.
+ */
+function updateTeacherExamSearchCount() {
+  const countEl = getEl('teacherExamSearchCount');
+  const table = getEl('teacherExamTable');
+  if (!countEl) return;
+  if (!table) { countEl.textContent = ''; return; }
+  const rows = table.querySelectorAll('tr[data-student-id]');
+  if (rows.length === 0) { countEl.textContent = ''; return; }
+  let visible = 0;
+  rows.forEach(r => { if (r.style.display !== 'none') visible++; });
+  countEl.textContent = `${visible} / ${rows.length} student(s) shown`;
 }
 
 /**
@@ -2087,6 +2154,7 @@ function renderTeacherScoreSheet() {
 
   if (!students || students.length === 0) {
     table.innerHTML = '<tbody><tr><td colspan="4" style="text-align:center;padding:2rem;color:var(--text-muted);">No students loaded.</td></tr></tbody>';
+    updateTeacherExamSearchCount();
     return;
   }
 
@@ -2102,6 +2170,7 @@ function renderTeacherScoreSheet() {
 
   if (classList.length === 0) {
     table.innerHTML = '<tbody><tr><td colspan="4" style="text-align:center;padding:2rem;color:var(--text-muted);">No subject columns are available for the selected class(es).</td></tr></tbody>';
+    updateTeacherExamSearchCount();
     return;
   }
 
@@ -2181,6 +2250,9 @@ function renderTeacherScoreSheet() {
       }
     });
   });
+
+  // Refresh the "shown" counter after a fresh render.
+  updateTeacherExamSearchCount();
 }
 
 /**

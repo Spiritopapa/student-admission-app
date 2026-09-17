@@ -231,3 +231,22 @@ longer has a `<thead>` (per-class headers are rendered as `<tbody>` group rows),
 - **`css/components.css`:** inside the `@media (max-width: 768px)` stacked-card block,
   hide the redundant `.teacher-class-group-head` row per class — each student card now
   labels its own subjects, so the header row is no longer needed on mobile.
+
+---
+
+# Teacher Exams — Search Bar for Students
+
+## Goal
+Quickly find a student in the loaded exam score sheet by name or ID.
+
+## Changes
+- **`index.html`:** added a search input (`#teacherExamSearch`, "Search student by name
+  or ID...") plus a live counter (`#teacherExamSearchCount`) in the exams module toolbar,
+  above the score table.
+- **`js/modules/teacher-dashboard.js`:**
+  - `filterTeacherExamStudents()` — filters the loaded sheet **on the live DOM**
+    (hides/shows `tr[data-student-id]` rows and their whole class group), so unsaved
+    typed scores are never re-rendered or lost. Matches name or student ID (case-insensitive).
+  - `updateTeacherExamSearchCount()` — shows "X / Y student(s) shown".
+  - Search input listener wired in `setupTeacherDashboard`; the search box resets when a
+    new sheet is loaded or the exams page is opened, and the counter updates after render.
