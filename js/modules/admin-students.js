@@ -607,50 +607,65 @@ export function setupAdmitForm() {
 
       if (insertError) throw new Error('Insert failed: ' + insertError.message);
 
-      // Look up fee structure for this class, current academic year, and the selected term
-      // so the correct term fee for that year is applied to the newly admitted student.
-      const { data: classFee } = await supabaseClient.from('class_fees')
-        .select('fee_amount, academic_year')
-        .eq('class_name', getEl('admitClass').value)
-        .eq('academic_year', academicYear)
-        .eq('term', currentTerm)
-        .maybeSingle();
-      
-      const feeYear = classFee?.academic_year || academicYear;
-      // Class (term) fee: use the amount entered on the admit form (auto-filled
-      // from the fee structure), falling back to the stored fee structure record.
-      const classFeeAmount = Number(getEl('admitClassFeeAmount')?.value || 0) || Number(classFee?.fee_amount) || 0;
+      // When the Term Fees block on the admit form is hidden because the
+      // Settings / Fees modules are locked for this school, do NOT create/charge
+      // any fee record — the school does not use the fee modules, so no fee data
+      // should be generated from those settings.
+      const termFeeSectionEl = getEl('admitTermFeesSection');
+      const feesDisabled = !!termFeeSectionEl && (
+        termFeeSectionEl.style.display === 'none' || termFeeSectionEl.hasAttribute('hidden')
+      );
 
-      // Additional admission items (from Settings) entered on the admit form.
+      let feeYear = academicYear;
+      let classFeeAmount = 0;
       const breakdownItems = [];
-      let totalAmount = classFeeAmount;
-      document.querySelectorAll('#admitAdditionalFees .admit-item-amount').forEach((input) => {
-        const amt = Number(input.value || 0) || 0;
-        if (amt > 0) {
-          breakdownItems.push({ name: input.getAttribute('data-item-name') || 'Additional Fee', amount: amt });
-        }
-        totalAmount += amt;
-      });
-      const feeBreakdown = {
-        class_fee: classFeeAmount,
-        items: breakdownItems,
-        academic_year: feeYear,
-        term: currentTerm,
-        generated_at: new Date().toISOString(),
-      };
+      let totalAmount = 0;
 
-      await supabaseClient.from('fees').upsert([{
-        student_id: studentId,
-        academic_year: feeYear,
-        term: currentTerm,
-        total_amount: totalAmount,
-        amount_paid: 0,
-        debt: 0,
-        payment_status: totalAmount > 0 ? 'unpaid' : 'paid',
-        last_payment_date: null,
-        school_id: schoolId,
-        fee_breakdown: feeBreakdown,
-      }], { onConflict: 'student_id,academic_year,term' });
+      if (!feesDisabled) {
+        // Look up fee structure for this class, current academic year, and the selected term
+        // so the correct term fee for that year is applied to the newly admitted student.
+        const { data: classFee } = await supabaseClient.from('class_fees')
+          .select('fee_amount, academic_year')
+          .eq('class_name', getEl('admitClass').value)
+          .eq('academic_year', academicYear)
+          .eq('term', currentTerm)
+          .maybeSingle();
+
+        feeYear = classFee?.academic_year || academicYear;
+        // Class (term) fee: use the amount entered on the admit form (auto-filled
+        // from the fee structure), falling back to the stored fee structure record.
+        classFeeAmount = Number(getEl('admitClassFeeAmount')?.value || 0) || Number(classFee?.fee_amount) || 0;
+
+        // Additional admission items (from Settings) entered on the admit form.
+        totalAmount = classFeeAmount;
+        document.querySelectorAll('#admitAdditionalFees .admit-item-amount').forEach((input) => {
+          const amt = Number(input.value || 0) || 0;
+          if (amt > 0) {
+            breakdownItems.push({ name: input.getAttribute('data-item-name') || 'Additional Fee', amount: amt });
+          }
+          totalAmount += amt;
+        });
+        const feeBreakdown = {
+          class_fee: classFeeAmount,
+          items: breakdownItems,
+          academic_year: feeYear,
+          term: currentTerm,
+          generated_at: new Date().toISOString(),
+        };
+
+        await supabaseClient.from('fees').upsert([{
+          student_id: studentId,
+          academic_year: feeYear,
+          term: currentTerm,
+          total_amount: totalAmount,
+          amount_paid: 0,
+          debt: 0,
+          payment_status: totalAmount > 0 ? 'unpaid' : 'paid',
+          last_payment_date: null,
+          school_id: schoolId,
+          fee_breakdown: feeBreakdown,
+        }], { onConflict: 'student_id,academic_year,term' });
+      }
 
       showMessage('admitMessage', `Student admitted! <strong>ID: ${studentId}</strong>`, 'success');
       logSubAdminActivity(`Admitted student "${buildStudentName(getEl('admitFirstName').value.trim(), getEl('admitMiddleName').value.trim(), getEl('admitLastName').value.trim())}"`, 'student', `${studentId}`);
@@ -675,6 +690,7 @@ export function setupAdmitForm() {
             classFee: classFeeAmount,
             items: breakdownItems,
             totalAmount,
+            includeFees: !feesDisabled,
           }, `Admission Form - ${studentName}`);
         }
       } catch (genErr) {

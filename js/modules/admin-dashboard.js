@@ -1023,6 +1023,16 @@ function renderDashboard() {
           <span class="dash-overview-label">Portal Confirmed</span>
         </div>
       </div>
+      <!-- Staff (Teaching / Non-Teaching) — hidden when the teachers module is locked -->
+      ${showTeachers ? `
+      <div class="dash-overview-card animated-card" style="--accent:var(--purple);">
+        <div class="dash-overview-icon">${svgIcon('users')}</div>
+        <div class="dash-overview-info">
+          <span class="dash-overview-number" id="dashTotalStaff">0</span>
+          <span class="dash-overview-label">Staff</span>
+          <span style="display:block;font-size:0.72rem;color:var(--text-muted);margin-top:0.15rem;" id="dashStaffBreakdown">Teaching 0 · Non-Teaching 0</span>
+        </div>
+      </div>` : ''}
     </div>
 
     <!-- Today's Attendance by Class -->
@@ -1196,7 +1206,13 @@ function animateDashboardCounters() {
     { id: 'dashFemale', target: allStudents.filter(s => s.gender === 'Female').length },
     { id: 'dashMale', target: allStudents.filter(s => s.gender === 'Male').length },
     { id: 'dashConfirmed', target: allStudents.filter(s => s.portal_confirmed).length },
+    { id: 'dashTotalStaff', target: allTeachers.length },
   ];
+
+  // Staff split (teaching / non-teaching) static sub-line under the Staff card
+  const nonTeachingCount = allTeachers.filter(t => t.staff_type === 'non_teaching').length;
+  const staffBreakdownEl = document.getElementById('dashStaffBreakdown');
+  if (staffBreakdownEl) staffBreakdownEl.textContent = `Teaching ${allTeachers.length - nonTeachingCount} · Non-Teaching ${nonTeachingCount}`;
 
   configs.forEach((cfg, index) => {
     const el = document.getElementById(cfg.id);

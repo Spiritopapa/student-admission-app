@@ -40,6 +40,7 @@ export function buildAdmissionFormHTML(params) {
     classFee = 0,
     items = [],
     totalAmount = 0,
+    includeFees = true,
   } = params;
 
   const fullName = `${student.first_name || ''} ${student.middle_name || ''} ${student.last_name || ''}`.replace(/\s+/g, ' ').trim();
@@ -174,6 +175,7 @@ export function buildAdmissionFormHTML(params) {
       </tbody>
     </table>
 
+    ${includeFees ? `
     <!-- ===== FEES ===== -->
     <div class="section-title">&#128176; Term Fees (${esc(academicYear)} &middot; ${esc(termLabel(term))})</div>
     <table class="details">
@@ -188,16 +190,23 @@ export function buildAdmissionFormHTML(params) {
           <td style="padding:0.6rem 1rem;text-align:right;">GHC ${formatCurrency(totalAmount)}</td>
         </tr>
       </tbody>
-    </table>
+    </table>` : ''}
 
-    <p class="note">
+    ${includeFees
+      ? `<p class="note">
       This form confirms that <strong>${esc(fullName)}</strong> has been admitted
       to <strong>${esc(schoolName)}</strong> for the
       <strong>${esc(termLabel(term))}</strong> of the
       <strong>${esc(academicYear)}</strong> academic year. The total term fee payable
       is <strong>GHC ${formatCurrency(totalAmount)}</strong>. Items marked under
       &ldquo;Additional Admission Fees&rdquo; are charges agreed at admission.
-    </p>
+    </p>`
+      : `<p class="note">
+      This form confirms that <strong>${esc(fullName)}</strong> has been admitted
+      to <strong>${esc(schoolName)}</strong> for the
+      <strong>${esc(termLabel(term))}</strong> of the
+      <strong>${esc(academicYear)}</strong> academic year.
+    </p>`}
 
     <!-- ===== SIGNATURES ===== -->
     <div class="signatures">

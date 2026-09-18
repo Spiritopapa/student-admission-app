@@ -250,3 +250,90 @@ Quickly find a student in the loaded exam score sheet by name or ID.
   - `updateTeacherExamSearchCount()` — shows "X / Y student(s) shown".
   - Search input listener wired in `setupTeacherDashboard`; the search box resets when a
     new sheet is loaded or the exams page is opened, and the counter updates after render.
+---
+
+# Settings Module Lock — Hide Settings-Dependent UI (Term Fees on Admit Form)
+
+## Problem
+1. The `settings` module was registered as a **core** module
+   (`sql/061-admission-settings.sql`, `is_core = true`), so the Super Admin
+   module manager **disables its Lock/Unlock toggle** — Settings could never
+   actually be locked per school.
+2. Even when a module is locked, only the module's **own** sidebar item /
+   page section was hidden. The admit "Add Student" form's **Term Fees
+   (Class Fee + Additional Items)** block — sourced from the Settings module
+   (Admission Items) and the Fees module (class-fee structure) — stayed
+   visible, so "settings" data leaked into the student-admission flow.
+
+## Fixes
+- **`sql/070-settings-module-lock.sql`** (new, wired into `sql/000-run-all.sql`):]
+   flips `public.modules.is_core` to `false` for `'settings'` so the Super
+   Admin can lock/unlock it per school like every other non-core module.
+
+- **`js/app.js`** (`filterAdminSidebarByLockedModules`)::
+   added `LOCKED_MODULE_DEPENDENT_SECTIONS` — when `settings` or `fees` is
+   locked, the `#admitTermFeesSection` block on the **Admit Student** page is
+   hidden too (alongside the existing sidebar/page hiding),and reset when
+   unlocked. This pattern generalizes easily to any other cross-page dependency..
+
+- **`index.html`** — the Admit form's Term Fees `<details>` block now carries
+   `id="admitTermFeesSection"`.
+
+- **`js/modules/admin-students.js`** (admit submit)::
+   when the Term Fees block is hidden because Settings/Fees is locked, NO fee
+   record is created and NO fee charges appear — `includeFees:false` is passed
+   to the generated Admission Form..
+
+- **`js/modules/admission-form.js`** — supports `includeFees`; when `false`,
+   the printed Admission Form omits the Term Fees table and fee note..
+
+## Audit — other lock modules' dependencies
+- **fees** → admit form Term Fees block hidden ✔ (now, along with Fees page + dashboard fee widgets already gated).
+- **settings** → Settings page hidden ✔ + admit form Term Fees block hidden ✔ (now).
+- **transport** → own page hidden ✔; dashboard today-transport widget already
+   gated by `admin-dashboard.js` `fetchLockedModules()` ✔; no admit-form dep..
+- **students / teachers / accountants / parents / announcements / attendance /
+   exams / assessments / income-expenses / sms-monitoring** → each owns a page
+   that is already hidden when locked ✔; adopt form has no other cross-page deps..
+- Edit-student forms (inline + `edit-student.html` popup) contain no fee
+   fields, so nothing settings-related to hide there. ✔
+---
+
+# Backup & Restore Added to the Super Admin Module Lock System
+
+## What changed
+- **`sql/071-backup-module.sql`** (new, wired into `sql/000-run-all.sql` as
+  Step 64): registers a **non-core** `backup` module
+  (`('backup', 'Backup & Restore', '', false, 14)`).
+  Because it's non-core, the Super Admin module manager
+  (`get_school_module_status` → `renderModuleToggles`) now shows an
+  **enabled Lock/Unlock toggle** for "Backup & Restore" per school.
+- No front-end code changes were required: `filterAdminSidebarByLockedModules()`
+  already hides any `[data-admin-page]` sidebar button and matching
+  `page-admin-*` section generically, so locking `backup` hides the "Backup &
+  Restore" sidebar item and the `page-admin-backup` page automatically.
+  (The mobile admin dock does not include a Backup chip, and nothing else
+  references the Backup page, so there are no dependent sections to hide.)
+
+## Notes
+- Apply the migration (`sql/071-backup-module.sql`) to existing databases;
+  `sql/000-run-all.sql` includes it for fresh installs.
+- Locking Backup & Restore only affects the school admin/sub-admin sidebar —
+  it does not touch the actual stored data, matching every other module lock.
+---
+
+# Admin Dashboard — Staff Card (Teaching / Non-Teaching)
+
+## What changed
+- **`js/modules/admin-dashboard.js`** (`renderDashboard`): added a **Staff**
+  overview card (large total count + a sub-line `Teaching X · Non-Teaching Y`)
+  to the dashboard overview cards row, gated on `showTeachers` (so it
+  disappears when the Super Admin locks the teachers module — mirroring
+  `fetchTeachers()` which already skips loading when locked).
+- **`animateDashboardCounters`:** added the Staff total to the animated counters
+  and populates the teaching / non-teaching split from `teachers.staff_type`
+  (`'non_teaching'` vs everything else, matching the Staff module's display logic).
+
+## Notes
+- "Staff" in this app = the `teachers` table (the sidebar "Staff" module);
+  `staff_type` values are `'teaching'` / `'non_teaching'` (`sql/050-teacher-staff-type.sql`), so the card counts those. Accountants remain a separate module/page.

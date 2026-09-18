@@ -345,6 +345,20 @@
      (the DOM is injected by js/modules/navigation.js). */
   .sidebar-mobile-header {
     display: flex;
+    /* Keep the sidebar shortcut (☰) visible while the dashboard scrolls:
+       stick it just below the sticky navbar so users can always reach the
+       sidebar drawer without scrolling back to the top. */
+    position: sticky;
+    top: calc(var(--nav-height) + var(--safe-top));
+    z-index: 40;
+    background: var(--glass-bg-strong);
+    backdrop-filter: blur(24px) saturate(1.4);
+    -webkit-backdrop-filter: blur(24px) saturate(1.4);
+    border-bottom: 1px solid var(--glass-border);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+    border-radius: 0;
+    margin: 0 0 0.75rem;
+    padding: 0.4rem;
   }
 
   .sidebar-toggle-btn {

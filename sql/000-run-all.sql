@@ -520,6 +520,30 @@
 --          js/modules/admin-exams.js (scoped exam subject selector),
 --          js/modules/teacher-dashboard.js (class-scoped exam subjects).
 \i 069-class-subjects-canonical.sql
+
+-- Step 63: Settings Module Lockable
+-- Flips public.modules.is_core to false for the 'settings' module so the
+-- Super Admin can lock/unlock it per school (the Lock button is disabled
+-- for core modules). When 'settings' (or 'fees') is locked, the Settings
+-- page AND the Settings-fed "Term Fees (Class Fee + Additional Items)"
+-- block on the Admit Student form are hidden for that school, and no fee
+-- records are created on admission.
+-- Used by: js/app.js (filterAdminSidebarByLockedModules),
+--          js/modules/admin-students.js (admit form fee charges),
+--          js/modules/super-admin.js (module lock manager).
+\i 070-settings-module-lock.sql
+
+-- Step 64: Backup & Restore Module Registration
+-- Registers the 'backup' module (Backup & Restore admin page) as a
+-- non-core module so the Super Admin can lock/unlock it per school like
+-- every other module. When locked, js/app.js hides the sidebar item and
+-- the page-admin-backup section for that school. Backup & Restore is a
+-- standalone admin page that nothing else references, so no other
+-- dependent UI exists to hide elsewhere.
+-- Used by: js/app.js (filterAdminSidebarByLockedModules),
+--          js/modules/super-admin.js (module lock manager),
+--          js/modules/backup-restore.js (the page itself).
+\i 071-backup-module.sql
 -- ============================================================
 --  SCHEMA DEPLOYMENT COMPLETE
 -- ============================================================

@@ -316,6 +316,16 @@ async function filterAdminSidebarByLockedModules() {
       .eq('is_locked', true);
     
     const lockedNames = new Set((lockedModules || []).map(m => m.module_name));
+
+    // Sections on OTHER pages that are fed by a locked module's data and must
+    // also disappear. For example the "Term Fees (Class Fee + Additional
+    // Items)" block on the Admit Student form is sourced from the Settings
+    // module (Admission Items) and the Fees module (class-fee structure), so
+    // whenever either of those is locked the whole block is hidden too.
+    const LOCKED_MODULE_DEPENDENT_SECTIONS = {
+      settings: ['#admitTermFeesSection'],
+      fees: ['#admitTermFeesSection'],
+    };
     
     // First, reset all sidebar buttons and page sections to visible
     document.querySelectorAll('#adminSidebar .dash-nav-link[data-admin-page]').forEach((btn) => {
@@ -323,6 +333,13 @@ async function filterAdminSidebarByLockedModules() {
     });
     document.querySelectorAll('.page[id^="page-admin-"]').forEach((page) => {
       page.style.display = '';
+    });
+    // Reset any dependent sections to visible (they may have been hidden on a previous pass)
+    Object.values(LOCKED_MODULE_DEPENDENT_SECTIONS).forEach((selectors) => {
+      selectors.forEach((selector) => {
+        const el = document.querySelector(selector);
+        if (el) el.style.display = '';
+      });
     });
     
     // Hide sidebar buttons for locked modules
@@ -339,6 +356,15 @@ async function filterAdminSidebarByLockedModules() {
       if (pageEl) {
         pageEl.style.display = 'none';
       }
+    });
+
+    // Hide dependent sections for locked modules (e.g. admit form Term Fees)
+    Object.entries(LOCKED_MODULE_DEPENDENT_SECTIONS).forEach(([moduleName, selectors]) => {
+      if (!lockedNames.has(moduleName)) return;
+      selectors.forEach((selector) => {
+        const el = document.querySelector(selector);
+        if (el) el.style.display = 'none';
+      });
     });
 
     // Keep the mobile admin dock's module chips in sync with these locks.
