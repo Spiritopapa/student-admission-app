@@ -388,3 +388,76 @@ Consistency confirmed elsewhere (no change needed):
   teachers, students) are now hidden from the admin dashboard home; the
   gating also survives the 30s polling and realtime refresh paths because
   `fetchLockedModules()` is re-run before each render.
+# Module Icon Audit — Every Action Button Gets a Classic Icon
+
+## Problem
+The emoji → SVG-sprite icon migration (`js/modules/icons.js`) re-introduced
+classic icons for sidebars, headings and `.btn` buttons, but left many
+action buttons without an icon:
+
+1. **`action-btn` table buttons had no icon pass.** `View` / `Edit` /
+   `Delete` / `Password` / `Activity` / `Unlink` / `Info` / `Modules` /
+   `Approve` / `Pay` / `Reprint` etc. relied on emoji that had been
+   stripped, and the keyword pass only scanned `.btn`.
+2. **Many `.btn` labels had no keyword-phrase match** (`Save Class`,
+   `Add Question`, `Register as School`, `Delete Scores`, `View`,
+   `Edit Info`, `Unsent / Failed`, `Load more`, `Publish/Unpublish`,
+   `Activate/Deactivate`, `Enable/Disable`, `Locked/Active`, …) so they
+   rendered with no icon.
+3. **Nav links without `NAV_ICONS` entries** — Super-Admin sidebar items
+   `School Applications` (`data-super-page="applications"`) and
+   `Bugs & Suggestions` (`data-super-page="reports"`).
+4. **Non-classic unicode glyphs still inside buttons** (`▶ Start`,
+   `▶ Resume`, `✓ Mark all paid`, `← Back`, `Next →`, `× Remove`).
+5. **Icon-only action buttons** (`editGradeRow`/`deleteGradeRow`,
+   `ieEditRecord`/`ieDeleteRecord`, reprint) had no icon; the admit-form
+   PDF preview **Share/Download/Print** buttons (`__adhPreview*`).
+
+## Fixes
+- **`js/modules/icons.js`**:
+  - `NAV_ICONS` += `applications: 'mail'`, `reports: 'alert'`.
+  - `PHRASE_ICONS` extended with ~100 phrases mapping every uncovered
+    action-button label to a classic sprite (eye/edit/trash/save/plus/
+    key/coins/printer/calendar/clock/check-circle/…). Generic single
+    words (`view/edit/delete/save/add/cancel/remove/back/reset/…`) are
+    added last — the array is auto-sorted longest-first so specific
+    phrases always win (e.g. `reset password` → key beats `reset` →
+    refresh; `print report` → printer beats `report` → file-text).
+  - The button keyword pass now scans `.btn`, `button.action-btn`,
+    `[data-atab]`, `[data-tatab]`, `.fee-tab`, `.transport-tab`,
+    `.exam-tab`, `.ie-tab`, `.sms-tab`, `.att-mode-btn`, `.fee-print-btn`,
+    `.tr-bulk-paid`, `.tr-bulk-unpaid`, `.tr-mark-paid-btn`,
+    `.announcement-popup-dismiss`, `.announcement-popup-remind`.
+  - Icon-only `button.action-btn` infer the icon from `onclick`/`title`
+    (delete→trash, edit→edit, print→printer, view→eye, save, pay, key).
+  - New section 8: `__adhPreviewShare/Download/Print` get share/download/
+    printer icons.
+  - `iconizeTaggedNode` now also adds the `.app-iconized` class so the
+    existing icon spacing CSS actually applies.
+- **`css/icons.css`**: `.app-iconized > .app-icon` margin rule extended to
+  all the new button/tab/quick-action classes.
+- **Unicode glyphs replaced with classic SVG icons** in source:
+  `assessment-taking.js` (`▶ Start`/`▶ Resume`/`← Back to Assessments`),
+  `transport-shared.js` + `admin-transport.js` (`✓ Mark all paid`),
+  `attendance-report.html` (`← Back to Dashboard`), `index.html`
+  (wizard `Next →` / `← Back` / `Continue →` / `Next → Generate School
+  ID` / `× Remove`).
+
+## Notes
+- Runtime-dynamic labels (e.g. `Publish/Unpublish`, `Locked/Active`,
+  `Pay · GHC x`, `Deactivate/Activate`, `Enable/Disable`) are covered at
+  render time by the MutationObserver re-running the phrase pass on the
+  rendered text.
+- Intentionally left as glyph hex-chips: P/A/L/E attendance status
+  buttons, deep-search first-letter avatars, `☰` hamburger, `×` close/
+  remove buttons, question-number chips — these already show their own
+  visible glyph.
+
+## Verification
+- `node --check` passes for `icons.js`, `assessment-taking.js`,
+  `transport-shared.js`, `admin-transport.js`, `admin-dashboard.js`,
+  `utils.js` (all exit 0).
+- A scripted audit of all 533 `<button>` occurrences in the source (JS +
+  HTML) confirmed every labelled action button is now matched by either
+  an explicit SVG icon in the markup or the keyword pass.
+- `css/icons.css` braces balanced.

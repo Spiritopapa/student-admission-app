@@ -429,7 +429,7 @@ async function renderDailyTab() {
       </div>
       <div class="tr-student-list">${studentRows}</div>
       <div class="tr-route-actions">
-        <button type="button" class="tr-bulk-paid" onclick="trMarkAllRoutePaid('${route.id}')">✓ Mark all paid</button>
+        <button type="button" class="tr-bulk-paid" onclick="trMarkAllRoutePaid('${route.id}')">${svgIcon('check-circle')} Mark all paid</button>
         <button type="button" class="tr-bulk-unpaid" onclick="trMarkAllRouteUnpaid('${route.id}')">Reset all</button>
       </div>
     </div>`);

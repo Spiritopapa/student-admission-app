@@ -6,6 +6,7 @@
 
 import { getEl, showMessage, clearMessage, setLoading, openPrintWindow } from './utils.js';
 import { esc, buildPrintShell } from './assessment-shared.js';
+import { svgIcon } from './icons.js';
 
 let supabaseClient = null;
 let _studentId = null;
@@ -71,10 +72,10 @@ export async function loadStudentAssessments() {
     let statusHtml, actionHtml;
     if (!att) {
       statusHtml = '<span class="score-chip untaken">Not started</span>';
-      actionHtml = `<button type="button" class="btn btn-primary" onclick="beginStudentAssessment('${a.id}')">▶ Start</button>`;
+      actionHtml = `<button type="button" class="btn btn-primary" onclick="beginStudentAssessment('${a.id}')">${svgIcon('check-circle')} Start</button>`;
     } else if (!att.is_submitted) {
       statusHtml = '<span class="score-chip untaken">In progress</span>';
-      actionHtml = `<button type="button" class="btn btn-primary" onclick="beginStudentAssessment('${a.id}')">▶ Resume</button>`;
+      actionHtml = `<button type="button" class="btn btn-primary" onclick="beginStudentAssessment('${a.id}')">${svgIcon('refresh')} Resume</button>`;
     } else {
       statusHtml = att.status === 'passed' ? '<span class="score-chip passed">Passed</span>' : '<span class="score-chip failed">Failed</span>';
       actionHtml = `<span style="font-size:0.9rem;font-weight:700;color:var(--text);">${att.score}/${att.total_marks} (${att.score_percentage}%)</span>
@@ -262,10 +263,10 @@ async function reloadStudentAssessmentList() {
     let statusHtml, actionHtml;
     if (!att) {
       statusHtml = '<span class="score-chip untaken">Not started</span>';
-      actionHtml = `<button type="button" class="btn btn-primary" onclick="beginStudentAssessment('${a.id}')">▶ Start</button>`;
+      actionHtml = `<button type="button" class="btn btn-primary" onclick="beginStudentAssessment('${a.id}')">${svgIcon('check-circle')} Start</button>`;
     } else if (!att.is_submitted) {
       statusHtml = '<span class="score-chip untaken">In progress</span>';
-      actionHtml = `<button type="button" class="btn btn-primary" onclick="beginStudentAssessment('${a.id}')">▶ Resume</button>`;
+      actionHtml = `<button type="button" class="btn btn-primary" onclick="beginStudentAssessment('${a.id}')">${svgIcon('refresh')} Resume</button>`;
     } else {
       statusHtml = att.status === 'passed' ? '<span class="score-chip passed">Passed</span>' : '<span class="score-chip failed">Failed</span>';
       actionHtml = `<span style="font-weight:700;">${att.score}/${att.total_marks} (${att.score_percentage}%)</span><button type="button" class="btn btn-secondary" onclick="viewStudentAssessmentResult('${a.id}')">Review</button>`;
@@ -326,7 +327,7 @@ function renderTakenView(kind, data, existing, prev) {
       <div style="margin-top:0.5rem;">${scoreChip}</div>
     </div>
     <div style="margin-top:1rem;"><h3 style="margin-bottom:0.5rem;">Review your answers</h3>${reviewRows}</div>
-    <div style="text-align:center;margin-top:1rem;"><button type="button" class="btn btn-primary" onclick="printStudentAssessmentResult()">Print Result</button> <button type="button" class="btn btn-secondary" onclick="loadStudentAssessments()">← Back to Assessments</button></div>`;
+    <div style="text-align:center;margin-top:1rem;"><button type="button" class="btn btn-primary" onclick="printStudentAssessmentResult()">${svgIcon('printer')} Print Result</button> <button type="button" class="btn btn-secondary" onclick="loadStudentAssessments()">${svgIcon('home')} Back to Assessments</button></div>`;
 }
 
 // ================================================================

@@ -368,7 +368,7 @@
         <div id="regSchoolStage1">
           <p class="subtitle" style="color:var(--text-muted);font-size:0.8rem;margin-bottom:0.5rem;">Step 1 of 4 — enter the School ID provided by your Super Administrator.</p>
           <div class="form-group"><label for="regSchoolID">School ID *</label><input type="text" id="regSchoolID" required placeholder="e.g. SCH-SIS-0001" autocomplete="off" /></div>
-          <button type="button" class="btn btn-primary btn-full" onclick="schoolWizardCreateNext()">Next →</button>
+          <button type="button" class="btn btn-primary btn-full" onclick="schoolWizardCreateNext()">Next</button>
         </div>
 
         <!-- Stage 2 — Auto School Name -->
@@ -376,8 +376,8 @@
           <p class="subtitle" style="color:var(--text-muted);font-size:0.8rem;margin-bottom:4px;">Step 2 of 4 — we found your school:</p>
           <div class="form-group"><label>School Name</label><div style="padding:0.65rem 0.85rem;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);font-weight:700;" id="regSchoolNameAuto">—</div></div>
           <div style="display:flex;gap:0.75rem;align-items:center;">
-            <button type="button" class="btn btn-secondary" onclick="schoolWizardGoTo(1)">← Back</button>
-            <button type="button" class="btn btn-primary" onclick="schoolWizardGoTo(3)">Next →</button>
+            <button type="button" class="btn btn-secondary" onclick="schoolWizardGoTo(1)">Back</button>
+            <button type="button" class="btn btn-primary" onclick="schoolWizardGoTo(3)">Next</button>
           </div>
         </div>
 
@@ -409,8 +409,8 @@
           <div class="form-group"><label for="regSchoolEmail">School Email (for login)</label><input type="email" id="regSchoolEmail" required placeholder="admin@school.com" /></div>
           <div class="form-group"><label for="regSchoolPhone">Mobile Number * (for password change)</label><input type="tel" id="regSchoolPhone" required placeholder="e.g. 0244 000 000" /></div>
           <div style="display:flex;gap:0.75rem;align-items:center;">
-            <button type="button" class="btn btn-secondary" onclick="schoolWizardGoTo(2)">← Back</button>
-            <button type="button" class="btn btn-primary" onclick="schoolWizardGoTo(4)">Next →</button>
+            <button type="button" class="btn btn-secondary" onclick="schoolWizardGoTo(2)">Back</button>
+            <button type="button" class="btn btn-primary" onclick="schoolWizardGoTo(4)">Next</button>
           </div>
         </div>
 
@@ -419,7 +419,7 @@
           <p class="subtitle" style="color:var(--text-muted);font-size:0.8rem;margin-bottom:4px;">Step 4 of 4 — choose your sign-in password (min 6 characters).</p>
           <div class="form-group"><label for="regSchoolPassword">Password *</label><input type="password" id="regSchoolPassword" required minlength="6" autocomplete="new-password" /></div>
           <div style="display:flex;gap:0.75rem;align-items:center;">
-            <button type="button" class="btn btn-secondary" onclick="schoolWizardGoTo(3)">← Back</button>
+            <button type="button" class="btn btn-secondary" onclick="schoolWizardGoTo(3)">Back</button>
             <button type="submit" class="btn btn-primary btn-full">Register as School</button>
           </div>
           <p class="auth-alt">Don't have an ID? Ask your Super Administrator.</p>
@@ -558,7 +558,7 @@
               <label for="fpIdentifier">Email or Student / Staff ID *</label>
               <input type="text" id="fpIdentifier" required placeholder="e.g. SCH-0001 or you@email.com" style="width:100%;padding:0.6rem;" />
             </div>
-            <button type="button" class="btn btn-primary btn-full" id="fpContinueBtn">Continue →</button>
+            <button type="button" class="btn btn-primary btn-full" id="fpContinueBtn">Continue</button>
             <p class="auth-alt" style="margin-top:0.75rem;">Remembered your password? <a href="#" onclick="closeForgotPasswordModal()">Back to sign in</a></p>
           </div>
 
@@ -3191,7 +3191,7 @@
                 <p class="subtitle" id="newSchoolVersionNote" style="color:var(--text-muted);font-size:0.8rem;max-width:460px;">
                   Full Version — unlimited access to all enabled modules.
                 </p>
-                <button type="button" class="btn btn-primary" id="btnSchoolGenNext" onclick="superSchoolGenerateNext()">Next → Generate School ID</button>
+                <button type="button" class="btn btn-primary" id="btnSchoolGenNext" onclick="superSchoolGenerateNext()">Generate School ID</button>
               </div>
 
               <!-- Step 2 : Generated ID + remaining details -->
@@ -3219,7 +3219,7 @@
                       </div>
                       <input type="file" id="newSchoolLogoInput" accept="image/png,image/jpeg,image/jpg,image/webp" style="display:none;" />
                       <button type="button" class="btn btn-sm btn-secondary" onclick="document.getElementById('newSchoolLogoInput').click()" style="margin-top:0.5rem;">Upload Logo</button>
-                      <button type="button" class="btn btn-sm btn-danger" id="newSchoolLogoClear" style="display:none;margin-top:0.5rem;margin-left:0.25rem;" onclick="clearNewSchoolLogo()">× Remove</button>
+                      <button type="button" class="btn btn-sm btn-danger" id="newSchoolLogoClear" style="display:none;margin-top:0.5rem;margin-left:0.25rem;" onclick="clearNewSchoolLogo()">Remove</button>
                     </div>
                   </div>
                   <div class="form-group">
@@ -3228,7 +3228,7 @@
                   </div>
                 </div>
                 <div style="display:flex;gap:0.75rem;align-items:center;">
-                  <button type="button" class="btn btn-secondary" onclick="superSchoolBackToStep1()">← Back</button>
+                  <button type="button" class="btn btn-secondary" onclick="superSchoolBackToStep1()">Back</button>
                   <button type="submit" class="btn btn-primary btn-full" id="saveSchoolBtn">Create School</button>
                 </div>
               </form>

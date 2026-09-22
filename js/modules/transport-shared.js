@@ -553,7 +553,7 @@ function renderDailyCards() {
     // Collectors can only ADD collections — deleting / resetting stays with the Admin.
     const actionsHtml = manageMode()
       ? `<div class="tr-route-actions">
-          <button type="button" class="tr-bulk-paid" onclick="tsMarkAllRoutePaid('${route.id}')">✓ Mark all paid</button>
+          <button type="button" class="tr-bulk-paid" onclick="tsMarkAllRoutePaid('${route.id}')">${svgIcon('check-circle')} Mark all paid</button>
         </div>`
       : '';
 

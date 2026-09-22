@@ -29,7 +29,22 @@ h2.app-iconized > .app-icon,
 h3.app-iconized > .app-icon,
 h4.app-iconized > .app-icon,
 summary.app-iconized > .app-icon,
-.btn.app-iconized > .app-icon { margin-right: 0.3em; vertical-align: -0.15em; }
+.btn.app-iconized > .app-icon,
+.action-btn.app-iconized > .app-icon,
+.fee-tab.app-iconized > .app-icon,
+.transport-tab.app-iconized > .app-icon,
+.exam-tab.app-iconized > .app-icon,
+.ie-tab.app-iconized > .app-icon,
+.sms-tab.app-iconized > .app-icon,
+.att-mode-btn.app-iconized > .app-icon,
+.fee-print-btn.app-iconized > .app-icon,
+.tr-bulk-paid.app-iconized > .app-icon,
+.tr-bulk-unpaid.app-iconized > .app-icon,
+.tr-mark-paid-btn.app-iconized > .app-icon,
+[data-atab].app-iconized > .app-icon,
+[data-tatab].app-iconized > .app-icon,
+.announcement-popup-dismiss.app-iconized > .app-icon,
+.announcement-popup-remind.app-iconized > .app-icon { margin-right: 0.3em; vertical-align: -0.15em; }
 
 /* ---- Fixed-size containers ---- */
 .dash-nav-icon > .app-icon { width: 18px; height: 18px; display: block; }

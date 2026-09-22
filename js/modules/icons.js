@@ -59,6 +59,8 @@ const NAV_ICONS = {
   'my-ward': 'parents',
   receipts: 'receipt',
   debtors: 'alert',
+  applications: 'mail',
+  reports: 'alert',
 };
 /**
  * Inline SVG sprite source (Lucide-style, stroke-based, 24x24). Only
@@ -253,6 +255,135 @@ const PHRASE_ICONS = [
   ['backup', 'archive'],
   ['fees', 'coins'],
   ['warning', 'alert'],
+  // ——— Additional action-button phrases (classic sprite icons) ———
+  ['30-day checkbox mode', 'calendar'],
+  ['30-day grid', 'calendar'],
+  ['all absent', 'x'],
+  ['all present', 'check-circle'],
+  ['all sms', 'message-square'],
+  ['apply filter', 'search'],
+  ['auto rank', 'trophy'],
+  ['back to assessments', 'home'],
+  ['back to dashboard', 'home'],
+  ['clear all logs', 'trash'],
+  ['collector destinations', 'map-pin'],
+  ['confirm & restore', 'upload'],
+  ['confirm portal', 'check-circle'],
+  ['create accountant', 'plus'],
+  ['create assessment', 'plus'],
+  ['create school', 'plus'],
+  ['create sub admin', 'plus'],
+  ['daily mode', 'calendar'],
+  ['delete receipt', 'trash'],
+  ['delete receipts', 'trash'],
+  ['delete scores', 'trash'],
+  ['edit fees', 'edit'],
+  ['edit info', 'edit'],
+  ['enroll students', 'user-plus'],
+  ['exam subjects', 'file-text'],
+  ['generate accountant id', 'key'],
+  ['generate new sub admin id', 'key'],
+  ['generate report', 'chart'],
+  ['generate school id', 'key'],
+  ['holiday statements', 'sun'],
+  ["today's collection", 'coins'],
+  ['load 30-day grid', 'calendar'],
+  ['load report', 'file-text'],
+  ['manage scores & rankings', 'chart'],
+  ['mark all paid', 'check-circle'],
+  ['mark in progress', 'clock'],
+  ['mark resolved', 'check-circle'],
+  ['my assessments', 'clipboard-check'],
+  ['new announcement', 'megaphone'],
+  ['new exam', 'file-text'],
+  ['overall scores', 'chart'],
+  ['print attendance', 'printer'],
+  ['print daily report', 'printer'],
+  ['print report', 'printer'],
+  ['promote class', 'trending-up'],
+  ['promote selected students', 'trending-up'],
+  ['question bank', 'clipboard-check'],
+  ['record expense', 'trending-down'],
+  ['record income', 'trending-up'],
+  ['remind me later', 'clock'],
+  ['reset all', 'refresh'],
+  ['reset form', 'refresh'],
+  ['reset password', 'key'],
+  ['reset to defaults', 'refresh'],
+  ['save accountant', 'save'],
+  ['save announcement', 'save'],
+  ['save assessment', 'save'],
+  ['save assignments', 'save'],
+  ['save class', 'save'],
+  ['save enrollment', 'save'],
+  ['save exam', 'save'],
+  ['save question', 'save'],
+  ['save subject', 'save'],
+  ['save teacher', 'save'],
+  ['score sheet', 'clipboard'],
+  ['select all unpaid', 'list-checks'],
+  ['send fee reminder sms', 'bell'],
+  ['send verification code', 'smartphone'],
+  ['submit application', 'upload'],
+  ['submit assessment', 'save'],
+  ['submit report', 'mail'],
+  ['unsent / failed', 'alert'],
+  ['update password', 'key'],
+  ['view collections by date', 'calendar'],
+  ['view photo', 'eye'],
+  ['active', 'check-circle'],
+  ['activate', 'check-circle'],
+  ['assessments', 'clipboard-check'],
+  ['deactivate', 'lock'],
+  ['disable', 'lock'],
+  ['enable', 'check-circle'],
+  ['load more', 'plus'],
+  ['locked', 'lock'],
+  ['publish', 'megaphone'],
+  ['register', 'user-plus'],
+  ['unpublish', 'x'],
+  // ——— Generic single words (longest-first keeps specific phrases above) ———
+  ['activities', 'clock'],
+  ['activity', 'clock'],
+  ['add', 'plus'],
+  ['apply', 'search'],
+  ['approve', 'check-circle'],
+  ['back', 'home'],
+  ['cancel', 'x'],
+  ['categories', 'menu'],
+  ['clear', 'trash'],
+  ['close', 'x'],
+  ['continue', 'check-circle'],
+  ['create', 'plus'],
+  ['delete', 'trash'],
+  ['dismiss', 'x'],
+  ['edit', 'edit'],
+  ['expenses', 'trending-down'],
+  ['income', 'trending-up'],
+  ['info', 'id-card'],
+  ['modules', 'settings'],
+  ['next', 'check-circle'],
+  ['password', 'key'],
+  ['rankings', 'trophy'],
+  ['reject', 'x'],
+  ['reminder', 'bell'],
+  ['remove', 'x'],
+  ['reopen', 'refresh'],
+  ['report', 'file-text'],
+  ['reports', 'chart'],
+  ['reset', 'refresh'],
+  ['results', 'file-text'],
+  ['review', 'eye'],
+  ['save', 'save'],
+  ['send', 'mail'],
+  ['sent', 'check-circle'],
+  ['submit', 'upload'],
+  ['template', 'file'],
+  ['today', 'calendar'],
+  ['transcripts', 'file-text'],
+  ['unlink', 'x'],
+  ['update', 'save'],
+  ['view', 'eye'],
 ];
 
 /** Longest first so specific phrases are matched before generic ones. */
@@ -276,6 +407,7 @@ function iconizeTaggedNode(el) {
   if (!icon) return;
   el.insertAdjacentHTML('afterbegin', svgIcon(icon));
   el.dataset.appIcon = '1';
+  el.classList.add('app-iconized');
 }
 
 let _iconTimer = null;
@@ -403,7 +535,9 @@ export function injectAppIcons() {
     if (el.dataset && el.dataset.appIcon) return;
     iconizeTaggedNode(el);
   });
-  document.querySelectorAll('.btn').forEach((el) => {
+  // Every action-styled button is iconized from the keyword map: standard
+  // .btn, table .action-btn, and the various tab / quick-action button classes.
+  document.querySelectorAll('.btn, button.action-btn, [data-atab], [data-tatab], .fee-tab, .transport-tab, .exam-tab, .ie-tab, .sms-tab, .att-mode-btn, .fee-print-btn, .tr-bulk-paid, .tr-bulk-unpaid, .tr-mark-paid-btn, .announcement-popup-dismiss, .announcement-popup-remind').forEach((el) => {
     if (el.dataset && el.dataset.appIcon) return;
     if (el.querySelector('.app-icon') || el.querySelector('.spinner')) return;
     iconizeTaggedNode(el);
@@ -425,18 +559,42 @@ export function injectAppIcons() {
   document.querySelectorAll('.btn-save-student').forEach((el) => {
     if (el.querySelector('.app-icon')) return;
     el.insertAdjacentHTML('afterbegin', svgIcon('save'));
+    el.classList.add('app-iconized');
   });
   document.querySelectorAll('button.action-btn').forEach((el) => {
     if (el.querySelector('.app-icon')) return;
     const txt = (el.textContent || '').trim();
     const onClick = el.getAttribute('onclick') || '';
+    const title = el.getAttribute('title') || '';
     if (txt) return; // labelled action buttons are handled by the keyword pass
-    if (/reprint|printreceipt/i.test(onClick)) {
-      el.insertAdjacentHTML('afterbegin', svgIcon('printer'));
+    // Icon-only action buttons: infer the classic icon from the action
+    // keyword on the onclick handler / title attribute.
+    const hint = `${onClick} ${title}`.toLowerCase();
+    let icon = null;
+    if (/reprint|printreceipt|print/i.test(hint)) icon = 'printer';
+    else if (/delete|remove|trash/i.test(hint)) icon = 'trash';
+    else if (/edit|update|change|grade/i.test(hint)) icon = 'edit';
+    else if (/view|open|detail|show|info/i.test(hint)) icon = 'eye';
+    else if (/save|add|create|submit/i.test(hint)) icon = 'save';
+    else if (/pay|fee|receipt/i.test(hint)) icon = 'receipt';
+    else if (/password|reset/i.test(hint)) icon = 'key';
+    if (icon) {
+      el.insertAdjacentHTML('afterbegin', svgIcon(icon));
+      el.classList.add('app-iconized');
     }
   });
 
-  // ----- 8. Standalone report page toggles -----
+  // ----- 8. Admit-form PDF preview toolbar buttons -----
+  const ADH_ICONS = { __adhPreviewShare: 'share', __adhPreviewDownload: 'download', __adhPreviewPrint: 'printer' };
+  Object.entries(ADH_ICONS).forEach(([id, icon]) => {
+    const el = document.getElementById(id);
+    if (el && !el.querySelector('.app-icon')) {
+      el.insertAdjacentHTML('afterbegin', svgIcon(icon));
+      el.classList.add('app-iconized');
+    }
+  });
+
+  // ----- 9. Standalone report page toggles -----
   document.querySelectorAll('#btnSummaryView, #btnDailyView').forEach((el) => {
     if (el.querySelector('.app-icon')) return;
     el.insertAdjacentHTML('afterbegin', svgIcon(el.id === 'btnSummaryView' ? 'chart' : 'calendar'));
