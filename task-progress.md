@@ -337,3 +337,54 @@ Quickly find a student in the loaded exam score sheet by name or ID.
 ## Notes
 - "Staff" in this app = the `teachers` table (the sidebar "Staff" module);
   `staff_type` values are `'teaching'` / `'non_teaching'` (`sql/050-teacher-staff-type.sql`), so the card counts those. Accountants remain a separate module/page.
+# Module-Lock Audit — No Locked-Module Features Reappear on the Admin Dashboard
+
+## Problem
+Auditing the Super Admin module-lock feature (`school_modules` → school
+admin dashboard) found three inconsistencies where a locked module's
+features could still reappear on the admin dashboard home:
+
+1. **`attendance` was not gated at all.** The "Today's Attendance by Class"
+   card was always rendered and `fetchTodayAttendance()` always queried the
+   `attendance` table even though `attendance` is a **non-core (lockable)**
+   module.
+2. **Student overview stat cards were never hidden.** The Total Students /
+   Admitted / Awaiting / Female / Male / Portal Confirmed cards always
+   rendered even though `renderDashboard()` already computed `showStudents`
+   ("core module, but check anyway") and used it to hide the population
+   chart + recent-students list. Inconsistent defense-in-depth.
+3. **Realtime activity feed leaked locked-module events.** When data changed
+   in a locked module's table (`fees`, `payment_transactions`,
+   `announcements`, `exam_results`, `exam_student_details`, `attendance`,
+   `teachers`, `teacher_classes_subjects`), the dashboard's activity feed
+   still logged entries like "New fee record", "Payment received", "New
+   announcement", "Exam score added", etc., and triggered a refresh.
+
+## Fixes — `js/modules/admin-dashboard.js`
+- **`fetchTodayAttendance()`**: now skips the query when `attendance` is
+  locked (mirrors `fetchFees` / `fetchTransportToday` / `fetchTeachers` /
+  `fetchAnnouncements`).
+- **`renderDashboard()`**:
+  - Added `const showAttendance = !lockedModules.has('attendance')` and
+    wrapped the "Today's Attendance by Class" card in
+    `${showAttendance ? ... : ''}`.
+  - Wrapped the six student overview stat cards in `${showStudents ? ... : ''}`
+    for consistency with the existing student chart/list gating.
+- **`handleRealtimeEvent()`**: added a `TABLE_MODULE` map; events from tables
+  owned by a module that is locked for the school are now ignored entirely
+  (no activity-feed entry, no dashboard refresh).
+
+Consistency confirmed elsewhere (no change needed):
+- Super Admin per-school list/stat filtering (`super-admin.js`
+  `getAllLockedModules` / `isModuleLocked`) and `toggleSchoolModuleLock` →
+  `clearLockedModulesCache`.
+- Admin sidebar + dependent sections (`js/app.js`
+  `filterAdminSidebarByLockedModules`, incl. the admit-form Term Fees block).
+- Mobile admin dock chips (`js/modules/navigation.js` `refreshAdminDockLocks`).
+
+## Verification
+- `node --check js/modules/admin-dashboard.js` passes (exit 0).
+- Locked-module widgets (fees, announcements, attendance, transport,
+  teachers, students) are now hidden from the admin dashboard home; the
+  gating also survives the 30s polling and realtime refresh paths because
+  `fetchLockedModules()` is re-run before each render.

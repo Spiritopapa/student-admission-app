@@ -544,6 +544,11 @@ async function fetchTeachers() {
  */
 async function fetchTodayAttendance() {
   todayAttendance = [];
+  // Skip fetching attendance if the attendance module is locked
+  if (lockedModules.has('attendance')) {
+    todayAttendance = [];
+    return;
+  }
   const schoolId = await getCurrentSchoolId();
   // CRITICAL SECURITY: Fail closed. Never fetch without a school_id filter.
   if (!schoolId) { todayAttendance = []; return; }
@@ -678,6 +683,22 @@ async function handleRealtimeEvent(table, eventType, payload) {
       return;
     }
   }
+
+  // If the event's table is owned by a module that is locked for this school,
+  // ignore it entirely: the locked module's features must not reappear on the
+  // dashboard — neither as an activity-feed entry nor as a refresh that would
+  // pull its data back in.
+  const TABLE_MODULE = {
+    fees: 'fees',
+    announcements: 'announcements',
+    payment_transactions: 'fees',
+    exam_results: 'exams',
+    exam_student_details: 'exams',
+    attendance: 'attendance',
+    teachers: 'teachers',
+    teacher_classes_subjects: 'teachers',
+  };
+  if (TABLE_MODULE[table] && lockedModules.has(TABLE_MODULE[table])) return;
 
   // Log activity
   switch (table) {
@@ -959,6 +980,7 @@ function renderDashboard() {
   const showAnnouncements = !lockedModules.has('announcements');
   const showStudents = !lockedModules.has('students'); // core module, but check anyway
   const showTeachers = !lockedModules.has('teachers');
+  const showAttendance = !lockedModules.has('attendance');
 
   container.innerHTML = `
     <!-- Real-Time Dashboard Header -->
@@ -981,6 +1003,7 @@ function renderDashboard() {
 
     <!-- Dashboard Stats Overview -->
     <div class="dash-overview-cards" id="dashOverviewCards">
+      ${showStudents ? `
       <div class="dash-overview-card animated-card" style="--accent:var(--primary);">
         <div class="dash-overview-icon">${svgIcon('users')}</div>
         <div class="dash-overview-info">
@@ -1023,6 +1046,7 @@ function renderDashboard() {
           <span class="dash-overview-label">Portal Confirmed</span>
         </div>
       </div>
+      ` : ''}
       <!-- Staff (Teaching / Non-Teaching) — hidden when the teachers module is locked -->
       ${showTeachers ? `
       <div class="dash-overview-card animated-card" style="--accent:var(--purple);">
@@ -1035,7 +1059,8 @@ function renderDashboard() {
       </div>` : ''}
     </div>
 
-    <!-- Today's Attendance by Class -->
+    <!-- Today's Attendance by Class (hidden when the attendance module is locked) -->
+    ${showAttendance ? `
     <div class="dash-list-card animated-card dash-attendance-card">
       <div class="dash-list-header">
         <h3>${svgIcon('clipboard')} Today's Attendance</h3>
@@ -1045,6 +1070,7 @@ function renderDashboard() {
         ${renderTodayAttendance()}
       </div>
     </div>
+    ` : ''}
 
     <!-- Charts & Fee Row -->
     <div class="dash-duo-row">
