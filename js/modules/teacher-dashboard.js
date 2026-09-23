@@ -112,12 +112,14 @@ export function setupTeacherDashboard() {
   getEl('teacherBtnViewReport')?.addEventListener('click', openTeacherAttendanceReportPage);
   getEl('teacherAttClass')?.addEventListener('change', () => {});
   getEl('teacherAttDate')?.addEventListener('change', () => {});
+  getEl('teacherAttGenderFilter')?.addEventListener('change', loadTeacherAttendanceForDate);
 
   // Report filters
   getEl('teacherAttReportSearch')?.addEventListener('input', renderTeacherAttReport);
   getEl('teacherAttReportTerm')?.addEventListener('change', renderTeacherAttReport);
   getEl('teacherAttReportDateFrom')?.addEventListener('change', renderTeacherAttReport);
   getEl('teacherAttReportDateTo')?.addEventListener('change', renderTeacherAttReport);
+  getEl('teacherAttReportGender')?.addEventListener('change', renderTeacherAttReport);
   
   // Report mode toggle
   getEl('teacherBtnAttReportSummary')?.addEventListener('click', () => switchTeacherReportMode('summary'));
@@ -132,6 +134,7 @@ export function setupTeacherDashboard() {
   getEl('teacherBtnSetAllPresent')?.addEventListener('click', () => setTeacherAllMonthlyStatus('present'));
   getEl('teacherBtnSetAllAbsent')?.addEventListener('click', () => setTeacherAllMonthlyStatus('absent'));
   getEl('teacherBtnResetMonthlyAttendance')?.addEventListener('click', resetTeacherAllMonthlyStatus);
+  getEl('teacherAttMonthlyGender')?.addEventListener('change', loadTeacherMonthlyAttendance);
 
   // Exam listeners
   getEl('teacherBtnLoadExamStudents')?.addEventListener('click', loadTeacherExamStudents);
@@ -630,6 +633,7 @@ async function loadTeacherAttendancePage() {
 async function loadTeacherAttendanceForDate() {
   const dateInput = getEl('teacherAttDate');
   const classFilter = getEl('teacherAttClass')?.value || '';
+  const genderFilter = getEl('teacherAttGenderFilter')?.value || '';
   const date = dateInput?.value;
   if (!date) { alert('Please select a date.'); return; }
   if (!classFilter) { alert('No class assigned to you.'); return; }
@@ -647,10 +651,11 @@ async function loadTeacherAttendanceForDate() {
   const { teacher } = await getTeacherClasses(user.id);
 
   let query = supabaseClient.from('applications')
-    .select('student_id, first_name, middle_name, last_name, class_applying')
+    .select('student_id, first_name, middle_name, last_name, class_applying, gender')
     .eq('status', 'admitted')
     .eq('class_applying', classFilter);
   if (schoolId) query = query.eq('school_id', schoolId);
+  if (genderFilter) query = query.eq('gender', genderFilter);
   query = query.order('first_name', { ascending: true });
   const { data: apps, error: appsErr } = await query;
   if (appsErr) { console.error('Load apps error:', appsErr); return; }
@@ -962,6 +967,7 @@ async function populateTeacherMonthlyClassFilter() {
 async function loadTeacherMonthlyAttendance() {
   const startDateStr = getEl('teacherAttMonthlyStart')?.value;
   const classFilter = getEl('teacherAttMonthlyClass')?.value || '';
+  const genderFilter = getEl('teacherAttMonthlyGender')?.value || '';
 
   if (!startDateStr) {
     alert('Please select a start date.');
@@ -1000,10 +1006,11 @@ async function loadTeacherMonthlyAttendance() {
 
   // Load students for the selected class
   let query = supabaseClient.from('applications')
-    .select('student_id, first_name, middle_name, last_name, class_applying')
+    .select('student_id, first_name, middle_name, last_name, class_applying, gender')
     .eq('status', 'admitted')
     .eq('class_applying', classFilter);
   if (schoolId) query = query.eq('school_id', schoolId);
+  if (genderFilter) query = query.eq('gender', genderFilter);
   query = query.order('first_name', { ascending: true });
   const { data: apps, error: appsErr } = await query;
   if (appsErr) { console.error('Load teacher monthly apps error:', appsErr); return; }
@@ -1566,9 +1573,11 @@ async function saveIndividualTeacherMonthlyAttendance(studentId) {
 function openTeacherAttendanceReportPage() {
   const url = new URL('attendance-report.html', window.location.href);
   const term = getEl('teacherAttReportTerm')?.value || '';
+  const gender = getEl('teacherAttReportGender')?.value || '';
   const from = getEl('teacherAttReportDateFrom')?.value || '';
   const to = getEl('teacherAttReportDateTo')?.value || '';
   if (term) url.searchParams.set('term', term);
+  if (gender) url.searchParams.set('gender', gender);
   if (from) url.searchParams.set('from', from);
   if (to) url.searchParams.set('to', to);
   window.open(url.toString(), '_blank', 'width=1100,height=750,scrollbars=yes,resizable=yes');
@@ -1606,6 +1615,7 @@ async function renderTeacherAttReport() {
   const termFilter = getEl('teacherAttReportTerm')?.value || '';
   const dateFrom = getEl('teacherAttReportDateFrom')?.value || '';
   const dateTo = getEl('teacherAttReportDateTo')?.value || '';
+  const genderFilter = getEl('teacherAttReportGender')?.value || '';
 
   // Update date label
   if (dateLabel) {
@@ -1684,7 +1694,7 @@ async function renderTeacherAttReport() {
       });
 
       const { data: apps } = await supabaseClient.from('applications')
-        .select('student_id, first_name, middle_name, last_name, class_applying')
+        .select('student_id, first_name, middle_name, last_name, class_applying, gender')
         .in('student_id', Object.keys(studentStats));
       const appMap = new Map((apps || []).map(a => [a.student_id, a]));
 
@@ -1693,10 +1703,11 @@ async function renderTeacherAttReport() {
           const app = appMap.get(sid);
           const name = app ? buildStudentName(app.first_name, app.middle_name, app.last_name) : sid;
           const pct = stats.total > 0 ? ((stats.present / stats.total) * 100).toFixed(1) : '0.0';
-          return { student_id: sid, name, class: app?.class_applying || '', ...stats, pct };
+          return { student_id: sid, name, class: app?.class_applying || '', gender: app?.gender || 'Male', ...stats, pct };
         })
         .filter(r => {
           if (search && !r.name.toLowerCase().includes(search) && !r.student_id.toLowerCase().includes(search)) return false;
+          if (genderFilter && r.gender !== genderFilter) return false;
           return true;
         })
         .sort((a, b) => parseFloat(b.pct) - parseFloat(a.pct));
@@ -1722,16 +1733,22 @@ async function renderTeacherAttReport() {
       const sortedDates = Object.keys(dateGroups).sort((a, b) => b.localeCompare(a));
 
       const { data: apps } = await supabaseClient.from('applications')
-        .select('student_id, first_name, middle_name, last_name')
+        .select('student_id, first_name, middle_name, last_name, gender')
         .in('student_id', [...new Set(allAttRecords.map(r => r.student_id))]);
       const appMap = new Map((apps || []).map(a => [a.student_id, a]));
 
       let dailyHtml = '';
       sortedDates.forEach(date => {
         const records = dateGroups[date];
+        const visibleRecords = genderFilter
+          ? records.filter(r => {
+              const app = appMap.get(r.student_id);
+              return app && (app.gender || 'Male') === genderFilter;
+            })
+          : records;
         const dayCounts = { present: 0, absent: 0 };
-        records.forEach(r => { dayCounts[r.status]++; });
-        const dayTotal = records.length;
+        visibleRecords.forEach(r => { dayCounts[r.status]++; });
+        const dayTotal = visibleRecords.length;
         const dayPct = dayTotal > 0 ? ((dayCounts.present / dayTotal) * 100).toFixed(1) : '0.0';
 
         dailyHtml += `<tr style="background:var(--bg);font-weight:700;">
@@ -1744,7 +1761,7 @@ async function renderTeacherAttReport() {
           </td>
         </tr>`;
 
-        records.forEach(r => {
+        visibleRecords.forEach(r => {
           const app = appMap.get(r.student_id);
           const name = app ? buildStudentName(app.first_name, app.middle_name, app.last_name) : r.student_id;
           const statusIcons = { present: '', absent: '' };

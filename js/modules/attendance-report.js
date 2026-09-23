@@ -23,10 +23,13 @@ const classFilter = params.get('class') || '';
 const termFilter = params.get('term') || '';
 const dateFrom = params.get('from') || '';
 const dateTo = params.get('to') || '';
+let genderFilter = params.get('gender') || '';
 
 // Last fetched data is kept so the Summary/Daily toggle doesn't refetch.
 let _records = [];
 let _appMap = new Map();
+// Scope captured at boot so the gender dropdown can re-render without recomputing it.
+let _scope = { isTeacher: false, classes: [], schoolId: null };
 
 // ================================================================
 // Tiny DOM helpers
@@ -146,14 +149,31 @@ async function loadAndRender({ isTeacher, classes, schoolId }) {
   // --- Fetch student names ---
   const studentIds = [...new Set(_records.map(r => r.student_id))];
   const { data: apps } = await supabaseClient.from('applications')
-    .select('student_id, first_name, middle_name, last_name, class_applying')
+    .select('student_id, first_name, middle_name, last_name, class_applying, gender')
     .in('student_id', studentIds);
   _appMap = new Map((apps || []).map(a => [a.student_id, a]));
+
+  // --- Apply the gender filter (client-side: gender lives on the student record) ---
+  if (genderFilter) {
+    _records = _records.filter(r => {
+      const app = _appMap.get(r.student_id);
+      return app && (app.gender || 'Male') === genderFilter;
+    });
+    if (_records.length === 0) {
+      el('reportStats').style.display = 'none';
+      el('reportToggle').style.display = 'none';
+      el('summaryWrap').style.display = 'none';
+      el('dailyWrap').style.display = 'none';
+      showMessage('No attendance records found for the selected filters.', 'info');
+      return;
+    }
+  }
 
   // --- Build metadata line ---
   const roleLabel = isTeacher ? 'Teacher' : 'Admin';
   const filterParts = ['Role: ' + roleLabel];
   if (effectiveClass) filterParts.push('Class: ' + effectiveClass);
+  if (genderFilter) filterParts.push('Gender: ' + genderFilter);
   if (termFilter) filterParts.push('Term: ' + termFilter);
   if (dateFrom || dateTo) {
     filterParts.push(dateFrom === dateTo ? 'Date: ' + dateFrom : 'Dates: ' + (dateFrom || '…') + ' → ' + (dateTo || '…'));
@@ -322,6 +342,17 @@ async function initReport() {
   const schoolId = profile?.school_id || await getCurrentSchoolId();
   let classes = [];
   if (isTeacher) classes = await getTeacherClasses(user.id);
+  _scope = { isTeacher, classes, schoolId };
+
+  // Gender dropdown reflects the URL-provided filter and re-renders on change
+  const genderSel = el('reportGenderFilter');
+  if (genderSel) {
+    genderSel.value = genderFilter;
+    genderSel.addEventListener('change', () => {
+      genderFilter = genderSel.value;
+      loadAndRender(_scope);
+    });
+  }
 
   // School name + title
   const schoolName = await fetchSchoolName(schoolId);
@@ -334,7 +365,7 @@ async function initReport() {
   el('reportToggle').style.display = 'flex';
   showSummaryView();
 
-  await loadAndRender({ isTeacher, classes, schoolId });
+  await loadAndRender(_scope);
 }
 
 initReport().catch(err => {

@@ -1384,6 +1384,7 @@
       <div class="attendance-toolbar card-toolbar">
         <input type="text" id="adminAttSearch" placeholder="Search student name or ID..." class="search-input" />
         <select id="adminAttClassFilter" class="filter-select"><option value="">All Classes</option></select>
+        <select id="adminAttGenderFilter" class="filter-select"><option value="">All Genders</option><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option></select>
         <input type="date" id="adminAttDate" class="search-input" style="max-width:160px;" />
         <button type="button" class="btn btn-primary" id="btnLoadAttendance">Load Attendance</button>
         <button type="button" class="btn btn-secondary" id="btnSaveAttendance">Save Attendance</button>
@@ -1427,6 +1428,7 @@
           <h3>Attendance Report</h3>
           <input type="text" id="attReportSearch" placeholder="Search report..." class="search-input" style="max-width:200px;" />
           <select id="attReportClass" class="filter-select"><option value="">All Classes</option></select>
+          <select id="attReportGender" class="filter-select"><option value="">All Genders</option><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option></select>
           <select id="attReportTerm" class="filter-select"><option value="">All Terms</option><option value="First">First Term</option><option value="Second">Second Term</option><option value="Third">Third Term</option></select>
           <input type="date" id="attReportDateFrom" class="search-input" style="max-width:150px;" title="From Date" />
           <input type="date" id="attReportDateTo" class="search-input" style="max-width:150px;" title="To Date" />
@@ -1484,6 +1486,7 @@
         <div class="att-monthly-toolbar">
           <input type="date" id="adminAttMonthlyStart" class="search-input" style="max-width:160px;" />
           <select id="adminAttMonthlyClass" class="filter-select"><option value="">All Classes</option></select>
+          <select id="adminAttMonthlyGender" class="filter-select"><option value="">All Genders</option><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option></select>
           <button type="button" class="btn btn-primary" id="btnLoadMonthlyAttendance">Load 30-Day Grid</button>
           <button type="button" class="btn btn-secondary" id="btnSaveMonthlyAttendance">Save All Changes</button>
           <button type="button" class="btn btn-sm btn-secondary" id="btnSetAllPresent">All Present</button>
@@ -2653,6 +2656,7 @@
             <div class="attendance-toolbar card-toolbar">
               <input type="date" id="teacherAttDate" class="search-input" style="max-width:160px;" />
               <select id="teacherAttClass" class="filter-select" style="max-width:180px;"><option value="">— Class —</option></select>
+              <select id="teacherAttGenderFilter" class="filter-select"><option value="">All Genders</option><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option></select>
               <button type="button" class="btn btn-primary" id="teacherBtnLoadAttendance">Load Attendance</button>
               <button type="button" class="btn btn-secondary" id="teacherBtnSaveAttendance">Save Attendance</button>
               <button type="button" class="btn btn-secondary" id="teacherBtnViewReport">View Reports</button>
@@ -2686,6 +2690,7 @@
                 <select id="teacherAttReportTerm" class="filter-select"><option value="">All Terms</option><option value="First">First Term</option><option value="Second">Second Term</option><option value="Third">Third Term</option></select>
                 <input type="date" id="teacherAttReportDateFrom" class="search-input" style="max-width:150px;" title="From Date" />
                 <input type="date" id="teacherAttReportDateTo" class="search-input" style="max-width:150px;" title="To Date" />
+                <select id="teacherAttReportGender" class="filter-select"><option value="">All Genders</option><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option></select>
                 <button type="button" class="btn btn-secondary" id="teacherBtnPrintAttDailyReport">Print Daily Report</button>
               </div>
               <!-- Report Type Toggle -->
@@ -2719,6 +2724,7 @@
               <div class="att-monthly-toolbar">
                 <input type="date" id="teacherAttMonthlyStart" class="search-input" style="max-width:160px;" />
                 <select id="teacherAttMonthlyClass" class="filter-select" style="max-width:180px;"><option value="">— Class —</option></select>
+                <select id="teacherAttMonthlyGender" class="filter-select"><option value="">All Genders</option><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option></select>
                 <button type="button" class="btn btn-primary" id="teacherBtnLoadMonthlyAttendance">Load 30-Day Grid</button>
                 <button type="button" class="btn btn-secondary" id="teacherBtnSaveMonthlyAttendance">Save All Changes</button>
                 <button type="button" class="btn btn-sm btn-secondary" id="teacherBtnSetAllPresent">All Present</button>

@@ -20,6 +20,7 @@ export function setupAttendanceListeners() {
   getEl('btnViewAttReport')?.addEventListener('click', openAttendanceReportPage);
   getEl('attReportSearch')?.addEventListener('input', renderAttendanceReport);
   getEl('attReportClass')?.addEventListener('change', renderAttendanceReport);
+  getEl('attReportGender')?.addEventListener('change', renderAttendanceReport);
   getEl('attReportTerm')?.addEventListener('change', renderAttendanceReport);
   getEl('attReportDateFrom')?.addEventListener('change', renderAttendanceReport);
   getEl('attReportDateTo')?.addEventListener('change', renderAttendanceReport);
@@ -31,6 +32,9 @@ export function setupAttendanceListeners() {
   getEl('btnAttReportSummary')?.addEventListener('click', () => switchReportMode('summary'));
   getEl('btnAttReportDaily')?.addEventListener('click', () => switchReportMode('daily'));
 
+  // Gender filter listeners (daily + report)
+  getEl('adminAttGenderFilter')?.addEventListener('change', loadAttendanceForDate);
+
   // 30-Day Mode listeners
   getEl('adminAttModeDaily')?.addEventListener('click', () => switchAttendanceMode('daily'));
   getEl('adminAttModeMonthly')?.addEventListener('click', () => switchAttendanceMode('monthly'));
@@ -40,6 +44,7 @@ export function setupAttendanceListeners() {
   getEl('btnSetAllAbsent')?.addEventListener('click', () => setAllMonthlyStatus('absent'));
   getEl('btnResetMonthlyAttendance')?.addEventListener('click', resetAllMonthlyStatus);
   getEl('btnPrintMonthlyAttendance')?.addEventListener('click', printMonthlyAttendanceGrid);
+  getEl('adminAttMonthlyGender')?.addEventListener('change', loadMonthlyAttendance);
 }
 
 /**
@@ -50,10 +55,12 @@ export function setupAttendanceListeners() {
 export function openAttendanceReportPage() {
   const url = new URL('attendance-report.html', window.location.href);
   const cls = getEl('attReportClass')?.value || '';
+  const gender = getEl('attReportGender')?.value || '';
   const term = getEl('attReportTerm')?.value || '';
   const from = getEl('attReportDateFrom')?.value || '';
   const to = getEl('attReportDateTo')?.value || '';
   if (cls) url.searchParams.set('class', cls);
+  if (gender) url.searchParams.set('gender', gender);
   if (term) url.searchParams.set('term', term);
   if (from) url.searchParams.set('from', from);
   if (to) url.searchParams.set('to', to);
@@ -153,6 +160,7 @@ async function populateAttendanceClassFilter() {
 async function loadAttendanceForDate() {
   const dateInput = getEl('adminAttDate');
   const classFilter = getEl('adminAttClassFilter')?.value || '';
+  const genderFilter = getEl('adminAttGenderFilter')?.value || '';
   const search = (getEl('adminAttSearch')?.value || '').toLowerCase();
   const date = dateInput?.value;
   if (!date) { alert('Please select a date.'); return; }
@@ -176,9 +184,10 @@ async function loadAttendanceForDate() {
   }
   const academicYear = settings?.academic_year || new Date().getFullYear() + '/' + (new Date().getFullYear() + 1);
   const currentTerm = settings?.current_term || 'First';
-  let query = supabaseClient.from('applications').select('student_id, first_name, middle_name, last_name, class_applying').eq('status', 'admitted');
+  let query = supabaseClient.from('applications').select('student_id, first_name, middle_name, last_name, class_applying, gender').eq('status', 'admitted');
   if (schoolId) query = query.eq('school_id', schoolId);
   if (classFilter) query = query.eq('class_applying', classFilter);
+  if (genderFilter) query = query.eq('gender', genderFilter);
   query = query.order('first_name', { ascending: true });
   const { data: apps, error: appsErr } = await query;
   if (appsErr) { console.error('Load apps for attendance error:', appsErr); return; }
@@ -422,6 +431,7 @@ async function saveAttendance() {
 async function loadMonthlyAttendance() {
   const startDateStr = getEl('adminAttMonthlyStart')?.value;
   const classFilter = getEl('adminAttMonthlyClass')?.value || '';
+  const genderFilter = getEl('adminAttMonthlyGender')?.value || '';
 
   if (!startDateStr) {
     alert('Please select a start date.');
@@ -461,10 +471,11 @@ async function loadMonthlyAttendance() {
 
   // Load students
   let query = supabaseClient.from('applications')
-    .select('student_id, first_name, middle_name, last_name, class_applying')
+    .select('student_id, first_name, middle_name, last_name, class_applying, gender')
     .eq('status', 'admitted');
   if (schoolId) query = query.eq('school_id', schoolId);
   if (classFilter) query = query.eq('class_applying', classFilter);
+  if (genderFilter) query = query.eq('gender', genderFilter);
   query = query.order('first_name', { ascending: true });
   const { data: apps, error: appsErr } = await query;
   if (appsErr) { console.error('Load monthly apps error:', appsErr); return; }
@@ -1110,6 +1121,7 @@ async function populateAttReportFilters() {
 async function renderAttendanceReport() {
   const search = (getEl('attReportSearch')?.value || '').toLowerCase();
   const classFilter = getEl('attReportClass')?.value || '';
+  const genderFilter = getEl('attReportGender')?.value || '';
   const termFilter = getEl('attReportTerm')?.value || '';
   const dateFrom = getEl('attReportDateFrom')?.value || '';
   const dateTo = getEl('attReportDateTo')?.value || '';
@@ -1171,18 +1183,20 @@ async function renderAttendanceReport() {
     if (noEl) noEl.style.display = 'none';
 
     const studentIds = [...new Set(attRecords.map(r => r.student_id))];
-    let appsQuery = supabaseClient.from('applications').select('student_id, first_name, middle_name, last_name, class_applying').in('student_id', studentIds);
+    let appsQuery = supabaseClient.from('applications').select('student_id, first_name, middle_name, last_name, class_applying, gender').in('student_id', studentIds);
     if (schoolId) appsQuery = appsQuery.eq('school_id', schoolId);
     if (classFilter) appsQuery = appsQuery.eq('class_applying', classFilter);
     const { data: apps } = await appsQuery;
     const appMap = new Map((apps || []).map(a => [a.student_id, a]));
 
-    // Filter records by class if classFilter is set
+    // Filter records by class and gender if either filter is set
     let filteredRecords = attRecords;
-    if (classFilter) {
+    if (classFilter || genderFilter) {
       filteredRecords = attRecords.filter(r => {
         const app = appMap.get(r.student_id);
-        return app?.class_applying === classFilter || r.class_name === classFilter;
+        if (classFilter && app?.class_applying !== classFilter && r.class_name !== classFilter) return false;
+        if (genderFilter && (app?.gender || 'Male') !== genderFilter) return false;
+        return true;
       });
     }
 
