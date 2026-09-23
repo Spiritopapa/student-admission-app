@@ -1378,6 +1378,37 @@
         <button type="button" class="att-mode-btn" data-att-mode="monthly" id="adminAttModeMonthly">30-Day Checkbox Mode</button>
       </div>
 
+      <!-- ===== EVENT DAYS MANAGEMENT (Holiday / Manual) ===== -->
+      <details class="admit-section" id="eventDaysSection" style="margin-top:0.5rem;margin-bottom:1rem;">
+        <summary class="btn btn-secondary" style="cursor:pointer;">Manage Event Days (Holidays / Special Days)</summary>
+        <div style="margin-top:0.75rem;border-top:1px dashed var(--border);padding-top:0.75rem;">
+          <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:0.75rem;">
+            Mark a calendar date as an <strong>event day</strong> (Holiday with no school, or a Manual / Special day such as sports day or staff training).
+            Event days are clearly indicated in the Daily banner, the 30-Day grid headers, and report Daily views. They never create attendance records,
+            and you can still mark Present / Absent on a manual special day.
+          </p>
+          <div class="form-row">
+            <div class="form-group"><label>Date *</label><input type="date" id="eventDayDate" class="search-input" required /></div>
+            <div class="form-group"><label>Type</label>
+              <select id="eventDayType" class="filter-select">
+                <option value="holiday">Holiday (no school)</option>
+                <option value="manual">Manual / Special Day</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Label / Name *</label><input type="text" id="eventDayLabel" placeholder="e.g. Founders' Day" /></div>
+            <div class="form-group"><label>Notes (optional)</label><input type="text" id="eventDayNotes" placeholder="e.g. Events ground not available" /></div>
+            <div class="form-group" style="align-self:flex-end;"><button type="button" class="btn btn-primary" id="btnAddEventDay" style="margin-top:1.5rem;">Add Event Day</button></div>
+          </div>
+          <div id="eventDayMessage" class="message" style="display:none;"></div>
+          <div class="table-wrapper" style="max-height:260px;overflow-y:auto;margin-top:0.5rem;">
+            <table class="app-table">
+              <thead><tr><th>Date</th><th>Type</th><th>Label</th><th>Notes</th><th style="width:80px;">Action</th></tr></thead>
+              <tbody id="eventDaysBody"><tr><td colspan="5" style="text-align:center;padding:1rem;color:var(--text-muted);">No event days marked yet.</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </details>
+
       <!-- ===== DAILY MODE ===== -->
       <div id="adminAttModeDailyContent">
 
@@ -1396,6 +1427,8 @@
         <div class="att-stat-card absent"><span class="att-stat-number" id="attStatAbsent">0</span><span>Absent</span></div>
         <div class="att-stat-card total"><span class="att-stat-number" id="attStatTotal">0</span><span>Total</span></div>
       </div>
+
+      <div id="adminEventDayNotice" style="display:none;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.35);border-radius:var(--radius-sm);padding:0.65rem 0.85rem;margin-bottom:0.75rem;font-size:0.8rem;color:#92400e;"></div>
 
       <div class="attendance-instructions" style="background:var(--primary-light);border-radius:var(--radius-sm);padding:0.75rem 1rem;margin-bottom:1rem;font-size:0.85rem;color:var(--text);">
         <strong>Instructions:</strong> Select a date, class, and click <strong>"Load Attendance"</strong> to begin marking. Click the status buttons to toggle between Present ✓ and Absent ✗. Click <strong>"Save Attendance"</strong> to persist all changes.
@@ -1499,6 +1532,7 @@
           <strong>Instructions:</strong> Select a start date and class, then click <strong>"Load 30-Day Grid"</strong>.
           Click any cell to toggle between <span style="color:#991b1b;">Absent</span> and <span style="color:#065f46;">Present</span>.
           Click column headers to toggle all students for that day. Click <strong>"Save All Changes"</strong> to persist.
+          Amber column headers (<span style="color:#92400e;">🌴 / 📝</span>) mark event days (Holiday / Manual / Special day) set under "Manage Event Days".
         </div>
 
         <div id="attMonthlyStats" class="att-monthly-summary" style="display:none;">
@@ -2668,6 +2702,8 @@
               <div class="att-stat-card total"><span class="att-stat-number" id="teacherAttTotal">0</span><span>Total</span></div>
             </div>
 
+            <div id="teacherAttEventDayNotice" style="display:none;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.35);border-radius:var(--radius-sm);padding:0.65rem 0.85rem;margin-bottom:0.75rem;font-size:0.8rem;color:#92400e;"></div>
+
             <div class="attendance-instructions" style="background:var(--primary-light);border-radius:var(--radius-sm);padding:0.75rem 1rem;margin-bottom:1rem;font-size:0.85rem;color:var(--text);">
               <strong>Instructions:</strong> Select date and click <strong>"Load Attendance"</strong>. Click status buttons to toggle: ✓ Present, ✗ Absent. Click <strong>"Save Attendance"</strong> to persist.
             </div>
@@ -2736,6 +2772,7 @@
                 <strong>Instructions:</strong> Select a start date and class, then click <strong>"Load 30-Day Grid"</strong>.
                 Click any cell to toggle between <span style="color:#991b1b;">Absent</span> and <span style="color:#065f46;">Present</span>.
                 Click column headers to toggle all students for that day. Click <strong>"Save All Changes"</strong> to persist.
+                Amber column headers (<span style="color:#92400e;">🌴 / 📝</span>) mark event days (Holiday / Manual / Special day) set by the school admin.
               </div>
 
               <div id="teacherAttMonthlyStats" class="att-monthly-summary" style="display:none;">

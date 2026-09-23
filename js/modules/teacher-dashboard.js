@@ -607,6 +607,9 @@ async function loadTeacherStudents() {
 async function loadTeacherAttendancePage() {
   const dateInput = getEl('teacherAttDate');
   if (dateInput) dateInput.value = new Date().toISOString().slice(0, 10);
+
+  await loadTeacherEventDays();
+  updateTeacherEventDayNotice(dateInput?.value || '', null);
   
   // Populate class filter with all assigned classes
   const { data: { user } } = await supabaseClient.auth.getUser();
@@ -659,6 +662,10 @@ async function loadTeacherAttendanceForDate() {
   query = query.order('first_name', { ascending: true });
   const { data: apps, error: appsErr } = await query;
   if (appsErr) { console.error('Load apps error:', appsErr); return; }
+
+  if (teacherEventDaysCache.length === 0) await loadTeacherEventDays();
+  updateTeacherEventDayNotice(date, teacherEventDaysCache.find(e => e.date === date));
+
   if (!apps || apps.length === 0) {
     getEl('teacherNoAttendance').style.display = 'block';
     getEl('teacherAttBody').innerHTML = '';
@@ -930,6 +937,16 @@ async function printTeacherAttDailyReport() {
 
 let teacherMonthlyCache = [];
 
+// Event days (holiday / manual special days) — read-only for teachers
+let teacherEventDaysCache = []; // [{ date, event_type, label, notes }]
+const TEACHER_EVENT_TYPE_LABELS = { holiday: 'Holiday', manual: 'Manual / Special Day' };
+
+/** Escape a value for safe injection into innerHTML templates. */
+function teacherEscHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, c =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
 function switchTeacherAttendanceMode(mode) {
   document.querySelectorAll('.att-mode-btn').forEach(b => b.classList.remove('active'));
   if (mode === 'daily') {
@@ -961,6 +978,46 @@ async function populateTeacherMonthlyClassFilter() {
     sel.innerHTML = classes.map(c => `<option value="${c}">${c}</option>`).join('');
   } else {
     sel.innerHTML = '<option value="">— No classes —</option>';
+  }
+}
+
+/**
+ * Load the school's event days (holidays / manual special days) so the
+ * teacher views can indicate them. Read-only — teachers never manage them.
+ */
+async function loadTeacherEventDays() {
+  try {
+    const schoolId = await getCurrentSchoolId();
+    let query = supabaseClient.from('attendance_event_days')
+      .select('date, event_type, label, notes');
+    if (schoolId) query = query.eq('school_id', schoolId);
+    const { data, error } = await query;
+    if (error) { console.error('Load teacher event days error:', error); return; }
+    teacherEventDaysCache = data || [];
+  } catch (err) {
+    console.error('Load teacher event days exception:', err);
+  }
+}
+
+/** date -> event day (dates are unique per school). */
+function getTeacherEventDayMap() {
+  const map = {};
+  teacherEventDaysCache.forEach(e => { map[e.date] = e; });
+  return map;
+}
+
+/** Show/hide the amber banner for the currently selected teacher daily date. */
+function updateTeacherEventDayNotice(date, eventDay) {
+  const notice = getEl('teacherAttEventDayNotice');
+  if (!notice) return;
+  if (eventDay) {
+    const typeLabel = TEACHER_EVENT_TYPE_LABELS[eventDay.event_type] || eventDay.event_type;
+    const labelPart = eventDay.label ? `: <strong>${teacherEscHtml(eventDay.label)}</strong>` : '';
+    const notesPart = eventDay.notes ? ` — ${teacherEscHtml(eventDay.notes)}` : '';
+    notice.style.display = 'block';
+    notice.innerHTML = `<strong>Calendar note:</strong> ${date} is marked as <strong>${typeLabel}</strong>${labelPart}.${notesPart}`;
+  } else {
+    notice.style.display = 'none';
   }
 }
 
@@ -1067,6 +1124,7 @@ async function loadTeacherMonthlyAttendance() {
     };
   });
 
+  if (teacherEventDaysCache.length === 0) await loadTeacherEventDays();
   renderTeacherMonthlyGrid(dates);
 }
 
@@ -1080,13 +1138,23 @@ function renderTeacherMonthlyGrid(dates) {
   headerHtml += '<th class="student-name-cell" style="min-width:140px;">Student Name</th>';
   headerHtml += '<th class="student-id-cell" style="min-width:80px;">ID</th>';
   headerHtml += '<th class="student-class-cell" style="min-width:80px;">Class</th>';
+  const eventDayMap = getTeacherEventDayMap();
   dates.forEach(date => {
     const d = new Date(date + 'T00:00:00');
     const dayNum = d.getDate();
     const dayName = d.toLocaleDateString('en', { weekday: 'short' }).charAt(0);
     const isWeekend = d.getDay() === 0 || d.getDay() === 6;
     const weekendClass = isWeekend ? ' weekend' : '';
-    headerHtml += `<th class="day-header${weekendClass}" data-date="${date}" title="${date} (${d.toLocaleDateString('en', { weekday: 'long' })})">${dayNum}<br><span style="font-size:0.55rem;opacity:0.7;">${dayName}</span></th>`;
+    const ev = eventDayMap[date];
+    const eventClass = ev ? ' event-day' : '';
+    const evBadge = ev
+      ? `<span class="event-day-badge" title="${(TEACHER_EVENT_TYPE_LABELS[ev.event_type] || ev.event_type)}: ${teacherEscHtml(ev.label)}${ev.notes ? ' — ' + teacherEscHtml(ev.notes) : ''}">${ev.event_type === 'holiday' ? '🌴' : '📝'}</span>`
+      : '';
+    const baseTitle = `${date} (${d.toLocaleDateString('en', { weekday: 'long' })})`;
+    const fullTitle = ev
+      ? `${baseTitle} — ${TEACHER_EVENT_TYPE_LABELS[ev.event_type] || ev.event_type}: ${ev.label || ''}${ev.notes ? ' (' + ev.notes + ')' : ''}`
+      : baseTitle;
+    headerHtml += `<th class="day-header${weekendClass}${eventClass}" data-date="${date}" title="${fullTitle}">${dayNum}<br><span style="font-size:0.55rem;opacity:0.7;">${dayName}</span>${evBadge}</th>`;
   });
   headerHtml += '<th class="present-count-cell" style="min-width:45px;"></th>';
   thead.innerHTML = headerHtml;
@@ -1738,6 +1806,16 @@ async function renderTeacherAttReport() {
       const appMap = new Map((apps || []).map(a => [a.student_id, a]));
 
       let dailyHtml = '';
+      // Event day badges (holiday / manual special day)
+      let teacherReportEventDayMap = {};
+      try {
+        const schoolId = await getCurrentSchoolId();
+        let evq = supabaseClient.from('attendance_event_days').select('date, event_type, label, notes');
+        if (schoolId) evq = evq.eq('school_id', schoolId);
+        const { data: evs } = await evq;
+        (evs || []).forEach(e => { teacherReportEventDayMap[e.date] = e; });
+      } catch (e) { /* ignore */ }
+
       sortedDates.forEach(date => {
         const records = dateGroups[date];
         const visibleRecords = genderFilter
@@ -1750,10 +1828,14 @@ async function renderTeacherAttReport() {
         visibleRecords.forEach(r => { dayCounts[r.status]++; });
         const dayTotal = visibleRecords.length;
         const dayPct = dayTotal > 0 ? ((dayCounts.present / dayTotal) * 100).toFixed(1) : '0.0';
+        const ev = teacherReportEventDayMap[date];
+        const evTag = ev
+          ? ` <span style="display:inline-block;margin-left:0.4rem;background:#fef3c7;color:#92400e;border-radius:4px;padding:0 0.35rem;font-size:0.72rem;font-weight:600;">${ev.event_type === 'holiday' ? '🌴 Holiday' : '📝 Special / Manual'}${ev.label ? ': ' + teacherEscHtml(ev.label) : ''}</span>`
+          : '';
 
         dailyHtml += `<tr style="background:var(--bg);font-weight:700;">
           <td colspan="6" style="padding:0.5rem 1rem;font-size:0.9rem;">
-            <strong>${date}</strong>
+            <strong>${date}</strong>${evTag}
             <span style="font-weight:400;font-size:0.8rem;color:var(--text-muted);margin-left:0.5rem;">
               Present: ${dayCounts.present} | Absent: ${dayCounts.absent} | Total: ${dayTotal} |
             </span>

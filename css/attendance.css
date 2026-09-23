@@ -285,6 +285,16 @@
   background: var(--primary-light, #e0e7ff);
   color: var(--text);
 }
+/* Event days (holiday / manual special day) — amber highlight + badge */
+.att-monthly-grid th.day-header.event-day {
+  background: #fef3c7;
+  color: #92400e;
+}
+.att-monthly-grid th.day-header.event-day .event-day-badge {
+  display: block;
+  font-size: 0.6rem;
+  line-height: 1;
+}
 .att-monthly-grid .student-name-cell {
   position: sticky;
   left: 50px;

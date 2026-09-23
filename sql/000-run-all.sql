@@ -544,6 +544,16 @@
 --          js/modules/super-admin.js (module lock manager),
 --          js/modules/backup-restore.js (the page itself).
 \i 071-backup-module.sql
+
+-- Step 65: Attendance Event Days
+-- Adds public.attendance_event_days so a school admin can mark a date as an
+-- event day (Holiday or Manual / Special day). The row is a pure indicator:
+-- it is highlighted in the attendance Daily mode, 30-day grid headers and
+-- report Daily views, but never creates or blocks attendance records.
+-- Used by: js/modules/admin-attendance.js (manage + show),
+--          js/modules/teacher-dashboard.js (show),
+--          js/modules/attendance-report.js (show).
+\i 072-attendance-event-days.sql
 -- ============================================================
 --  SCHEMA DEPLOYMENT COMPLETE
 -- ============================================================

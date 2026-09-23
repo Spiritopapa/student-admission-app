@@ -28,6 +28,7 @@ let genderFilter = params.get('gender') || '';
 // Last fetched data is kept so the Summary/Daily toggle doesn't refetch.
 let _records = [];
 let _appMap = new Map();
+let _eventDayMap = new Map(); // date -> { date, event_type, label, notes }
 // Scope captured at boot so the gender dropdown can re-render without recomputing it.
 let _scope = { isTeacher: false, classes: [], schoolId: null };
 
@@ -169,12 +170,26 @@ async function loadAndRender({ isTeacher, classes, schoolId }) {
     }
   }
 
+  // --- Fetch event days (holiday / manual special days) for the Daily view ---
+  try {
+    let evq = supabaseClient.from('attendance_event_days').select('date, event_type, label, notes');
+    if (schoolId) evq = evq.eq('school_id', schoolId);
+    const { data: evs } = await evq;
+    const evMap = new Map();
+    (evs || []).forEach(e => evMap.set(e.date, e));
+    _eventDayMap = evMap;
+  } catch (e) {
+    console.error('Failed to load event days:', e);
+    _eventDayMap = new Map();
+  }
+
   // --- Build metadata line ---
   const roleLabel = isTeacher ? 'Teacher' : 'Admin';
   const filterParts = ['Role: ' + roleLabel];
   if (effectiveClass) filterParts.push('Class: ' + effectiveClass);
   if (genderFilter) filterParts.push('Gender: ' + genderFilter);
   if (termFilter) filterParts.push('Term: ' + termFilter);
+  if (_eventDayMap.size > 0) filterParts.push('Event Days: ' + _eventDayMap.size);
   if (dateFrom || dateTo) {
     filterParts.push(dateFrom === dateTo ? 'Date: ' + dateFrom : 'Dates: ' + (dateFrom || '…') + ' → ' + (dateTo || '…'));
   }
@@ -252,7 +267,12 @@ function renderDaily() {
     const total = dayRecords.length;
     const pct = total > 0 ? ((present / total) * 100).toFixed(1) : '0.0';
 
-    html += `<tr class="day-head"><td colspan="6"><strong>${esc(date)}</strong>
+    const ev = _eventDayMap.get(date);
+    const evTag = ev
+      ? ` <span style="display:inline-block;margin-left:0.4rem;background:#fef3c7;color:#92400e;border-radius:4px;padding:0 0.35rem;font-size:0.72rem;font-weight:600;">${ev.event_type === 'holiday' ? '🌴 Holiday' : '📝 Special / Manual'}${ev.label ? ': ' + esc(ev.label) : ''}</span>`
+      : '';
+
+    html += `<tr class="day-head"><td colspan="6"><strong>${esc(date)}</strong>${evTag}
       <span style="font-weight:400;color:var(--muted);margin-left:0.5rem;">
         Present: ${present} | Absent: ${absent} | Total: ${total} | ${pct}%</span>
     </td></tr>`;

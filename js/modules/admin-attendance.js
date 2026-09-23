@@ -9,6 +9,15 @@ import { getEl, showMessage, setLoading, formatDate, logSubAdminActivity, getCur
 let supabaseClient = null;
 let attendanceCache = [];
 let monthlyCache = []; // Stores { student_id, name, class_applying, days: { [date]: status } }
+let eventDaysCache = []; // Event days (holiday / manual) -> [{ id, date, event_type, label, notes }]
+
+/** Escape a value for safe injection into innerHTML templates. */
+function escHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, c =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+const EVENT_TYPE_LABELS = { holiday: 'Holiday', manual: 'Manual / Special Day' };
 
 export function initAdminAttendance(supabase) {
   supabaseClient = supabase;
@@ -31,6 +40,9 @@ export function setupAttendanceListeners() {
   // Report mode toggle
   getEl('btnAttReportSummary')?.addEventListener('click', () => switchReportMode('summary'));
   getEl('btnAttReportDaily')?.addEventListener('click', () => switchReportMode('daily'));
+
+  // Event day management
+  getEl('btnAddEventDay')?.addEventListener('click', addEventDay);
 
   // Gender filter listeners (daily + report)
   getEl('adminAttGenderFilter')?.addEventListener('change', loadAttendanceForDate);
@@ -119,6 +131,7 @@ function switchReportMode(mode) {
 
 export async function loadAttendancePage() {
   await populateAttendanceClassFilter();
+  await loadEventDays();
   const dateInput = getEl('adminAttDate');
   if (dateInput) dateInput.value = new Date().toISOString().slice(0, 10);
   const reportSection = getEl('attendanceReportSection');
@@ -154,6 +167,153 @@ async function populateAttendanceClassFilter() {
     sel.innerHTML = '<option value="">All Classes</option>' + (classes || []).map(c => `<option>${c.name}</option>`).join('');
   } catch (err) {
     console.error('Failed to load attendance class filter:', err);
+  }
+}
+
+// ================================================================
+// EVENT DAYS (Holiday / Manual special days)
+// ================================================================
+
+/**
+ * Load this school's event days into the cache and refresh the list table.
+ * Event days are pure indicators and never create attendance records.
+ */
+async function loadEventDays() {
+  try {
+    const schoolId = await getCurrentSchoolId();
+    let query = supabaseClient.from('attendance_event_days')
+      .select('id, date, event_type, label, notes')
+      .order('date', { ascending: false })
+      .limit(500);
+    if (schoolId) query = query.eq('school_id', schoolId);
+    const { data, error } = await query;
+    if (error) { console.error('Load event days error:', error); return; }
+    eventDaysCache = data || [];
+    renderEventDaysList();
+  } catch (err) {
+    console.error('Load event days exception:', err);
+  }
+}
+
+/** date -> event day (dates are unique per school). */
+function getEventDayMap() {
+  const map = {};
+  eventDaysCache.forEach(e => { map[e.date] = e; });
+  return map;
+}
+
+/** Find the event day for a single date (or undefined). */
+function getEventDayForDate(date) {
+  return eventDaysCache.find(e => e.date === date);
+}
+
+function renderEventDaysList() {
+  const tbody = getEl('eventDaysBody');
+  if (!tbody) return;
+  if (eventDaysCache.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:1rem;color:var(--text-muted);">No event days marked yet.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = eventDaysCache.map(e =>
+    `<tr>
+      <td><strong>${e.date}</strong> <span style="font-size:0.72rem;color:var(--text-muted);">(${formatDate(e.date)})</span></td>
+      <td>${EVENT_TYPE_LABELS[e.event_type] || e.event_type}</td>
+      <td>${escHtml(e.label)}</td>
+      <td style="font-size:0.8rem;">${escHtml(e.notes || '-')}</td>
+      <td style="text-align:center;"><button type="button" class="btn btn-sm btn-danger" data-event-id="${e.id}">Delete</button></td>
+    </tr>`).join('');
+  tbody.querySelectorAll('button[data-event-id]').forEach(btn => {
+    btn.addEventListener('click', () => deleteEventDay(btn.dataset.eventId));
+  });
+}
+
+async function addEventDay() {
+  const dateInput = getEl('eventDayDate');
+  const typeSel = getEl('eventDayType');
+  const labelInput = getEl('eventDayLabel');
+  const notesInput = getEl('eventDayNotes');
+  const date = dateInput?.value || '';
+  const eventType = typeSel?.value || 'holiday';
+  const label = (labelInput?.value || '').trim();
+  const notes = (notesInput?.value || '').trim();
+  if (!date) { showMessage('eventDayMessage', 'Please select a date.', 'error'); return; }
+  if (!label) { showMessage('eventDayMessage', 'Please enter a label / name for this day (e.g. Founders\' Day).', 'error'); return; }
+  if (eventDaysCache.some(e => e.date === date)) {
+    const existing = eventDaysCache.find(e => e.date === date);
+    showMessage('eventDayMessage', `An event day already exists for ${date} (${EVENT_TYPE_LABELS[existing.event_type] || existing.event_type}). Delete it first to replace it.`, 'error');
+    return;
+  }
+
+  const btn = getEl('btnAddEventDay');
+  setLoading(btn, true, 'Saving...');
+  try {
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    const schoolId = await getCurrentSchoolId();
+    const { error } = await supabaseClient.from('attendance_event_days').insert([{
+      date,
+      event_type: eventType,
+      label,
+      notes,
+      school_id: schoolId,
+      created_by: user?.id || null,
+    }]);
+    if (error) throw error;
+
+    showMessage('eventDayMessage', `Event day saved: ${formatDate(date)} — ${EVENT_TYPE_LABELS[eventType] || eventType} · ${label}`, 'success');
+    if (dateInput) dateInput.value = '';
+    if (labelInput) labelInput.value = '';
+    if (notesInput) notesInput.value = '';
+
+    await loadEventDays();
+    refreshEventDayIndicators();
+    try { logSubAdminActivity(`Marked ${formatDate(date)} as ${(EVENT_TYPE_LABELS[eventType] || eventType).toLowerCase()} day: ${label}`, 'attendance', 'event day'); } catch (e) { /* noop */ }
+  } catch (err) {
+    console.error('Add event day error:', err);
+    showMessage('eventDayMessage', 'Error: ' + err.message, 'error');
+  } finally {
+    setLoading(btn, false, 'Add Event Day');
+  }
+}
+
+async function deleteEventDay(eventId) {
+  if (!eventId) return;
+  if (!window.confirm('Delete this event day? The day will no longer be indicated as an event day (attendance records are untouched).')) return;
+  try {
+    const { error } = await supabaseClient.from('attendance_event_days').delete().eq('id', eventId);
+    if (error) throw error;
+    await loadEventDays();
+    refreshEventDayIndicators();
+    showMessage('eventDayMessage', 'Event day deleted.', 'success');
+  } catch (err) {
+    console.error('Delete event day error:', err);
+    showMessage('eventDayMessage', 'Error: ' + err.message, 'error');
+  }
+}
+
+/** Show/hide the amber banner for the currently selected daily date. */
+function updateAdminEventDayNotice(date, eventDay) {
+  const notice = getEl('adminEventDayNotice');
+  if (!notice) return;
+  if (eventDay) {
+    const typeLabel = EVENT_TYPE_LABELS[eventDay.event_type] || eventDay.event_type;
+    const labelPart = eventDay.label ? `: <strong>${escHtml(eventDay.label)}</strong>` : '';
+    const notesPart = eventDay.notes ? ` — ${escHtml(eventDay.notes)}` : '';
+    notice.style.display = 'block';
+    notice.innerHTML = `<strong>Calendar note:</strong> ${formatDate(date)} is marked as <strong>${typeLabel}</strong>${labelPart}.${notesPart}`;
+  } else {
+    notice.style.display = 'none';
+  }
+}
+
+/** After adding/removing an event day, refresh the daily banner and a loaded 30-day grid. */
+async function refreshEventDayIndicators() {
+  const dateInput = getEl('adminAttDate');
+  if (dateInput?.value) {
+    updateAdminEventDayNotice(dateInput.value, getEventDayForDate(dateInput.value));
+  }
+  if (monthlyCache.length > 0) {
+    const renderedDates = Object.keys(monthlyCache[0]?.days || {});
+    if (renderedDates.length > 0) renderMonthlyGrid(renderedDates);
   }
 }
 
@@ -217,6 +377,8 @@ async function loadAttendanceForDate() {
   if (filteredApps.length === 0) { tbody.innerHTML = ''; if (noEl) noEl.style.display = 'block'; return; }
   if (noEl) noEl.style.display = 'none';
 
+  if (eventDaysCache.length === 0) await loadEventDays();
+
   attendanceCache = filteredApps.map(app => {
     const existing = attMap.get(app.student_id);
     return {
@@ -232,6 +394,7 @@ async function loadAttendanceForDate() {
     };
   });
 
+  updateAdminEventDayNotice(date, getEventDayForDate(date));
   renderAttendanceTable();
 }
 
@@ -438,6 +601,8 @@ async function loadMonthlyAttendance() {
     return;
   }
 
+  if (eventDaysCache.length === 0) await loadEventDays();
+
   const schoolId = await getCurrentSchoolId();
 
   // Generate 30 date strings from start date
@@ -540,13 +705,23 @@ function renderMonthlyGrid(dates) {
   let headerHtml = '<th class="save-cell-header" style="min-width:50px;">Save</th>';
   headerHtml += '<th class="student-name-cell" style="min-width:140px;">Student Name</th>';
   headerHtml += '<th class="student-id-cell" style="min-width:80px;">ID</th>';
+  const eventDayMap = getEventDayMap();
   dates.forEach(date => {
     const d = new Date(date + 'T00:00:00');
     const dayNum = d.getDate();
     const dayName = d.toLocaleDateString('en', { weekday: 'short' }).charAt(0);
     const isWeekend = d.getDay() === 0 || d.getDay() === 6;
     const weekendClass = isWeekend ? ' weekend' : '';
-    headerHtml += `<th class="day-header${weekendClass}" data-date="${date}" title="${date} (${d.toLocaleDateString('en', { weekday: 'long' })})">${dayNum}<br><span style="font-size:0.55rem;opacity:0.7;">${dayName}</span></th>`;
+    const ev = eventDayMap[date];
+    const eventClass = ev ? ' event-day' : '';
+    const evBadge = ev
+      ? `<span class="event-day-badge" title="${(EVENT_TYPE_LABELS[ev.event_type] || ev.event_type)}: ${escHtml(ev.label)}${ev.notes ? ' — ' + escHtml(ev.notes) : ''}">${ev.event_type === 'holiday' ? '🌴' : '📝'}</span>`
+      : '';
+    const baseTitle = `${date} (${d.toLocaleDateString('en', { weekday: 'long' })})`;
+    const fullTitle = ev
+      ? `${baseTitle} — ${EVENT_TYPE_LABELS[ev.event_type] || ev.event_type}: ${ev.label || ''}${ev.notes ? ' (' + ev.notes + ')' : ''}`
+      : baseTitle;
+    headerHtml += `<th class="day-header${weekendClass}${eventClass}" data-date="${date}" title="${fullTitle}">${dayNum}<br><span style="font-size:0.55rem;opacity:0.7;">${dayName}</span>${evBadge}</th>`;
   });
   headerHtml += '<th class="present-count-cell" style="min-width:45px;"></th>';
   thead.innerHTML = headerHtml;
@@ -1021,11 +1196,14 @@ async function printMonthlyAttendanceGrid() {
   tableHtml += '<thead><tr>';
   tableHtml += '<th style="border:1px solid #ccc;padding:0.3rem;background:#1e293b;color:#fff;text-align:left;">Student Name</th>';
   tableHtml += '<th style="border:1px solid #ccc;padding:0.3rem;background:#1e293b;color:#fff;text-align:left;">ID</th>';
+  const printEventMap = getEventDayMap();
   dates.forEach(date => {
     const d = new Date(date + 'T00:00:00');
     const dayNum = d.getDate();
     const dayName = d.toLocaleDateString('en', { weekday: 'short' }).charAt(0);
-    tableHtml += `<th style="border:1px solid #ccc;padding:0.2rem;background:#1e293b;color:#fff;text-align:center;min-width:22px;">${dayNum}<br><span style="font-size:0.5rem;opacity:0.7;">${dayName}</span></th>`;
+    const ev = printEventMap[date];
+    const evMark = ev ? `<br><span style="font-size:0.5rem;color:#92400e;">${ev.event_type === 'holiday' ? '🌴' : '📝'}</span>` : '';
+    tableHtml += `<th style="border:1px solid #ccc;padding:0.2rem;background:#1e293b;color:#fff;text-align:center;min-width:22px;">${dayNum}<br><span style="font-size:0.5rem;opacity:0.7;">${dayName}</span>${evMark}</th>`;
   });
   tableHtml += '<th style="border:1px solid #ccc;padding:0.3rem;background:#1e293b;color:#fff;text-align:center;"></th>';
   tableHtml += '</tr></thead><tbody>';
@@ -1059,8 +1237,16 @@ async function printMonthlyAttendanceGrid() {
       <span><span style="display:inline-block;width:12px;height:12px;background:#d1fae5;border:1px solid #065f46;border-radius:2px;vertical-align:middle;"></span> Present (✓)</span>
       <span><span style="display:inline-block;width:12px;height:12px;background:#fee2e2;border:1px solid #991b1b;border-radius:2px;vertical-align:middle;"></span> Absent (✗)</span>
       <span><span style="display:inline-block;width:12px;height:12px;background:transparent;border:1px solid #ccc;border-radius:2px;vertical-align:middle;"></span> Unmarked (—)</span>
+      <span><span style="display:inline-block;width:12px;height:12px;background:#fef3c7;border:1px solid #92400e;border-radius:2px;vertical-align:middle;"></span> Event day (🌴 Holiday / 📝 Special)</span>
     </div>
   `;
+
+  // Print event-day summary line (if any fall inside the 30-day window)
+  const eventDaysInRange = dates.map(d => ({ d, ev: printEventMap[d] })).filter(x => x.ev);
+  let eventHeadHtml = '';
+  if (eventDaysInRange.length > 0) {
+    eventHeadHtml = `<p style="margin:0.25rem 0;font-size:0.75rem;color:#92400e;">Event Days: ${eventDaysInRange.map(x => `${x.d} (${EVENT_TYPE_LABELS[x.ev.event_type] || x.ev.event_type}${x.ev.label ? ' — ' + escHtml(x.ev.label) : ''})`).join('; ')}</p>`;
+  }
 
   const content = `
     <div style="text-align:center;margin-bottom:1rem;">
@@ -1069,6 +1255,7 @@ async function printMonthlyAttendanceGrid() {
       <p style="margin:0.25rem 0;font-size:0.8rem;">
         Start Date: <strong>${startDateStr}</strong> | Class: <strong>${classFilter}</strong>
       </p>
+      ${eventHeadHtml}
       <p style="margin:0.25rem 0;font-size:0.75rem;color:#64748b;">Generated: ${new Date().toLocaleString()}</p>
     </div>
     ${tableHtml}
@@ -1255,6 +1442,9 @@ async function renderAttendanceReport() {
         dateGroups[r.date].push(r);
       });
 
+      // Event day badges (holiday / manual special day)
+      const eventDayMap = getEventDayMap();
+
       // Sort dates descending
       const sortedDates = Object.keys(dateGroups).sort((a, b) => b.localeCompare(a));
 
@@ -1265,11 +1455,15 @@ async function renderAttendanceReport() {
         records.forEach(r => { dayCounts[r.status]++; });
         const dayTotal = records.length;
         const dayPct = dayTotal > 0 ? ((dayCounts.present / dayTotal) * 100).toFixed(1) : '0.0';
+        const ev = eventDayMap[date];
+        const evTag = ev
+          ? ` <span style="display:inline-block;margin-left:0.4rem;background:#fef3c7;color:#92400e;border-radius:4px;padding:0 0.35rem;font-size:0.72rem;font-weight:600;">${ev.event_type === 'holiday' ? '🌴 Holiday' : '📝 Special / Manual'}${ev.label ? ': ' + escHtml(ev.label) : ''}</span>`
+          : '';
 
         // Date header row
         dailyHtml += `<tr style="background:var(--bg);font-weight:700;">
           <td colspan="6" style="padding:0.5rem 1rem;font-size:0.9rem;">
-            <strong>${date}</strong> 
+            <strong>${date}</strong>${evTag} 
             <span style="font-weight:400;font-size:0.8rem;color:var(--text-muted);margin-left:0.5rem;">
               Present: ${dayCounts.present} | Absent: ${dayCounts.absent} | Total: ${dayTotal} | 
             </span>
