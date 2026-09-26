@@ -80,7 +80,10 @@ export function roleBasePath(role) {
   if (role === 'parent') return '/parent';
   if (role === 'teacher') return '/teacher';
   if (role === 'accountant') return '/accountant';
-  return '/superadmin';
+  if (role === 'super_admin') return '/superadmin';
+  // Unknown/missing role: never fall through to a privileged area (or a redirect
+  // loop). Send the user back to the login screen instead.
+  return '/login';
 }
 
 export { Weight as FeesIcon };

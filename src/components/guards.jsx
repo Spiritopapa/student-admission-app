@@ -1,7 +1,8 @@
-import { Navigate, useLocation } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Spinner } from './ui';
 import { ROLES } from '../lib/constants';
+import { roleBasePath } from '../lib/nav';
 
 export function AuthLoader() {
   const { loading } = useAuth();
@@ -26,7 +27,9 @@ export function ProtectedRoute({ children }) {
   if (!user) {
     return <Navigate to="/login" state={{ from: location.pathname }} replace />;
   }
-  return children;
+  // When used as a layout route (<Route element={<ProtectedRoute />}> with nested
+  // routes), children is undefined — the nested dashboard must render via <Outlet />.
+  return children ?? <Outlet />;
 }
 
 export function RoleRoute({ roles, children }) {
@@ -57,19 +60,14 @@ export function PublicOnlyRoute({ children }) {
   const { user, profile, loading } = useAuth();
   if (loading) return <AuthLoader />;
   if (user) {
-    const role = profile?.role;
-    const home = role === ROLES.ADMIN || role === ROLES.SUB_ADMIN
-      ? '/admin'
-      : role === ROLES.STUDENT
-        ? '/dashboard'
-        : role === ROLES.PARENT
-          ? '/parent'
-          : role === ROLES.TEACHER
-            ? '/teacher'
-            : role === ROLES.ACCOUNTANT
-              ? '/accountant'
-              : '/superadmin';
-    return <Navigate to={home} replace />;
+    if (profile?.role) {
+      // Signed-in user with a known role → send them to their role home.
+      return <Navigate to={roleBasePath(profile.role)} replace />;
+    }
+    // Signed-in user with no resolvable role: NEVER fall through to a privileged
+    // area, and do not bounce between /superadmin and /login. Land on the public
+    // landing page instead.
+    return <Navigate to="/" replace />;
   }
   return children;
 }

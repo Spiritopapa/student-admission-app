@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import { uploadFile, randomPath } from '../lib/storage';
 
@@ -229,7 +229,6 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
-  const initialized = useRef(false);
 
   const refreshSession = useCallback(async () => {
     const {
@@ -249,9 +248,11 @@ export function AuthProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    if (initialized.current) return;
-    initialized.current = true;
-
+    // NOTE: no "initialized" guard here. React.StrictMode (development) mounts
+    // effects, unmounts them, then mounts again. With the guard, the cleanup
+    // would unsubscribe the listener on the simulated unmount and it would never
+    // be re-subscribed, leaving the provider without auth events in dev. Letting
+    // each mount subscribe and unsubscribe keeps exactly one active listener.
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'SIGNED_OUT') {
         setUser(null);
@@ -266,7 +267,9 @@ export function AuthProvider({ children }) {
             if (!u) return;
             const child = await applyGuards(u);
             setUser(u);
-            setProfile((prev) => ({ ...(prev || {}), ...child.profile }));
+            // Keep an existing profile if the just-fetched one is missing; never
+            // clobber a valid profile with null.
+            setProfile((prev) => child.profile || prev);
           })
           .catch(() => {})
           .finally(() => setLoading(false));
