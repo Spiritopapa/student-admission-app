@@ -12,6 +12,7 @@ export default function TeacherAttendance() {
   const toast = useToast();
   const [teacher, setTeacher] = useState(null);
   const [students, setStudents] = useState([]);
+  const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [marks, setMarks] = useState({});
@@ -27,6 +28,14 @@ export default function TeacherAttendance() {
           .eq('user_id', user.id)
           .maybeSingle();
         setTeacher(teacherData || null);
+        if (teacherData?.school_id) {
+          const { data: settingsData } = await supabase
+            .from('school_settings')
+            .select('academic_year, current_term')
+            .eq('school_id', teacherData.school_id)
+            .maybeSingle();
+          setSettings(settingsData || null);
+        }
         if (teacherData?.class_taught) {
           const { data } = await supabase
             .from('applications')
@@ -64,8 +73,8 @@ export default function TeacherAttendance() {
       date,
       status: marks[s.student_id] || 'absent',
       class_name: teacher.class_taught,
-      academic_year: '2025/2026',
-      term: 'First',
+      academic_year: settings?.academic_year || '2025/2026',
+      term: settings?.current_term || 'First',
       marked_by: user.id,
       school_id: teacher.school_id,
     }));

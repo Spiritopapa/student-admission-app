@@ -6,7 +6,7 @@ import { PageHeader, Card, Button, Input, Select, Spinner } from '../../componen
 import { Alert } from '../../components/ui-extras';
 import { PhotoUpload } from '../../components/PhotoUpload';
 import { supabase } from '../../lib/supabase';
-import { uploadFile, randomPath, publicUrl } from '../../lib/storage';
+import { uploadFile, randomPath, resolveFileUrl } from '../../lib/storage';
 import { TERMS, TERM_LABELS } from '../../lib/constants';
 
 export default function AdminSettings() {
@@ -107,12 +107,7 @@ export default function AdminSettings() {
           </Alert>
         ) : null}
         <div className="mt-5">
-          <PhotoUpload
-            value={logoUrl ? publicUrl('school-logos', logoUrl.split('/').pop()) || logoUrl : null}
-            onChange={setLogoFile}
-            maxMb={1}
-            circle
-          />
+          <PhotoUpload value={resolveFileUrl(logoUrl)} onChange={setLogoFile} maxMb={1} circle />
         </div>
         <div className="mt-5 grid gap-4 sm:grid-cols-2">
           <Input label="School name" value={form.school_name} onChange={set('school_name')} />
