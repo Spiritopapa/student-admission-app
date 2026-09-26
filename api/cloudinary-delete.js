@@ -27,7 +27,7 @@
  * signed string.
  */
 
-const crypto = require('crypto');
+import crypto from 'crypto';
 
 function json(res, status, body) {
   res.setHeader('Content-Type', 'application/json');
@@ -46,7 +46,7 @@ function guessResourceType(publicId) {
   return /\.(pdf|docx?|xlsx?|pptx?|txt|csv)$/i.test(publicId) ? 'raw' : 'image';
 }
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return json(res, 405, { success: false, error: 'Method not allowed. Use POST.' });
   }

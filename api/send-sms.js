@@ -77,7 +77,7 @@ function json(res, status, body) {
   res.end(JSON.stringify(body));
 }
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return json(res, 405, {
       success: false,

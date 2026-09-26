@@ -1,20 +1,37 @@
 {
   "name": "student-admission-portal",
-  "version": "1.0.0",
-  "description": "A student admission web application powered by Supabase.",
+  "version": "2.0.0",
+  "description": "Student admission and school management platform - React + Supabase",
   "private": true,
+  "type": "module",
   "scripts": {
-    "dev": "npx serve .",
-    "start": "npx serve ."
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "start": "vite preview"
   },
   "keywords": [
     "admission",
     "supabase",
     "student",
-    "portal"
+    "portal",
+    "react"
   ],
   "license": "MIT",
   "dependencies": {
-    "@supabase/supabase-js": "^2.116.0"
+    "@supabase/supabase-js": "^2.116.0",
+    "framer-motion": "^11.11.9",
+    "lucide-react": "^0.469.0",
+    "qrcode.react": "^4.2.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.28.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.15",
+    "vite": "^5.4.11"
   }
 }

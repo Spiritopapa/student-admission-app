@@ -1,20 +1,73 @@
-# Student Admission Portal
+﻿# SchoolRunner — Student Admission Portal
 
-A full-featured student admission web application built with vanilla JavaScript, HTML/CSS, and [Supabase](https://supabase.com) for authentication and database. Designed for easy deployment on **Vercel** and **GitHub Pages**.
+A modern, production-ready school management platform rebuilt with **React**, **Vite** and **Tailwind CSS** on the proven **Supabase** backend. The application covers the whole school journey — public admission applications, per-school administration, fee collection with verified receipts (QR + SMS notifications), examinations, attendance and parent/student portals.
+
+The previous vanilla JavaScript implementation is preserved in [`legacy/`](./legacy) for reference and history.
+
+---
+
+## Tech Stack
+
+| Layer       | Technology                                                        |
+|-------------|-------------------------------------------------------------------|
+| Frontend    | React 18, Vite, React Router, Tailwind CSS, Framer Motion          |
+| Icons       | lucide-react (real icons, no emoji)                                |
+| Backend     | Supabase (PostgreSQL, Auth, RLS, Storage)                          |
+| Files       | Supabase Storage buckets (replaces Cloudinary)                     |
+| SMS         | Nalo Solutions via `/api/send-sms` serverless function             |
+| Hosting     | Vercel (SPA + `/api` serverless functions)                         |
+
+### Three colour blending
+The interface uses one signature **three-colour blend** (indigo → teal → amber) applied consistently through gradients, brand marks and the sidebar active state, giving the whole product a cohesive, professional identity.
 
 ---
 
 ## Features
 
-- **Student Application Form** — Collect personal & academic info
-- **User Authentication** — Register, Login, Logout (powered by Supabase Auth)
-- **Dashboard** — View submitted applications and their status (pending / reviewed / accepted / rejected)
-- **Row-Level Security** — Each user sees only their own data
-- **Responsive Design** — Works on desktop, tablet, and mobile
-- **SPA Navigation** — No page reloads when switching between sections
-- **School Onboarding (Multi-Stage)** — The Super Admin enters a school name and clicks **Next** to generate an initials-based School ID (e.g. `SCH-SIS-0001`). School admins then complete a 4-stage registration wizard — (1) enter School ID, (2) school name shown automatically, (3) school info (admin name, type public/private, location, student population, email, mobile for password change), (4) password. All captured details are shown on the Super Admin dashboard per school, where the Super Admin can also **view** and **edit** any school's info (school name, admin name, type, location, population, email, mobile).
-- **Per-School Receipt Numbers & Staff Counts** — Every school's receipts use its own unique series built from the school name initials (e.g. `RCP-SIN-000001` for Sunshine International School) so a school's receipts are independently numbered yet globally unique. Each school also shows its own **teacher** and **accountant** counts on the Super Admin dashboard (schools table, quick-access cards, and the school-details modal).
-- **Per-School Teacher & Accountant IDs** — Teacher and accountant registration IDs also carry the school name initials (e.g. `TCH-SIN-0001` / `ACC-SIN-0001` for Sunshine International School) so every school has its own recognizable, unique series for its staff, while `registration_id` stays globally unique across the platform.
+### Public
+- Landing page with responsive marketing sections
+- **Apply for admission** — public form with photo upload, stored securely in Supabase Storage
+- Register an account for every role (Student, Parent, School, Sub Admin, Teacher, Accountant, Super Admin) with the original multi-stage School wizard
+- Sign in with **email or registration ID** (e.g. `STU-XXXXX`, `TCH-SIN-0001`, `SCH-SIS-0001`, staff IDs)
+- Forgot password via **SMS OTP** (same Nalo gateway)
+- **Verify a receipt** by number or QR token (old `verify-receipt.html` links still work)
+- School onboarding application form
+
+### Student portal
+- Overview with fee balance, attendance rate and performance
+- Fee details, payment history and receipts with **QR verification modal**
+- Exam report cards with grades, averages, teacher remarks and **print**
+- Attendance records by year/term
+- Published assessments and scores
+- Announcements, profile editing, photo upload and password change
+
+### Parent portal
+- Linked wards overview
+- Ward profiles, fees, balances and verified receipts
+- Announcements and profile management
+### School Admin portal (admin + sub-admin)
+- Dashboard with students, classes, teachers and fee totals
+- Students: search, admit (auto Student ID + photo + term fee), view, delete
+- Classes and Subjects management
+- Teachers: add (auto Teacher ID), approve portal access, transport-collector flag, delete
+- Announcements with priority and show/hide
+- Fee structure per class, term and academic year
+- School settings: name, logo upload, academic year, term, password
+
+### Teacher portal
+- Overview with class assignment
+- My class student list
+- **Daily attendance marking** (present/absent, saved per date)
+
+### Accountant portal
+- Overview with today's collections
+- **Collect payment** -> `process_fee_payment`, issues a verified receipt, optional parent SMS
+- Receipt history with QR verification
+
+### Super Admin portal
+- Platform overview (schools, pending applications, students, teachers)
+- Schools: approve/unapprove, reset administrator password
+- School applications: approve, reject, delete
 
 ---
 
@@ -22,266 +75,79 @@ A full-featured student admission web application built with vanilla JavaScript,
 
 ```
 student-admission-app/
-├── index.html              # Main HTML entry point
-├── css/
-│   └── styles.css          # All styles (responsive, modern)
-├── js/
-│   ├── supabase-config.js  # Supabase client initialization
-│   ├── cloudinary-config.js# Cloudinary public config (cloud name + upload preset)
-│   ├── app.js              # Application logic (auth, forms, dashboard)
-│   └── modules/
-│       ├── cloudinary.js   # Cloudinary upload / delete helpers
-│       └── ...             # all feature modules
+├── index.html            # Vite entry
+├── vite.config.js        # Build + chunk splitting
+├── tailwind.config.js    # Three-colour design system
+├── vercel.json           # SPA rewrites + /api routes
 ├── api/
-│   ├── cloudinary-delete.js# Serverless proxy for deleting Cloudinary assets
-│   └── send-sms.js         # Nalo SMS payment notifications
-├── supabase-schema.sql     # SQL to set up database tables & policies
-├── vercel.json             # Vercel deployment configuration
-├── package.json            # Metadata (optional, for local dev)
-├── .env.example            # Environment variable template
-└── README.md               # You're reading it!
+│   ├── send-sms.js       # Nalo SMS gateway proxy (unchanged behaviour)
+│   ├── storage-delete.js # Supabase Storage delete proxy (service role)
+│   └── cloudinary-delete.js # Legacy (kept for backwards compatibility)
+├── sql/
+│   ├── 000-run-all.sql   # Existing schema (unchanged)
+│   ├── 073-supabase-storage-buckets.sql        # NEW storage buckets + policies
+│   └── 074-public-admission-application.sql    # NEW public apply RPC
+├── src/
+│   ├── main.jsx / App.jsx / routes
+│   ├── lib/        # supabase client, storage, queries, format helpers
+│   ├── context/    # AuthContext (role guards) + ToastContext
+│   ├── components/ # UI primitives, guard routes, receipt modal
+│   ├── layout/     # Public + dashboard layouts (responsive sidebar)
+│   ├── hooks/      # school settings, student application
+│   └── pages/      # public / student / parent / admin / teacher / accountant / superadmin
+└── legacy/         # Original vanilla app (preserved, not deployed)
 ```
 
 ---
 
-## Getting Started
-
-### 1. Clone or download the project
+## Getting started
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/student-admission-app.git
-cd student-admission-app
+npm install
+npm run dev        # http://localhost:5173
+npm run build      # production build to dist/
+npm run preview    # serve the production build
 ```
 
-### 2. Set up Supabase
+### Environment variables
 
-1. Go to [supabase.com](https://supabase.com) and create a new project.
-2. Once created, navigate to **Project Settings → API**.
-3. Copy your **Project URL** and **anon / public key**.
-
-### 3. Configure Supabase credentials
-
-Open **`js/supabase-config.js`** and replace the placeholder values:
-
-```js
-const SUPABASE_URL = 'https://YOUR_PROJECT.supabase.co';       // ← Replace
-const SUPABASE_ANON_KEY = 'your-anon-key-here';                // ← Replace
-```
-
-> Do **not** commit real credentials to a public repo. Use environment variables or a `.env` file if you fork for production.
-
-### 4. Run the database schema
-
-1. In your Supabase Dashboard, go to **SQL Editor**.
-2. Open **`supabase-schema.sql`** in this project.
-3. Copy the entire content and paste it into the SQL Editor.
-4. Click **Run** to create the tables, triggers, and policies.
-
-### 5. Serve the app locally (optional)
-
-```bash
-npx serve .
-```
-
-Or open `index.html` directly (some features like live reload won't work without a server).
-
-### 6. (Optional) Set up Cloudinary for images & files
-
-Every image / file in the app — student photos, school logos, and teacher certificate / appointment-letter PDFs — is uploaded to **Cloudinary**, and the returned URL is stored in Supabase columns (`student_photo_url`, `logo_url`, `photo_url`, `file_url`). The frontend then pulls every image by URL, exactly as before, so **no display code changes**.
-
-1. Create a free account at [cloudinary.com](https://cloudinary.com).
-2. Open **js/cloudinary-config.js** and set:
-   - `CLOUDINARY_CLOUD_NAME` — your Cloud Name (on the Dashboard).
-   - `CLOUDINARY_UPLOAD_PRESET` — an **Unsigned** upload preset
-     (Cloudinary Dashboard → **Settings → Upload → Add upload preset** →
-     Signing Mode: **Unsigned**; enable a default folder such as `online_v`).
-     > Until these two values are set, the app automatically keeps using
-     > Supabase Storage, so you can migrate at your own pace.
-3. For **file deletion** (replacing a photo / document), add the Cloudinary
-   API credentials as **Vercel environment variables** (never in `js/`):
-   `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`.
-   The serverless function `api/cloudinary-delete.js` signs the Admin API
-   *destroy* request server-side, mirroring the `/api/send-sms` pattern.
-
----
-
-## Deploy to Vercel
-
-1. Push the project to a **GitHub repository**.
-2. Go to [vercel.com](https://vercel.com) and click **Add New → Project**.
-3. Import your GitHub repo.
-4. In the **"Root Directory"** field, enter `student-admission-app`.
-5. (Optional) Add environment variables:
-   - `SUPABASE_URL`
-   - `SUPABASE_ANON_KEY`
-   - `CLOUDINARY_CLOUD_NAME`
-   - `CLOUDINARY_API_KEY`
-   - `CLOUDINARY_API_SECRET`
-   > The Supabase app reads these from `js/supabase-config.js` and the Cloudinary public values from `js/cloudinary-config.js`. On Vercel, you can also swap them at build time if you prefer. The two `CLOUDINARY_API_*` secrets are **only** read by `/api/cloudinary-delete`.
-6. Click **Deploy**.
-
-Your app will be live at `https://student-admission-app.vercel.app`.
-
----
-
-## Row Level Security (RLS)
-
-The `supabase-schema.sql` enables **Row Level Security** on both the `profiles` and `applications` tables:
-
-- Users can **read** only their own rows (`auth.uid() = user_id`)
-- Users can **insert** their own rows
-- Users can **update** their own rows
-
-An automatic trigger creates a `profiles` row when a new user signs up via Supabase Auth.
-
----
-
-## SMS Payment Notifications (Nalo Solutions)
-
-Every time a fee payment is recorded (by an **admin** in *Fees Management → Record Payment* or by an **accountant** on their dashboard), the app instantly sends an SMS receipt confirmation to the student's **parent/guardian contact**.
-
-Example message:
+Copy `.env.example` to `.env.local` and fill in the values:
 
 ```
-NASCO JHS: Paid GHC1000.00 for Kofi Mensah (First Term 2025/2026). Receipt: RCP-2026-000123. Thank you.
+VITE_SUPABASE_URL=
+VITE_SUPABASE_ANON_KEY=
+VITE_RECEIPT_VERIFY_BASE_URL=
 ```
 
-### How it works
+Server-side variables live only in Vercel (never shipped to the browser):
 
-1. `js/modules/sms-gateway.js` — after `process_fee_payment` succeeds, it reads the parent's phone number from the `applications` table, normalizes it to `233XXXXXXXXX`, and POSTs `{ phone, message }` to `/api/send-sms`.
-2. `api/send-sms.js` — a Vercel serverless function that forwards the message to the Nalo gateway
-   (`https://sms.nalosolutions.com/smsbackend/Resl_Nalo/send-message/`). The Nalo credentials are only read server-side from Vercel environment variables, so the secret key is never exposed to the browser.
-3. Every attempt is written to the **`sms_logs`** table (`sql/041-sms-gateway.sql`) for auditing. A receipt only ever triggers **one** successful SMS (duplicate guard).
+```
+NALO_SMS_AUTH_KEY         # SMS gateway
+NALO_SMS_SENDER_ID
+SUPABASE_SERVICE_ROLE_KEY # used by /api/storage-delete
+```
 
-### Configuration
+### Supabase migrations
 
-Set these in **Vercel → Project → Settings → Environment Variables**:
+Your existing data and tables are untouched. Run the two new migrations in the Supabase SQL editor:
 
-| Variable | Required | Description |
-|---|---|---|
-| `NALO_SMS_AUTH_KEY` | preferred | Nalo API auth key (from your Nalo dashboard) |
-| `NALO_SMS_USERNAME` / `NALO_SMS_PASSWORD` | fallback | Account login used only if no `AUTH_KEY` is set |
-| `NALO_SMS_SENDER_ID` | optional | Registered sender ID (defaults to `NALO`) |
+1. `sql/073-supabase-storage-buckets.sql` - creates the public buckets (`student-photos`, `applications`, `school-logos`, `documents`) with RLS policies. Authenticated users upload; anonymous users may only upload to `applications`; deletes happen server-side through `/api/storage-delete`.
+2. `sql/074-public-admission-application.sql` - secure public admission application RPC + public school lookup for the apply page.
 
-Then run `sql/041-sms-gateway.sql` in the Supabase SQL Editor (or re-run `sql/000-run-all.sql`).
+### Deployment (Vercel)
 
-> The `sms_logs` table and the `/api/send-sms` function are protected by RLS / server-side secrets respectively. Messages are sent fire-and-forget, so an SMS failure never blocks the payment receipt from being generated.
+1. Push the repository to GitHub (your existing auto-deploy hook keeps working).
+2. Import the repo into Vercel - it detects Vite automatically (build `npm run build`, output `dist`).
+3. Add the environment variables above under Settings > Environment Variables (Production, Preview, Development).
+4. Deploy. SPA rewrites and `/api/*` serverless functions are configured in `vercel.json`.
 
-### SMS Monitoring (Admin)
-
-School admins can monitor every SMS attempt from the **SMS Monitoring** module in the sidebar:
-
-- Summary cards (total / sent / unsent-failed / sent today) plus tabs for **All**, **Sent** and **Unsent / Failed**.
-- Search by phone, student ID, receipt number or message text, and filter by date range.
-- A **View** modal shows the full message text, sender ID, provider response and the failure reason for unsent messages.
-- **Resend** button on any failed message re-sends it through `/api/send-sms` and logs the new attempt as a fresh `sms_logs` row.
-- The list refreshes automatically when new SMS rows are written (realtime subscription).
-
-To enable the module, run `sql/043-sms-monitoring-module.sql` (included in `sql/000-run-all.sql`). It only registers the `sms-monitoring` module for Super-Admin lock/unlock control — no new tables are created because the module reads the existing `sms_logs` audit table. The Super Admin can lock it per school via **Schools → Module Locks**.
-
-### Bulk Fee Reminder SMS (Admin → Fees → Debtors)
-
-School admins can send a single fee-reminder SMS to every debtor's parent/guardian straight from the **Fees Management → Debtors** tab:
-
-- Use the **class filter** (`All Classes` or a specific class) so the bulk SMS targets exactly the class you want.
-- Tick the **Select All** checkbox or pick individual debtors manually — a live **"N selected"** counter shows how many are queued.
-- Click **Send Fee Reminder SMS**; each parent receives a short message with the school name, the student's name, class and their exact outstanding GHC balance.
-- Debtors with no valid Ghana phone number are skipped and reported; every attempt is audited as a new `sms_logs` row (visible in SMS Monitoring) so failed sends can be retried.
-
-> Requires the same Nalo gateway as above: set `NALO_SMS_AUTH_KEY` (or username/password) as a **Vercel environment variable** and deploy. Without it `/api/send-sms` returns `500 "Nalo SMS is not configured ..."` and the app now shows that exact reason in the result message.
-
-### Per-School SMS Enable / Disable (Super Admin)
-
-The Super Admin can switch SMS messaging **on/off per school** from **Super Admin Dashboard → Schools**:
-
-- Each school row shows an **SMS** badge (On / Off) with a **Disable / Enable** button.
-- The Dashboard quick-school cards also flag schools that have SMS off with a **SMS Off** badge.
-- Disabling SMS blocks **every** SMS path for that school:
-  - fee-payment receipts (`sendFeePaymentSms`),
-  - bulk fee-reminder SMS (Admin → Fees → Debtors — the button is disabled with an explanation),
-  - SMS Monitoring **↻ Resend** (buttons hidden + a warning banner),
-  - forgot-password SMS OTPs (`request_forgot_password_otp` refuses to issue a code).
-
-Apply with `sql/055-school-sms-toggle.sql` (included in `sql/000-run-all.sql`). It adds the `schools.sms_enabled` column (default `true`), an `is_school_sms_enabled()` RPC readable by all authenticated staff, and hardens `request_forgot_password_otp()`.
-
-
-## Forgot Password (SMS OTP)
-
-On the **sign-in page** there is a "Forgot password?" link that lets any user reset their own password by confirming the mobile number on file:
-
-1. **Identify** — enter the email or ID you sign in with.
-2. **Confirm** — the app shows only the **last 3 digits** of the registered mobile number as a hint; you type the **full number**. *Students must use the parent/guardian mobile number (the one recorded in the app).*
-3. **Reset** — a 6-digit code is sent by SMS (via Nalo, `/api/send-sms`); enter it with your new password.
-
-### Behind the scenes (`sql/042-forgot-password.sql`)
-- **`profiles.phone`** is the canonical mobile for every role. It is captured on registration (a **Mobile Number** field was added to all registration forms) and backfilled from existing records (teacher/accountant/school-admin; student → parent contact; parent → ward's parent contact).
-- **`password_reset_otps`** stores bcrypt-hashed OTPs, single-use, expiring in 10 minutes, max 5 attempts.
-- Three public RPCs (`lookup_forgot_password_account`, `request_forgot_password_otp`, `verify_forgot_password_otp`) are granted to `anon` so logged-out users can use the flow. The identifier → account resolver mirrors the exact logic used at sign-in.
-
-> The OTP SMS uses the same Nalo gateway + `/api/send-sms` as fee-payment notifications, so no extra environment variables are needed beyond the existing `NALO_SMS_*` keys.
-
-
-
-1. Open the deployed or local app.
-2. Click **Register** and create an account.
-3. Log in and click **Apply Now**.
-4. Fill out and submit the admission form.
-5. Go to **Dashboard** to see the submitted application with its status.
-6. To change the status, manually update the row in Supabase Table Editor (e.g. from `pending` to `accepted`).
+Old QR links still work: `/verify-receipt.html?t=...` is rewritten to the new React verification page.
 
 ---
 
-## Student Transport System (Admin)
+## Migration roadmap
 
-The **Transport** module on the Admin Dashboard tracks the **daily transport collection fees** of the students who come to school with the school bus, grouped **by bus destination** — and **every destination has its own fee payment**.
-
-### Key features
-- **Today's Collection sheet** — pick a date (defaults to today), see every enrolled bus student grouped per destination, and tap **Pay · GHC xx** to mark a student paid (their destination's fee is auto-applied) or **✕** to undo. **Bulk payment**: tapping **Pay** opens a day picker so you can tick **multiple specific days** for that one student (e.g. a whole week) and settle them in one go — each selected day is recorded as its own payment row, already-paid days are locked, and you get a live total (`N day(s) · GHC X`). A "Mark all paid" / "Reset all" action handles whole destinations. Live summary cards show Expected / Collected / Outstanding / Bus Students with a per-route progress bar.
-- **Routes & Fees** — create, edit, activate/deactivate and delete bus destinations. Each destination (e.g. *Madina*, *East Legon*) carries its **own daily fee (GHC)** which is snapshotted into every collection, so history stays accurate even if the fee changes later.
-- **Enroll Students** — choose which admitted students ride the school bus and on which destination (route). Only enrolled students appear on the daily collection sheet. **A student can ride only ONE destination** — a student already assigned to a destination is shown locked (disabled checkbox + *On {destination}* chip) and cannot be added to another until they are removed from their current one (`sql/066-transport-one-route-per-student.sql`, Step 59, enforces the same rule in the database).
-- **Payments History** — searchable, date-range ledger across all destinations with totals, per-entry removal and a printable daily sheet + ledger. A **Collected by Date** table below the ledger shows the amount collected per day (payment count + total) for the selected date range and filters.
-- **No SMS for transport** — parent SMS notifications are deliberately **disabled** for transport fee collections (the transport modules no longer call the SMS gateway at all; the school-fee SMS system is unaffected).
-- **Mobile friendly** — route cards replace wide tables on phones, big tap targets, and the standard stacked-card table layout is used for the ledger.
-
-### Database (`sql/063-student-transport.sql`)
-- `transport_routes` — bus destinations with their own daily `fee` (school-scoped).
-- `transport_enrollments` — which student rides which route (`is_active`). A partial unique index (`sql/066-transport-one-route-per-student.sql`, Step 59) guarantees a student can be **active on at most one destination**.
-- `transport_fee_payments` — one row per student per destination per day (fee amount, method, reference, collected_by), unique per `(student_id, collection_date, route_id)`.
-- `transport_collector_routes` — maps a collection staff member (`teacher_id`) to the destination(s) (`route_id`) they are assigned to handle (`sql/068-transport-collector-assignments.sql`, Step 61).
-- Registers the `transport` module so the Super Admin can lock/unlock it per school like every other module.
-
-The migration is already included in `sql/000-run-all.sql` (Step 56). Backup & Restore, real-time refresh and the search cache all include the transport tables.
-
-### Roles & access
-| Role | Access to the Transport module |
-|------|-------------------------------|
-| **Admin** | **Full access** — all five tabs: Today's Collection, Routes & Fees, Enroll Students, Payments History, Collector Destinations. **Only the Admin can delete / undo a transport payment** (daily ✕ undo, Reset all, and History → Remove). |
-| **Transport Fees Collector** (selected staff) | **Manage collections** — when the admin generates a staff ID (Staff → *Create Staff with Registration ID*) they can tick **"Transport Fees Collector"**. Flagged staff see a **Transport** tab on their own dashboard, where they can mark daily bus fees **PAID** per student and mark a whole destination paid, view the collection history, and print the daily sheet + ledger. They **cannot delete / undo a recorded collection** — deletion is admin-only (hidden buttons + database-level restriction). |
-| **Accountant** | **View & print** — a read-only **Transport** tab shows the daily collection sheet and payments history with the full print options; no edit buttons are shown. |
-
-- Delivery of the "delete only by Admin" rule is enforced **twice**: every delete/undo button is hidden for collectors/accountants in the UI (`js/modules/transport-shared.js`), and `sql/065-transport-payment-delete-restrict.sql` (Step 58) replaces the permissive RLS with **INSERT/UPDATE open to school staff but DELETE restricted to admin / sub-admin / super-admin**.
-- The collector flag is stored in `teachers.is_transport_collector` (`sql/064-transport-staff-collector.sql`, Step 57) and can be toggled anytime from Staff → *Add / Edit Staff*. It also shows a **Transport Collector** badge in the staff table and is exported/imported in the staff CSV.
-- The shared workspace lives in `js/modules/transport-shared.js` (`loadTransportWorkspace(containerId, mode)`, mode `'manage'` / `'view'`) and is embedded in the Teacher and Accountant dashboards.
-- **Collector Destinations** (Transport → **Collector Destinations**, Step 61): the Admin picks a collection staff member and ticks the bus destination(s) they should manage. A collector then **only sees and collects for the destination(s) assigned to them** on their dashboard (daily sheet, filters, history and prints) — if they have none assigned yet, they see a notice telling them to contact the Admin. The Accountant still sees all destinations (view & print). A **Destination Coverage** table on the same tab lists, for every active destination, the assigned collection staff with their staff ID, phone and email, the amount they **collected within a selectable date range**, and a **View Collections by Date** button that shows each collector's daily collection totals (payment count + amount per day) for that range as a modal.
-- **Today's Collection** (admin, collector and accountant) uses collapsible destination cards — click a destination's header (chevron shows the state) to expand / collapse its student payment list. Groups keep their collapsed state across refreshes.
-
----
-
-## Tech Stack
-
-| Layer       | Technology        |
-|-------------|-------------------|
-| Frontend    | HTML5, CSS3, JavaScript (Vanilla) |
-| Backend     | Supabase (PostgreSQL + Auth) |
-| Media       | Cloudinary (image / file storage & CDN) |
-| Hosting     | Vercel / GitHub Pages |
-| CDN         | supabase-js v2 loaded via jsdelivr |
-
----
-
-## Contributing
-
-Pull requests are welcome! For major changes, open an issue first to discuss what you'd like to change.
+The core product described above is fully functional in React. The remaining back-office modules from the legacy app (exams/grading management, transport, income & expenses, backups, SMS monitoring, assessments authoring) are planned as incremental ports on this React foundation. The original implementations remain available in `legacy/js/modules/` and use the exact same Supabase tables and RPCs.
 
 ---
 
