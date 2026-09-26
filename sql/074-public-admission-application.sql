@@ -40,13 +40,13 @@ CREATE OR REPLACE FUNCTION public.submit_admission_application(
   p_last_name        TEXT,
   p_class_applying   TEXT,
   p_date_of_birth    DATE,
-  p_gender           TEXT DEFAULT 'Male',
-  p_religion         TEXT DEFAULT 'Christian',
   p_parent_name      TEXT,
   p_parent_contact   TEXT,
-  p_home_town        TEXT,
-  p_place_of_stay    TEXT,
-  p_previous_school  TEXT,
+  p_gender           TEXT DEFAULT 'Male',
+  p_religion         TEXT DEFAULT 'Christian',
+  p_home_town        TEXT DEFAULT NULL,
+  p_place_of_stay    TEXT DEFAULT NULL,
+  p_previous_school  TEXT DEFAULT NULL,
   p_photo_path       TEXT DEFAULT NULL
 )
 RETURNS JSONB
