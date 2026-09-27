@@ -554,6 +554,14 @@
 --          js/modules/teacher-dashboard.js (show),
 --          js/modules/attendance-report.js (show).
 \i 072-attendance-event-days.sql
+
+-- Step 66: Supabase Storage Buckets & RLS
+-- Creates the public file buckets used by the React app: student-photos,
+-- applications, school-logos and documents, plus the upload/read
+-- storage.object RLS policies. Without these, student photo uploads fail
+-- ("Bucket not found") and photos cannot be stored or displayed.
+-- Safe to re-run (ON CONFLICT DO NOTHING / IF NOT EXISTS).
+\i 073-supabase-storage-buckets.sql
 -- ============================================================
 --  SCHEMA DEPLOYMENT COMPLETE
 -- ============================================================

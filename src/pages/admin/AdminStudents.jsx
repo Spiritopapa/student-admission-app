@@ -9,7 +9,7 @@ import { PageHeader, Button, Input, Select, Badge, Spinner, EmptyState, SearchIn
 import { Modal, ConfirmDialog, Alert } from '../../components/ui-extras';
 import { PhotoUpload } from '../../components/PhotoUpload';
 import { supabase } from '../../lib/supabase';
-import { uploadFile, randomPath, photoUrl, deleteStoredFiles } from '../../lib/storage';
+import { uploadFile, randomPath, photoUrl, deleteStoredFiles, checkStorageBucket } from '../../lib/storage';
 import { GENDERS, RELIGIONS, TERMS, CLASS_LEVELS, currentAcademicYear } from '../../lib/constants';
 import { buildStudentName, formatDate, formatDateTime, termLabel } from '../../lib/format';
 import { fetchClassFees } from '../../lib/queries';
@@ -162,6 +162,7 @@ export default function AdminStudents() {
 
   const [importing, setImporting] = useState(false);
   const importInputRef = useRef(null);
+  const [storageWarning, setStorageWarning] = useState('');
 
   const load = async () => {
     if (!schoolId) return;
@@ -187,6 +188,29 @@ export default function AdminStudents() {
   useEffect(() => {
     if (schoolId) load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [schoolId]);
+
+  // Storage diagnostic: confirm the "student-photos" bucket actually exists in
+  // the connected Supabase project so admins are told immediately when file
+  // uploads/photo display would fail and how to fix it.
+  useEffect(() => {
+    if (!schoolId) return;
+    let cancelled = false;
+    checkStorageBucket('student-photos', { force: true }).then((status) => {
+      if (cancelled) return;
+      if (status.exists) {
+        setStorageWarning('');
+      } else {
+        setStorageWarning(
+          'The "student-photos" storage bucket is missing in this Supabase project, so student photos cannot be saved or displayed. ' +
+            'Open the Supabase SQL Editor and run "sql/073-supabase-storage-buckets.sql" once ' +
+            '(or the full "sql/000-run-all.sql") to create the file buckets.'
+        );
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [schoolId]);
 
   const filtered = useMemo(
@@ -910,6 +934,12 @@ return (
           </Button>
         }
       />
+
+      {storageWarning ? (
+        <Alert tone="warning" className="mb-5">
+          {storageWarning}
+        </Alert>
+      ) : null}
 
       <div className="mb-5 space-y-3">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
