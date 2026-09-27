@@ -15,9 +15,17 @@
  *   NALO_SMS_PASSWORD     Nalo account password (fallback auth)
  *   NALO_SMS_SENDER_ID    Registered sender id (default "NALO")
  *
- * Request:
+ * App-facing request (unchanged client contract):
  *   POST /api/send-sms
  *   { "phone": "233240000000", "message": "...", "sender_id": "NALO" }
+ *
+ * Transport to Nalo — CRITICAL:
+ *   Nalo's "send-message" API is an HTTP FORM endpoint. It does NOT speak
+ *   JSON: a JSON body (or wrong parameter names) is rejected with error
+ *   "1702" and the SMS is never handed to the operator. The upstream call
+ *   MUST use application/x-www-form-urlencoded with Nalo's exact parameter
+ *   names: key (or username+password), type, source, destination, dlr,
+ *   message.
  *
  * Nalo status "1701" = success. The gateway replies either as a pipe
  * string ("1701|233501234567|message_id") or JSON ({"status":"1701",...}).
@@ -44,9 +52,11 @@ function normalizeGhanaPhone(raw) {
 /** Extract the Nalo status code from either response format. */
 function parseNaloStatus(raw) {
   if (!raw) return null;
-  const text = String(raw).trim();
+  const text = String(raw).trim().replace(/\r/g, '');
   const pipe = /^(\d{4})\|/.exec(text); // "1701|233501234567|msg_id"
   if (pipe) return pipe[1];
+  const bare = /^(\d{4})(?:\s|$)/.exec(text); // bare "1701"
+  if (bare) return bare[1];
   try {
     const parsed = JSON.parse(text);
     if (parsed && parsed.status) return String(parsed.status);
@@ -58,7 +68,9 @@ function parseNaloStatus(raw) {
 
 function naloErrorText(code) {
   const map = {
-    '1702': 'Invalid request to Nalo gateway',
+    '1025': 'Insufficient SMS credit on the Nalo account',
+    '1026': 'Insufficient SMS credit on the Nalo reseller account',
+    '1702': 'Invalid request to Nalo gateway (missing/invalid parameter)',
     '1703': 'Invalid Nalo username or password',
     '1704': 'Invalid message type',
     '1705': 'Invalid message',
@@ -75,6 +87,25 @@ function json(res, status, body) {
   res.setHeader('Content-Type', 'application/json');
   res.statusCode = status;
   res.end(JSON.stringify(body));
+}
+
+/**
+ * Await a promise but fail with a clear error after `ms` milliseconds.
+ * The Nalo gateway can hang; the timeout keeps the function from
+ * occupying the Vercel invocation slot forever.
+ */
+async function withTimeout(promise, ms) {
+  let timer;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error('gateway timed out after ' + ms / 1000 + 's')), ms);
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 export default async function handler(req, res) {
@@ -122,24 +153,34 @@ export default async function handler(req, res) {
     });
   }
 
-  const naloBody = authKey
-    ? { key: authKey, msisdn: phone, message, sender_id: senderId }
-    : { username, password, msisdn: phone, message, sender_id: senderId };
+  // Nalo's send-message API is an HTTP FORM endpoint: JSON bodies and wrong
+  // parameter names are rejected with "1702" and the SMS never leaves the
+  // gateway. Everything goes through urlencoded fields with Nalo's exact
+  // parameter names (key | username+password, type, source, destination,
+  // dlr, message) — NOT msisdn / sender_id.
+  const params = new URLSearchParams();
+  if (authKey) {
+    params.set('key', authKey);
+  } else {
+    params.set('username', username);
+    params.set('password', password);
+  }
+  params.set('type', '0'); // 0 = plain text message
+  params.set('destination', phone);
+  params.set('source', senderId);
+  params.set('dlr', '1'); // request a delivery report
+  params.set('message', message);
 
   let upstream;
   try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 15000);
-    try {
-      upstream = await fetch(NALO_ENDPOINT, {
+    upstream = await withTimeout(
+      fetch(NALO_ENDPOINT, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(naloBody),
-        signal: controller.signal,
-      });
-    } finally {
-      clearTimeout(timer);
-    }
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: params.toString(),
+      }),
+      15000
+    );
   } catch (err) {
     return json(res, 502, {
       success: false,
