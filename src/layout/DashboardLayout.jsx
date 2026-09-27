@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Menu, X, LogOut, ChevronDown, PanelLeftClose, PanelLeftOpen, LifeBuoy } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { NAV_BY_ROLE, roleBasePath } from '../lib/nav';
+import { supabase } from '../lib/supabase';
 import { ROLE_LABELS } from '../lib/constants';
 import { Logo } from '../components/Logo';
 import { photoUrl } from '../lib/storage';
@@ -16,6 +17,29 @@ function compactRoleKey(role) {
   if (role === 'admin' || role === 'sub_admin') return 'admin';
   return role || 'student';
 }
+
+// Maps the module names stored in `modules` / `school_modules` to the React
+// admin dashboard routes they gate. When the Super Admin locks a module for a
+// school, those routes are hidden from that school's sidebar (and users are
+// redirected away from an already-open locked page).
+const MODULE_PATH_MAP = {
+  students: ['/admin/students'],
+  classes: ['/admin/classes'],
+  subjects: ['/admin/subjects'],
+  teachers: ['/admin/teachers'],
+  accountants: ['/admin/accountants'],
+  parents: ['/admin/parents'],
+  attendance: ['/admin/attendance'],
+  exams: ['/admin/exams'],
+  grading: ['/admin/grading'],
+  fees: ['/admin/fees'],
+  assessments: ['/admin/assessments'],
+  'income-expenses': ['/admin/income-expenses'],
+  'sms-monitoring': ['/admin/sms-monitoring'],
+  settings: ['/admin/settings'],
+  transport: ['/admin/transport'],
+  backup: ['/admin/backup'],
+};
 
 export function DashboardLayout() {
   const { profile, user, signOut } = useAuth();
@@ -55,7 +79,46 @@ export function DashboardLayout() {
   };
 
   const roleKey = compactRoleKey(profile?.role);
-  const navItems = NAV_BY_ROLE[roleKey] || NAV_BY_ROLE.student;
+  const [lockedModuleNames, setLockedModuleNames] = useState([]);
+
+  // Fetch the modules locked for this school so the sidebar can hide them
+  // (used by the /dashboard layout for school admins and sub-admins).
+  useEffect(() => {
+    if (roleKey !== 'admin' || !profile?.school_id) {
+      setLockedModuleNames([]);
+      return;
+    }
+    let cancelled = false;
+    supabase
+      .from('school_modules')
+      .select('module_name')
+      .eq('school_id', profile.school_id)
+      .eq('is_locked', true)
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (!error) setLockedModuleNames((data || []).map((r) => r.module_name));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [roleKey, profile?.school_id]);
+
+  const lockedPaths = useMemo(
+    () => new Set(lockedModuleNames.flatMap((name) => MODULE_PATH_MAP[name] || [])),
+    [lockedModuleNames]
+  );
+
+  const navItems = (NAV_BY_ROLE[roleKey] || NAV_BY_ROLE.student).filter(
+    (item) => !lockedPaths.has(item.path)
+  );
+
+  // If this user is already on a page that has just been locked, send them back
+  // to their role overview instead of leaving the page rendered.
+  useEffect(() => {
+    if (lockedPaths.has(location.pathname)) {
+      navigate(roleBasePath(roleKey), { replace: true });
+    }
+  }, [lockedPaths, location.pathname, roleKey, navigate]);
 
   useEffect(() => {
     setDrawerOpen(false);
