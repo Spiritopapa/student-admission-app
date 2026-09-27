@@ -27,12 +27,14 @@ export default function AccountantCollect() {
   const [term, setTerm] = useState(settings?.current_term || 'First');
   const [amount, setAmount] = useState('');
   const [method, setMethod] = useState('cash');
+  const [payDate, setPayDate] = useState(new Date().toISOString().split('T')[0]);
   const [reference, setReference] = useState('');
   const [notes, setNotes] = useState('');
   const [busy, setBusy] = useState(false);
   const [sendSms, setSendSms] = useState(true);
   const [result, setResult] = useState(null);
   const [receiptForModal, setReceiptForModal] = useState(null);
+  const [balanceMap, setBalanceMap] = useState({});
 
   useEffect(() => {
     if (!schoolId) return;
@@ -43,6 +45,23 @@ export default function AccountantCollect() {
       .eq('status', 'admitted')
       .order('last_name')
       .then(({ data }) => setStudents(data || []));
+  }, [schoolId]);
+
+  // Load every school fee record once and build per-student outstanding totals.
+  useEffect(() => {
+    if (!schoolId) return;
+    supabase
+      .from('fees')
+      .select('student_id, total_amount, amount_paid, debt')
+      .eq('school_id', schoolId)
+      .then(({ data }) => {
+        const map = {};
+        (data || []).forEach((f) => {
+          const bal = Math.max(Number(f.total_amount) + Number(f.debt || 0) - Number(f.amount_paid), 0);
+          map[f.student_id] = (map[f.student_id] || 0) + bal;
+        });
+        setBalanceMap(map);
+      });
   }, [schoolId]);
 
   const filtered = useMemo(
@@ -58,24 +77,92 @@ export default function AccountantCollect() {
     [students, query]
   );
 
+  const TERM_ORDER = { First: 0, Second: 1, Third: 2 };
+  const yearStart = (y) => Number(String(y || '').split('/')[0] || 0);
+
+  const sortedFees = useMemo(
+    () => [...(feeInfo || [])].sort((a, b) => yearStart(a.academic_year) - yearStart(b.academic_year) || TERM_ORDER[a.term] - TERM_ORDER[b.term]),
+    [feeInfo]
+  );
+
+  const outstandingOf = (f) => Math.max((Number(f.total_amount) + Number(f.debt || 0)) - Number(f.amount_paid), 0);
+
+  // The earliest unpaid term (chronological); null if everything is cleared.
+  const earliestUnpaid = useMemo(() => sortedFees.find((f) => outstandingOf(f) > 0) || null, [sortedFees]);
+
+  // A prior term with an outstanding balance that blocks paying a later term.
+  const priorBalance = useMemo(() => {
+    if (!earliestUnpaid) return null;
+    const targetStart = yearStart(year) * 10 + TERM_ORDER[term];
+    const dueStart = yearStart(earliestUnpaid.academic_year) * 10 + TERM_ORDER[earliestUnpaid.term];
+    return dueStart < targetStart ? earliestUnpaid : null;
+  }, [earliestUnpaid, year, term]);
+
+  const targetFee = useMemo(() => sortedFees.find((f) => f.academic_year === year && f.term === term) || null, [sortedFees, year, term]);
+
+  const outstanding = useMemo(() => (targetFee ? outstandingOf(targetFee) : 0), [targetFee]);
+
   const loadFeeInfo = async (student) => {
     setSelected(student);
     setFeeInfo(null);
     try {
       const fees = await fetchStudentFees(student.student_id);
       setFeeInfo(fees);
+      // Auto-select the year/term to collect for:
+      const sorted = [...(fees || [])].sort(
+        (a, b) => yearStart(a.academic_year) - yearStart(b.academic_year) || TERM_ORDER[a.term] - TERM_ORDER[b.term]
+      );
+      const unpaid = sorted.find((f) => Number(f.total_amount) + Number(f.debt || 0) - Number(f.amount_paid) > 0);
+      if (unpaid) {
+        setYear(unpaid.academic_year);
+        setTerm(unpaid.term);
+      } else if (sorted.length) {
+        const last = sorted[sorted.length - 1];
+        if (TERM_ORDER[last.term] < 2) {
+          setYear(last.academic_year);
+          setTerm(TERMS[TERM_ORDER[last.term] + 1]);
+        } else {
+          const next = (yearStart(last.academic_year) + 1) + '/' + String((yearStart(last.academic_year) + 2)).slice(-2);
+          setYear(next);
+          setTerm('First');
+        }
+      }
     } catch (err) {
       // ignore
     }
   };
 
-  const suggestedFee = useMemo(() => {
-    if (!selected) return '';
-    const fee = (feeInfo || []).find(
-      (f) => f.academic_year === year && f.term === term
-    );
-    return fee ? Number(fee.balance >= 0 ? fee.balance : 0) : '';
-  }, [selected, feeInfo, year, term]);
+  // Creates a fee record on the spot (from the class fee structure) so a
+  // student whose term has no record yet can still be collected from.
+  const ensureFeeRecord = async () => {
+    if (targetFee) return targetFee;
+    const { data: classFee } = await supabase
+      .from('class_fees')
+      .select('*')
+      .eq('class_name', selected.class_applying)
+      .eq('academic_year', year)
+      .eq('term', term)
+      .eq('school_id', schoolId)
+      .maybeSingle();
+    const feeAmount = Number(classFee?.fee_amount || 0);
+    if (!classFee && !selected.fee_override) {
+      return null;
+    }
+    const { error } = await supabase.from('fees').insert({
+      student_id: selected.student_id,
+      academic_year: year,
+      term,
+      total_amount: feeAmount,
+      amount_paid: 0,
+      debt: 0,
+      payment_status: feeAmount > 0 ? 'unpaid' : 'paid',
+      school_id: schoolId,
+    });
+    if (error) throw new Error(error.message);
+    return { total_amount: feeAmount, debt: 0, amount_paid: 0 };
+  };
+
+  const suggestedFee = outstanding || '';
 
   const processPayment = async () => {
     if (!selected) {
@@ -87,8 +174,31 @@ export default function AccountantCollect() {
       toast.error('Enter an amount', 'The amount must be greater than zero.');
       return;
     }
+    // Prior-term gate: a later term cannot be paid before an earlier one is cleared.
+    if (priorBalance) {
+      toast.error(
+        'Previous term unpaid',
+        `Cannot pay for ${termLabel(term)} ${year}. ${priorBalance.term} Term ${priorBalance.academic_year} still has GHC ${outstandingOf(priorBalance).toFixed(2)} outstanding. Clear it first.`
+      );
+      return;
+    }
     setBusy(true);
     try {
+      const fee = await ensureFeeRecord();
+      if (!fee) {
+        throw new Error('No fee record exists for this year/term. Ask the admin to set the class fee structure first.');
+      }
+      const due = Number(fee.total_amount) + Number(fee.debt || 0);
+      const paid = Number(fee.amount_paid || 0);
+      const outstandingDue = Math.max(due - paid, 0);
+      if (outstandingDue <= 0) {
+        throw new Error(`${termLabel(term)} ${year} is already fully paid for this student.`);
+      }
+      if (amt > outstandingDue) {
+        toast.error('Overpayment prevented', `Outstanding is GHC ${outstandingDue.toFixed(2)}. Enter an amount equal to or less than that.`);
+        setBusy(false);
+        return;
+      }
       const { data, error } = await supabase.rpc('process_fee_payment', {
         p_student_id: selected.student_id,
         p_academic_year: year,
@@ -99,13 +209,14 @@ export default function AccountantCollect() {
         p_notes: notes.trim() || null,
         p_recorded_by: user?.id,
         p_school_id: schoolId,
+        p_payment_date: payDate ? new Date(payDate).toISOString() : null,
       });
       if (error) throw new Error(error.message);
       if (!data || !data.success) throw new Error(data?.error || 'Payment could not be processed.');
       setResult(data);
 
       if (sendSms && selected.parent_contact) {
-        const message = `Fee payment of GHC ${data.amount_paid?.toFixed?.(2) || Number(data.amount_paid || amt).toFixed(2)} received for ${data.student_name || selected.first_name}. Receipt: ${data.receipt_number}. Paid for ${data.academic_year} ${termLabel(data.term)}. Thank you.`;
+        const message = `Fee payment of GHC ${(Number(data.amount_paid) || amt).toFixed(2)} received for ${data.student_name || selected.first_name}. Receipt: ${data.receipt_number}. Paid for ${data.academic_year} ${termLabel(data.term)}. Thank you.`;
         const sms = await sendStudentPaymentSms({
           schoolId,
           studentId: selected.student_id,
@@ -212,6 +323,11 @@ export default function AccountantCollect() {
                         <p className="font-mono text-xs text-slate-400">{s.student_id}</p>
                       </div>
                       <Badge tone="blue">{s.class_applying}</Badge>
+                      {balanceMap[s.student_id] > 0 ? (
+                        <Badge tone="red">GHC {Number(balanceMap[s.student_id]).toFixed(2)}</Badge>
+                      ) : (
+                        <Badge tone="green">Cleared</Badge>
+                      )}
                     </button>
                   );
                 })
@@ -231,9 +347,35 @@ export default function AccountantCollect() {
                   <p className="text-sm font-bold text-slate-800">
                     {buildStudentName(selected.first_name, selected.middle_name, selected.last_name)}
                   </p>
-                  <p className="font-mono text-xs text-slate-400">{selected.student_id}</p>
-                  {suggestedFee ? (
-                    <p className="mt-1 text-xs font-semibold text-accent-600">
+                  <p className="font-mono text-xs text-slate-400">{selected.student_id} · {selected.class_applying}</p>
+
+                  {feeInfo?.length ? (
+                    <div className="mt-3 space-y-1.5">
+                      {sortedFees.map((f) => {
+                        const bal = outstandingOf(f);
+                        const paidStatus = bal <= 0 ? (Number(f.amount_paid) > 0 || Number(f.total_amount) === 0 ? 'paid' : 'unpaid') : Number(f.amount_paid) > 0 ? 'partial' : 'unpaid';
+                        return (
+                          <div key={f.id} className="flex items-center justify-between gap-2 text-xs">
+                            <span className="text-slate-600">
+                              {termLabel(f.term)} {f.academic_year}
+                            </span>
+                            <span className={bal > 0 ? 'font-semibold text-rose-600' : 'font-semibold text-emerald-600'}>
+                              {paidStatus === 'paid' ? 'Paid' : `GHC ${bal.toFixed(2)} due`}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="mt-2 text-xs italic text-slate-400">No fee records yet — a record will be created from the class fee structure on payment.</p>
+                  )}
+
+                  {priorBalance ? (
+                    <p className="mt-2 rounded-lg bg-rose-50 px-2 py-1.5 text-xs font-semibold text-rose-700">
+                      Cannot pay {termLabel(term)} until {priorBalance.term} {priorBalance.academic_year} (GHC {outstandingOf(priorBalance).toFixed(2)}) is cleared.
+                    </p>
+                  ) : suggestedFee ? (
+                    <p className="mt-2 text-xs font-semibold text-accent-600">
                       Outstanding for {termLabel(term)}: GHC {Number(suggestedFee).toFixed(2)}
                     </p>
                   ) : null}
@@ -265,6 +407,13 @@ export default function AccountantCollect() {
                   onChange={(e) => setAmount(e.target.value)}
                   placeholder={suggestedFee ? `Suggested: ${suggestedFee}` : 'e.g. 650.00'}
                 />
+                {suggestedFee && Number(suggestedFee) > 0 ? (
+                  <div className="flex justify-end">
+                    <Button type="button" size="sm" variant="secondary" onClick={() => setAmount(String(suggestedFee))}>
+                      Use outstanding (GHC {Number(suggestedFee).toFixed(2)})
+                    </Button>
+                  </div>
+                ) : null}
                 <Select label="Payment method" value={method} onChange={(e) => setMethod(e.target.value)}>
                   {PAYMENT_METHODS.map((m) => (
                     <option key={m} value={m}>
@@ -272,6 +421,13 @@ export default function AccountantCollect() {
                     </option>
                   ))}
                 </Select>
+                <Input
+                  label="Payment date"
+                  type="date"
+                  value={payDate}
+                  onChange={(e) => setPayDate(e.target.value)}
+                  max={new Date().toISOString().split('T')[0]}
+                />
                 <Input
                   label="Reference number"
                   value={reference}
