@@ -20,12 +20,17 @@
  *   { "phone": "233240000000", "message": "...", "sender_id": "NALO" }
  *
  * Transport to Nalo — CRITICAL:
- *   Nalo's "send-message" API is an HTTP FORM endpoint. It does NOT speak
- *   JSON: a JSON body (or wrong parameter names) is rejected with error
- *   "1702" and the SMS is never handed to the operator. The upstream call
- *   MUST use application/x-www-form-urlencoded with Nalo's exact parameter
- *   names: key (or username+password), type, source, destination, dlr,
- *   message.
+ *   Per the official Nalo "SMS API DOCUMENTATION" (Postman collection
+ *   0a17d3ce-5fc3-4822-a909-447067fbc2ff), the web/REST format for the
+ *   send-message endpoint is a POST with an application/json body:
+ *     https://sms.nalosolutions.com/smsbackend/Resl_Nalo/send-message/
+ *     { "key": AUTH_KEY, "msisdn": "233XXXXXXXXX", "message": "...",
+ *       "sender_id": "NALO" }
+ *   (or { "username", "password", ... } when not using a key). The Response
+ *   body is also JSON: { "status": "1701", "job_id": "...", "msisdn": "..." }.
+ *   A GET with query params (key, type, destination, dlr, source, message)
+ *   is the alternate documented format and replies with the pipe string
+ *   "1701|233501371674|job_id". Both reply shapes are parsed here.
  *
  * Nalo status "1701" = success. The gateway replies either as a pipe
  * string ("1701|233501234567|message_id") or JSON ({"status":"1701",...}).
@@ -81,6 +86,20 @@ function naloErrorText(code) {
     '1710': 'Nalo internal error',
   };
   return map[code] || 'Nalo gateway rejected the message';
+}
+
+/** Extract the Nalo job_id / message id from either reply format. */
+function extractJobId(raw) {
+  if (!raw) return null;
+  const text = String(raw).trim().replace(/\r/g, '');
+  try {
+    const parsed = JSON.parse(text);
+    return parsed.job_id || parsed.jobId || parsed.mid || null;
+  } catch (e) {
+    /* not JSON — pipe format below */
+  }
+  const pipe = /^\d{4}\|[^|]+\|(.+)$/.exec(text); // "1701|233501234567|job_id"
+  return pipe && pipe[1].trim() ? pipe[1].trim() : null;
 }
 
 function json(res, status, body) {
@@ -153,31 +172,21 @@ export default async function handler(req, res) {
     });
   }
 
-  // Nalo's send-message API is an HTTP FORM endpoint: JSON bodies and wrong
-  // parameter names are rejected with "1702" and the SMS never leaves the
-  // gateway. Everything goes through urlencoded fields with Nalo's exact
-  // parameter names (key | username+password, type, source, destination,
-  // dlr, message) — NOT msisdn / sender_id.
-  const params = new URLSearchParams();
-  if (authKey) {
-    params.set('key', authKey);
-  } else {
-    params.set('username', username);
-    params.set('password', password);
-  }
-  params.set('type', '0'); // 0 = plain text message
-  params.set('destination', phone);
-  params.set('source', senderId);
-  params.set('dlr', '1'); // request a delivery report
-  params.set('message', message);
+  // Official Nalo "Send sms api with auth_key -Json" (and "Send sms api - Json"):
+  // POST application/json to https://sms.nalosolutions.com/smsbackend/Resl_Nalo/send-message/
+  // with { key, msisdn, message, sender_id } — or { username, password, ... }
+  // when authenticating with the account pair instead of an auth key.
+  const naloBody = authKey
+    ? { key: authKey, msisdn: phone, message, sender_id: senderId }
+    : { username, password, msisdn: phone, message, sender_id: senderId };
 
   let upstream;
   try {
     upstream = await withTimeout(
       fetch(NALO_ENDPOINT, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: params.toString(),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(naloBody),
       }),
       15000
     );
@@ -196,6 +205,7 @@ export default async function handler(req, res) {
       success: true,
       status: '1701',
       message: 'SMS accepted by Nalo gateway',
+      jobId: extractJobId(raw),
       providerRaw: raw,
     });
   }
