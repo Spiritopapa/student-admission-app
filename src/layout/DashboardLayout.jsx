@@ -1,13 +1,16 @@
 import { useState, useEffect } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Menu, X, LogOut, ChevronDown, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { Menu, X, LogOut, ChevronDown, PanelLeftClose, PanelLeftOpen, LifeBuoy } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { NAV_BY_ROLE, roleBasePath } from '../lib/nav';
 import { ROLE_LABELS } from '../lib/constants';
 import { Logo } from '../components/Logo';
 import { photoUrl } from '../lib/storage';
+import { submitSupportReport } from '../lib/api';
+import { Modal, Alert } from '../components/ui-extras';
+import { Input, Select, Button } from '../components/ui';
 
 function compactRoleKey(role) {
   if (role === 'admin' || role === 'sub_admin') return 'admin';
@@ -22,6 +25,34 @@ export function DashboardLayout() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+
+  const [supportOpen, setSupportOpen] = useState(false);
+  const [supportForm, setSupportForm] = useState({ type: 'bug', subject: '', details: '' });
+  const [supportBusy, setSupportBusy] = useState(false);
+  const [supportError, setSupportError] = useState('');
+
+  const submitSupport = async () => {
+    setSupportError('');
+    if (!supportForm.subject.trim() || !supportForm.details.trim()) {
+      setSupportError('Please complete the subject and message fields.');
+      return;
+    }
+    setSupportBusy(true);
+    try {
+      await submitSupportReport({
+        type: supportForm.type,
+        subject: supportForm.subject.trim(),
+        details: supportForm.details.trim(),
+      });
+      toast.success('Report sent', `Your ${supportForm.type === 'bug' ? 'bug report' : 'suggestion'} has been sent to the Super Admin.`);
+      setSupportOpen(false);
+      setSupportForm({ type: 'bug', subject: '', details: '' });
+    } catch (err) {
+      setSupportError(err.message || 'Could not submit the report.');
+    } finally {
+      setSupportBusy(false);
+    }
+  };
 
   const roleKey = compactRoleKey(profile?.role);
   const navItems = NAV_BY_ROLE[roleKey] || NAV_BY_ROLE.student;
@@ -68,6 +99,17 @@ export function DashboardLayout() {
         ))}
       </nav>
       <div className="border-t border-slate-100 p-3">
+        <button
+          type="button"
+          onClick={() => setSupportOpen(true)}
+          className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-600 transition-colors hover:bg-brand-50 hover:text-brand-700 ${
+            collapsed ? 'justify-center px-2' : ''
+          }`}
+          title={collapsed ? 'Report a problem' : undefined}
+        >
+          <LifeBuoy className="h-5 w-5 shrink-0" aria-hidden="true" />
+          {!collapsed ? <span>Report a problem</span> : null}
+        </button>
         <button
           type="button"
           onClick={handleSignOut}
@@ -214,6 +256,45 @@ export function DashboardLayout() {
           </div>
         </main>
       </div>
+
+      <Modal open={supportOpen} onClose={() => setSupportOpen(false)} title="Report a problem" subtitle="Tell the Super Admin about a bug or share a suggestion." size="sm">
+        {supportError ? (
+          <Alert tone="error" className="mb-4">
+            {supportError}
+          </Alert>
+        ) : null}
+        <div className="space-y-4">
+          <Select label="Type" value={supportForm.type} onChange={(e) => setSupportForm((f) => ({ ...f, type: e.target.value }))}>
+            <option value="bug">Bug report</option>
+            <option value="suggestion">Suggestion</option>
+          </Select>
+          <Input
+            label="Subject"
+            value={supportForm.subject}
+            onChange={(e) => setSupportForm((f) => ({ ...f, subject: e.target.value }))}
+            placeholder="Short summary"
+          />
+          <div>
+            <label className="label">Message</label>
+            <textarea
+              value={supportForm.details}
+              onChange={(e) => setSupportForm((f) => ({ ...f, details: e.target.value }))}
+              placeholder="What happened? What did you expect?"
+              rows={4}
+              className="input min-h-[100px]"
+            />
+          </div>
+        </div>
+        <div className="mt-5 flex gap-2">
+          <Button variant="secondary" onClick={() => setSupportOpen(false)} className="flex-1">
+            Cancel
+          </Button>
+          <Button onClick={submitSupport} loading={supportBusy} className="flex-1">
+            <LifeBuoy className="h-4 w-4" aria-hidden="true" />
+            Send report
+          </Button>
+        </div>
+      </Modal>
     </div>
   );
 }

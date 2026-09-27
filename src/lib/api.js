@@ -47,17 +47,11 @@ async function logSms(entry) {
 }
 
 export async function submitSupportReport({ type, subject, details }) {
-  const { data: session } = await supabase.auth.getSession();
-  const user = session?.session?.user || null;
-  const { error } = await supabase.from('support_reports').insert([
-    {
-      type,
-      subject,
-      details,
-      status: 'open',
-      user_id: user?.id || null,
-    },
-  ]);
+  const { error } = await supabase.rpc('submit_support_report', {
+    p_type: type,
+    p_subject: subject,
+    p_message: details,
+  });
   if (error) throw new Error(error.message);
   return true;
 }

@@ -32,13 +32,24 @@ import AdminStudents from './pages/admin/AdminStudents';
 import AdminClasses from './pages/admin/AdminClasses';
 import AdminSubjects from './pages/admin/AdminSubjects';
 import AdminTeachers from './pages/admin/AdminTeachers';
+import AdminAccountants from './pages/admin/AdminAccountants';
+import AdminParents from './pages/admin/AdminParents';
 import AdminAnnouncements from './pages/admin/AdminAnnouncements';
+import AdminAttendance from './pages/admin/AdminAttendance';
+import AdminExams from './pages/admin/AdminExams';
+import AdminAssessments from './pages/admin/AdminAssessments';
+import AdminGrading from './pages/admin/AdminGrading';
 import AdminFees from './pages/admin/AdminFees';
+import AdminTransport from './pages/admin/AdminTransport';
+import AdminIncomeExpenses from './pages/admin/AdminIncomeExpenses';
+import AdminSmsMonitor from './pages/admin/AdminSmsMonitor';
+import AdminBackupRestore from './pages/admin/AdminBackupRestore';
 import AdminSettings from './pages/admin/AdminSettings';
 
 import TeacherHome from './pages/teacher/TeacherHome';
 import TeacherStudents from './pages/teacher/TeacherStudents';
 import TeacherAttendance from './pages/teacher/TeacherAttendance';
+import TeacherAssessments from './pages/teacher/TeacherAssessments';
 
 import AccountantHome from './pages/accountant/AccountantHome';
 import AccountantCollect from './pages/accountant/AccountantCollect';
@@ -47,6 +58,7 @@ import AccountantReceipts from './pages/accountant/AccountantReceipts';
 import SuperAdminHome from './pages/superadmin/SuperAdminHome';
 import SuperAdminSchools from './pages/superadmin/SuperAdminSchools';
 import SuperAdminApplications from './pages/superadmin/SuperAdminApplications';
+import SuperAdminSupportReports from './pages/superadmin/SuperAdminSupportReports';
 
 import ProfilePage from './pages/shared/ProfilePage';
 import NotFound from './pages/NotFound';
@@ -102,17 +114,28 @@ export default function App() {
 
           <Route path="/admin" element={<RoleRoute roles={['admin', 'sub_admin']}><AdminHome /></RoleRoute>} />
           <Route path="/admin/students" element={<RoleRoute roles={['admin', 'sub_admin']}><AdminStudents /></RoleRoute>} />
+          <Route path="/admin/parents" element={<RoleRoute roles={['admin', 'sub_admin']}><AdminParents /></RoleRoute>} />
           <Route path="/admin/classes" element={<RoleRoute roles={['admin', 'sub_admin']}><AdminClasses /></RoleRoute>} />
           <Route path="/admin/subjects" element={<RoleRoute roles={['admin', 'sub_admin']}><AdminSubjects /></RoleRoute>} />
           <Route path="/admin/teachers" element={<RoleRoute roles={['admin', 'sub_admin']}><AdminTeachers /></RoleRoute>} />
+          <Route path="/admin/accountants" element={<RoleRoute roles={['admin', 'sub_admin']}><AdminAccountants /></RoleRoute>} />
           <Route path="/admin/announcements" element={<RoleRoute roles={['admin', 'sub_admin']}><AdminAnnouncements /></RoleRoute>} />
+          <Route path="/admin/attendance" element={<RoleRoute roles={['admin', 'sub_admin']}><AdminAttendance /></RoleRoute>} />
+          <Route path="/admin/exams" element={<RoleRoute roles={['admin', 'sub_admin']}><AdminExams /></RoleRoute>} />
+          <Route path="/admin/assessments" element={<RoleRoute roles={['admin', 'sub_admin']}><AdminAssessments /></RoleRoute>} />
+          <Route path="/admin/grading" element={<RoleRoute roles={['admin', 'sub_admin']}><AdminGrading /></RoleRoute>} />
           <Route path="/admin/fees" element={<RoleRoute roles={['admin', 'sub_admin']}><AdminFees /></RoleRoute>} />
+          <Route path="/admin/transport" element={<RoleRoute roles={['admin', 'sub_admin']}><AdminTransport /></RoleRoute>} />
+          <Route path="/admin/income-expenses" element={<RoleRoute roles={['admin', 'sub_admin']}><AdminIncomeExpenses /></RoleRoute>} />
+          <Route path="/admin/sms-monitoring" element={<RoleRoute roles={['admin', 'sub_admin']}><AdminSmsMonitor /></RoleRoute>} />
+          <Route path="/admin/backup" element={<RoleRoute roles={['admin', 'sub_admin']}><AdminBackupRestore /></RoleRoute>} />
           <Route path="/admin/settings" element={<RoleRoute roles={['admin', 'sub_admin']}><AdminSettings /></RoleRoute>} />
           <Route path="/admin/profile" element={<RoleRoute roles={['admin', 'sub_admin']}><ProfilePage /></RoleRoute>} />
 
           <Route path="/teacher" element={<RoleRoute roles={['teacher']}><TeacherHome /></RoleRoute>} />
           <Route path="/teacher/students" element={<RoleRoute roles={['teacher']}><TeacherStudents /></RoleRoute>} />
           <Route path="/teacher/attendance" element={<RoleRoute roles={['teacher']}><TeacherAttendance /></RoleRoute>} />
+          <Route path="/teacher/assessments" element={<RoleRoute roles={['teacher']}><TeacherAssessments /></RoleRoute>} />
           <Route path="/teacher/profile" element={<RoleRoute roles={['teacher']}><ProfilePage /></RoleRoute>} />
 
           <Route path="/accountant" element={<RoleRoute roles={['accountant']}><AccountantHome /></RoleRoute>} />
@@ -123,6 +146,7 @@ export default function App() {
           <Route path="/superadmin" element={<RoleRoute roles={['super_admin']}><SuperAdminHome /></RoleRoute>} />
           <Route path="/superadmin/schools" element={<RoleRoute roles={['super_admin']}><SuperAdminSchools /></RoleRoute>} />
           <Route path="/superadmin/applications" element={<RoleRoute roles={['super_admin']}><SuperAdminApplications /></RoleRoute>} />
+          <Route path="/superadmin/support-reports" element={<RoleRoute roles={['super_admin']}><SuperAdminSupportReports /></RoleRoute>} />
           <Route path="/superadmin/profile" element={<RoleRoute roles={['super_admin']}><ProfilePage /></RoleRoute>} />
         </Route>
       </Route>

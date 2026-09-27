@@ -15,6 +15,11 @@ import {
   Building2,
   FileCheck2,
   FileText,
+  Bus,
+  Coins,
+  MessageSquare,
+  DatabaseBackup,
+  LifeBuoy,
 } from 'lucide-react';
 
 export const NAV_BY_ROLE = {
@@ -37,11 +42,21 @@ export const NAV_BY_ROLE = {
   admin: [
     { path: '/admin', label: 'Overview', icon: LayoutDashboard },
     { path: '/admin/students', label: 'Students', icon: Users },
+    { path: '/admin/parents', label: 'Parents', icon: Users },
     { path: '/admin/classes', label: 'Classes', icon: BookOpen },
     { path: '/admin/subjects', label: 'Subjects', icon: FileText },
     { path: '/admin/teachers', label: 'Teachers', icon: User },
+    { path: '/admin/accountants', label: 'Accountants', icon: Wallet },
     { path: '/admin/announcements', label: 'Announcements', icon: Megaphone },
+    { path: '/admin/attendance', label: 'Attendance', icon: CalendarCheck },
+    { path: '/admin/exams', label: 'Examinations', icon: Award },
+    { path: '/admin/assessments', label: 'Assessments', icon: ClipboardList },
+    { path: '/admin/grading', label: 'Grading', icon: FileCheck2 },
     { path: '/admin/fees', label: 'Fee Structure', icon: Wallet },
+    { path: '/admin/transport', label: 'Transport', icon: Bus },
+    { path: '/admin/income-expenses', label: 'Income & Expenses', icon: Coins },
+    { path: '/admin/sms-monitoring', label: 'SMS Monitoring', icon: MessageSquare },
+    { path: '/admin/backup', label: 'Backup & Restore', icon: DatabaseBackup },
     { path: '/admin/settings', label: 'School Settings', icon: Settings },
     { path: '/admin/profile', label: 'My Profile', icon: User },
   ],
@@ -49,6 +64,7 @@ export const NAV_BY_ROLE = {
     { path: '/teacher', label: 'Overview', icon: LayoutDashboard },
     { path: '/teacher/students', label: 'My Class', icon: Users },
     { path: '/teacher/attendance', label: 'Attendance', icon: CalendarCheck },
+    { path: '/teacher/assessments', label: 'Assessments', icon: ClipboardList },
     { path: '/teacher/profile', label: 'My Profile', icon: User },
   ],
   accountant: [
@@ -61,6 +77,7 @@ export const NAV_BY_ROLE = {
     { path: '/superadmin', label: 'Overview', icon: LayoutDashboard },
     { path: '/superadmin/schools', label: 'Schools', icon: School },
     { path: '/superadmin/applications', label: 'Applications', icon: FileCheck2 },
+    { path: '/superadmin/support-reports', label: 'Support Reports', icon: LifeBuoy },
     { path: '/superadmin/profile', label: 'My Profile', icon: User },
   ],
 };
