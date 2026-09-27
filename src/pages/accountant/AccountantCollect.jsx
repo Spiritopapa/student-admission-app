@@ -20,6 +20,8 @@ export default function AccountantCollect() {
   const { settings } = useSchoolSettings();
   const toast = useToast();
   const [query, setQuery] = useState('');
+  const [classFilter, setClassFilter] = useState('');
+  const [classes, setClasses] = useState([]);
   const [students, setStudents] = useState([]);
   const [selected, setSelected] = useState(null);
   const [feeInfo, setFeeInfo] = useState(null);
@@ -38,13 +40,18 @@ export default function AccountantCollect() {
 
   useEffect(() => {
     if (!schoolId) return;
-    supabase
-      .from('applications')
-      .select('*')
-      .eq('school_id', schoolId)
-      .eq('status', 'admitted')
-      .order('last_name')
-      .then(({ data }) => setStudents(data || []));
+    Promise.all([
+      supabase
+        .from('applications')
+        .select('*')
+        .eq('school_id', schoolId)
+        .eq('status', 'admitted')
+        .order('last_name'),
+      supabase.from('classes').select('id, name').eq('school_id', schoolId).order('name'),
+    ]).then(([{ data }, { data: classRows }]) => {
+      setStudents(data || []);
+      setClasses(classRows || []);
+    });
   }, [schoolId]);
 
   // Load every school fee record once and build per-student outstanding totals.
@@ -68,13 +75,14 @@ export default function AccountantCollect() {
     () =>
       students.filter((s) => {
         const name = buildStudentName(s.first_name, s.middle_name, s.last_name).toLowerCase();
+        if (classFilter && s.class_applying !== classFilter) return false;
         return (
           !query ||
           name.includes(query.toLowerCase()) ||
           s.student_id.toLowerCase().includes(query.toLowerCase())
         );
       }),
-    [students, query]
+    [students, query, classFilter]
   );
 
   const TERM_ORDER = { First: 0, Second: 1, Third: 2 };
@@ -295,7 +303,19 @@ export default function AccountantCollect() {
         <div className="grid gap-6 lg:grid-cols-5">
           <div className="card p-5 lg:col-span-3">
             <h3 className="text-sm font-bold text-slate-800">1. Choose the student</h3>
-            <SearchInput value={query} onChange={setQuery} placeholder="Search by name or Student ID..." className="mt-3" />
+            <div className="mt-3 flex flex-col gap-3 sm:flex-row">
+              <SearchInput value={query} onChange={setQuery} placeholder="Search by name or Student ID..." className="flex-1" />
+              <div className="w-full sm:w-48">
+                <Select value={classFilter} onChange={(e) => setClassFilter(e.target.value)}>
+                  <option value="">All classes</option>
+                  {classes.map((c) => (
+                    <option key={c.id} value={c.name}>
+                      {c.name}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+            </div>
             <div className="mt-3 max-h-80 divide-y divide-slate-50 overflow-y-auto rounded-xl border border-slate-100">
               {filtered.length ? (
                 filtered.map((s) => {

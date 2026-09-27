@@ -1,27 +1,33 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Wallet, Plus, Pencil, Trash2, ListChecks, Users } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Wallet, Plus, Pencil, Trash2, LayoutGrid } from 'lucide-react';
 import { useSchoolId, useSchoolSettings } from '../../hooks/useSchool';
 import { useToast } from '../../context/ToastContext';
-import { PageHeader, Card, Button, Input, Select, Spinner, EmptyState, Badge, SearchInput } from '../../components/ui';
+import { PageHeader, Card, Button, Input, Select, Spinner, EmptyState, Badge } from '../../components/ui';
 import { Modal, ConfirmDialog, Alert } from '../../components/ui-extras';
 import { supabase } from '../../lib/supabase';
 import { TERMS, currentAcademicYear, TERM_LABELS } from '../../lib/constants';
-import { cedi, termLabel, buildStudentName } from '../../lib/format';
+import { cedi, termLabel } from '../../lib/format';
+import StudentFeesTab from './fees/StudentFeesTab';
+import DebtorsTab from './fees/DebtorsTab';
+import ReceiptsTab from './fees/ReceiptsTab';
+import CarryForwardTab from './fees/CarryForwardTab';
 
-const TERM_ORDER = { First: 0, Second: 1, Third: 2 };
+const TABS = [
+  { value: 'structure', label: 'Fee Structure' },
+  { value: 'students', label: 'Student Fees' },
+  { value: 'debtors', label: 'Debtors' },
+  { value: 'receipts', label: 'Receipts' },
+  { value: 'carry', label: 'Carry Forward' },
+];
 
 export default function AdminFees() {
   const schoolId = useSchoolId();
   const { settings } = useSchoolSettings();
   const toast = useToast();
-  const [tab, setTab] = useState('structure'); // structure | records
+  const [tab, setTab] = useState('structure');
   const [rows, setRows] = useState([]);
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  const [records, setRecords] = useState([]);
-  const [recordsLoading, setRecordsLoading] = useState(false);
-  const [recordQuery, setRecordQuery] = useState('');
 
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -34,12 +40,6 @@ export default function AdminFees() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [deleting, setDeleting] = useState(null);
-
-  const [editRecord, setEditRecord] = useState(null);
-  const [recordForm, setRecordForm] = useState({ total_amount: '', debt: '' });
-  const [recordBusy, setRecordBusy] = useState(false);
-  const [recordError, setRecordError] = useState('');
-  const [deleteRecord, setDeleteRecord] = useState(null);
 
   const load = () => {
     if (!schoolId) return;
@@ -59,53 +59,10 @@ export default function AdminFees() {
     });
   };
 
-  const loadRecords = async () => {
-    if (!schoolId) return;
-    setRecordsLoading(true);
-    try {
-      const [{ data: feesData }, { data: appsData }] = await Promise.all([
-        supabase.from('fees').select('*').eq('school_id', schoolId),
-        supabase
-          .from('applications')
-          .select('student_id, first_name, middle_name, last_name, class_applying')
-          .eq('school_id', schoolId),
-      ]);
-      const appMap = Object.fromEntries((appsData || []).map((a) => [a.student_id, a]));
-      const list = (feesData || []).map((f) => ({
-        ...f,
-        app: appMap[f.student_id] || null,
-        name: appMap[f.student_id] ? buildStudentName(appMap[f.student_id].first_name, appMap[f.student_id].middle_name, appMap[f.student_id].last_name) : f.student_id,
-        className: appMap[f.student_id]?.class_applying || '',
-      }));
-      list.sort((a, b) => {
-        const ay = (s) => Number(String(s.academic_year).split('/')[0] || 0);
-        return ay(b.academic_year) - ay(a.academic_year) || TERM_ORDER[b.term] - TERM_ORDER[a.term];
-      });
-      setRecords(list);
-    } catch (err) {
-      toast.error('Could not load fee records', err.message);
-    } finally {
-      setRecordsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (tab === 'records') loadRecords();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, schoolId]);
-
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [schoolId]);
-
-  const filteredRecords = useMemo(() => {
-    const q = recordQuery.trim().toLowerCase();
-    if (!q) return records;
-    return records.filter(
-      (r) => r.name.toLowerCase().includes(q) || r.student_id.toLowerCase().includes(q) || (r.className || '').toLowerCase().includes(q)
-    );
-  }, [records, recordQuery]);
 
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
 
@@ -233,7 +190,6 @@ export default function AdminFees() {
       );
       setOpen(false);
       load();
-      if (tab === 'records') loadRecords();
     } catch (err) {
       setError(err.message);
     } finally {
@@ -243,49 +199,30 @@ export default function AdminFees() {
 
   const confirmDelete = async () => {
     if (!deleting) return;
-    const { error } = await supabase.from('class_fees').delete().eq('id', deleting.id);
-    if (error) toast.error('Could not delete fee structure', error.message);
-    else toast.success('Fee structure deleted', `${deleting.class_name}`);
+    try {
+      // Legacy behaviour: deleting a class fee structure also removes the
+      // per-student fee records for that class/term (receipts/payments kept).
+      const { data: students } = await supabase
+        .from('applications')
+        .select('student_id')
+        .eq('school_id', schoolId)
+        .eq('class_applying', deleting.class_name);
+      if (students && students.length) {
+        await supabase
+          .from('fees')
+          .delete()
+          .in('student_id', students.map((s) => s.student_id))
+          .eq('academic_year', deleting.academic_year)
+          .eq('term', deleting.term);
+      }
+      const { error } = await supabase.from('class_fees').delete().eq('id', deleting.id);
+      if (error) throw new Error(error.message);
+      toast.success('Fee structure deleted', `${deleting.class_name} — fee records removed for ${students?.length || 0} student(s).`);
+    } catch (err) {
+      toast.error('Could not delete fee structure', err.message);
+    }
     setDeleting(null);
     load();
-  };
-
-  const openEditRecord = (record) => {
-    setEditRecord(record);
-    setRecordForm({ total_amount: String(record.total_amount ?? 0), debt: String(record.debt ?? 0) });
-    setRecordError('');
-  };
-
-  const saveRecord = async () => {
-    if (!editRecord) return;
-    setRecordError('');
-    const total = Number(recordForm.total_amount || 0);
-    const debt = Number(recordForm.debt || 0);
-    if (total < 0 || debt < 0) {
-      setRecordError('Amounts cannot be negative.');
-      return;
-    }
-    setRecordBusy(true);
-    try {
-      const { error } = await supabase.from('fees').update({ total_amount: total, debt }).eq('id', editRecord.id);
-      if (error) throw new Error(error.message);
-      toast.success('Fee record updated', `${editRecord.student_id} · ${termLabel(editRecord.term)} ${editRecord.academic_year}`);
-      setEditRecord(null);
-      loadRecords();
-    } catch (err) {
-      setRecordError(err.message);
-    } finally {
-      setRecordBusy(false);
-    }
-  };
-
-  const confirmDeleteRecord = async () => {
-    if (!deleteRecord) return;
-    const { error } = await supabase.from('fees').delete().eq('id', deleteRecord.id);
-    if (error) toast.error('Could not delete fee record', error.message);
-    else toast.success('Fee record deleted', `${deleteRecord.student_id} · ${termLabel(deleteRecord.term)} ${deleteRecord.academic_year}`);
-    setDeleteRecord(null);
-    loadRecords();
   };
 
   return (
@@ -304,11 +241,8 @@ export default function AdminFees() {
         }
       />
 
-      <div className="mb-6 flex w-fit gap-1 rounded-xl bg-slate-100 p-1">
-        {[
-          { value: 'structure', label: 'Class fee structure' },
-          { value: 'records', label: 'Student fee records' },
-        ].map((t) => (
+      <div className="mb-6 flex w-fit flex-wrap gap-1 rounded-xl bg-slate-100 p-1">
+        {TABS.map((t) => (
           <button
             key={t.value}
             type="button"
@@ -320,54 +254,14 @@ export default function AdminFees() {
         ))}
       </div>
 
-      {tab === 'records' ? (
-        <>
-          <div className="mb-4 max-w-sm">
-            <SearchInput value={recordQuery} onChange={setRecordQuery} placeholder="Search by student, ID or class..." />
-          </div>
-          {recordsLoading ? (
-            <Spinner label="Loading fee records..." />
-          ) : filteredRecords.length ? (
-            <div className="space-y-2">
-              {filteredRecords.map((record) => {
-                const balance = Number(record.total_amount || 0) + Number(record.debt || 0) - Number(record.amount_paid || 0);
-                const status = balance <= 0 ? (Number(record.amount_paid) > 0 || Number(record.total_amount) === 0 ? 'paid' : 'unpaid') : record.payment_status || (Number(record.amount_paid) > 0 ? 'partial' : 'unpaid');
-                return (
-                  <Card key={record.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-bold text-slate-800">{record.name}</p>
-                      <p className="text-xs text-slate-400">
-                        {record.student_id} · {record.className || '—'} · {termLabel(record.term)} {record.academic_year}
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-3">
-                      <span className="text-xs text-slate-500">
-                        Total {cedi(record.total_amount)} · Paid {cedi(record.amount_paid)}
-                        {record.debt ? ` · Debt ${cedi(record.debt)}` : ''}
-                      </span>
-                      <Badge tone={status === 'paid' ? 'green' : status === 'partial' ? 'amber' : 'red'}>
-                        {status} {balance > 0 ? `· Bal ${cedi(balance)}` : ''}
-                      </Badge>
-                      <button type="button" onClick={() => openEditRecord(record)} className="rounded-lg p-1.5 text-slate-400 hover:bg-brand-50 hover:text-brand-600" aria-label="Edit fee record">
-                        <Pencil className="h-4 w-4" aria-hidden="true" />
-                      </button>
-                      <button type="button" onClick={() => setDeleteRecord(record)} className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600" aria-label="Delete fee record">
-                        <Trash2 className="h-4 w-4" aria-hidden="true" />
-                      </button>
-                    </div>
-                  </Card>
-                );
-              })}
-            </div>
-          ) : (
-            <EmptyState
-              icon={ListChecks}
-              title="No fee records found"
-              message="Set a class fee structure and it is automatically applied to every student in that class."
-              action={<Button onClick={() => setTab('structure')}>Go to fee structure</Button>}
-            />
-          )}
-        </>
+      {tab === 'students' ? (
+        <StudentFeesTab />
+      ) : tab === 'debtors' ? (
+        <DebtorsTab />
+      ) : tab === 'receipts' ? (
+        <ReceiptsTab />
+      ) : tab === 'carry' ? (
+        <CarryForwardTab />
       ) : loading ? (
         <Spinner label="Loading fee structure..." />
       ) : rows.length ? (
@@ -453,55 +347,7 @@ export default function AdminFees() {
         onClose={() => setDeleting(null)}
         onConfirm={confirmDelete}
         title="Delete fee structure?"
-        message={`This removes the fee for ${deleting?.class_name || 'this class'}. Existing student fee records are not changed.`}
-      />
-
-      <Modal open={!!editRecord} onClose={() => setEditRecord(null)} title="Edit fee record" size="sm">
-        {recordError ? (
-          <Alert tone="error" className="mb-4">
-            {recordError}
-          </Alert>
-        ) : null}
-        {editRecord ? (
-          <div className="space-y-3">
-            <p className="rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-600">
-              {editRecord.student_id} · {termLabel(editRecord.term)} {editRecord.academic_year} · Already paid {cedi(editRecord.amount_paid)}
-            </p>
-            <Input
-              label="Total amount (GHC)"
-              type="number"
-              min="0"
-              step="0.01"
-              value={recordForm.total_amount}
-              onChange={(e) => setRecordForm((f) => ({ ...f, total_amount: e.target.value }))}
-            />
-            <Input
-              label="Additional debt (GHC)"
-              type="number"
-              min="0"
-              step="0.01"
-              value={recordForm.debt}
-              onChange={(e) => setRecordForm((f) => ({ ...f, debt: e.target.value }))}
-            />
-          </div>
-        ) : null}
-        <div className="mt-5 flex gap-2">
-          <Button variant="secondary" onClick={() => setEditRecord(null)} className="flex-1">
-            Cancel
-          </Button>
-          <Button onClick={saveRecord} loading={recordBusy} className="flex-1">
-            Save record
-          </Button>
-        </div>
-      </Modal>
-
-      <ConfirmDialog
-        open={!!deleteRecord}
-        onClose={() => setDeleteRecord(null)}
-        onConfirm={confirmDeleteRecord}
-        title="Delete fee record?"
-        message="This permanently removes the fee record. Payments already made for it are not removed."
-        confirmLabel="Delete record"
+        message={`This removes the fee for ${deleting?.class_name || 'this class'} together with the fee records for every student in that class/term. Receipts and payment transactions are preserved.`}
       />
     </div>
   );
