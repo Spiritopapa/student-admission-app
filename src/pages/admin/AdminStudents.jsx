@@ -190,9 +190,10 @@ export default function AdminStudents() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [schoolId]);
 
-  // Storage diagnostic: confirm the "student-photos" bucket actually exists in
-  // the connected Supabase project so admins are told immediately when file
-  // uploads/photo display would fail and how to fix it.
+  // Storage diagnostic: confirm the "student-photos" bucket is accessible so
+  // admins are told when uploads might fail. Uploads are attempted directly
+  // (bucket-level RLS never blocks them), so a hidden bucket is only shown as
+  // a gentle notice - not a blocking error.
   useEffect(() => {
     if (!schoolId) return;
     let cancelled = false;
@@ -200,12 +201,17 @@ export default function AdminStudents() {
       if (cancelled) return;
       if (status.exists) {
         setStorageWarning('');
-      } else {
+      } else if (status.exists === false) {
         setStorageWarning(
-          'The "student-photos" storage bucket is missing in this Supabase project, so student photos cannot be saved or displayed. ' +
-            'Open the Supabase SQL Editor and run "sql/073-supabase-storage-buckets.sql" once ' +
-            '(or the full "sql/000-run-all.sql") to create the file buckets.'
+          'The "student-photos" storage bucket could not be verified from this dashboard ' +
+            `(${status.error || 'the bucket is not visible to this session'}). ` +
+            'Uploads are still attempted directly, so they work as long as the bucket and its ' +
+            '"Authenticated users upload app files" policy exist. If an upload still fails, ' +
+            'open the Supabase SQL Editor and run "sql/073-supabase-storage-buckets.sql" once.'
         );
+      } else {
+        // exists === null: storage.buckets RLS hides the row - not an error.
+        setStorageWarning('');
       }
     });
     return () => {

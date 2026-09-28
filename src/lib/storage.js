@@ -56,12 +56,19 @@ export function randomPath(prefix, filename) {
 }
 
 /**
- * Verify a storage bucket exists in the connected Supabase project.
- * Set `force: true` to skip the in-memory cache and always hit the server
- * (used by diagnostics); false (default) fast-paths already-known buckets.
+ * Verify a storage bucket is visible to the current session.
+ *
+ * IMPORTANT: storage.buckets RLS in some projects blocks authenticated users
+ * from reading/creating buckets. Uploading to an EXISTING bucket does NOT need
+ * bucket-level access (only the storage.object INSERT policy), so a hidden
+ * bucket here never blocks uploadFile() - uploads are always attempted
+ * directly.
  *
  * @param {string} bucket - bucket id, e.g. "student-photos"
- * @returns {Promise<{ exists: boolean, error?: string }>}
+ * @returns {Promise<{ exists: boolean | null, error?: string }>}
+ *   exists: true  - the bucket is visible to this session
+ *   exists: false - the API reported the bucket cannot be found/accessed
+ *   exists: null  - indeterminate (storage.buckets RLS hid the row)
  */
 export async function checkStorageBucket(bucket, { force = false } = {}) {
   if (!bucket) return { exists: false, error: 'No bucket specified.' };
@@ -72,30 +79,31 @@ export async function checkStorageBucket(bucket, { force = false } = {}) {
       knownBuckets.add(bucket);
       return { exists: true };
     }
-    knownBuckets.delete(bucket);
-    return { exists: false, error: error?.message || 'Bucket not found.' };
+    // No data AND no error usually means the row is hidden by storage.buckets
+    // RLS. Leave the in-memory cache untouched and report "unknown" - uploading
+    // still works and is attempted directly regardless.
+    return { exists: error ? false : null, error: error?.message };
   } catch (err) {
-    knownBuckets.delete(bucket);
     return { exists: false, error: err.message };
   }
 }
 
 /**
- * Ensure a storage bucket exists, creating it when it is missing and the
- * project's storage RLS allows authenticated bucket creation (mirrors the
- * legacy app's behaviour). Bucket creation can only fail when the project
- * denies it - the caller is told exactly how to fix that.
+ * Best-effort creation of a missing bucket. Used ONLY as a fallback after an
+ * upload reports "Bucket not found". Browser-side bucket creation requires the
+ * project's storage.buckets RLS to allow authenticated INSERT - when it does
+ * not, ok:false is returned and the caller surfaces the actionable migration.
  */
 export async function ensureStorageBucket(bucket) {
   if (!bucket) return { ok: false, error: new Error('No storage bucket specified.') };
   if (knownBuckets.has(bucket)) return { ok: true, exists: true, created: false };
 
-  const { data: existing } = await supabase.storage.getBucket(bucket);
-  if (existing) {
-    knownBuckets.add(bucket);
-    return { ok: true, exists: true, created: false };
-  }
   try {
+    const { data: existing } = await supabase.storage.getBucket(bucket);
+    if (existing) {
+      knownBuckets.add(bucket);
+      return { ok: true, exists: true, created: false };
+    }
     const { error } = await supabase.storage.createBucket(bucket, { public: true });
     if (error) {
       // The bucket may have just been created elsewhere; treat that as success.
@@ -113,21 +121,29 @@ export async function ensureStorageBucket(bucket) {
   }
 }
 
+function uploadErrorMessage(error, bucket) {
+  const msg = error?.message || String(error || '');
+  if (/new row violates row-level security policy/i.test(msg)) {
+    return (
+      `Upload to "${bucket}" was blocked by the storage row-level security policy. ` +
+      'Open the Supabase SQL Editor once and run "sql/073-supabase-storage-buckets.sql" ' +
+      'so the "Authenticated users upload app files" policy on storage.objects is in place.'
+    );
+  }
+  return msg;
+}
+
+/**
+ * Upload a file to a storage bucket.
+ *
+ * Design: the upload is attempted FIRST. Writing to an existing bucket only
+ * needs the storage.object INSERT policy - it does NOT require reading or
+ * creating buckets, so a strict storage.buckets RLS configuration can never
+ * block a legitimate upload. Bucket existence is only checked when the upload
+ * itself reports "Bucket not found".
+ */
 export async function uploadFile(bucket, path, file) {
-  const prepare = async () => {
-    const ensured = await ensureStorageBucket(bucket);
-    if (!ensured.ok) {
-      throw new Error(
-        `Storage bucket "${bucket}" is missing and could not be created automatically ` +
-          `(${ensured.error?.message || 'permission denied'}). ` +
-          'Open the Supabase SQL Editor once and run "sql/073-supabase-storage-buckets.sql" ' +
-          'to create the file buckets (student-photos, applications, school-logos, documents).'
-      );
-    }
-  };
-
-  await prepare();
-
+  if (!bucket) throw new Error('No storage bucket specified for the upload.');
   const upload = () =>
     supabase.storage.from(bucket).upload(path, file, {
       cacheControl: '3600',
@@ -136,13 +152,24 @@ export async function uploadFile(bucket, path, file) {
     });
 
   let result = await upload();
-  // The bucket may have been removed after our cache was set - re-verify once.
+
+  // The bucket is genuinely missing (not merely hidden) - try to create it once.
   if (result.error && /bucket not found/i.test(result.error.message)) {
     knownBuckets.delete(bucket);
-    await prepare();
-    result = await upload();
+    const ensured = await ensureStorageBucket(bucket);
+    if (ensured.ok) {
+      result = await upload();
+    } else {
+      throw new Error(
+        `Storage bucket "${bucket}" was not found in this project and could not be created automatically ` +
+          `(${ensured.error?.message || 'permission denied - storage.buckets RLS blocks bucket creation'}). ` +
+          'Open the Supabase SQL Editor once and run "sql/073-supabase-storage-buckets.sql" ' +
+          'to create the file buckets (student-photos, applications, school-logos, documents).'
+      );
+    }
   }
-  if (result.error) throw new Error(result.error.message);
+
+  if (result.error) throw new Error(uploadErrorMessage(result.error, bucket));
   return `${bucket}/${result.data.path || path}`;
 }
 
