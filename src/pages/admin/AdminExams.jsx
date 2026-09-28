@@ -5,7 +5,7 @@ import { useToast } from '../../context/ToastContext';
 import { PageHeader, Card, Button, Input, Select, Spinner, EmptyState, Badge } from '../../components/ui';
 import { Modal, ConfirmDialog, Alert } from '../../components/ui-extras';
 import { supabase } from '../../lib/supabase';
-import { buildStudentName, formatDate, getSubjectGrade } from '../../lib/format';
+import { buildStudentName, formatDate, getSubjectGrade, termLabel } from '../../lib/format';
 import { TERMS, TERM_LABELS, currentAcademicYear } from '../../lib/constants';
 
 export default function AdminExams() {
