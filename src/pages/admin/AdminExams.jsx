@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { Award, Plus, Pencil, Trash2, ClipboardEdit, ArrowLeft, Save, Download, Upload, Trophy, FileText, GraduationCap, Printer } from 'lucide-react';
 import { useSchoolId } from '../../hooks/useSchool';
 import { useToast } from '../../context/ToastContext';
@@ -55,18 +55,25 @@ export default function AdminExams() {
   const [transcriptBusy, setTranscriptBusy] = useState(false);
   const [transcriptBatchBusy, setTranscriptBatchBusy] = useState(false);
 
+  const [classSubjectRows, setClassSubjectRows] = useState([]);
+  const [subjectSelect, setSubjectSelect] = useState('');
+  const [reportClassFilter, setReportClassFilter] = useState('');
+  const [transcriptClassFilter, setTranscriptClassFilter] = useState('');
+
   const load = async () => {
     if (!schoolId) return;
     setLoading(true);
     try {
-      const [{ data: examRows }, { data: subjectRows }, { data: classRows }] = await Promise.all([
+      const [{ data: examRows }, { data: subjectRows }, { data: classRows }, { data: classSubjectData }] = await Promise.all([
         supabase.from('exams').select('*').eq('school_id', schoolId).order('created_at', { ascending: false }),
         supabase.from('subjects').select('name').eq('school_id', schoolId).order('name'),
         supabase.from('classes').select('id, name').eq('school_id', schoolId).order('name'),
+        supabase.from('class_subjects').select('class_name, subject_name').eq('school_id', schoolId),
       ]);
       setExams(examRows || []);
       setSubjects(subjectRows || []);
       setClasses(classRows || []);
+      setClassSubjectRows(classSubjectData || []);
     } catch (err) {
       toast.error('Could not load exams', err.message);
     } finally {
@@ -147,6 +154,7 @@ export default function AdminExams() {
     setMarksData([]);
     setResultsLoaded(false);
     setSubjectInput('');
+    setSubjectSelect('');
     const { data: rows } = await supabase.from('exam_subjects').select('*').eq('exam_id', exam.id).order('subject');
     setExamSubjects(rows || []);
     const { data: gradeRows } = await supabase.from('grading_systems').select('*').eq('school_id', schoolId);
@@ -154,16 +162,31 @@ export default function AdminExams() {
   };
 
   const addExamSubject = async () => {
-    if (!subjectInput.trim() || !workspace) return;
-    const { error } = await supabase.from('exam_subjects').insert([{ exam_id: workspace.id, class_name: workspaceClass || null, subject: subjectInput.trim() }]);
-    if (error) {
-      toast.error('Could not add subject', error.message);
-      return;
+    const subjectName = subjectSelect.trim();
+    if (!subjectName || !workspace) return;
+    try {
+      // Keep the per-class subject map (Subjects module) in sync so every class
+      // has its own subject set, then attach it to this exam.
+      if (workspaceClass) {
+        await supabase.from('class_subjects').upsert(
+          { class_name: workspaceClass, subject_name: subjectName, school_id: schoolId },
+          { onConflict: 'school_id,class_name,subject_name' }
+        );
+      }
+      const { error } = await supabase.from('exam_subjects').insert([
+        { exam_id: workspace.id, class_name: workspaceClass || null, subject: subjectName },
+      ]);
+      if (error) throw new Error(error.message);
+      setSubjectSelect('');
+      const { data: rows } = await supabase.from('exam_subjects').select('*').eq('exam_id', workspace.id).order('subject');
+      setExamSubjects(rows || []);
+      if (workspaceClass) {
+        refreshClassSubjects();
+        loadMarks();
+      }
+    } catch (err) {
+      toast.error('Could not add subject', err.message);
     }
-    setSubjectInput('');
-    const { data: rows } = await supabase.from('exam_subjects').select('*').eq('exam_id', workspace.id).order('subject');
-    setExamSubjects(rows || []);
-    if (workspaceClass) loadMarks();
   };
 
   const removeExamSubject = async (id) => {
@@ -209,6 +232,28 @@ export default function AdminExams() {
     if (workspace && workspaceClass) loadMarks();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workspaceClass, workspace]);
+
+  const subjectOptions = useMemo(() => {
+    const classSubjects = classSubjectRows
+      .filter((r) => !workspaceClass || r.class_name === workspaceClass)
+      .map((r) => r.subject_name);
+    const fallback = subjects.map((s) => s.name);
+    const names = classSubjects.length ? classSubjects : fallback;
+    const added = new Set(examSubjects.map((s) => s.subject.toLowerCase()));
+    return [...new Set(names)].filter((n) => !added.has(n.toLowerCase()));
+  }, [workspaceClass, classSubjectRows, subjects, examSubjects]);
+
+  const refreshClassSubjects = async () => {
+    const { data } = await supabase.from('class_subjects').select('class_name, subject_name').eq('school_id', schoolId);
+    setClassSubjectRows(data || []);
+  };
+
+  const reportStudentList = reportClassFilter
+    ? reportStudents.filter((s) => s.class_applying === reportClassFilter)
+    : reportStudents;
+  const transcriptStudentList = transcriptClassFilter
+    ? transcriptStudents.filter((s) => s.class_applying === transcriptClassFilter)
+    : transcriptStudents;
 
   const gradeFor = (subject, marks) => {
     const row =
@@ -434,11 +479,14 @@ export default function AdminExams() {
 
   const batchPrintReports = async () => {
     if (!reportExam) return;
-    if (!reportStudents.length) return;
+    const list = reportClassFilter
+      ? reportStudents.filter((s) => s.class_applying === reportClassFilter)
+      : reportStudents;
+    if (!list.length) return;
     setReportBatchBusy(true);
     try {
       const docs = [];
-      for (const s of reportStudents) {
+      for (const s of list) {
         try {
           const html = await buildReportCardHTML({ examId: reportExam.id, studentId: s.student_id, schoolId });
           if (html.includes('class="rc"')) docs.push(html);
@@ -484,11 +532,14 @@ export default function AdminExams() {
   };
 
   const batchPrintTranscripts = async () => {
-    if (!transcriptStudents.length) return;
+    const list = transcriptClassFilter
+      ? transcriptStudents.filter((s) => s.class_applying === transcriptClassFilter)
+      : transcriptStudents;
+    if (!list.length) return;
     setTranscriptBatchBusy(true);
     try {
       const docs = [];
-      for (const s of transcriptStudents) {
+      for (const s of list) {
         try {
           const html = await buildTranscriptHTML({ studentId: s.student_id, schoolId });
           if (html.includes('class="rc"')) docs.push(html);
@@ -545,7 +596,7 @@ export default function AdminExams() {
 
         <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end">
           <div className="w-full sm:max-w-xs">
-            <Select label="Class *" value={workspaceClass} onChange={(e) => setWorkspaceClass(e.target.value)}>
+            <Select label="Class *" value={workspaceClass} onChange={(e) => { setWorkspaceClass(e.target.value); setSubjectSelect(''); }}>
               <option value="">Select class...</option>
               {classes.map((c) => (
                 <option key={c.id} value={c.name}>
@@ -554,13 +605,26 @@ export default function AdminExams() {
               ))}
             </Select>
           </div>
-          <div className="flex w-full gap-2 sm:max-w-sm">
-            <Input label="Add subject to this exam" value={subjectInput} onChange={(e) => setSubjectInput(e.target.value)} placeholder={examSubjects.length ? 'Another subject...' : 'e.g. Mathematics'} />
-            <div className="flex items-end">
-              <Button variant="secondary" onClick={addExamSubject} disabled={!subjectInput.trim()}>
-                <Plus className="h-4 w-4" aria-hidden="true" />
-              </Button>
-            </div>
+          <div className="w-full sm:flex-1">
+            <Select label="Add a subject to this exam" value={subjectSelect} onChange={(e) => setSubjectSelect(e.target.value)}>
+              <option value="">{subjectOptions.length ? 'Select a subject...' : 'No subjects available - add them in the Subjects module first.'}</option>
+              {subjectOptions.map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
+            </Select>
+            <p className="mt-1 text-xs text-slate-400">
+              {workspaceClass
+                ? `Showing the subjects assigned to ${workspaceClass} (Subjects module). Adding one also assigns it to this class.`
+                : 'Select a class to show that class\'s subjects, or pick from all school subjects.'}
+            </p>
+          </div>
+          <div className="flex items-end">
+            <Button variant="secondary" onClick={addExamSubject} disabled={!subjectSelect}>
+              <Plus className="h-4 w-4" aria-hidden="true" />
+              Add
+            </Button>
           </div>
         </div>
 
@@ -582,40 +646,101 @@ export default function AdminExams() {
         {workspaceClass ? (
           !resultsLoaded ? (
             <Spinner label="Loading scoresheet..." />
-          ) : marksData.length ? (
-            <div className="space-y-4">
-              {marksData.map((row, studentIndex) => (
-                <Card key={row.student.id} className="p-4">
-                  <div className="mb-3 border-b border-slate-50 pb-2">
-                    <p className="text-sm font-bold text-slate-800">{buildStudentName(row.student.first_name, row.student.middle_name, row.student.last_name)}</p>
-                    <p className="font-mono text-xs text-slate-400">{row.student.student_id}</p>
-                  </div>
-                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                    {examSubjects.map((sbj) => {
-                      const sc = row.scores[sbj.subject] || { classScore: '', examScoreInput: '' };
-                      const total = sc.classScore !== '' || sc.examScoreInput !== '' ? Math.min((parseFloat(sc.classScore) || 0) + (parseFloat(sc.examScoreInput) || 0) / 2, 100) : null;
-                      return (
-                        <div key={sbj.subject} className="rounded-xl border border-slate-100 bg-slate-50/60 p-3">
-                          <p className="text-xs font-bold text-slate-600">{sbj.subject}</p>
-                          <div className="mt-2 grid grid-cols-2 gap-2">
-                            <Input label="Class (≤50)" type="number" min="0" max="50" value={sc.classScore} onChange={(e) => setScore(studentIndex, sbj.subject, 'classScore', e.target.value)} />
-                            <Input label="Exam (≤100)" type="number" min="0" max="100" value={sc.examScoreInput} onChange={(e) => setScore(studentIndex, sbj.subject, 'examScoreInput', e.target.value)} />
-                          </div>
-                          <p className="mt-2 text-xs text-slate-500">
-                            Total:{' '}
-                            <b className={total != null ? (total >= 50 ? 'text-emerald-600' : 'text-rose-600') : 'text-slate-400'}>
-                              {total != null ? `${total.toFixed(2)}% · ${gradeFor(sbj.subject, total)}` : '—'}
-                            </b>
+          ) : marksData.length && examSubjects.length ? (
+            <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
+              <table className="w-full text-sm">
+                <thead className="sticky top-0 z-10 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                  <tr>
+                    <th className="min-w-[190px] px-3 py-2.5 text-left">Student</th>
+                    {examSubjects.map((s) => (
+                      <th key={s.subject} colSpan={2} className="min-w-[118px] border-l border-slate-100 px-2 py-2.5 text-center font-bold text-slate-700">
+                        {s.subject}
+                      </th>
+                    ))}
+                    <th className="min-w-[80px] border-l border-slate-100 px-2 py-2.5 text-center">Average</th>
+                    <th className="min-w-[72px] px-2 py-2.5 text-center">Grade</th>
+                  </tr>
+                  <tr>
+                    <th />
+                    {examSubjects.map((s) => (
+                      <Fragment key={s.subject}>
+                        <th className="border-l border-slate-100 px-1 py-1 text-center font-normal text-slate-400">Class (50)</th>
+                        <th className="px-1 py-1 text-center font-normal text-slate-400">Exam (100)</th>
+                      </Fragment>
+                    ))}
+                    <th colSpan={2} />
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {marksData.map((row, studentIndex) => {
+                    let sum = 0;
+                    let count = 0;
+                    examSubjects.forEach((sbj) => {
+                      const sc = row.scores[sbj.subject] || {};
+                      const tot =
+                        sc.classScore !== '' || sc.examScoreInput !== ''
+                          ? Math.min((parseFloat(sc.classScore) || 0) + (parseFloat(sc.examScoreInput) || 0) / 2, 100)
+                          : null;
+                      if (tot != null) {
+                        sum += tot;
+                        count += 1;
+                      }
+                    });
+                    const avg = count ? sum / count : null;
+                    const avgGrade = getSubjectGrade(avg || 0).grade;
+                    return (
+                      <tr key={row.student.id} className="hover:bg-slate-50/60">
+                        <td className="px-3 py-2">
+                          <p className="font-semibold text-slate-800">
+                            {buildStudentName(row.student.first_name, row.student.middle_name, row.student.last_name)}
                           </p>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </Card>
-              ))}
+                          <p className="font-mono text-xs text-slate-400">{row.student.student_id}</p>
+                        </td>
+                        {examSubjects.map((sbj) => {
+                          const sc = row.scores[sbj.subject] || { classScore: '', examScoreInput: '' };
+                          return (
+                            <Fragment key={sbj.subject}>
+                              <td className="border-l border-slate-100 px-1 py-1.5">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max="50"
+                                  value={sc.classScore}
+                                  onChange={(e) => setScore(studentIndex, sbj.subject, 'classScore', e.target.value)}
+                                  className="input h-8 w-full rounded-lg px-1.5 text-center text-xs"
+                                  placeholder="0-50"
+                                />
+                              </td>
+                              <td className="px-1 py-1.5">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max="100"
+                                  value={sc.examScoreInput}
+                                  onChange={(e) => setScore(studentIndex, sbj.subject, 'examScoreInput', e.target.value)}
+                                  className="input h-8 w-full rounded-lg px-1.5 text-center text-xs"
+                                  placeholder="0-100"
+                                />
+                              </td>
+                            </Fragment>
+                          );
+                        })}
+                        <td className="border-l border-slate-100 px-2 py-2 text-center font-bold text-slate-700">
+                          {avg != null ? avg.toFixed(1) : '—'}
+                        </td>
+                        <td className="px-2 py-2 text-center">
+                          <Badge tone={avg != null && avg >= 50 ? 'green' : 'amber'}>{avgGrade}</Badge>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
-          ) : (
+          ) : marksData.length === 0 ? (
             <EmptyState icon={ClipboardEdit} title="No students in this class" message="This class has no students to enter marks for." />
+          ) : (
+            <EmptyState icon={ClipboardEdit} title="No subjects yet" message="Add at least one subject above to start entering scores." />
           )
         ) : (
           <EmptyState icon={ClipboardEdit} title="Pick a class" message="Select a class to begin entering marks." />
@@ -832,9 +957,9 @@ export default function AdminExams() {
         size="xl"
         footer={
           <div className="flex flex-wrap gap-2">
-            <Button variant="secondary" loading={reportBatchBusy} onClick={batchPrintReports} disabled={!reportStudents.length}>
+            <Button variant="secondary" loading={reportBatchBusy} onClick={batchPrintReports} disabled={!reportStudentList.length}>
               <Printer className="h-4 w-4" aria-hidden="true" />
-              Print all ({reportStudents.length})
+              Print {reportClassFilter ? reportClassFilter : 'all'} ({reportStudentList.length})
             </Button>
             <Button onClick={printReport} disabled={!reportHtml}>
               <Printer className="h-4 w-4" aria-hidden="true" />
@@ -846,7 +971,23 @@ export default function AdminExams() {
           </div>
         }
       >
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Select
+            label="Class filter (bulk print)"
+            value={reportClassFilter}
+            onChange={(e) => {
+              setReportClassFilter(e.target.value);
+              setReportStudentId('');
+              setReportHtml('');
+            }}
+          >
+            <option value="">All classes</option>
+            {classes.map((c) => (
+              <option key={c.id} value={c.name}>
+                {c.name}
+              </option>
+            ))}
+          </Select>
           <Select
             label="Student"
             value={reportStudentId}
@@ -856,7 +997,7 @@ export default function AdminExams() {
             }}
           >
             <option value="">Select student...</option>
-            {reportStudents.map((s) => (
+            {reportStudentList.map((s) => (
               <option key={s.student_id} value={s.student_id}>
                 {buildStudentName(s.first_name, s.middle_name, s.last_name)} · {s.class_applying}
               </option>
@@ -881,9 +1022,9 @@ export default function AdminExams() {
         size="xl"
         footer={
           <div className="flex flex-wrap gap-2">
-            <Button variant="secondary" loading={transcriptBatchBusy} onClick={batchPrintTranscripts} disabled={!transcriptStudents.length}>
+            <Button variant="secondary" loading={transcriptBatchBusy} onClick={batchPrintTranscripts} disabled={!transcriptStudentList.length}>
               <Printer className="h-4 w-4" aria-hidden="true" />
-              Print all ({transcriptStudents.length})
+              Print {transcriptClassFilter ? transcriptClassFilter : 'all'} ({transcriptStudentList.length})
             </Button>
             <Button onClick={printTranscript} disabled={!transcriptHtml}>
               <Printer className="h-4 w-4" aria-hidden="true" />
@@ -895,7 +1036,23 @@ export default function AdminExams() {
           </div>
         }
       >
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Select
+            label="Class filter (bulk print)"
+            value={transcriptClassFilter}
+            onChange={(e) => {
+              setTranscriptClassFilter(e.target.value);
+              setTranscriptStudentId('');
+              setTranscriptHtml('');
+            }}
+          >
+            <option value="">All classes</option>
+            {classes.map((c) => (
+              <option key={c.id} value={c.name}>
+                {c.name}
+              </option>
+            ))}
+          </Select>
           <Select
             label="Student"
             value={transcriptStudentId}
@@ -905,7 +1062,7 @@ export default function AdminExams() {
             }}
           >
             <option value="">Select student...</option>
-            {transcriptStudents.map((s) => (
+            {transcriptStudentList.map((s) => (
               <option key={s.student_id} value={s.student_id}>
                 {buildStudentName(s.first_name, s.middle_name, s.last_name)} · {s.class_applying}
               </option>
