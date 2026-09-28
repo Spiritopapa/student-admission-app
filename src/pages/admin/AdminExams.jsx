@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Award, Plus, Pencil, Trash2, ClipboardEdit, ArrowLeft, Save, Download } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Award, Plus, Pencil, Trash2, ClipboardEdit, ArrowLeft, Save, Download, Upload, Trophy, FileText, GraduationCap, Printer } from 'lucide-react';
 import { useSchoolId } from '../../hooks/useSchool';
 import { useToast } from '../../context/ToastContext';
 import { PageHeader, Card, Button, Input, Select, Spinner, EmptyState, Badge } from '../../components/ui';
@@ -7,6 +7,8 @@ import { Modal, ConfirmDialog, Alert } from '../../components/ui-extras';
 import { supabase } from '../../lib/supabase';
 import { buildStudentName, formatDate, getSubjectGrade, termLabel } from '../../lib/format';
 import { TERMS, TERM_LABELS, currentAcademicYear } from '../../lib/constants';
+import { buildCSV, parseCSV } from '../../lib/csv';
+import { buildReportCardHTML, buildTranscriptHTML, computeExamRankings } from '../../lib/examReports';
 
 export default function AdminExams() {
   const schoolId = useSchoolId();
@@ -31,6 +33,27 @@ export default function AdminExams() {
   const [grades, setGrades] = useState([]);
   const [savingMarks, setSavingMarks] = useState(false);
   const [resultsLoaded, setResultsLoaded] = useState(false);
+
+  const [importing, setImporting] = useState(false);
+  const importInputRef = useRef(null);
+
+  const [rankExam, setRankExam] = useState(null);
+  const [rankData, setRankData] = useState(null);
+  const [rankBusy, setRankBusy] = useState(false);
+
+  const [reportExam, setReportExam] = useState(null);
+  const [reportStudents, setReportStudents] = useState([]);
+  const [reportStudentId, setReportStudentId] = useState('');
+  const [reportHtml, setReportHtml] = useState('');
+  const [reportBusy, setReportBusy] = useState(false);
+  const [reportBatchBusy, setReportBatchBusy] = useState(false);
+
+  const [transcriptOpen, setTranscriptOpen] = useState(false);
+  const [transcriptStudents, setTranscriptStudents] = useState([]);
+  const [transcriptStudentId, setTranscriptStudentId] = useState('');
+  const [transcriptHtml, setTranscriptHtml] = useState('');
+  const [transcriptBusy, setTranscriptBusy] = useState(false);
+  const [transcriptBatchBusy, setTranscriptBatchBusy] = useState(false);
 
   const load = async () => {
     if (!schoolId) return;
@@ -258,23 +281,228 @@ export default function AdminExams() {
 
   const exportCsv = () => {
     if (!marksData.length) return;
-    const lines = [];
-    lines.push(['Student ID', 'Name', ...examSubjects.map((s) => s.subject)].join(','));
-    marksData.forEach((row) => {
-      const totals = examSubjects.map((s) => {
-        const sc = row.scores[s.subject];
-        if (!sc || (sc.classScore === '' && sc.examScoreInput === '')) return '';
-        return Math.min((parseFloat(sc.classScore) || 0) + (parseFloat(sc.examScoreInput) || 0) / 2, 100);
-      });
-      lines.push([row.student.student_id, buildStudentName(row.student.first_name, row.student.middle_name, row.student.last_name).replace(/,/g, ' '), ...totals].join(','));
+    const header = ['Student ID', 'Name'];
+    examSubjects.forEach((s) => {
+      header.push(`${s.subject} - Class`, `${s.subject} - Exam`, `${s.subject} - Total`);
     });
-    const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+    const rows = [[...header]];
+    marksData.forEach((row) => {
+      const cells = [row.student.student_id, buildStudentName(row.student.first_name, row.student.middle_name, row.student.last_name)];
+      examSubjects.forEach((s) => {
+        const sc = row.scores[s.subject] || {};
+        const cls = sc.classScore !== '' ? String(sc.classScore) : '';
+        const esi = sc.examScoreInput !== '' ? String(sc.examScoreInput) : '';
+        const tot = cls !== '' || esi !== '' ? Math.min((parseFloat(cls) || 0) + (parseFloat(esi) || 0) / 2, 100).toFixed(2) : '';
+        cells.push(cls, esi, tot);
+      });
+      rows.push(cells);
+    });
+    downloadBlob(`exam_scores_${(workspace?.name || 'exam').replace(/\s+/g, '_')}_${workspaceClass || 'all'}.csv`, buildCSV(rows));
+    toast.success('Scores exported', `${marksData.length} student(s) exported.`);
+  };
+
+  const importCsvFile = async (file) => {
+    if (!workspace) return;
+    try {
+      const text = await file.text();
+      const parsed = parseCSV(text).filter((r) => r.some((c) => String(c ?? '').trim() !== ''));
+      if (parsed.length < 2) throw new Error('The file must have a header row and at least one data row.');
+      const header = parsed[0].map((h) => String(h ?? '').trim());
+      const idIdx = header.findIndex((h) => /student\s*id/i.test(h));
+      if (idIdx === -1) throw new Error('The CSV must have a "Student ID" column.');
+      const subjectCols = new Map();
+      header.forEach((h, idx) => {
+        const dash = h.indexOf(' - ');
+        if (dash > 0) {
+          const base = h.slice(0, dash).trim();
+          const suffix = h.slice(dash + 3).toLowerCase();
+          const entry = subjectCols.get(base.toLowerCase()) || { subject: base, classIdx: -1, examIdx: -1 };
+          if (suffix.includes('class')) entry.classIdx = idx;
+          else if (suffix.includes('exam')) entry.examIdx = idx;
+          subjectCols.set(base.toLowerCase(), entry);
+        }
+      });
+      let updated = 0;
+      setMarksData((prev) =>
+        prev.map((row) => {
+          const match = parsed.find((cells) => String(cells[idIdx] ?? '').trim() === row.student.student_id);
+          if (!match) return row;
+          const scores = { ...row.scores };
+          subjectCols.forEach((entry) => {
+            const dbSub = examSubjects
+              .map((s) => s.subject)
+              .find((s) => s.toLowerCase() === entry.subject.toLowerCase());
+            if (!dbSub) return;
+            const clsVal = entry.classIdx >= 0 ? String(match[entry.classIdx] ?? '').trim() : '';
+            const esiVal = entry.examIdx >= 0 ? String(match[entry.examIdx] ?? '').trim() : '';
+            const cur = scores[dbSub] || { classScore: '', examScoreInput: '' };
+            if (clsVal !== '') cur.classScore = clsVal.replace(/['"]/g, '');
+            if (esiVal !== '') cur.examScoreInput = esiVal.replace(/['"]/g, '');
+            scores[dbSub] = cur;
+          });
+          updated += 1;
+          return { ...row, scores };
+        })
+      );
+      toast.success('CSV imported', `Updated scores for ${updated} student(s). Click "Save results" to persist.`);
+    } catch (err) {
+      toast.error('Could not import CSV', err.message);
+    }
+  };
+
+  const printHtmlDoc = (title, fullHtml) => {
+    const win = window.open('', '_blank', 'width=1100,height=800');
+    if (!win) {
+      toast.error('Pop-up blocked', 'Allow pop-ups to print report cards.');
+      return;
+    }
+    win.document.write(fullHtml);
+    win.document.close();
+    win.focus();
+    setTimeout(() => {
+      try {
+        win.print();
+      } catch (err) {
+        // ignore
+      }
+    }, 600);
+  };
+
+  const downloadBlob = (filename, text) => {
+    const blob = new Blob([text], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `exam_scores_${workspace?.name || 'exam'}_${workspaceClass || 'class'}.csv`;
+    a.download = filename;
+    document.body.appendChild(a);
     a.click();
-    URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+
+  const fetchAdmittedStudents = async () => {
+    const { data } = await supabase
+      .from('applications')
+      .select('student_id, first_name, middle_name, last_name, class_applying')
+      .eq('school_id', schoolId)
+      .eq('status', 'admitted')
+      .order('first_name');
+    return data || [];
+  };
+
+  const openRankings = async (exam) => {
+    setRankExam(exam);
+    setRankData(null);
+    setRankBusy(true);
+    try {
+      const data = await computeExamRankings({ examId: exam.id, schoolId });
+      setRankData(data);
+    } catch (err) {
+      toast.error('Could not load rankings', err.message);
+    } finally {
+      setRankBusy(false);
+    }
+  };
+
+  const openReports = async (exam) => {
+    setReportExam(exam);
+    setReportStudentId('');
+    setReportHtml('');
+    setReportStudents(await fetchAdmittedStudents());
+  };
+
+  const previewReport = async () => {
+    if (!reportExam || !reportStudentId) {
+      toast.error('Select a student', 'Choose a student from the list to preview.');
+      return;
+    }
+    setReportBusy(true);
+    try {
+      const html = await buildReportCardHTML({ examId: reportExam.id, studentId: reportStudentId, schoolId });
+      setReportHtml(html);
+    } catch (err) {
+      toast.error('Could not build report card', err.message);
+    } finally {
+      setReportBusy(false);
+    }
+  };
+
+  const printReport = () => {
+    if (!reportHtml) return;
+    printHtmlDoc('Report Card', reportHtml);
+  };
+
+  const batchPrintReports = async () => {
+    if (!reportExam) return;
+    if (!reportStudents.length) return;
+    setReportBatchBusy(true);
+    try {
+      const docs = [];
+      for (const s of reportStudents) {
+        try {
+          const html = await buildReportCardHTML({ examId: reportExam.id, studentId: s.student_id, schoolId });
+          if (html.includes('class="rc"')) docs.push(html);
+        } catch (err) {
+          // skip students without data
+        }
+      }
+      if (!docs.length) throw new Error('No report cards could be generated.');
+      printHtmlDoc('Report Cards - All Students', docs.join('<div style="page-break-after:always;"></div>'));
+    } catch (err) {
+      toast.error('Batch print failed', err.message);
+    } finally {
+      setReportBatchBusy(false);
+    }
+  };
+
+  const openTranscripts = async () => {
+    setTranscriptOpen(true);
+    setTranscriptStudentId('');
+    setTranscriptHtml('');
+    setTranscriptStudents(await fetchAdmittedStudents());
+  };
+
+  const previewTranscript = async () => {
+    if (!transcriptStudentId) {
+      toast.error('Select a student', 'Choose a student from the list to preview.');
+      return;
+    }
+    setTranscriptBusy(true);
+    try {
+      const html = await buildTranscriptHTML({ studentId: transcriptStudentId, schoolId });
+      setTranscriptHtml(html);
+    } catch (err) {
+      toast.error('Could not build transcript', err.message);
+    } finally {
+      setTranscriptBusy(false);
+    }
+  };
+
+  const printTranscript = () => {
+    if (!transcriptHtml) return;
+    printHtmlDoc('Academic Transcript', transcriptHtml);
+  };
+
+  const batchPrintTranscripts = async () => {
+    if (!transcriptStudents.length) return;
+    setTranscriptBatchBusy(true);
+    try {
+      const docs = [];
+      for (const s of transcriptStudents) {
+        try {
+          const html = await buildTranscriptHTML({ studentId: s.student_id, schoolId });
+          if (html.includes('class="rc"')) docs.push(html);
+        } catch (err) {
+          // skip
+        }
+      }
+      if (!docs.length) throw new Error('No transcripts could be generated.');
+      printHtmlDoc('Academic Transcripts - All Students', docs.join('<div style="page-break-after:always;"></div>'));
+    } catch (err) {
+      toast.error('Batch print failed', err.message);
+    } finally {
+      setTranscriptBatchBusy(false);
+    }
   };
 
   if (workspace) {
@@ -286,9 +514,22 @@ export default function AdminExams() {
           icon={ClipboardEdit}
           actions={
             <>
+              <Button variant="secondary" onClick={() => importInputRef.current?.click()} loading={importing}>
+                <Upload className="h-4 w-4" aria-hidden="true" />
+                Import CSV
+              </Button>
+              <input hidden ref={importInputRef} type="file" accept=".csv,text/csv" onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.target.value = '';
+                if (file) importCsvFile(file);
+              }} />
               <Button variant="secondary" onClick={exportCsv} disabled={!marksData.length}>
                 <Download className="h-4 w-4" aria-hidden="true" />
                 Export CSV
+              </Button>
+              <Button variant="secondary" onClick={() => openRankings(workspace)}>
+                <Trophy className="h-4 w-4" aria-hidden="true" />
+                Rankings
               </Button>
               <Button onClick={saveAllResults} loading={savingMarks}>
                 <Save className="h-4 w-4" aria-hidden="true" />
@@ -422,6 +663,18 @@ export default function AdminExams() {
                   <ClipboardEdit className="h-3.5 w-3.5" aria-hidden="true" />
                   Enter marks
                 </Button>
+                <Button size="sm" variant="secondary" onClick={() => openRankings(exam)}>
+                  <Trophy className="h-3.5 w-3.5" aria-hidden="true" />
+                  Rankings
+                </Button>
+                <Button size="sm" variant="secondary" onClick={() => openReports(exam)}>
+                  <FileText className="h-3.5 w-3.5" aria-hidden="true" />
+                  Report cards
+                </Button>
+                <Button size="sm" variant="secondary" onClick={openTranscripts}>
+                  <GraduationCap className="h-3.5 w-3.5" aria-hidden="true" />
+                  Transcripts
+                </Button>
                 <Button size="sm" variant="secondary" onClick={() => openEdit(exam)}>
                   <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
                   Edit
@@ -483,6 +736,193 @@ export default function AdminExams() {
         message="This permanently deletes the exam together with all its subject scores and student results."
         confirmLabel="Delete exam"
       />
+
+      <Modal
+        open={!!rankExam}
+        onClose={() => setRankExam(null)}
+        title={rankExam ? `Rankings - ${rankExam.name}` : 'Rankings'}
+        size="lg"
+        footer={
+          <div className="flex w-full gap-2">
+            <Button variant="secondary" onClick={() => setRankExam(null)} className="flex-1">
+              Close
+            </Button>
+          </div>
+        }
+      >
+        {rankBusy ? (
+          <Spinner label="Computing rankings..." />
+        ) : rankData && (rankData.overall.length || rankData.subjects.length) ? (
+          <div className="max-h-[60vh] space-y-6 overflow-y-auto pr-1">
+            {rankData.overall.length ? (
+              <div>
+                <h4 className="text-sm font-bold text-slate-800">Overall ranking by class</h4>
+                {rankData.overall.map((group) => (
+                  <div key={group.cls} className="mt-3 rounded-xl border border-slate-100 p-3">
+                    <p className="text-xs font-bold uppercase tracking-wide text-slate-400">{group.cls}</p>
+                    <table className="mt-2 w-full text-left text-sm">
+                      <thead className="text-xs uppercase tracking-wide text-slate-400">
+                        <tr>
+                          <th className="py-1 pr-2">Pos</th>
+                          <th className="py-1 pr-2">Student</th>
+                          <th className="py-1 pr-2 text-right">Average</th>
+                          <th className="py-1 text-center">Grade</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-50">
+                        {group.rows.map((r) => (
+                          <tr key={r.student_id}>
+                            <td className="py-1.5 pr-2 font-semibold text-slate-500">
+                              {r.position === 1 ? '🥇' : r.position === 2 ? '🥈' : r.position === 3 ? '🥉' : `${r.position}th`}
+                            </td>
+                            <td className="py-1.5 pr-2 font-semibold text-slate-700">{r.name}</td>
+                            <td className="py-1.5 pr-2 text-right font-bold text-slate-700">{r.avg.toFixed(1)}%</td>
+                            <td className="py-1.5 text-center">
+                              <Badge tone={r.grade >= 'B' ? 'green' : 'amber'}>{r.grade}</Badge>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+            {rankData.subjects.length ? (
+              <div>
+                <h4 className="text-sm font-bold text-slate-800">Subject rankings</h4>
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  {rankData.subjects.map((sub) => (
+                    <div key={sub.subject} className="rounded-xl border border-slate-100 p-3">
+                      <p className="text-xs font-bold uppercase tracking-wide text-slate-400">{sub.subject}</p>
+                      <table className="mt-2 w-full text-left text-sm">
+                        <thead className="text-xs text-slate-400">
+                          <tr>
+                            <th className="py-1 pr-2">Pos</th>
+                            <th className="py-1 pr-2">Student</th>
+                            <th className="py-1 text-right">Marks</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-50">
+                          {sub.rows.slice(0, 8).map((r) => (
+                            <tr key={r.student_id}>
+                              <td className="py-1 pr-2 font-semibold text-slate-500">
+                                {r.position === 1 ? '🥇' : r.position === 2 ? '🥈' : r.position === 3 ? '🥉' : `${r.position}th`}
+                              </td>
+                              <td className="truncate py-1 pr-2 font-medium text-slate-700" title={r.name}>{r.name}</td>
+                              <td className="py-1 text-right font-bold text-slate-700">{r.marks.toFixed(1)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </div>
+        ) : (
+          <Alert tone="info">No results recorded for this exam yet.</Alert>
+        )}
+      </Modal>
+<Modal
+        open={!!reportExam}
+        onClose={() => setReportExam(null)}
+        title={reportExam ? `Report Cards - ${reportExam.name}` : 'Report Cards'}
+        size="xl"
+        footer={
+          <div className="flex flex-wrap gap-2">
+            <Button variant="secondary" loading={reportBatchBusy} onClick={batchPrintReports} disabled={!reportStudents.length}>
+              <Printer className="h-4 w-4" aria-hidden="true" />
+              Print all ({reportStudents.length})
+            </Button>
+            <Button onClick={printReport} disabled={!reportHtml}>
+              <Printer className="h-4 w-4" aria-hidden="true" />
+              Print
+            </Button>
+            <Button variant="secondary" onClick={() => setReportExam(null)}>
+              Close
+            </Button>
+          </div>
+        }
+      >
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Select
+            label="Student"
+            value={reportStudentId}
+            onChange={(e) => {
+              setReportStudentId(e.target.value);
+              setReportHtml('');
+            }}
+          >
+            <option value="">Select student...</option>
+            {reportStudents.map((s) => (
+              <option key={s.student_id} value={s.student_id}>
+                {buildStudentName(s.first_name, s.middle_name, s.last_name)} · {s.class_applying}
+              </option>
+            ))}
+          </Select>
+          <div className="flex items-end">
+            <Button onClick={previewReport} loading={reportBusy} className="w-full">
+              Preview report card
+            </Button>
+          </div>
+        </div>
+        {reportHtml ? (
+          <div className="mt-4 overflow-hidden rounded-xl border border-slate-200">
+            <iframe title="Report preview" srcDoc={reportHtml} className="h-[65vh] w-full bg-white" />
+          </div>
+        ) : null}
+      </Modal>
+<Modal
+        open={transcriptOpen}
+        onClose={() => setTranscriptOpen(false)}
+        title="Academic Transcripts"
+        size="xl"
+        footer={
+          <div className="flex flex-wrap gap-2">
+            <Button variant="secondary" loading={transcriptBatchBusy} onClick={batchPrintTranscripts} disabled={!transcriptStudents.length}>
+              <Printer className="h-4 w-4" aria-hidden="true" />
+              Print all ({transcriptStudents.length})
+            </Button>
+            <Button onClick={printTranscript} disabled={!transcriptHtml}>
+              <Printer className="h-4 w-4" aria-hidden="true" />
+              Print
+            </Button>
+            <Button variant="secondary" onClick={() => setTranscriptOpen(false)}>
+              Close
+            </Button>
+          </div>
+        }
+      >
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Select
+            label="Student"
+            value={transcriptStudentId}
+            onChange={(e) => {
+              setTranscriptStudentId(e.target.value);
+              setTranscriptHtml('');
+            }}
+          >
+            <option value="">Select student...</option>
+            {transcriptStudents.map((s) => (
+              <option key={s.student_id} value={s.student_id}>
+                {buildStudentName(s.first_name, s.middle_name, s.last_name)} · {s.class_applying}
+              </option>
+            ))}
+          </Select>
+          <div className="flex items-end">
+            <Button onClick={previewTranscript} loading={transcriptBusy} className="w-full">
+              Preview transcript
+            </Button>
+          </div>
+        </div>
+        {transcriptHtml ? (
+          <div className="mt-4 overflow-hidden rounded-xl border border-slate-200">
+            <iframe title="Transcript preview" srcDoc={transcriptHtml} className="h-[65vh] w-full bg-white" />
+          </div>
+        ) : null}
+      </Modal>
     </div>
   );
 }
