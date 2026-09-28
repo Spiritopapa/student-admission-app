@@ -588,7 +588,10 @@ export function AuthProvider({ children }) {
 
   const registerSchool = useCallback(async ({ regId, password, phone, photoFile }) => {
     if (password.length < 6) throw new Error('Password must be at least 6 characters.');
-    const id = regId.trim();
+    // IDs are generated in uppercase (e.g. SCH-SIS-0001); normalise whatever
+    // the administrator typed so the lookup, the sign-up email and the linked
+    // school row all use the canonical form.
+    const id = regId.trim().toUpperCase();
     const { data: info } = await supabase.rpc('get_school_registration_info', {
       p_registration_id: id,
     });
