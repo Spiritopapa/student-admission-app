@@ -11,9 +11,10 @@ import { PhotoUpload } from '../../components/PhotoUpload';
 import { supabase } from '../../lib/supabase';
 import { uploadFile, randomPath, photoUrl, deleteStoredFiles, checkStorageBucket } from '../../lib/storage';
 import { GENDERS, RELIGIONS, TERMS, CLASS_LEVELS, currentAcademicYear } from '../../lib/constants';
-import { buildStudentName, formatDate, formatDateTime, termLabel } from '../../lib/format';
-import { fetchClassFees } from '../../lib/queries';
+import { buildStudentName, formatDate, formatDateTime, termLabel, formatCurrency } from '../../lib/format';
+import { fetchClassFees, fetchAdmissionItems } from '../../lib/queries';
 import { openPrintWindow, escapeHtml } from '../../lib/print';
+import { openAdmissionForm } from '../../lib/admissionForm';
 import { buildCSV, parseCSV, downloadCSV } from '../../lib/csv';
 
 const emptyForm = {
@@ -143,6 +144,13 @@ export default function AdminStudents() {
   const [busy, setBusy] = useState(false);
   const [formError, setFormError] = useState('');
 
+  // Term fees on the Admit Student form: the auto-filled class (term) fee plus
+  // one amount input per admission item configured in Settings. The item
+  // amounts are added to the class fee to form the student's total term fee.
+  const [classFeeAmount, setClassFeeAmount] = useState(0);
+  const [admissionItems, setAdmissionItems] = useState([]);
+  const [itemAmounts, setItemAmounts] = useState({});
+
   const [viewing, setViewing] = useState(null);
   const [editing, setEditing] = useState(null);
   const [editForm, setEditForm] = useState({});
@@ -251,6 +259,46 @@ export default function AdminStudents() {
 
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
   const setEdit = (key) => (e) => setEditForm((f) => ({ ...f, [key]: e.target.value }));
+
+  // Load the class (term) fee (from the class_fees fee structure) and the
+  // active admission items (from Settings) into the admit form. Re-runs every
+  // time the admit modal opens or the selected class / term changes.
+  const loadAdmitFees = async () => {
+    if (!schoolId || !admitOpen) return;
+    setClassFeeAmount(0);
+    setAdmissionItems([]);
+    setItemAmounts({});
+    if (!form.class_applying) return;
+    try {
+      const academicYear = settings?.academic_year || currentAcademicYear();
+      const [classFee, items] = await Promise.all([
+        fetchClassFees(schoolId, form.class_applying, academicYear, form.term),
+        fetchAdmissionItems(schoolId),
+      ]);
+      const activeItems = (items || []).filter((it) => it.is_active !== false);
+      setClassFeeAmount(Number(classFee?.fee_amount) || 0);
+      setAdmissionItems(activeItems);
+      const amounts = {};
+      activeItems.forEach((it) => {
+        amounts[it.id] = Number(it.amount) || 0;
+      });
+      setItemAmounts(amounts);
+    } catch (err) {
+      console.warn('Failed to load class fee / admission items for admit form:', err.message);
+    }
+  };
+
+  useEffect(() => {
+    if (admitOpen) loadAdmitFees();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [admitOpen, form.class_applying, form.term]);
+
+  // Live total = class (term) fee + every entered admission item amount.
+  const admittedTotalFee = classFeeAmount + admissionItems.reduce(
+    (sum, it) => sum + (Number(itemAmounts[it.id]) || 0),
+    0
+  );
+
 const admitStudent = async () => {
     setFormError('');
     if (!form.first_name.trim() || !form.last_name.trim()) {
@@ -306,32 +354,88 @@ const admitStudent = async () => {
       ]);
       if (insertError) throw new Error(insertError.message);
 
+      // Fee record: the class (term) fee from the fee structure is auto-applied
+      // and every admission item amount entered on the form is added on top of
+      // it. The itemized breakdown is snapshotted into fee_breakdown so the
+      // admission form, receipts and fee records all agree on the totals.
       const academicYear = settings?.academic_year || currentAcademicYear();
       const classFee = await fetchClassFees(schoolId, form.class_applying, academicYear, form.term);
-      if (classFee) {
-        await supabase
-          .from('fees')
-          .upsert(
-            [
-              {
-                student_id: studentId,
-                academic_year: academicYear,
-                term: form.term,
-                total_amount: classFee.fee_amount || 0,
-                amount_paid: 0,
-                debt: 0,
-                payment_status: Number(classFee.fee_amount || 0) > 0 ? 'unpaid' : 'paid',
-                school_id: schoolId,
-              },
-            ],
-            { onConflict: 'student_id,academic_year,term' }
-          );
-      }
+      const feeYear = classFee?.academic_year || academicYear;
+      const classFeeAmountFinal = Number(classFeeAmount) || Number(classFee?.fee_amount) || 0;
+
+      const breakdownItems = [];
+      let totalAmount = classFeeAmountFinal;
+      admissionItems.forEach((it) => {
+        const amt = Number(itemAmounts[it.id]) || 0;
+        if (amt > 0) breakdownItems.push({ name: it.name || 'Additional Fee', amount: amt });
+        totalAmount += amt;
+      });
+      const feeBreakdown = {
+        class_fee: classFeeAmountFinal,
+        items: breakdownItems,
+        academic_year: feeYear,
+        term: form.term,
+        generated_at: new Date().toISOString(),
+      };
+
+      await supabase
+        .from('fees')
+        .upsert(
+          [
+            {
+              student_id: studentId,
+              academic_year: feeYear,
+              term: form.term,
+              total_amount: totalAmount,
+              amount_paid: 0,
+              debt: 0,
+              payment_status: totalAmount > 0 ? 'unpaid' : 'paid',
+              last_payment_date: null,
+              school_id: schoolId,
+              fee_breakdown: feeBreakdown,
+            },
+          ],
+          { onConflict: 'student_id,academic_year,term' }
+        );
 
       toast.success('Student admitted', `Student ID ${studentId} created.`);
+
+      // Auto-open the printable Student Admission Form with ALL student
+      // information, the class fee, the additional items and the total term fee.
+      try {
+        const { data: admittedStudent } = await supabase
+          .from('applications')
+          .select('*')
+          .eq('student_id', studentId)
+          .maybeSingle();
+        if (admittedStudent) {
+          const studentName = buildStudentName(admittedStudent.first_name, admittedStudent.middle_name, admittedStudent.last_name);
+          openAdmissionForm(
+            {
+              studentId,
+              student: admittedStudent,
+              schoolName: settings?.school_name || 'My School',
+              schoolLogoUrl: settings?.logo_url || '',
+              academicYear: feeYear,
+              term: form.term,
+              classFee: classFeeAmountFinal,
+              items: breakdownItems,
+              totalAmount,
+              includeFees: true,
+            },
+            `Admission Form - ${studentName}`
+          );
+        }
+      } catch (genErr) {
+        console.warn('Failed to auto-generate admission form:', genErr.message);
+      }
+
       setAdmitOpen(false);
       setForm(emptyForm);
       setPhotoFile(null);
+      setClassFeeAmount(0);
+      setAdmissionItems([]);
+      setItemAmounts({});
       load();
     } catch (err) {
       setFormError(err.message);
@@ -624,16 +728,56 @@ const importCSV = async (e) => {
         throw new Error(`Missing required column(s): ${missingCols.join(', ')}. Download the CSV template to see the expected format.`);
       }
 
-      const [{ data: existingIds }, { data: classFees }] = await Promise.all([
-        supabase.from('applications').select('student_id').eq('school_id', schoolId),
-        supabase.from('class_fees').select('class_name, term, fee_amount').eq('school_id', schoolId),
+      const [{ data: existing }, { data: classFees }, { data: classRows }] = await Promise.all([
+        supabase
+          .from('applications')
+          .select('student_id, first_name, last_name, date_of_birth, status')
+          .eq('school_id', schoolId),
+        supabase.from('class_fees').select('class_name, term, fee_amount, academic_year').eq('school_id', schoolId),
+        supabase.from('classes').select('name').eq('school_id', schoolId),
       ]);
-      const idSet = new Set((existingIds || []).map((r) => r.student_id));
-      const feeMap = new Map(
-        (classFees || []).map((f) => [`${f.class_name.trim().toLowerCase()}|||${f.term}`, f.fee_amount ?? 0])
+      const idSet = new Set((existing || []).map((r) => r.student_id));
+      // Existing student status by student ID and by natural key
+      // (first name + last name + date of birth) so the import can refuse to
+      // re-create students who are already in the app.
+      const statusById = new Map((existing || []).map((s) => [s.student_id, s.status || 'pending']));
+      const existingKeys = new Map(
+        (existing || [])
+          .filter((s) => s.first_name && s.last_name && s.date_of_birth)
+          .map((s) => [
+            `${s.first_name.trim().toLowerCase()}|${s.last_name.trim().toLowerCase()}|${String(s.date_of_birth).slice(0, 10)}`,
+            s.status || 'pending',
+          ])
       );
+      // Classes configured in the Classes module are the source of truth: rows
+      // for classes that do not exist are blocked before any write happens.
+      const configuredClassMap = new Map(
+        (classRows || []).map((c) => [String(c.name).trim().toLowerCase(), String(c.name).trim()])
+      );
+      // Current academic year: imported students are auto-charged the CURRENT
+      // class fee for their class + term (same rule as the Admit form). When a
+      // class/term has multiple years on record, the current year wins; if the
+      // current year has no fee row yet, any existing one is used as a fallback.
+      const defaultAcademicYear = settings?.academic_year || currentAcademicYear();
+      const feeMap = new Map(
+        (classFees || []).map((f) => [
+          `${String(f.class_name).trim().toLowerCase()}|||${f.term}`,
+          { amount: Number(f.fee_amount) || 0, academic_year: f.academic_year },
+        ])
+      );
+      (classFees || []).forEach((f) => {
+        const key = `${String(f.class_name).trim().toLowerCase()}|||${f.term}`;
+        const current = feeMap.get(key);
+        if (current && f.academic_year === defaultAcademicYear && current.academic_year !== defaultAcademicYear) {
+          feeMap.set(key, { amount: Number(f.fee_amount) || 0, academic_year: f.academic_year });
+        }
+      });
 
       const errors = [];
+      // Rows that look like students already in the app (same name & DOB, or
+      // same student ID). Their existing status decides whether the admin is
+      // prompted to confirm before the rest of the import proceeds.
+      const duplicates = [];
       const providedRows = [];
       const autoRows = [];
 
@@ -654,6 +798,16 @@ const importCSV = async (e) => {
         }
         if (!className) {
           errors.push(`Row ${fileRow}: Class is required for ${first} ${last}.`);
+          return;
+        }
+        // The Classes module is the source of truth: block rows whose class the
+        // school has not configured (case-insensitive, canonical name used).
+        const canonicalClass = configuredClassMap.get(className.trim().toLowerCase());
+        if (!canonicalClass) {
+          const available = classRows && classRows.length
+            ? ` ${classRows.slice(0, 12).map((c) => c.name).join(', ')}${classRows.length > 12 ? '…' : ''}`
+            : ' none configured yet — add classes under Classes first.';
+          errors.push(`Row ${fileRow}: Class "${className}" does not exist. Available classes:${available}`);
           return;
         }
 
@@ -681,7 +835,7 @@ const importCSV = async (e) => {
           first_name: first,
           middle_name: get('Middle Name').trim() || null,
           last_name: last,
-          class_applying: className,
+          class_applying: canonicalClass,
           term: term.value,
           gender: gender.value,
           religion: religion.value,
@@ -697,17 +851,72 @@ const importCSV = async (e) => {
           portal_confirmed: PORTAL_YES.has(String(get('Portal Confirmed')).trim().toLowerCase()),
         };
 
+        // Prevent duplication BEFORE anything is written: a provided student ID
+        // or the natural key (same name & date of birth) that already exists in
+        // the app makes this row a duplicate of an existing student.
         const providedId = get('Student ID').trim();
+        let duplicateStatus = statusById.get(providedId) || null;
+        if (!duplicateStatus && dob.value) {
+          const key = `${first.trim().toLowerCase()}|${last.trim().toLowerCase()}|${String(dob.value).slice(0, 10)}`;
+          duplicateStatus = existingKeys.get(key) || null;
+        }
+        if (duplicateStatus) {
+          duplicates.push({ fileRow, name: `${first} ${last}`, status: duplicateStatus });
+          return; // skip this row — student is already in the app
+        }
+
         if (providedId) {
-          if (idSet.has(providedId)) {
-            errors.push(`Row ${fileRow}: Student ID "${providedId}" already exists.`);
-            return;
-          }
           providedRows.push({ ...row, student_id: providedId });
         } else {
           autoRows.push(row);
         }
       });
+
+      const validRowCount = providedRows.length + autoRows.length;
+
+      // ---- Duplicate guard BEFORE any writes ---------------------------------
+      // Rows matching students who are ALREADY ADMITTED are surfaced to the
+      // admin first; importing the rest is only accepted after confirmation.
+      const admittedMatches = duplicates.filter((d) => d.status === 'admitted');
+      if (admittedMatches.length > 0) {
+        const listPreview = admittedMatches
+          .slice(0, 8)
+          .map((d) => `• Row ${d.fileRow}: ${d.name} (already admitted)`)
+          .join('\n');
+        const moreNote = admittedMatches.length > 8 ? `\n…and ${admittedMatches.length - 8} more.` : '';
+        const promptMessage =
+          `${admittedMatches.length} row(s) in "${file.name}" match students who are ` +
+          `already admitted to this school (same name & date of birth or student ID):\n\n` +
+          `${listPreview}${moreNote}\n\n` +
+          `These duplicate rows will be skipped. ${validRowCount > 0 ? `Import the remaining ${validRowCount} valid student(s) anyway?` : 'There are no other valid rows to import.'}`;
+        const proceed = window.confirm(promptMessage);
+        if (!proceed) {
+          toast.info('CSV import cancelled', 'No students were imported because the file matched already-admitted students. No changes were made.');
+          setImporting(false);
+          return;
+        }
+        // Admin accepted the risk — record the skipped duplicates as warnings.
+        duplicates.forEach((d) => {
+          errors.push(`Row ${d.fileRow} (${d.name}): ${d.status === 'admitted' ? 'already admitted' : 'already in the app'} — skipped.`);
+        });
+      } else if (duplicates.length > 0) {
+        // No already-admitted matches, but pending/no-status duplicates exist:
+        // skip them with a warning (no prompt required).
+        duplicates.forEach((d) => {
+          errors.push(`Row ${d.fileRow} (${d.name}): looks like a duplicate of an existing student — skipped.`);
+        });
+      }
+
+      if (validRowCount === 0) {
+        const preview = errors.slice(0, 10).join('\n');
+        toast.error(
+          'No students imported',
+          `No rows from "${file.name}" could be imported.\n${preview}${errors.length > 10 ? `\n...and ${errors.length - 10} more.` : ''}`
+        );
+        load();
+        setImporting(false);
+        return;
+      }
 
       // Generate IDs for rows that did not provide one (bounded concurrency).
       const generatedIds = await mapWithConcurrency(autoRows, 6, async () => {
@@ -758,14 +967,20 @@ if (insertRows.length) {
           if (insertError) throw new Error('Bulk insert failed: ' + insertError.message);
         }
 
-        // Create fee records for every imported student using the school's fee
-        // structure for their class + term.
-        const academicYear = settings?.academic_year || currentAcademicYear();
+        // Create fee records for every imported student using the school's current
+        // fee structure for their class + term (auto-applied exactly like the
+        // Admit Student form), with an itemized breakdown snapshot so receipts
+        // and fee records stay consistent.
         const feeRows = insertRows.map((r) => {
-          const totalAmount = feeMap.get(`${r.class_applying.trim().toLowerCase()}|||${r.term}`) ?? 0;
+          const fee = feeMap.get(`${r.class_applying.trim().toLowerCase()}|||${r.term}`) || {
+            amount: 0,
+            academic_year: defaultAcademicYear,
+          };
+          const totalAmount = Number(fee.amount) || 0;
+          const feeYear = fee.academic_year || defaultAcademicYear;
           return {
             student_id: r.student_id,
-            academic_year: academicYear,
+            academic_year: feeYear,
             term: r.term,
             total_amount: totalAmount,
             amount_paid: 0,
@@ -773,6 +988,13 @@ if (insertRows.length) {
             payment_status: totalAmount > 0 ? 'unpaid' : 'paid',
             last_payment_date: null,
             school_id: schoolId,
+            fee_breakdown: {
+              class_fee: totalAmount,
+              items: [],
+              academic_year: feeYear,
+              term: r.term,
+              generated_at: new Date().toISOString(),
+            },
           };
         });
         for (let i = 0; i < feeRows.length; i += 100) {
@@ -1089,6 +1311,41 @@ return (
               </option>
             ))}
           </Select>
+          <div className="mt-1 rounded-xl border border-slate-200 bg-slate-50 p-4 sm:col-span-2">
+            <p className="mb-3 text-xs font-bold uppercase tracking-wide text-slate-500">
+              Term fees ({form.term} Term)
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Input
+                label="Class (term) fee (GHC)"
+                type="number"
+                min="0"
+                step="0.01"
+                value={classFeeAmount}
+                onChange={(e) => setClassFeeAmount(Number(e.target.value) || 0)}
+              />
+              {admissionItems.map((it) => (
+                <Input
+                  key={it.id}
+                  label={`${it.name} (GHC)`}
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={itemAmounts[it.id] ?? 0}
+                  onChange={(e) => setItemAmounts((m) => ({ ...m, [it.id]: Number(e.target.value) || 0 }))}
+                />
+              ))}
+            </div>
+            <p className="mt-2 text-xs text-slate-400">
+              {admissionItems.length === 0
+                ? 'No additional admission items configured. Add some under Settings → Admission Items.'
+                : 'Enter the amount charged to this student for each additional item. Defaults come from Settings.'}
+            </p>
+            <div className="mt-3 flex items-center justify-between border-t border-slate-200 pt-3">
+              <span className="text-sm font-semibold text-slate-600">Total term fee</span>
+              <span className="text-lg font-extrabold text-brand-700">GHC {formatCurrency(admittedTotalFee)}</span>
+            </div>
+          </div>
           <Input label="Date of birth *" type="date" value={form.date_of_birth} onChange={set('date_of_birth')} max={new Date().toISOString().split('T')[0]} />
           <Select label="Gender" value={form.gender} onChange={set('gender')}>
             {GENDERS.map((g) => (
