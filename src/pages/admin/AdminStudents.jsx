@@ -299,6 +299,16 @@ export default function AdminStudents() {
     0
   );
 
+  // Open the admit form, pre-selecting the school's CURRENT term (instead of
+  // always "First") so the auto-filled class fee is the current term's fee.
+  const openAdmitModal = () => {
+    setForm((f) => ({
+      ...f,
+      term: settings?.current_term || f.term || 'First',
+    }));
+    setAdmitOpen(true);
+  };
+
 const admitStudent = async () => {
     setFormError('');
     if (!form.first_name.trim() || !form.last_name.trim()) {
@@ -813,7 +823,9 @@ const importCSV = async (e) => {
 
         const gender = normalizeEnum(get('Gender'), GENDERS, 'Male');
         const religion = normalizeEnum(get('Religion'), RELIGIONS, 'Christian');
-        const term = normalizeEnum(get('Term'), TERMS, 'First');
+        // Blank Term in the CSV defaults to the school's CURRENT term so the
+        // imported student is auto-charged the current term's class fee.
+        const term = normalizeEnum(get('Term'), TERMS, settings?.current_term || 'First');
         const status = normalizeEnum(get('Status'), STUDENT_STATUSES, 'admitted');
         const dob = normalizeDateCell(get('Date of Birth'), 'Date of Birth');
         const admissionDate = normalizeDateCell(get('Admission Date'), 'Admission Date');
@@ -1149,6 +1161,70 @@ const printClassList = async () => {
        </table>`
     );
   };
+
+  // Generate the printable Student Admission Form (with fee details) for ANY
+  // student on record — manually admitted or imported via CSV. Fee details come
+  // from the student's saved fee record (fee_breakdown) for the current
+  // academic year + term; if none exists yet it falls back to the current
+  // class-fee structure so the form always shows the fees.
+  const printAdmissionForm = async (student) => {
+    if (!student || !schoolId) return;
+    const defaultAcademicYear = settings?.academic_year || currentAcademicYear();
+    const term = student.term || settings?.current_term || 'First';
+
+    let classFee = 0;
+    let items = [];
+    let totalAmount = 0;
+    let feeYear = defaultAcademicYear;
+
+    try {
+      // Look up the student's saved fee record. Prefer the row for the student's
+      // term + the current academic year; fall back to any fee row for the same
+      // term (covers students admitted under a different academic year).
+      const { data: feeRows } = await supabase
+        .from('fees')
+        .select('*')
+        .eq('student_id', student.student_id)
+        .order('created_at', { ascending: false });
+      const fee =
+        (feeRows || []).find((r) => r.term === term && r.academic_year === defaultAcademicYear) ||
+        (feeRows || []).find((r) => r.term === term);
+
+      if (fee) {
+        const breakdown = fee.fee_breakdown || {};
+        classFee = Number(breakdown.class_fee) || Number(fee.total_amount) || 0;
+        items = Array.isArray(breakdown.items) ? breakdown.items : [];
+        totalAmount = Number(fee.total_amount) || classFee;
+        feeYear = breakdown.academic_year || fee.academic_year || defaultAcademicYear;
+      } else {
+        const classFeeRow = await fetchClassFees(schoolId, student.class_applying, defaultAcademicYear, term);
+        classFee = Number(classFeeRow?.fee_amount) || 0;
+        feeYear = classFeeRow?.academic_year || defaultAcademicYear;
+        totalAmount = classFee;
+        items = [];
+      }
+    } catch (err) {
+      console.warn('Failed to load fee details for admission form:', err.message);
+    }
+
+    const studentName = buildStudentName(student.first_name, student.middle_name, student.last_name);
+    openAdmissionForm(
+      {
+        studentId: student.student_id,
+        student,
+        schoolName: settings?.school_name || 'My School',
+        schoolLogoUrl: settings?.logo_url || '',
+        academicYear: feeYear,
+        term,
+        classFee,
+        items,
+        totalAmount,
+        includeFees: true,
+      },
+      `Admission Form - ${studentName}`
+    );
+  };
+
 return (
     <div>
       <PageHeader
@@ -1156,7 +1232,7 @@ return (
         subtitle={`${students.length} students currently on record.`}
         icon={Users}
         actions={
-          <Button onClick={() => setAdmitOpen(true)}>
+          <Button onClick={openAdmitModal}>
             <UserPlus className="h-4 w-4" aria-hidden="true" />
             Admit student
           </Button>
@@ -1250,6 +1326,15 @@ return (
                   <button type="button" onClick={() => openEdit(s)} className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-brand-50 hover:text-brand-600" aria-label="Edit student" title="Edit student">
                     <Pencil className="h-4 w-4" aria-hidden="true" />
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => printAdmissionForm(s)}
+                    className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-indigo-50 hover:text-indigo-600"
+                    aria-label="Print admission form"
+                    title="Print admission form"
+                  >
+                    <Printer className="h-4 w-4" aria-hidden="true" />
+                  </button>
                   {!s.portal_confirmed ? (
                     <button
                       type="button"
@@ -1279,7 +1364,7 @@ return (
           icon={Users}
           title="No students found"
           message={students.length ? 'Try adjusting your search or filters.' : 'Admit your first student to get started.'}
-          action={students.length ? null : <Button onClick={() => setAdmitOpen(true)}>Admit student</Button>}
+          action={students.length ? null : <Button onClick={openAdmitModal}>Admit student</Button>}
         />
       )}
 <Modal open={admitOpen} onClose={() => setAdmitOpen(false)} title="Admit a new student" size="lg" footer={
@@ -1381,10 +1466,16 @@ return (
         footer={
           <div className="flex w-full flex-col-reverse gap-2 sm:w-auto sm:flex-row">
             {viewing ? (
-              <Button variant="secondary" onClick={() => printProfile(viewing)}>
-                <Printer className="h-4 w-4" aria-hidden="true" />
-                Print profile
-              </Button>
+              <>
+                <Button variant="secondary" onClick={() => printAdmissionForm(viewing)}>
+                  <Printer className="h-4 w-4" aria-hidden="true" />
+                  Admission form
+                </Button>
+                <Button variant="secondary" onClick={() => printProfile(viewing)}>
+                  <Printer className="h-4 w-4" aria-hidden="true" />
+                  Print profile
+                </Button>
+              </>
             ) : null}
             <Button variant="secondary" onClick={() => setViewing(null)}>
               Close
