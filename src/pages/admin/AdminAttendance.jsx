@@ -7,6 +7,7 @@ import { Modal, Alert } from '../../components/ui-extras';
 import { supabase } from '../../lib/supabase';
 import { buildStudentName, formatDate } from '../../lib/format';
 import { photoUrl } from '../../lib/storage';
+import { currentAcademicYear } from '../../lib/constants';
 
 export default function AdminAttendance() {
   const schoolId = useSchoolId();
@@ -99,7 +100,7 @@ export default function AdminAttendance() {
         date,
         status: marks[s.student_id] === 'absent' ? 'absent' : 'present',
         class_name: className,
-        academic_year: settings?.academic_year || '2025/2026',
+        academic_year: settings?.academic_year || currentAcademicYear(),
         term: settings?.current_term || 'First',
         remarks: '',
         marked_by: user?.id || null,

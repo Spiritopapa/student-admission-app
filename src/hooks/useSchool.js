@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
+import { currentAcademicYear } from '../lib/constants';
 
 export function useSchoolId() {
   const { profile } = useAuth();
@@ -33,7 +34,7 @@ export function useSchoolSettings() {
         .maybeSingle();
       setSettings({
         school_name: school?.name || 'My School',
-        academic_year: '2025/2026',
+        academic_year: currentAcademicYear(),
         current_term: 'First',
         logo_url: school?.logo_url || '',
         school_id: schoolId,

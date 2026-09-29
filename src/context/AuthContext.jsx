@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import { uploadFile, randomPath } from '../lib/storage';
+import { currentAcademicYear } from '../lib/constants';
 
 const AuthContext = createContext(null);
 
@@ -633,7 +634,7 @@ export function AuthProvider({ children }) {
         await supabase.from('school_settings').upsert({
           school_id: schoolId,
           school_name: schoolName,
-          academic_year: '2025/2026',
+          academic_year: currentAcademicYear(),
           current_term: 'First',
         });
       }

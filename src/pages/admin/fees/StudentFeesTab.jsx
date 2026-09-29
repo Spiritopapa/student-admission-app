@@ -8,7 +8,7 @@ import ReceiptModal from '../../../components/ReceiptModal';
 import FeePaymentModal from './FeePaymentModal';
 import { supabase } from '../../../lib/supabase';
 import { buildStudentName, cedi, formatDate, termLabel } from '../../../lib/format';
-import { TERMS, TERM_LABELS } from '../../../lib/constants';
+import { TERMS, TERM_LABELS, currentAcademicYear } from '../../../lib/constants';
 import { openPrintWindow, escapeHtml } from '../../../lib/print';
 import { photoUrl } from '../../../lib/storage';
 
@@ -132,7 +132,7 @@ export default function StudentFeesTab() {
   const addEditRow = () => {
     setEditRows((prev) => [
       ...prev,
-      { id: '', academic_year: new Date().getFullYear() + '/' + String(new Date().getFullYear() + 1).slice(-2), term: 'First', total_amount: '0', amount_paid: '0', debt: '0', payment_status: 'unpaid' },
+      { id: '', academic_year: currentAcademicYear(), term: 'First', total_amount: '0', amount_paid: '0', debt: '0', payment_status: 'unpaid' },
     ]);
   };
 

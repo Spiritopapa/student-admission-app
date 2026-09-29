@@ -53,7 +53,8 @@ export default function FeePaymentModal({ open, student, onClose, onPaid }) {
             setYear(last.academic_year);
             setTerm(TERMS[TERM_ORDER[last.term] + 1]);
           } else {
-            setYear(`${yearStart(last.academic_year) + 1}/${String(yearStart(last.academic_year) + 2).slice(-2)}`);
+            const nextStart = yearStart(last.academic_year) + 1;
+            setYear(`${nextStart}/${nextStart + 1}`);
             setTerm('First');
           }
         }

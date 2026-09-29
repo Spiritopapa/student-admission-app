@@ -6,6 +6,7 @@ import { PageHeader, Card, Spinner, EmptyState, Button, Input, Badge } from '../
 import { supabase } from '../../lib/supabase';
 import { buildStudentName } from '../../lib/format';
 import { photoUrl } from '../../lib/storage';
+import { currentAcademicYear } from '../../lib/constants';
 
 export default function TeacherAttendance() {
   const { user } = useAuth();
@@ -73,7 +74,7 @@ export default function TeacherAttendance() {
       date,
       status: marks[s.student_id] || 'absent',
       class_name: teacher.class_taught,
-      academic_year: settings?.academic_year || '2025/2026',
+      academic_year: settings?.academic_year || currentAcademicYear(),
       term: settings?.current_term || 'First',
       marked_by: user.id,
       school_id: teacher.school_id,

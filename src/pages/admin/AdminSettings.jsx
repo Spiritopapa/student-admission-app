@@ -9,7 +9,7 @@ import { supabase } from '../../lib/supabase';
 import { uploadFile, randomPath, resolveFileUrl } from '../../lib/storage';
 import { fetchAdmissionItems } from '../../lib/queries';
 import { formatCurrency, formatDate } from '../../lib/format';
-import { TERMS, TERM_LABELS } from '../../lib/constants';
+import { TERMS, TERM_LABELS, currentAcademicYear } from '../../lib/constants';
 
 export default function AdminSettings() {
   const schoolId = useSchoolId();
@@ -103,7 +103,7 @@ export default function AdminSettings() {
         if (data) {
           setForm({
             school_name: data.school_name || '',
-            academic_year: data.academic_year || '2025/2026',
+            academic_year: data.academic_year || currentAcademicYear(),
             current_term: data.current_term || 'First',
           });
           setLogoUrl(data.logo_url || '');

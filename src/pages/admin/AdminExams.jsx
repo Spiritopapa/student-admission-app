@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { Award, Plus, Pencil, Trash2, ClipboardEdit, ArrowLeft, Save, Download, Upload, Trophy, FileText, GraduationCap, Printer } from 'lucide-react';
-import { useSchoolId } from '../../hooks/useSchool';
+import { useSchoolId, useSchoolSettings } from '../../hooks/useSchool';
 import { useToast } from '../../context/ToastContext';
 import { PageHeader, Card, Button, Input, Select, Spinner, EmptyState, Badge } from '../../components/ui';
 import { Modal, ConfirmDialog, Alert } from '../../components/ui-extras';
@@ -12,6 +12,7 @@ import { buildReportCardHTML, buildTranscriptHTML, computeExamRankings } from '.
 
 export default function AdminExams() {
   const schoolId = useSchoolId();
+  const { settings } = useSchoolSettings();
   const toast = useToast();
   const [exams, setExams] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -90,7 +91,7 @@ export default function AdminExams() {
 
   const openAdd = () => {
     setEditing(null);
-    setExamForm({ name: '', academic_year: currentAcademicYear(), term: 'First', start_date: '', end_date: '', closing_date: '', reopening_date: '' });
+    setExamForm({ name: '', academic_year: settings?.academic_year || currentAcademicYear(), term: 'First', start_date: '', end_date: '', closing_date: '', reopening_date: '' });
     setExamError('');
     setExamOpen(true);
   };

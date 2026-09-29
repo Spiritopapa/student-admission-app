@@ -9,7 +9,7 @@ import { PageHeader, Button, Input, Select, Badge, Spinner, EmptyState, SearchIn
 import { Modal, ConfirmDialog, Alert } from '../../components/ui-extras';
 import { PhotoUpload } from '../../components/PhotoUpload';
 import { supabase } from '../../lib/supabase';
-import { uploadFile, randomPath, photoUrl, deleteStoredFiles, checkStorageBucket } from '../../lib/storage';
+import { uploadFile, randomPath, photoUrl, deleteStoredFiles } from '../../lib/storage';
 import { GENDERS, RELIGIONS, TERMS, CLASS_LEVELS, currentAcademicYear } from '../../lib/constants';
 import { buildStudentName, formatDate, formatDateTime, termLabel, formatCurrency } from '../../lib/format';
 import { fetchClassFees, fetchAdmissionItems } from '../../lib/queries';
@@ -170,7 +170,6 @@ export default function AdminStudents() {
 
   const [importing, setImporting] = useState(false);
   const importInputRef = useRef(null);
-  const [storageWarning, setStorageWarning] = useState('');
 
   const load = async () => {
     if (!schoolId) return;
@@ -196,35 +195,6 @@ export default function AdminStudents() {
   useEffect(() => {
     if (schoolId) load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [schoolId]);
-
-  // Storage diagnostic: confirm the "student-photos" bucket is accessible so
-  // admins are told when uploads might fail. Uploads are attempted directly
-  // (bucket-level RLS never blocks them), so a hidden bucket is only shown as
-  // a gentle notice - not a blocking error.
-  useEffect(() => {
-    if (!schoolId) return;
-    let cancelled = false;
-    checkStorageBucket('student-photos', { force: true }).then((status) => {
-      if (cancelled) return;
-      if (status.exists) {
-        setStorageWarning('');
-      } else if (status.exists === false) {
-        setStorageWarning(
-          'The "student-photos" storage bucket could not be verified from this dashboard ' +
-            `(${status.error || 'the bucket is not visible to this session'}). ` +
-            'Uploads are still attempted directly, so they work as long as the bucket and its ' +
-            '"Authenticated users upload app files" policy exist. If an upload still fails, ' +
-            'open the Supabase SQL Editor and run "sql/073-supabase-storage-buckets.sql" once.'
-        );
-      } else {
-        // exists === null: storage.buckets RLS hides the row - not an error.
-        setStorageWarning('');
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
   }, [schoolId]);
 
   const filtered = useMemo(
@@ -260,6 +230,27 @@ export default function AdminStudents() {
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
   const setEdit = (key) => (e) => setEditForm((f) => ({ ...f, [key]: e.target.value }));
 
+  // Resolve the class (term) fee for a class + term. The school's current
+  // academic year (from Settings) is tried first; when no fee structure row
+  // exists there, the runtime-computed current academic year is used as a
+  // fallback so the fee still loads even if the school's Settings year lags.
+  const resolveClassFee = async (className, termName) => {
+    if (!schoolId || !className) return { amount: 0, year: settings?.academic_year || currentAcademicYear() };
+    const settingsYear = settings?.academic_year || currentAcademicYear();
+    let classFee = await fetchClassFees(schoolId, className, settingsYear, termName);
+    let year = settingsYear;
+    if (!classFee) {
+      const runtimeYear = currentAcademicYear();
+      if (runtimeYear !== settingsYear) {
+        classFee = await fetchClassFees(schoolId, className, runtimeYear, termName);
+        if (classFee) year = runtimeYear;
+      }
+    }
+    return classFee
+      ? { amount: Number(classFee.fee_amount) || 0, year: classFee.academic_year || year }
+      : { amount: 0, year: settingsYear };
+  };
+
   // Load the class (term) fee (from the class_fees fee structure) and the
   // active admission items (from Settings) into the admit form. Re-runs every
   // time the admit modal opens or the selected class / term changes.
@@ -270,13 +261,10 @@ export default function AdminStudents() {
     setItemAmounts({});
     if (!form.class_applying) return;
     try {
-      const academicYear = settings?.academic_year || currentAcademicYear();
-      const [classFee, items] = await Promise.all([
-        fetchClassFees(schoolId, form.class_applying, academicYear, form.term),
-        fetchAdmissionItems(schoolId),
-      ]);
+      const { amount } = await resolveClassFee(form.class_applying, form.term);
+      const items = await fetchAdmissionItems(schoolId);
       const activeItems = (items || []).filter((it) => it.is_active !== false);
-      setClassFeeAmount(Number(classFee?.fee_amount) || 0);
+      setClassFeeAmount(amount);
       setAdmissionItems(activeItems);
       const amounts = {};
       activeItems.forEach((it) => {
@@ -291,7 +279,7 @@ export default function AdminStudents() {
   useEffect(() => {
     if (admitOpen) loadAdmitFees();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [admitOpen, form.class_applying, form.term]);
+  }, [admitOpen, form.class_applying, form.term, settings?.academic_year, settings?.current_term]);
 
   // Live total = class (term) fee + every entered admission item amount.
   const admittedTotalFee = classFeeAmount + admissionItems.reduce(
@@ -368,10 +356,9 @@ const admitStudent = async () => {
       // and every admission item amount entered on the form is added on top of
       // it. The itemized breakdown is snapshotted into fee_breakdown so the
       // admission form, receipts and fee records all agree on the totals.
-      const academicYear = settings?.academic_year || currentAcademicYear();
-      const classFee = await fetchClassFees(schoolId, form.class_applying, academicYear, form.term);
-      const feeYear = classFee?.academic_year || academicYear;
-      const classFeeAmountFinal = Number(classFeeAmount) || Number(classFee?.fee_amount) || 0;
+      const resolvedFee = await resolveClassFee(form.class_applying, form.term);
+      const feeYear = resolvedFee.year;
+      const classFeeAmountFinal = Number(classFeeAmount) || resolvedFee.amount || 0;
 
       const breakdownItems = [];
       let totalAmount = classFeeAmountFinal;
@@ -1197,9 +1184,9 @@ const printClassList = async () => {
         totalAmount = Number(fee.total_amount) || classFee;
         feeYear = breakdown.academic_year || fee.academic_year || defaultAcademicYear;
       } else {
-        const classFeeRow = await fetchClassFees(schoolId, student.class_applying, defaultAcademicYear, term);
-        classFee = Number(classFeeRow?.fee_amount) || 0;
-        feeYear = classFeeRow?.academic_year || defaultAcademicYear;
+        const resolved = await resolveClassFee(student.class_applying, term);
+        classFee = resolved.amount;
+        feeYear = resolved.year || defaultAcademicYear;
         totalAmount = classFee;
         items = [];
       }
@@ -1238,12 +1225,6 @@ return (
           </Button>
         }
       />
-
-      {storageWarning ? (
-        <Alert tone="warning" className="mb-5">
-          {storageWarning}
-        </Alert>
-      ) : null}
 
       <div className="mb-5 space-y-3">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

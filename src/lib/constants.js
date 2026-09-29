@@ -77,5 +77,9 @@ export function currentAcademicYear() {
   const year = now.getFullYear();
   const month = now.getMonth();
   const startYear = month >= 8 ? year : year - 1;
-  return `${startYear}/${String(startYear + 1).slice(-2)}`;
+  // Full "YYYY/YYYY" format — matches every table (`class_fees.academic_year`,
+  // `fees.academic_year`, `school_settings.academic_year`) and the legacy
+  // app's getCurrentAcademicYear(). A 2-digit end year (e.g. "2026/27") would
+  // silently fail every academic-year lookup.
+  return `${startYear}/${startYear + 1}`;
 }
