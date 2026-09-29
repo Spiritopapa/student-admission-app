@@ -23,6 +23,7 @@ const emptyForm = {
   last_name: '',
   class_applying: '',
   term: 'First',
+  admission_date: '',
   date_of_birth: '',
   gender: 'Male',
   religion: 'Christian',
@@ -288,11 +289,13 @@ export default function AdminStudents() {
   );
 
   // Open the admit form, pre-selecting the school's CURRENT term (instead of
-  // always "First") so the auto-filled class fee is the current term's fee.
+  // always "First") so the auto-filled class fee is the current term's fee,
+  // and defaulting the admission date to today.
   const openAdmitModal = () => {
     setForm((f) => ({
       ...f,
       term: settings?.current_term || f.term || 'First',
+      admission_date: f.admission_date || new Date().toISOString().split('T')[0],
     }));
     setAdmitOpen(true);
   };
@@ -337,6 +340,7 @@ const admitStudent = async () => {
           middle_name: form.middle_name.trim() || null,
           last_name: form.last_name.trim(),
           class_applying: form.class_applying,
+          admission_date: form.admission_date || new Date().toISOString().split('T')[0],
           date_of_birth: form.date_of_birth,
           gender: form.gender,
           religion: form.religion,
@@ -1413,6 +1417,7 @@ return (
             </div>
           </div>
           <Input label="Date of birth *" type="date" value={form.date_of_birth} onChange={set('date_of_birth')} max={new Date().toISOString().split('T')[0]} />
+          <Input label="Admission date" type="date" value={form.admission_date} onChange={set('admission_date')} max={new Date().toISOString().split('T')[0]} />
           <Select label="Gender" value={form.gender} onChange={set('gender')}>
             {GENDERS.map((g) => (
               <option key={g} value={g}>
