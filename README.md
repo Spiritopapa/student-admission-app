@@ -129,10 +129,11 @@ SUPABASE_SERVICE_ROLE_KEY # used by /api/storage-delete
 
 ### Supabase migrations
 
-Your existing data and tables are untouched. Run the two new migrations in the Supabase SQL editor:
+Your existing data and tables are untouched. Run the migrations in the Supabase SQL editor:
 
 1. `sql/073-supabase-storage-buckets.sql` - creates the public buckets (`student-photos`, `applications`, `school-logos`, `documents`) with RLS policies. Authenticated users upload; anonymous users may only upload to `applications`; deletes happen server-side through `/api/storage-delete`.
 2. `sql/074-public-admission-application.sql` - secure public admission application RPC + public school lookup for the apply page.
+3. `sql/075-delete-student-complete.sql` - extends `delete_student_completely` so deleting a student removes **every** related record (parent links, SMS logs, attendance, exam results/details, payments, receipts, fees, transport records, the application row + assessments, the user profile, the `auth.users` portal account) in one atomic transaction.
 
 ### Deployment (Vercel)
 

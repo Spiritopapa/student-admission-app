@@ -4,10 +4,10 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Menu, X, LogOut, ChevronDown, PanelLeftClose, PanelLeftOpen, LifeBuoy } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { useSchoolSettings } from '../hooks/useSchool';
 import { NAV_BY_ROLE, roleBasePath } from '../lib/nav';
 import { supabase } from '../lib/supabase';
 import { ROLE_LABELS } from '../lib/constants';
-import { Logo } from '../components/Logo';
 import { photoUrl } from '../lib/storage';
 import { submitSupportReport } from '../lib/api';
 import { Modal, Alert } from '../components/ui-extras';
@@ -43,6 +43,7 @@ const MODULE_PATH_MAP = {
 
 export function DashboardLayout() {
   const { profile, user, signOut } = useAuth();
+  const { settings: schoolSettings } = useSchoolSettings();
   const toast = useToast();
   const navigate = useNavigate();
   const location = useLocation();
@@ -136,10 +137,35 @@ export function DashboardLayout() {
       ? photoUrl(profile.avatar_url)
       : null;
 
+  // Large school identity block in the sidebar (all dashboards share this
+  // layout): the school's uploaded logo when available, otherwise an initials
+  // avatar on the signature blend, plus the school name.
+  const schoolName = schoolSettings?.school_name || 'My School';
+  const schoolLogoUrl = schoolSettings?.logo_url ? photoUrl(schoolSettings.logo_url) : '';
+  const schoolInitial = (schoolName || 'S').trim().charAt(0).toUpperCase();
+
   const sidebarContent = (
     <div className="flex h-full flex-col">
       <div className={`flex items-center gap-3 px-5 py-5 ${collapsed ? 'justify-center px-2' : ''}`}>
-        <Logo size="sm" />
+        {schoolLogoUrl ? (
+          <img
+            src={schoolLogoUrl}
+            alt={`${schoolName} logo`}
+            className={`shrink-0 rounded-2xl bg-white object-contain p-1 ring-1 ring-slate-100 ${collapsed ? 'h-11 w-11' : 'h-14 w-14'}`}
+          />
+        ) : (
+          <span
+            className={`flex shrink-0 items-center justify-center rounded-2xl bg-blend text-xl font-extrabold text-white shadow-card ${collapsed ? 'h-11 w-11' : 'h-14 w-14'}`}
+          >
+            {schoolInitial}
+          </span>
+        )}
+        {!collapsed ? (
+          <div className="min-w-0 leading-tight">
+            <p className="truncate text-sm font-bold text-slate-800">{schoolName}</p>
+            <p className="text-[11px] font-medium text-slate-400">SchoolRunner Portal</p>
+          </div>
+        ) : null}
       </div>
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-2">
         {navItems.map((item) => (

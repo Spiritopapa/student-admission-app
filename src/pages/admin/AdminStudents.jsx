@@ -557,14 +557,32 @@ const openEdit = (s) => {
   const confirmDelete = async () => {
     if (!deleting) return;
     setDeleteBusy(true);
+    // Capture the photo path BEFORE the DB row is removed so the storage
+    // bucket asset (student photo) can be cleaned up after a successful delete.
+    const photoPath = deleting.student_photo_url || null;
     try {
-      const { error } = await supabase.rpc('delete_student_completely', {
+      const { data, error } = await supabase.rpc('delete_student_completely', {
         p_student_id: deleting.student_id,
       });
       if (error) throw new Error(error.message);
+
+      if (!data?.success) {
+        throw new Error(data?.error || 'Deletion was not completed.');
+      }
+
+      // Best-effort cleanup of the student's photo from the storage bucket
+      // (admin-admitted photo and public-application photo are both handled).
+      if (photoPath) {
+        try {
+          await deleteStoredFiles([photoPath]);
+        } catch (err) {
+          console.warn('Student photo cleanup skipped:', err.message);
+        }
+      }
+
       toast.success(
         'Student removed',
-        `${buildStudentName(deleting.first_name, deleting.middle_name, deleting.last_name)} was deleted together with related records.`
+        `${buildStudentName(deleting.first_name, deleting.middle_name, deleting.last_name)} was deleted together with all related records, portal account and stored photo.`
       );
       setDeleting(null);
       load();
@@ -1677,7 +1695,7 @@ return (
         onConfirm={confirmDelete}
         loading={deleteBusy}
         title="Delete student?"
-        message={`This permanently removes ${deleting ? buildStudentName(deleting.first_name, deleting.middle_name, deleting.last_name) : 'this student'} together with their fees, attendance and results. This cannot be undone.`}
+        message={`This permanently removes ${deleting ? buildStudentName(deleting.first_name, deleting.middle_name, deleting.last_name) : 'this student'} and every related record — fees, receipts, payments, attendance, exam results, parent links, SMS logs, transport records, their portal account and stored photo. This cannot be undone.`}
         confirmLabel="Delete student"
       />
     </div>

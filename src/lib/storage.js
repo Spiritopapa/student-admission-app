@@ -177,9 +177,15 @@ export async function deleteStoredFiles(entries) {
   const files = entries.filter(Boolean);
   if (!files.length) return;
   try {
+    // The /api/storage-delete proxy verifies the caller via Bearer token, so
+    // attach the current session's access token instead of being rejected 401.
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData?.session?.access_token || '';
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers.Authorization = `Bearer ${token}`;
     const res = await fetch('/api/storage-delete', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({ files }),
     });
     const data = await res.json();

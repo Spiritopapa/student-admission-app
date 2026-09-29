@@ -562,6 +562,20 @@
 -- ("Bucket not found") and photos cannot be stored or displayed.
 -- Safe to re-run (ON CONFLICT DO NOTHING / IF NOT EXISTS).
 \i 073-supabase-storage-buckets.sql
+
+-- Step 67: Public admission application (public Apply page)
+-- Creates get_public_schools() + submit_admission_application() secure RPCs
+-- so anon visitors can apply and admins can review the pending rows.
+-- Safe to re-run (CREATE OR REPLACE).
+\i 074-public-admission-application.sql
+
+-- Step 68: Complete student deletion
+-- Extends delete_student_completely to remove EVERYTHING tied to a student:
+-- parent_links, sms_logs, attendance, exam results/details, payments,
+-- receipts, fees, transport records, the applications row (+ assessments
+-- via cascade), the user profile and the auth.users portal account.
+-- Safe to re-run (CREATE OR REPLACE).
+\i 075-delete-student-complete.sql
 -- ============================================================
 --  SCHEMA DEPLOYMENT COMPLETE
 -- ============================================================
