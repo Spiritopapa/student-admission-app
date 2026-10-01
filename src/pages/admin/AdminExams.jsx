@@ -67,6 +67,19 @@ export default function AdminExams() {
   const sheetRef = useRef(null);
   const namesRef = useRef(null);
   const headerRef = useRef(null);
+  // Width of the sheet's vertical scrollbar (0 when no scrollbar is rendered).
+  // The frozen header mirrors this gutter so headings align with the body columns.
+  const [sheetGutter, setSheetGutter] = useState(0);
+
+  // Re-measure the scrollbar gutter whenever the sheet's content or size changes.
+  useEffect(() => {
+    const el = sheetRef.current;
+    if (!el) return;
+    const measure = () => setSheetGutter(el.offsetWidth - el.clientWidth);
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, [marksData.length, marksQuery, workspace?.id, displaySubject]);
   const [importing, setImporting] = useState(false);
   const importInputRef = useRef(null);
   const [rankExam, setRankExam] = useState(null);
@@ -841,7 +854,7 @@ export default function AdminExams() {
                 <div className="w-52 shrink-0 border-r border-slate-100 bg-slate-50 px-3 py-2.5 text-xs font-bold uppercase tracking-wide text-slate-500">
                   Student
                 </div>
-                <div ref={headerRef} className="flex-1 overflow-hidden bg-slate-50">
+                <div ref={headerRef} style={{ paddingRight: sheetGutter > 0 ? sheetGutter : undefined }} className="flex-1 overflow-hidden bg-slate-50">
                   <table className="w-full text-sm table-fixed">
                     <colgroup>
                       {columnSubjects.flatMap((s) => [
@@ -884,16 +897,25 @@ export default function AdminExams() {
                       <col className="w-52" />
                     </colgroup>
                     <tbody>
-                      {visibleRows.map((row) => (
-                        <tr key={row.student.id}>
-                          <td className="h-11 border-b border-slate-100 bg-white px-3 align-middle">
-                            <p className="truncate text-sm font-semibold text-slate-800">
-                              {buildStudentName(row.student.first_name, row.student.middle_name, row.student.last_name)}
-                            </p>
-                            <p className="font-mono text-xs text-slate-400">{row.student.student_id}</p>
-                          </td>
-                        </tr>
-                      ))}
+                      {visibleRows.map((row) => {
+                        const complete =
+                          examSubjects.length > 0 &&
+                          columnSubjects.every((sbj) => {
+                            const sc = row.scores[sbj.subject];
+                            return sc && (sc.classScore !== '' || sc.examScoreInput !== '');
+                          });
+                        return (
+                          <tr key={row.student.id}>
+                            <td className="h-11 border-b border-slate-100 bg-white px-3 align-middle">
+                              <p className="flex items-center gap-1.5 truncate text-sm font-semibold text-slate-800">
+                                {buildStudentName(row.student.first_name, row.student.middle_name, row.student.last_name)}
+                                {complete ? <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-500" aria-label="Complete" /> : null}
+                              </p>
+                              <p className="font-mono text-xs text-slate-400">{row.student.student_id}</p>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -929,21 +951,8 @@ export default function AdminExams() {
                     });
                     const avg = count ? sum / count : null;
                     const avgPerf = avg != null ? getSubjectGrade(avg) : null;
-                    const complete =
-                      examSubjects.length > 0 &&
-                      columnSubjects.every((sbj) => {
-                        const sc = row.scores[sbj.subject];
-                        return sc && (sc.classScore !== '' || sc.examScoreInput !== '');
-                      });
                     return (
                       <tr key={row.student.id} className="hover:bg-slate-50/60">
-                        <td className="sticky left-0 z-10 bg-white px-3 py-2">
-                          <p className="flex items-center gap-1.5 font-semibold text-slate-800">
-                            {buildStudentName(row.student.first_name, row.student.middle_name, row.student.last_name)}
-                            {complete ? <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-500" aria-label="Complete" /> : null}
-                          </p>
-                          <p className="font-mono text-xs text-slate-400">{row.student.student_id}</p>
-                        </td>
                         {columnSubjects.map((sbj) => {
                           const sc = row.scores[sbj.subject] || { classScore: '', examScoreInput: '' };
                           const t = scoreTotals(sc);
