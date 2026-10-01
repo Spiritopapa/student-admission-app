@@ -116,10 +116,10 @@ export default function SuperAdminHome() {
       )}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard icon={School} tone="blue" label="Schools" value={stats.schools} sub="Registered institutions" />
-        <StatCard icon={FileCheck2} tone="amber" label="Pending applications" value={stats.pendingApps} sub="Awaiting your review" />
-        <StatCard icon={Users} tone="teal" label="Students" value={stats.students} sub="Across all schools" />
-        <StatCard icon={Users} tone="green" label="Teachers" value={stats.teachers} sub="Across all schools" />
+        <StatCard icon={School} tone="blue" label="Schools" value={stats.schools} sub="Registered institutions" index={0} />
+        <StatCard icon={FileCheck2} tone="amber" label="Pending applications" value={stats.pendingApps} sub="Awaiting your review" index={1} />
+        <StatCard icon={Users} tone="teal" label="Students" value={stats.students} sub="Across all schools" index={2} />
+        <StatCard icon={Users} tone="green" label="Teachers" value={stats.teachers} sub="Across all schools" index={3} />
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">

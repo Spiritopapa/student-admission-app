@@ -42,9 +42,9 @@ export default function TeacherHome() {
       />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <StatCard icon={Users} tone="blue" label="Students in class" value={classCount ?? '-'} sub={teacher.class_taught || 'No class assigned'} />
-        <StatCard icon={BookOpen} tone="teal" label="Subject" value={teacher.subject || '-'} sub={teacher.registration_id || 'Teacher'} />
-        <StatCard icon={BookOpen} tone="amber" label="Class" value={teacher.class_taught || '-'} sub={teacher.qualification || '—'} />
+        <StatCard icon={Users} tone="blue" label="Students in class" value={classCount ?? '-'} sub={teacher.class_taught || 'No class assigned'} index={0} />
+        <StatCard icon={BookOpen} tone="teal" label="Subject" value={teacher.subject || '-'} sub={teacher.registration_id || 'Teacher'} index={1} />
+        <StatCard icon={BookOpen} tone="amber" label="Class" value={teacher.class_taught || '-'} sub={teacher.qualification || '—'} index={2} />
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-3">

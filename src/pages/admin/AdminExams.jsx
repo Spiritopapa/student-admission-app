@@ -1047,10 +1047,10 @@ export default function AdminExams() {
       />
 
       <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard icon={Award} tone="blue" label="Total exams" value={exams.length} sub={`${activeCount} active`} />
-        <StatCard icon={Trophy} tone="teal" label="In progress" value={inProgressCount} sub="Results being recorded" />
-        <StatCard icon={GraduationCap} tone="amber" label="Classes assessed" value={classesAssessed} sub={`Across ${exams.length} exam session(s)`} />
-        <StatCard icon={FileText} tone="green" label="Scores recorded" value={totalResults} sub="Subject results in the system" />
+        <StatCard icon={Award} tone="blue" label="Total exams" value={exams.length} sub={`${activeCount} active`} index={0} />
+        <StatCard icon={Trophy} tone="teal" label="In progress" value={inProgressCount} sub="Results being recorded" index={1} />
+        <StatCard icon={GraduationCap} tone="amber" label="Classes assessed" value={classesAssessed} sub={`Across ${exams.length} exam session(s)`} index={2} />
+        <StatCard icon={FileText} tone="green" label="Scores recorded" value={totalResults} sub="Subject results in the system" index={3} />
       </div>
 
       {loading ? (

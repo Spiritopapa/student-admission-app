@@ -60,9 +60,9 @@ export default function ParentHome() {
       {wards.length ? (
         <>
           <div className="grid gap-4 sm:grid-cols-3">
-            <StatCard icon={Users} tone="blue" label="Wards" value={wards.length} sub="Linked students" />
-            <StatCard icon={Wallet} tone="amber" label="Total balance" value={totals.fees.toFixed(2)} sub="Across all wards" />
-            <StatCard icon={Megaphone} tone="green" label="Receipts" value={totals.receipts} sub="Verified payments" />
+            <StatCard icon={Users} tone="blue" label="Wards" value={wards.length} sub="Linked students" index={0} />
+            <StatCard icon={Wallet} tone="amber" label="Total balance" value={totals.fees.toFixed(2)} sub="Across all wards" index={1} />
+            <StatCard icon={Megaphone} tone="green" label="Receipts" value={totals.receipts} sub="Verified payments" index={2} />
           </div>
 
           <div className="mt-6 grid gap-4 sm:grid-cols-2">

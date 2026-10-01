@@ -57,9 +57,9 @@ export default function AccountantHome() {
       />
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <StatCard icon={Wallet} tone="teal" label="Collected today" value={cedi(stats.todayTotal)} sub={`${stats.todayCount} receipts issued`} />
-        <StatCard icon={ReceiptText} tone="blue" label="Total receipts" value={stats.count} sub="All-time for this school" />
-        <StatCard icon={Wallet} tone="amber" label="Total collected" value={cedi(stats.total)} sub="Cumulative receipts amount" />
+        <StatCard icon={Wallet} tone="teal" label="Collected today" value={cedi(stats.todayTotal)} sub={`${stats.todayCount} receipts issued`} index={0} />
+        <StatCard icon={ReceiptText} tone="blue" label="Total receipts" value={stats.count} sub="All-time for this school" index={1} />
+        <StatCard icon={Wallet} tone="amber" label="Total collected" value={cedi(stats.total)} sub="Cumulative receipts amount" index={2} />
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">

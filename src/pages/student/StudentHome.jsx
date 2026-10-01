@@ -135,10 +135,10 @@ export default function StudentHome() {
       </motion.div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard icon={Wallet} tone="blue" label="Fee balance" value={cedi(summary.balance)} sub={`${summary.txs.length} payments recorded`} />
-        <StatCard icon={CalendarCheck} tone="teal" label="Attendance" value={summary.attTotal ? `${summary.attPct}%` : '-'} sub={`${summary.att.present} present / ${summary.att.absent} absent`} />
-        <StatCard icon={Award} tone="amber" label="Latest average" value={summary.performance ? `${summary.performance.average}%` : '-'} sub={summary.performance?.level?.text || 'No results yet'} />
-        <StatCard icon={Megaphone} tone="green" label="Announcements" value={summary.announcements.length} sub="Live updates from your school" />
+        <StatCard icon={Wallet} tone="blue" label="Fee balance" value={cedi(summary.balance)} sub={`${summary.txs.length} payments recorded`} index={0} />
+        <StatCard icon={CalendarCheck} tone="teal" label="Attendance" value={summary.attTotal ? `${summary.attPct}%` : '-'} sub={`${summary.att.present} present / ${summary.att.absent} absent`} index={1} />
+        <StatCard icon={Award} tone="amber" label="Latest average" value={summary.performance ? `${summary.performance.average}%` : '-'} sub={summary.performance?.level?.text || 'No results yet'} index={2} />
+        <StatCard icon={Megaphone} tone="green" label="Announcements" value={summary.announcements.length} sub="Live updates from your school" index={3} />
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-3">

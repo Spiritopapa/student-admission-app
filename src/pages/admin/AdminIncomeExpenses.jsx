@@ -262,9 +262,9 @@ export default function AdminIncomeExpenses() {
       ) : (
         <>
           <div className="grid gap-4 sm:grid-cols-3">
-            <StatCard icon={TrendingUp} tone="green" label="Total income" value={cedi(summary?.total_income || 0)} sub={`${summary?.transaction_count || 0} transactions`} />
-            <StatCard icon={TrendingDown} tone="red" label="Total expenses" value={cedi(summary?.total_expense || 0)} sub="All-time for this school" />
-            <StatCard icon={Scale} tone={Number(summary?.net_balance || 0) >= 0 ? 'blue' : 'amber'} label="Net balance" value={cedi(summary?.net_balance || 0)} sub="Income minus expenses" />
+            <StatCard icon={TrendingUp} tone="green" label="Total income" value={cedi(summary?.total_income || 0)} sub={`${summary?.transaction_count || 0} transactions`} index={0} />
+            <StatCard icon={TrendingDown} tone="red" label="Total expenses" value={cedi(summary?.total_expense || 0)} sub="All-time for this school" index={1} />
+            <StatCard icon={Scale} tone={Number(summary?.net_balance || 0) >= 0 ? 'blue' : 'amber'} label="Net balance" value={cedi(summary?.net_balance || 0)} sub="Income minus expenses" index={2} />
           </div>
 
           <div className="mt-6 flex flex-col gap-3 md:flex-row md:items-end">

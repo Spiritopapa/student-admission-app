@@ -355,12 +355,12 @@ return (
       />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        <StatCard icon={Users} tone="blue" label="Students" value={data.studentCount} sub={`${data.admittedCount} admitted`} />
-        <StatCard icon={CheckCircle2} tone="green" label="Admitted" value={data.admittedCount} sub="Currently enrolled" />
-        <StatCard icon={Clock} tone="amber" label="Awaiting portal" value={data.portalPendingCount} sub="Not yet confirmed" />
-        <StatCard icon={Users} tone="red" label="Female" value={data.femaleCount} sub="Students" />
-        <StatCard icon={UserRound} tone="teal" label="Male" value={data.maleCount} sub="Students" />
-        <StatCard icon={BookOpen} tone="slate" label="Teachers" value={data.teacherCount} sub="Teaching staff" />
+        <StatCard icon={Users} tone="blue" label="Students" value={data.studentCount} sub={`${data.admittedCount} admitted`} index={0} />
+        <StatCard icon={CheckCircle2} tone="green" label="Admitted" value={data.admittedCount} sub="Currently enrolled" index={1} />
+        <StatCard icon={Clock} tone="amber" label="Awaiting portal" value={data.portalPendingCount} sub="Not yet confirmed" index={2} />
+        <StatCard icon={Users} tone="red" label="Female" value={data.femaleCount} sub="Students" index={3} />
+        <StatCard icon={UserRound} tone="teal" label="Male" value={data.maleCount} sub="Students" index={4} />
+        <StatCard icon={BookOpen} tone="slate" label="Teachers" value={data.teacherCount} sub="Teaching staff" index={5} />
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">

@@ -1,5 +1,5 @@
-import { forwardRef } from 'react';
-import { motion } from 'framer-motion';
+import { forwardRef, useEffect, useRef, useState } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
 import { Loader2, Search, Inbox } from 'lucide-react';
 
 export const Button = forwardRef(function Button(
@@ -133,29 +133,163 @@ export function EmptyState({ icon: Icon = Inbox, title, message, action }) {
   );
 }
 
-export function StatCard({ icon: Icon, tone = 'blue', label, value, sub, onClick }) {
-  const tones = {
-    blue: 'from-brand-500 to-brand-600',
-    green: 'from-emerald-500 to-teal-600',
-    amber: 'from-accent-500 to-accent-600',
-    teal: 'from-teal-500 to-cyan-600',
-    red: 'from-rose-500 to-rose-600',
+/* ---------------------------------------------------------------------------
+ * StatCard — professional dashboard metric card.
+ * Clean white surface with a tone-coloured border + left accent bar
+ * (border/color accents only — no heavy gradient fill). Numbers count up with
+ * an ease-out curve once the card scrolls into view and smoothly transition
+ * whenever the value changes (e.g. after a live refresh).
+ * ------------------------------------------------------------------------- */
+const STAT_TONES = {
+  blue: {
+    card: 'border-brand-200 hover:border-brand-400',
+    bar: 'bg-brand-500',
+    chip: 'bg-brand-50 text-brand-600',
+    value: 'text-brand-700',
+    dot: 'bg-brand-500',
+  },
+  green: {
+    card: 'border-emerald-200 hover:border-emerald-400',
+    bar: 'bg-emerald-500',
+    chip: 'bg-emerald-50 text-emerald-600',
+    value: 'text-emerald-700',
+    dot: 'bg-emerald-500',
+  },
+  amber: {
+    card: 'border-amber-300 hover:border-amber-400',
+    bar: 'bg-amber-500',
+    chip: 'bg-amber-50 text-amber-700',
+    value: 'text-amber-700',
+    dot: 'bg-amber-500',
+  },
+  teal: {
+    card: 'border-teal-300 hover:border-teal-400',
+    bar: 'bg-teal-500',
+    chip: 'bg-teal-50 text-teal-700',
+    value: 'text-teal-700',
+    dot: 'bg-teal-500',
+  },
+  red: {
+    card: 'border-rose-300 hover:border-rose-400',
+    bar: 'bg-rose-500',
+    chip: 'bg-rose-50 text-rose-700',
+    value: 'text-rose-700',
+    dot: 'bg-rose-500',
+  },
+  slate: {
+    card: 'border-slate-300 hover:border-slate-400',
+    bar: 'bg-slate-400',
+    chip: 'bg-slate-100 text-slate-600',
+    value: 'text-slate-700',
+    dot: 'bg-slate-400',
+  },
+};
+
+/* Pulls the numeric core out of formatted values like "GHC 1,234.50", "87%"
+ * or "12" so it can be animated while the prefix/suffix stay stable. */
+function splitValue(value) {
+  if (value === null || value === undefined) return null;
+  const raw = String(value).trim();
+  if (!raw || raw === '-' || raw === '—' || raw === 'N/A') return null;
+  const grouped = /,\d{3}/.test(raw);
+  const m = raw.split(',').join('').match(/^(.*?)(-?\d+(?:\.\d+)?)(.*)$/);
+  if (!m) return null;
+  const num = Number(m[2]);
+  if (!Number.isFinite(num)) return null;
+  return {
+    prefix: m[1],
+    num,
+    suffix: m[3],
+    decimals: m[2].includes('.') ? m[2].split('.')[1].length : 0,
+    grouped,
   };
+}
+
+function formatStatNumber(parsed, num) {
+  const s = num.toLocaleString('en-US', {
+    minimumFractionDigits: parsed.decimals,
+    maximumFractionDigits: parsed.decimals,
+  });
+  return parsed.grouped ? s : s.split(',').join('');
+}
+
+const easeOutExpo = (t) => (t === 1 ? 1 : 1 - Math.pow(2, -10 * t));
+
+/* Animated counter. Counts 0 → value with an ease-out curve once `started`
+ * flips true and re-animates from the current number whenever `value` changes,
+ * so live refreshes transition smoothly instead of jumping. */
+function CountUp({ value, started = false, delay = 0, duration = 1050, className = '' }) {
+  const reduced = useReducedMotion();
+  const parsed = splitValue(value);
+  const [display, setDisplay] = useState(reduced ? parsed?.num : null);
+  const fromRef = useRef(0);
+
+  useEffect(() => {
+    if (reduced || !started || !parsed) return;
+    let raf = 0;
+    const from = fromRef.current;
+    const to = parsed.num;
+    const begin = performance.now();
+    const tick = (now) => {
+      const t = Math.min(Math.max(now - begin - delay, 0) / duration, 1);
+      const current = from + (to - from) * easeOutExpo(t);
+      fromRef.current = current;
+      setDisplay(current);
+      if (t < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [started, parsed?.num, reduced, delay, duration]);
+
+  if (!parsed) return <span className={className}>{String(value ?? '')}</span>;
+
+  const shown = reduced || display === null ? parsed.num : display;
+  return (
+    <span className={className}>
+      {parsed.prefix}
+      {formatStatNumber(parsed, shown)}
+      {parsed.suffix}
+    </span>
+  );
+}
+
+export function StatCard({ icon: Icon, tone = 'blue', label, value, sub, onClick, index = 0 }) {
+  const t = STAT_TONES[tone] || STAT_TONES.blue;
+  const [entered, setEntered] = useState(false);
+  const delay = Math.min(Math.max(index, 0), 6) * 0.07;
+  const valueSize = String(value ?? '').length > 14 ? 'text-xl' : 'text-2xl';
   return (
     <motion.div
-      whileHover={onClick ? { y: -2 } : undefined}
+      initial={{ opacity: 0, y: 18, scale: 0.98 }}
+      whileInView={{ opacity: 1, y: 0, scale: 1, transition: { duration: 0.5, delay, ease: 'easeOut' } }}
+      viewport={{ once: true, margin: '0px 0px -40px 0px' }}
+      onViewportEnter={() => setEntered(true)}
+      whileHover={{ y: -3, transition: { duration: 0.18, ease: 'easeOut' } }}
       onClick={onClick}
-      className={`relative overflow-hidden rounded-2xl p-4 text-white shadow-card ${
-        onClick ? 'cursor-pointer' : ''
-      } bg-gradient-to-br ${tones[tone]}`}
+      className={`relative overflow-hidden rounded-2xl border bg-white shadow-soft hover:shadow-card ${
+        t.card
+      } ${onClick ? 'cursor-pointer' : ''}`}
     >
-      <Icon
-        className="absolute -right-3 -top-3 h-16 w-16 opacity-15"
-        aria-hidden="true"
-      />
-      <p className="text-xs font-medium uppercase tracking-wide text-white/80">{label}</p>
-      <p className="mt-1 text-2xl font-bold tracking-tight">{value}</p>
-      {sub ? <p className="mt-1 text-xs text-white/75">{sub}</p> : null}
+      <span className={`absolute inset-y-0 left-0 w-[3px] ${t.bar}`} aria-hidden="true" />
+      <div className="px-4 pt-4 pb-4">
+        <div className="flex items-center justify-between gap-2">
+          <p className="min-w-0 flex-1 text-[11px] font-semibold uppercase leading-tight tracking-wide text-slate-400">
+            {label}
+          </p>
+          <span className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl ${t.chip}`}>
+            <Icon className="h-4 w-4" aria-hidden="true" />
+          </span>
+        </div>
+        <p className={`mt-1.5 tabular-nums font-bold tracking-tight ${valueSize} ${t.value}`}>
+          <CountUp value={value} started={entered} delay={delay} />
+        </p>
+        {sub ? (
+          <p className="mt-1 flex items-center gap-1.5 text-xs text-slate-400">
+            <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${t.dot}`} aria-hidden="true" />
+            {sub}
+          </p>
+        ) : null}
+      </div>
     </motion.div>
   );
 }
