@@ -1,7 +1,7 @@
-import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import {
   Award, Plus, Pencil, Trash2, ClipboardEdit, ArrowLeft, Save, Download, Upload,
-  Trophy, FileText, GraduationCap, Printer, CheckCircle2, Users,
+  Trophy, FileText, GraduationCap, Printer, CheckCircle2, Users, RefreshCw,
 } from 'lucide-react';
 import { useSchoolId, useSchoolSettings } from '../../hooks/useSchool';
 import { useToast } from '../../context/ToastContext';
@@ -51,7 +51,6 @@ export default function AdminExams() {
   const [examBusy, setExamBusy] = useState(false);
   const [examError, setExamError] = useState('');
   const [deleting, setDeleting] = useState(null);
-  const [subjects, setSubjects] = useState([]);
   const [workspace, setWorkspace] = useState(null);
   const [examSubjects, setExamSubjects] = useState([]);
   const [classes, setClasses] = useState([]);
@@ -63,7 +62,11 @@ export default function AdminExams() {
   const [dirty, setDirty] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState(null);
   const [marksQuery, setMarksQuery] = useState('');
+  const [displaySubject, setDisplaySubject] = useState('');
+  const [syncing, setSyncing] = useState(false);
   const sheetRef = useRef(null);
+  const namesRef = useRef(null);
+  const headerRef = useRef(null);
   const [importing, setImporting] = useState(false);
   const importInputRef = useRef(null);
   const [rankExam, setRankExam] = useState(null);
@@ -82,10 +85,15 @@ export default function AdminExams() {
   const [transcriptHtml, setTranscriptHtml] = useState('');
   const [transcriptBusy, setTranscriptBusy] = useState(false);
   const [transcriptBatchBusy, setTranscriptBatchBusy] = useState(false);
-  const [classSubjectRows, setClassSubjectRows] = useState([]);
-  const [subjectSelect, setSubjectSelect] = useState('');
   const [reportClassFilter, setReportClassFilter] = useState('');
   const [transcriptClassFilter, setTranscriptClassFilter] = useState('');
+
+  // Subjects that apply to the selected class: class-specific rows plus
+  // legacy rows with no class ("applies to all classes").
+  const visibleSubjectsForWorkspace = () => {
+    if (!workspace || !workspaceClass) return examSubjects;
+    return examSubjects.filter((s) => !s.class_name || s.class_name === workspaceClass);
+  };
 
   const load = async () => {
     if (!schoolId) return;
@@ -93,25 +101,19 @@ export default function AdminExams() {
     try {
       const [
         { data: examRows },
-        { data: subjectRows },
         { data: classRows },
-        { data: classSubjectData },
         { data: resultRows },
         { data: examSubjectRows },
         { data: appRows },
       ] = await Promise.all([
         supabase.from('exams').select('*').eq('school_id', schoolId).order('created_at', { ascending: false }),
-        supabase.from('subjects').select('name').eq('school_id', schoolId).order('name'),
         supabase.from('classes').select('id, name').eq('school_id', schoolId).order('name'),
-        supabase.from('class_subjects').select('class_name, subject_name').eq('school_id', schoolId),
         supabase.from('exam_results').select('exam_id, student_id, subject').eq('school_id', schoolId),
         supabase.from('exam_subjects').select('exam_id, class_name, subject'),
         supabase.from('applications').select('class_applying').eq('school_id', schoolId).eq('status', 'admitted'),
       ]);
       setExams(examRows || []);
-      setSubjects(subjectRows || []);
       setClasses(classRows || []);
-      setClassSubjectRows(classSubjectData || []);
 
       // Completion / coverage metrics per exam (read-only workload analysis).
       const studentsByClass = {};
@@ -243,44 +245,43 @@ export default function AdminExams() {
     setGrades(gradeRows || []);
   };
 
-  const addExamSubject = async () => {
-    const subjectName = subjectSelect.trim();
-    if (!subjectName || !workspace) return;
+  const syncClassSubjects = async (cls) => {
+    if (!workspace || !cls) return;
     try {
-      // Keep the per-class subject map (Subjects module) in sync so every class
-      // has its own subject set, then attach it to this exam.
-      if (workspaceClass) {
-        await supabase.from('class_subjects').upsert(
-          { class_name: workspaceClass, subject_name: subjectName, school_id: schoolId },
-          { onConflict: 'school_id,class_name,subject_name' }
-        );
-      }
-      const { error } = await supabase.from('exam_subjects').insert([
-        { exam_id: workspace.id, class_name: workspaceClass || null, subject: subjectName },
+      // Pull subjects straight from the Subjects module (class_subjects) so the
+      // exam workspace mirrors class assignments without manual re-adding.
+      const [{ data: classSubs }, { data: current }] = await Promise.all([
+        supabase.from('class_subjects').select('subject_name').eq('school_id', schoolId).eq('class_name', cls),
+        supabase.from('exam_subjects').select('subject, class_name').eq('exam_id', workspace.id),
       ]);
-      if (error) throw new Error(error.message);
-      setSubjectSelect('');
-      const { data: rows } = await supabase.from('exam_subjects').select('*').eq('exam_id', workspace.id).order('subject');
-      setExamSubjects(rows || []);
-      if (workspaceClass) {
-        refreshClassSubjects();
-        loadMarks();
+      const existing = new Set((current || []).map((r) => `${r.class_name ?? '*'}|${r.subject}`.toLowerCase()));
+      const missing = (classSubs || [])
+        .map((r) => r.subject_name)
+        .filter((s) => s && !existing.has(`${cls}|${s}`.toLowerCase()));
+      if (missing.length) {
+        const { error } = await supabase.from('exam_subjects').insert(
+          missing.map((subject) => ({ exam_id: workspace.id, class_name: cls, subject }))
+        );
+        if (error) throw new Error(error.message);
       }
     } catch (err) {
-      toast.error('Could not add subject', err.message);
+      toast.error('Could not sync subjects', err.message);
     }
-  };
-
-  const refreshClassSubjects = async () => {
-    const { data } = await supabase.from('class_subjects').select('class_name, subject_name').eq('school_id', schoolId);
-    setClassSubjectRows(data || []);
-  };
-
-  const removeExamSubject = async (id) => {
-    await supabase.from('exam_subjects').delete().eq('id', id);
     const { data: rows } = await supabase.from('exam_subjects').select('*').eq('exam_id', workspace.id).order('subject');
     setExamSubjects(rows || []);
-    if (workspaceClass) loadMarks();
+  };
+
+  const syncForClass = async () => {
+    if (!workspaceClass) return;
+    setSyncing(true);
+    try {
+      await syncClassSubjects(workspaceClass);
+      loadMarks();
+    } catch (err) {
+      toast.error('Could not sync subjects', err.message);
+    } finally {
+      setSyncing(false);
+    }
   };
 
   const loadMarks = async () => {
@@ -316,19 +317,17 @@ export default function AdminExams() {
   };
 
   useEffect(() => {
-    if (workspace && workspaceClass) loadMarks();
+    if (workspace && workspaceClass) {
+      setSyncing(true);
+      Promise.resolve(syncClassSubjects(workspaceClass))
+        .then(() => {
+          setSyncing(false);
+          loadMarks();
+        })
+        .catch(() => setSyncing(false));
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workspaceClass, workspace]);
-
-  const subjectOptions = useMemo(() => {
-    const classSubjects = classSubjectRows
-      .filter((r) => !workspaceClass || r.class_name === workspaceClass)
-      .map((r) => r.subject_name);
-    const fallback = subjects.map((s) => s.name);
-    const names = classSubjects.length ? classSubjects : fallback;
-    const added = new Set(examSubjects.map((s) => s.subject.toLowerCase()));
-    return [...new Set(names)].filter((n) => !added.has(n.toLowerCase()));
-  }, [workspaceClass, classSubjectRows, subjects, examSubjects]);
 
   const reportStudentList = reportClassFilter
     ? reportStudents.filter((s) => s.class_applying === reportClassFilter)
@@ -428,14 +427,15 @@ export default function AdminExams() {
 
   const exportCsv = () => {
     if (!marksData.length) return;
+    const exportSubjects = visibleSubjectsForWorkspace();
     const header = ['Student ID', 'Name'];
-    examSubjects.forEach((s) => {
+    exportSubjects.forEach((s) => {
       header.push(`${s.subject} - Class`, `${s.subject} - Exam`, `${s.subject} - Total`);
     });
     const rows = [[...header]];
     marksData.forEach((row) => {
       const cells = [row.student.student_id, buildStudentName(row.student.first_name, row.student.middle_name, row.student.last_name)];
-      examSubjects.forEach((s) => {
+      exportSubjects.forEach((s) => {
         const sc = row.scores[s.subject] || {};
         const cls = sc.classScore !== '' ? String(sc.classScore) : '';
         const esi = sc.examScoreInput !== '' ? String(sc.examScoreInput) : '';
@@ -476,7 +476,7 @@ export default function AdminExams() {
           if (!match) return row;
           const scores = { ...row.scores };
           subjectCols.forEach((entry) => {
-            const dbSub = examSubjects.map((s) => s.subject).find((s) => s.toLowerCase() === entry.subject.toLowerCase());
+            const dbSub = visibleSubjectsForWorkspace().map((s) => s.subject).find((s) => s.toLowerCase() === entry.subject.toLowerCase());
             if (!dbSub) return;
             const clsVal = entry.classIdx >= 0 ? String(match[entry.classIdx] ?? '').trim() : '';
             const esiVal = entry.examIdx >= 0 ? String(match[entry.examIdx] ?? '').trim() : '';
@@ -664,15 +664,19 @@ export default function AdminExams() {
           return name.includes(q) || row.student.student_id.toLowerCase().includes(q);
         })
       : marksData;
+    const colSubjects = visibleSubjectsForWorkspace();
+    const displayValid = !displaySubject || colSubjects.some((s) => s.subject === displaySubject);
+    const columnSubjects = displayValid && displaySubject ? colSubjects.filter((s) => s.subject === displaySubject) : colSubjects;
+    const singleSubject = displayValid && !!displaySubject && columnSubjects.length === 1;
     const filledCells = marksData.reduce((sum, row) => {
       let n = 0;
-      examSubjects.forEach((sbj) => {
+      colSubjects.forEach((sbj) => {
         const sc = row.scores[sbj.subject];
         if (sc && (sc.classScore !== '' || sc.examScoreInput !== '')) n += 1;
       });
       return sum + n;
     }, 0);
-    const expectedCells = marksData.length * examSubjects.length;
+    const expectedCells = marksData.length * colSubjects.length;
 
     return (
       <div>
@@ -751,7 +755,7 @@ export default function AdminExams() {
                   <button
                     key={c.id}
                     type="button"
-                    onClick={() => { setWorkspaceClass(active ? '' : c.name); setSubjectSelect(''); setMarksQuery(''); }}
+                    onClick={() => { setWorkspaceClass(active ? '' : c.name); setDisplaySubject(''); setMarksQuery(''); }}
                     className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${active ? 'bg-brand-600 text-white shadow-sm' : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-brand-50 hover:text-brand-700'}`}
                   >
                     {c.name}
@@ -762,40 +766,36 @@ export default function AdminExams() {
             <p className="mt-1 text-xs text-slate-400">Select a class to open its scoresheet.</p>
           </div>
           <div className="w-full sm:flex-1">
-            <Select label="Add a subject to this exam" value={subjectSelect} onChange={(e) => setSubjectSelect(e.target.value)}>
-              <option value="">{subjectOptions.length ? 'Select a subject...' : 'No subjects available - add them in the Subjects module first.'}</option>
-              {subjectOptions.map((n) => (
-                <option key={n} value={n}>{n}</option>
-              ))}
-            </Select>
+            <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Subject assignments</p>
             <p className="mt-1 text-xs text-slate-400">
-              {workspaceClass
-                ? `Showing the subjects assigned to ${workspaceClass} (Subjects module). Adding one also assigns it to this class.`
-                : 'Select a class to show that class\'s subjects, or pick from all school subjects.'}
+              The examination module reads the subjects assigned to each class in the Subjects module — nothing needs to be added here.
             </p>
           </div>
           <div className="flex items-end">
-            <Button variant="secondary" onClick={addExamSubject} disabled={!subjectSelect}>
-              <Plus className="h-4 w-4" aria-hidden="true" />
-              Add
+            <Button variant="secondary" loading={syncing} onClick={syncForClass}>
+              <RefreshCw className="h-4 w-4" aria-hidden="true" />
+              Sync subjects
             </Button>
           </div>
         </div>
 
-        {examSubjects.length ? (
+        {colSubjects.length ? (
           <div className="mb-5 flex flex-wrap gap-2">
-            {examSubjects.map((sbj) => (
+            {colSubjects.map((sbj) => (
               <span key={sbj.id} className="inline-flex items-center gap-1.5 rounded-full bg-brand-50 py-1 pl-3 pr-1.5 text-xs font-semibold text-brand-700 ring-1 ring-brand-200">
                 {sbj.subject}
-                <button type="button" onClick={() => removeExamSubject(sbj.id)} className="rounded-full bg-white p-1 text-slate-400 hover:text-rose-600" aria-label={`Remove ${sbj.subject}`}>
-                  <Trash2 className="h-3 w-3" aria-hidden="true" />
-                </button>
               </span>
             ))}
           </div>
         ) : (
-          <p className="mb-4 text-sm text-slate-400">Add at least one subject to this exam before entering marks.</p>
-        )}{workspaceClass ? (
+          <p className="mb-4 text-sm text-slate-400">
+            {workspaceClass
+              ? `No subjects assigned to ${workspaceClass} yet. Add them in the Subjects module, then press "Sync subjects".`
+              : 'Select a class to see its assigned subjects.'}
+          </p>
+        )}
+        {workspaceClass ? (
+          <>
           <div className="mb-4 flex flex-wrap items-center gap-3">
             <div className="w-full sm:w-72">
               <SearchInput value={marksQuery} onChange={setMarksQuery} placeholder="Search students..." />
@@ -805,41 +805,122 @@ export default function AdminExams() {
               <span className="font-mono">Enter</span> moves to the next score field · totals and grades update live
             </p>
           </div>
+
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Subject view</span>
+            <button
+              type="button"
+              onClick={() => setDisplaySubject('')}
+              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${!displaySubject || !displayValid ? 'bg-brand-600 text-white shadow-sm' : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-brand-50 hover:text-brand-700'}`}
+            >
+              All ({colSubjects.length})
+            </button>
+            {colSubjects.map((s) => {
+              const active = displayValid && displaySubject === s.subject;
+              return (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => setDisplaySubject(active ? '' : s.subject)}
+                  className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${active ? 'bg-brand-600 text-white shadow-sm' : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-brand-50 hover:text-brand-700'}`}
+                >
+                  {s.subject}
+                </button>
+              );
+            })}
+          </div>
+          </>
         ) : null}
         {workspaceClass ? (
           !resultsLoaded ? (
             <Spinner label="Loading scoresheet..." />
-          ) : visibleRows.length && examSubjects.length ? (
-            <div ref={sheetRef} onKeyDown={handleScoreKeyDown} className="overflow-auto rounded-2xl border border-slate-200 bg-white max-h-[560px]">
-              <table className="w-full text-sm">
-                <thead className="sticky top-0 z-20 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-                  <tr>
-                    <th className="sticky left-0 z-30 min-w-[195px] bg-slate-50 px-3 py-2.5 text-left">Student</th>
-                    {examSubjects.map((s) => (
-                      <th key={s.subject} colSpan={3} className="border-l border-slate-100 px-2 py-2.5 text-center font-bold text-slate-700">
-                        {s.subject}
-                      </th>
-                    ))}
-                    <th className="min-w-[110px] border-l border-slate-100 px-2 py-2.5 text-center">Average</th>
-                    <th className="min-w-[90px] px-2 py-2.5 text-center">Grade</th>
-                  </tr>
-                  <tr>
-                    <th className="sticky left-0 z-30 bg-slate-50" />
-                    {examSubjects.map((s) => (
-                      <Fragment key={s.subject}>
-                        <th className="border-l border-slate-100 px-1 py-1 text-center font-normal text-slate-400">Class (50)</th>
-                        <th className="px-1 py-1 text-center font-normal text-slate-400">Exam (100)</th>
-                        <th className="px-1 py-1 text-center font-normal text-slate-400">Total</th>
-                      </Fragment>
-                    ))}
-                    <th colSpan={2} />
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">{visibleRows.map((row) => {
+          ) : visibleRows.length && columnSubjects.length ? (
+            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+              {/* Frozen header row */}
+              <div className="flex border-b border-slate-100">
+                <div className="w-52 shrink-0 border-r border-slate-100 bg-slate-50 px-3 py-2.5 text-xs font-bold uppercase tracking-wide text-slate-500">
+                  Student
+                </div>
+                <div ref={headerRef} className="flex-1 overflow-hidden bg-slate-50">
+                  <table className="w-full text-sm table-fixed">
+                    <colgroup>
+                      {columnSubjects.flatMap((s) => [
+                        <col key={`h-${s.id}-c`} className="w-16" />,
+                        <col key={`h-${s.id}-e`} className="w-16" />,
+                        <col key={`h-${s.id}-t`} className="w-20" />,
+                      ])}
+                      {singleSubject ? null : <col className="w-24" />}
+                      {singleSubject ? null : <col className="w-20" />}
+                    </colgroup>
+                    <thead>
+                      <tr>
+                        {columnSubjects.map((s) => (
+                          <th key={s.subject} colSpan={3} className="border-l border-slate-100 px-1 py-1.5 text-center text-xs font-bold uppercase tracking-wide text-slate-600">
+                            {s.subject}
+                          </th>
+                        ))}
+                        {singleSubject ? null : <th className="border-l border-slate-100 px-1 py-1.5 text-center text-xs font-bold uppercase tracking-wide text-slate-600">Average</th>}
+                        {singleSubject ? null : <th className="px-1 py-1.5 text-center text-xs font-bold uppercase tracking-wide text-slate-600">Grade</th>}
+                      </tr>
+                      <tr>
+                        {columnSubjects.map((s) => (
+                          <Fragment key={s.subject}>
+                            <th className="border-l border-slate-100 px-1 py-1 text-center font-normal text-slate-400">Class (50)</th>
+                            <th className="px-1 py-1 text-center font-normal text-slate-400">Exam (100)</th>
+                            <th className="px-1 py-1 text-center font-normal text-slate-400">Total</th>
+                          </Fragment>
+                        ))}
+                        {singleSubject ? null : <th colSpan={2} />}
+                      </tr>
+                    </thead>
+                  </table>
+                </div>
+              </div>
+              {/* Scrollable body: names stay frozen on the left, only marks scroll */}
+              <div className="flex max-h-[560px]">
+                <div ref={namesRef} className="w-52 shrink-0 overflow-hidden border-r border-slate-100 bg-white">
+                  <table className="w-full text-sm table-fixed">
+                    <colgroup>
+                      <col className="w-52" />
+                    </colgroup>
+                    <tbody>
+                      {visibleRows.map((row) => (
+                        <tr key={row.student.id}>
+                          <td className="h-11 border-b border-slate-100 bg-white px-3 align-middle">
+                            <p className="truncate text-sm font-semibold text-slate-800">
+                              {buildStudentName(row.student.first_name, row.student.middle_name, row.student.last_name)}
+                            </p>
+                            <p className="font-mono text-xs text-slate-400">{row.student.student_id}</p>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div
+                  ref={sheetRef}
+                  onKeyDown={handleScoreKeyDown}
+                  onScroll={(e) => {
+                    if (namesRef.current) namesRef.current.scrollTop = e.target.scrollTop;
+                    if (headerRef.current) headerRef.current.scrollLeft = e.target.scrollLeft;
+                  }}
+                  className="flex-1 overflow-auto bg-white"
+                >
+                  <table className="w-full text-sm table-fixed">
+                    <colgroup>
+                      {columnSubjects.flatMap((s) => [
+                        <col key={`b-${s.id}-c`} className="w-16" />,
+                        <col key={`b-${s.id}-e`} className="w-16" />,
+                        <col key={`b-${s.id}-t`} className="w-20" />,
+                      ])}
+                      {singleSubject ? null : <col className="w-24" />}
+                      {singleSubject ? null : <col className="w-20" />}
+                    </colgroup>
+                    <tbody className="divide-y divide-slate-100">{visibleRows.map((row) => {
                     const rowIndex = marksData.indexOf(row);
                     let sum = 0;
                     let count = 0;
-                    examSubjects.forEach((sbj) => {
+                    columnSubjects.forEach((sbj) => {
                       const t = scoreTotals(row.scores[sbj.subject] || { classScore: '', examScoreInput: '' });
                       if (t.tot != null) {
                         sum += t.tot;
@@ -850,7 +931,7 @@ export default function AdminExams() {
                     const avgPerf = avg != null ? getSubjectGrade(avg) : null;
                     const complete =
                       examSubjects.length > 0 &&
-                      examSubjects.every((sbj) => {
+                      columnSubjects.every((sbj) => {
                         const sc = row.scores[sbj.subject];
                         return sc && (sc.classScore !== '' || sc.examScoreInput !== '');
                       });
@@ -863,7 +944,7 @@ export default function AdminExams() {
                           </p>
                           <p className="font-mono text-xs text-slate-400">{row.student.student_id}</p>
                         </td>
-                        {examSubjects.map((sbj) => {
+                        {columnSubjects.map((sbj) => {
                           const sc = row.scores[sbj.subject] || { classScore: '', examScoreInput: '' };
                           const t = scoreTotals(sc);
                           return (
@@ -898,40 +979,46 @@ export default function AdminExams() {
                             </Fragment>
                           );
                         })}
-                        <td className="border-l border-slate-100 px-2 py-2 text-center">
-                          {avg != null ? (
-                            <div className="flex flex-col items-center gap-1">
-                              <span className="text-sm font-bold text-slate-700">{avg.toFixed(1)}%</span>
-                              <div className="h-1.5 w-14 overflow-hidden rounded-full bg-slate-100">
-                                <div
-                                  className={`h-1.5 rounded-full ${avg >= 50 ? 'bg-teal-500' : 'bg-rose-400'}`}
-                                  style={{ width: `${Math.min(avg, 100)}%` }}
-                                />
+                        {singleSubject ? null : (
+                          <td className="border-l border-slate-100 px-2 py-2 text-center">
+                            {avg != null ? (
+                              <div className="flex flex-col items-center gap-1">
+                                <span className="text-sm font-bold text-slate-700">{avg.toFixed(1)}%</span>
+                                <div className="h-1.5 w-14 overflow-hidden rounded-full bg-slate-100">
+                                  <div
+                                    className={`h-1.5 rounded-full ${avg >= 50 ? 'bg-teal-500' : 'bg-rose-400'}`}
+                                    style={{ width: `${Math.min(avg, 100)}%` }}
+                                  />
+                                </div>
                               </div>
-                            </div>
-                          ) : (
-                            <span className="text-slate-300">—</span>
-                          )}
-                        </td>
-                        <td className="px-2 py-2 text-center">
-                          {avgPerf ? (
-                            <span className={`badge ${GRADE_CLASSES[avgPerf.cls]}`}>{avgPerf.grade}</span>
-                          ) : (
-                            <span className="text-slate-300">—</span>
-                          )}
-                        </td>
+                            ) : (
+                              <span className="text-slate-300">—</span>
+                            )}
+                          </td>
+                        )}
+                        {singleSubject ? null : (
+                          <td className="px-2 py-2 text-center">
+                            {avgPerf ? (
+                              <span className={`badge ${GRADE_CLASSES[avgPerf.cls]}`}>{avgPerf.grade}</span>
+                            ) : (
+                              <span className="text-slate-300">—</span>
+                            )}
+                          </td>
+                        )}
                       </tr>
                     );
                   })}
                 </tbody>
               </table>
             </div>
+            </div>
+            </div>
           ) : visibleRows.length === 0 && marksData.length ? (
             <EmptyState icon={Users} title="No students match your search" message="Try a different name or Student ID." />
           ) : marksData.length === 0 ? (
             <EmptyState icon={Users} title="No students in this class" message="This class has no students to enter marks for." />
           ) : (
-            <EmptyState icon={ClipboardEdit} title="No subjects yet" message="Add at least one subject above to start entering scores." />
+            <EmptyState icon={ClipboardEdit} title="No subjects yet" message="Assign subjects to this class in the Subjects module, then press Sync subjects." />
           )
         ) : (
           <EmptyState icon={ClipboardEdit} title="Pick a class" message="Select a class to open its scoresheet." />
