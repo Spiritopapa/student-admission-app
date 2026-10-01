@@ -19,11 +19,12 @@ function normalizeGhanaPhone(raw) {
   return null;
 }
 
-async function sendOtpSms(phone, otp, assistancePhone) {
+async function sendOtpSms(phone, otp, assistancePhone, schoolName) {
   const selfNumber =
     phone && assistancePhone && normalizeGhanaPhone(assistancePhone) === normalizeGhanaPhone(phone);
+  const brand = schoolName ? `${schoolName}: ` : '';
   const message =
-    `Your password reset code is ${otp}. It expires in 10 minutes. Do not share it with anyone.` +
+    `${brand}Your password reset code is ${otp}. It expires in 10 minutes. Do not share it with anyone.` +
     (selfNumber ? '' : ` For help, call ${assistancePhone || 'your school administrator'}.`);
   try {
     const res = await fetch(SMS_ENDPOINT, {
@@ -104,7 +105,7 @@ export default function ForgotPassword() {
         );
         return;
       }
-      const smsOk = await sendOtpSms(phone.trim(), data.otp, data.assistance_phone);
+      const smsOk = await sendOtpSms(phone.trim(), data.otp, data.assistance_phone, data.school_name);
       if (!smsOk) {
         setError('The verification code could not be delivered by SMS. Please try again or contact your administrator.');
         return;

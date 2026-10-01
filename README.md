@@ -136,6 +136,7 @@ Your existing data and tables are untouched. Run the migrations in the Supabase 
 2. `sql/074-public-admission-application.sql` - secure public admission application RPC + public school lookup for the apply page.
 3. `sql/075-delete-student-complete.sql` - extends `delete_student_completely` so deleting a student removes **every** related record (parent links, SMS logs, attendance, exam results/details, payments, receipts, fees, transport records, the application row + assessments, the user profile, the `auth.users` portal account) in one atomic transaction.
 4. `sql/076-school-public-listing.sql` - adds a `show_on_homepage` flag so a **Super Admin can allow or disallow a school's name from appearing on the public "apply for admission" list**. `get_public_schools()` and `submit_admission_application()` only return/accept schools that are approved **and** flagged as visible. Existing schools stay visible by default.
+5. `sql/077-sms-school-branding.sql` - every SMS (fee-payment receipt, debtor reminder, password-reset OTP) is branded with the **school name and contact number**. Fee receipt and debtor messages are composed client-side; this migration makes the OTP RPC (`request_forgot_password_otp`) also return `school_name` via the new `_fp_get_school_name()` helper.
 
 ### Deployment (Vercel)
 

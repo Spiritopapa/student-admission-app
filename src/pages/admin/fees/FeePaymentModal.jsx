@@ -6,7 +6,7 @@ import { useToast } from '../../../context/ToastContext';
 import ReceiptModal from '../../../components/ReceiptModal';
 import { supabase } from '../../../lib/supabase';
 import { fetchStudentFees } from '../../../lib/queries';
-import { sendStudentPaymentSms } from '../../../lib/api';
+import { sendStudentPaymentSms, fetchSchoolContact } from '../../../lib/api';
 import { buildStudentName, termLabel } from '../../../lib/format';
 import { TERMS, PAYMENT_METHODS, PAYMENT_METHOD_LABELS, currentAcademicYear } from '../../../lib/constants';
 
@@ -27,6 +27,7 @@ export default function FeePaymentModal({ open, student, onClose, onPaid }) {
   const [error, setError] = useState('');
   const [sendSms, setSendSms] = useState(true);
   const [receiptForModal, setReceiptForModal] = useState(null);
+  const [schoolContact, setSchoolContact] = useState({ name: '', phone: '' });
 
   useEffect(() => {
     if (!open || !student) return;
@@ -36,6 +37,7 @@ export default function FeePaymentModal({ open, student, onClose, onPaid }) {
     setNotes('');
     setError('');
     setReceiptForModal(null);
+    fetchSchoolContact(student.school_id).then((contact) => setSchoolContact(contact || { name: '', phone: '' }));
     (async () => {
       try {
         const fees = await fetchStudentFees(student.student_id);
@@ -150,7 +152,9 @@ export default function FeePaymentModal({ open, student, onClose, onPaid }) {
       if (!data || !data.success) throw new Error(data?.error || 'Payment could not be processed.');
 
       if (sendSms && student.parent_contact) {
-        const message = `Fee payment of GHC ${(Number(data.amount_paid) || amt).toFixed(2)} received for ${data.student_name || student.first_name}. Receipt: ${data.receipt_number}. Paid for ${data.academic_year} ${termLabel(data.term)}. Thank you.`;
+        const brand = schoolContact.name ? `${schoolContact.name}: ` : '';
+        const contact = schoolContact.phone ? ` For any assistance, call ${schoolContact.phone}.` : '';
+        const message = `${brand}Fee payment of GHC ${(Number(data.amount_paid) || amt).toFixed(2)} received for ${data.student_name || student.first_name}. Receipt: ${data.receipt_number}. Paid for ${data.academic_year} ${termLabel(data.term)}. Thank you.${contact}`;
         const sms = await sendStudentPaymentSms({
           schoolId: student.school_id,
           studentId: student.student_id,

@@ -584,6 +584,15 @@
 -- respect the flag. Existing schools stay visible (default true).
 -- Safe to re-run (IF NOT EXISTS / CREATE OR REPLACE).
 \i 076-school-public-listing.sql
+
+-- Step 70: SMS school branding
+-- Adds schools.show_on_homepage sibling migration 077: the password-reset
+-- OTP RPC now returns school_name (via _fp_get_school_name) so the OTP SMS
+-- can be branded with the school name, completing the goal that every SMS
+-- (fee receipt, debtor reminder, OTP) carries the school name + contact
+-- number. Fee receipt / debtor messages are composed client-side.
+-- Safe to re-run (CREATE OR REPLACE).
+\i 077-sms-school-branding.sql
 -- ============================================================
 --  SCHEMA DEPLOYMENT COMPLETE
 -- ============================================================

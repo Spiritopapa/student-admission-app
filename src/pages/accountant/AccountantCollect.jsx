@@ -9,7 +9,7 @@ import { Alert } from '../../components/ui-extras';
 import ReceiptModal from '../../components/ReceiptModal';
 import { supabase } from '../../lib/supabase';
 import { fetchStudentFees } from '../../lib/queries';
-import { sendStudentPaymentSms } from '../../lib/api';
+import { sendStudentPaymentSms, fetchSchoolContact } from '../../lib/api';
 import { buildStudentName, cedi, termLabel } from '../../lib/format';
 import { TERMS, PAYMENT_METHODS, PAYMENT_METHOD_LABELS, currentAcademicYear } from '../../lib/constants';
 import { photoUrl } from '../../lib/storage';
@@ -37,6 +37,7 @@ export default function AccountantCollect() {
   const [result, setResult] = useState(null);
   const [receiptForModal, setReceiptForModal] = useState(null);
   const [balanceMap, setBalanceMap] = useState({});
+  const [schoolContact, setSchoolContact] = useState({ name: '', phone: '' });
 
   useEffect(() => {
     if (!schoolId) return;
@@ -48,9 +49,11 @@ export default function AccountantCollect() {
         .eq('status', 'admitted')
         .order('last_name'),
       supabase.from('classes').select('id, name').eq('school_id', schoolId).order('name'),
-    ]).then(([{ data }, { data: classRows }]) => {
+      fetchSchoolContact(schoolId),
+    ]).then(([{ data }, { data: classRows }, contact]) => {
       setStudents(data || []);
       setClasses(classRows || []);
+      setSchoolContact(contact || { name: '', phone: '' });
     });
   }, [schoolId]);
 
@@ -224,7 +227,9 @@ export default function AccountantCollect() {
       setResult(data);
 
       if (sendSms && selected.parent_contact) {
-        const message = `Fee payment of GHC ${(Number(data.amount_paid) || amt).toFixed(2)} received for ${data.student_name || selected.first_name}. Receipt: ${data.receipt_number}. Paid for ${data.academic_year} ${termLabel(data.term)}. Thank you.`;
+        const brand = schoolContact.name ? `${schoolContact.name}: ` : '';
+        const contact = schoolContact.phone ? ` For any assistance, call ${schoolContact.phone}.` : '';
+        const message = `${brand}Fee payment of GHC ${(Number(data.amount_paid) || amt).toFixed(2)} received for ${data.student_name || selected.first_name}. Receipt: ${data.receipt_number}. Paid for ${data.academic_year} ${termLabel(data.term)}. Thank you.${contact}`;
         const sms = await sendStudentPaymentSms({
           schoolId,
           studentId: selected.student_id,

@@ -1,5 +1,24 @@
 import { supabase } from './supabase';
 
+/**
+ * Fetch a school's public contact details (display name + phone) for SMS
+ * branding. The phone is the number captured at registration/onboarding and
+ * is used as the "call us" line on parent-facing messages.
+ */
+export async function fetchSchoolContact(schoolId) {
+  if (!schoolId) return { name: '', phone: '' };
+  try {
+    const { data } = await supabase
+      .from('schools')
+      .select('name, phone')
+      .eq('id', schoolId)
+      .maybeSingle();
+    return { name: data?.name || '', phone: data?.phone || '' };
+  } catch (err) {
+    return { name: '', phone: '' };
+  }
+}
+
 export async function sendStudentPaymentSms({ schoolId, studentId, receiptNumber, phone, message }) {
   if (!phone) return { success: false, skipped: true };
   try {

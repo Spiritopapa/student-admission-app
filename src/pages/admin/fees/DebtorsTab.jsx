@@ -27,6 +27,7 @@ export default function DebtorsTab() {
   const [smsMessage, setSmsMessage] = useState('');
   const [smsEnabled, setSmsEnabled] = useState(true);
   const [schoolName, setSchoolName] = useState('School');
+  const [schoolPhone, setSchoolPhone] = useState('');
 
   const load = async () => {
     if (!schoolId) return;
@@ -39,11 +40,12 @@ export default function DebtorsTab() {
           .select('student_id, first_name, middle_name, last_name, class_applying, parent_contact')
           .eq('school_id', schoolId),
         supabase.from('classes').select('id, name').eq('school_id', schoolId).order('name'),
-        supabase.from('schools').select('name, sms_enabled').eq('id', schoolId).maybeSingle(),
+        supabase.from('schools').select('name, phone, sms_enabled').eq('id', schoolId).maybeSingle(),
       ]);
       setClasses(classRows || []);
       setSmsEnabled(schoolData?.sms_enabled !== false);
       setSchoolName(schoolData?.name || 'School');
+      setSchoolPhone(schoolData?.phone || '');
 
       const nameMap = Object.fromEntries((appsData || []).map((a) => [a.student_id, a]));
       const groups = {};
@@ -108,7 +110,8 @@ export default function DebtorsTab() {
 
   const buildReminderSms = (r) => {
     const name = buildStudentName(r.app.first_name, r.app.middle_name, r.app.last_name);
-    return `Dear Parent/Guardian, kindly note that ${name} (${r.studentId}, Class ${r.app.class_applying}) has an outstanding fee balance of GHC ${r.total.toFixed(2)} at ${schoolName}. Please clear it at the accounts office. Thank you.`;
+    const contact = schoolPhone ? ` For enquiries, call ${schoolPhone}.` : '';
+    return `Dear Parent/Guardian, kindly note that ${name} (${r.studentId}, Class ${r.app.class_applying}) has an outstanding fee balance of GHC ${r.total.toFixed(2)} at ${schoolName}. Please clear it at the accounts office. Thank you.${contact}`;
   };
 
   const sendSmsReminders = async () => {
