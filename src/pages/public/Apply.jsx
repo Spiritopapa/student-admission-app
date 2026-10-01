@@ -51,27 +51,22 @@ export default function Apply() {
   const [result, setResult] = useState(null);
 
   useEffect(() => {
+    const loadFallback = () =>
+      supabase
+        .from('schools')
+        .select('id, name, address')
+        .eq('is_approved', true)
+        .eq('show_on_homepage', true)
+        .order('name')
+        .then((fallback) => setSchools(fallback.data || []));
+
     supabase
       .rpc('get_public_schools')
       .then(({ data, error: rpcError }) => {
-        if (rpcError) {
-          return supabase
-            .from('schools')
-            .select('id, name, address')
-            .eq('is_approved', true)
-            .order('name')
-            .then((fallback) => setSchools(fallback.data || []));
-        }
+        if (rpcError) return loadFallback();
         setSchools((data || []).map((s) => ({ id: s.id, name: s.name, location: s.address || s.location })));
       })
-      .catch(() => {
-        supabase
-          .from('schools')
-          .select('id, name, address')
-          .eq('is_approved', true)
-          .order('name')
-          .then((fallback) => setSchools(fallback.data || []));
-      });
+      .catch(() => loadFallback());
   }, []);
 
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));

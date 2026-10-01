@@ -11,7 +11,6 @@ import {
   Users,
   ShieldCheck,
   Smartphone,
-  RefreshCw,
   ReceiptText,
   BookOpen,
   GraduationCap,
@@ -160,46 +159,46 @@ export default function Landing() {
             <div className="relative mx-auto max-w-md rounded-3xl border border-white/60 bg-white/70 p-6 shadow-card backdrop-blur-md">
               <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
                 <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blend text-white">
-                  <School className="h-6 w-6" aria-hidden="true" />
+                  <FileCheck2 className="h-6 w-6" aria-hidden="true" />
                 </span>
                 <div>
-                  <p className="text-sm font-bold text-slate-800">Sunshine International School</p>
-                  <p className="text-xs text-slate-400">Academic year 2025/2026 - First Term</p>
+                  <p className="text-sm font-bold text-slate-800">A simpler admission journey</p>
+                  <p className="text-xs text-slate-400">From first application to Student ID</p>
                 </div>
               </div>
               <div className="mt-5 space-y-3">
                 <div className="flex items-center justify-between rounded-xl bg-brand-50 p-3">
                   <div className="flex items-center gap-2">
                     <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-white text-brand-600 shadow-sm">
-                      <Wallet className="h-4 w-4" aria-hidden="true" />
+                      <FileCheck2 className="h-4 w-4" aria-hidden="true" />
                     </span>
-                    <p className="text-sm font-semibold text-slate-700">Term Fee Paid</p>
+                    <p className="text-sm font-semibold text-slate-700">Apply online</p>
                   </div>
-                  <p className="text-sm font-extrabold text-brand-700">GHC 1,250.00</p>
+                  <p className="text-sm font-extrabold text-brand-700">2 min</p>
                 </div>
                 <div className="flex items-center justify-between rounded-xl bg-teal-50 p-3">
                   <div className="flex items-center gap-2">
                     <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-white text-teal-600 shadow-sm">
-                      <CalendarCheck className="h-4 w-4" aria-hidden="true" />
+                      <BellRing className="h-4 w-4" aria-hidden="true" />
                     </span>
-                    <p className="text-sm font-semibold text-slate-700">Attendance</p>
+                    <p className="text-sm font-semibold text-slate-700">Track your application</p>
                   </div>
-                  <p className="text-sm font-extrabold text-teal-700">98%</p>
+                  <p className="text-sm font-extrabold text-teal-700">Anytime</p>
                 </div>
                 <div className="flex items-center justify-between rounded-xl bg-accent-500/10 p-3">
                   <div className="flex items-center gap-2">
                     <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-white text-accent-600 shadow-sm">
-                      <Award className="h-4 w-4" aria-hidden="true" />
+                      <GraduationCap className="h-4 w-4" aria-hidden="true" />
                     </span>
-                    <p className="text-sm font-semibold text-slate-700">Performance</p>
+                    <p className="text-sm font-semibold text-slate-700">Receive your Student ID</p>
                   </div>
-                  <p className="text-sm font-extrabold text-accent-600">Excellent</p>
+                  <p className="text-sm font-extrabold text-accent-600">Once admitted</p>
                 </div>
               </div>
               <div className="mt-5 rounded-xl border border-dashed border-slate-200 p-3 text-center">
                 <p className="flex items-center justify-center gap-2 text-xs font-medium text-slate-400">
-                  <RefreshCw className="h-3.5 w-3.5 text-teal-500" aria-hidden="true" />
-                  Live updates via SMS notifications
+                  <Smartphone className="h-3.5 w-3.5 text-teal-500" aria-hidden="true" />
+                  Feedback and updates delivered by SMS
                 </p>
               </div>
             </div>

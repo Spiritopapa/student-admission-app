@@ -22,6 +22,7 @@ const emptySchoolForm = {
   student_population: '',
   plan_version: 'full',
   trial_days: '14',
+  show_on_homepage: true,
 };
 
 function trialEndsAtFor(version, days) {
@@ -69,6 +70,7 @@ export default function SuperAdminSchools() {
   const [deleting, setDeleting] = useState(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [smsBusy, setSmsBusy] = useState(null);
+  const [homepageBusy, setHomepageBusy] = useState(null);
 
   const load = () => {
     setLoading(true);
@@ -147,6 +149,7 @@ const addSchool = async () => {
             plan_version: version,
             trial_ends_at: trialEndsAtFor(version, trialDays),
             is_approved: true,
+            show_on_homepage: form.show_on_homepage !== false,
             created_by: user?.id || null,
           },
         ])
@@ -202,6 +205,7 @@ const openEdit = (row) => {
       student_population: row.student_population != null ? String(row.student_population) : '',
       plan_version: row.plan_version || 'full',
       trial_days: String(remainingTrialDays(row)),
+      show_on_homepage: row.show_on_homepage !== false,
     });
     setEditError('');
   };
@@ -231,6 +235,7 @@ const openEdit = (row) => {
           student_population: editForm.student_population === '' ? null : Number(editForm.student_population),
           plan_version: version,
           trial_ends_at: trialEndsAtFor(version, trialDays),
+          show_on_homepage: editForm.show_on_homepage !== false,
         })
         .eq('id', editing.id);
       if (error) throw new Error(error.message);
@@ -264,6 +269,26 @@ const openEdit = (row) => {
       toast.error('Could not update SMS', err.message);
     } finally {
       setSmsBusy(null);
+    }
+  };
+
+  const toggleHomepage = async (row, visible) => {
+    setHomepageBusy(row.id);
+    try {
+      const { error } = await supabase
+        .from('schools')
+        .update({ show_on_homepage: visible })
+        .eq('id', row.id);
+      if (error) throw new Error(error.message);
+      toast.success(
+        visible ? 'School listed on public apply page' : 'School hidden from public apply page',
+        row.name
+      );
+      setRows((prev) => prev.map((r) => (r.id === row.id ? { ...r, show_on_homepage: visible } : r)));
+    } catch (err) {
+      toast.error('Could not update public listing', err.message);
+    } finally {
+      setHomepageBusy(null);
     }
   };
 
@@ -421,6 +446,7 @@ return (
                   <Badge tone={row.is_approved ? 'green' : 'amber'}>{row.is_approved ? 'Approved' : 'Pending'}</Badge>
                   {planBadge(row)}
                   <Badge tone={row.sms_enabled === false ? 'slate' : 'blue'}>{row.sms_enabled === false ? 'SMS off' : 'SMS on'}</Badge>
+                  <Badge tone={row.show_on_homepage === false ? 'slate' : 'green'}>{row.show_on_homepage === false ? 'Hidden' : 'On public list'}</Badge>
                   {row.locked_count > 0 ? <Badge tone="red">{row.locked_count} locked</Badge> : null}
                 </div>
               </div>
@@ -470,6 +496,17 @@ return (
                     checked={row.sms_enabled !== false}
                     disabled={smsBusy === row.id}
                     onChange={(v) => toggleSms(row, v)}
+                  />
+                </div>
+                <div
+                  className="flex items-center justify-between gap-2"
+                  title="Allow this school to appear in the public apply-for-admission list"
+                >
+                  <span className="text-xs font-medium text-slate-500">Public list</span>
+                  <Switch
+                    checked={row.show_on_homepage !== false}
+                    disabled={homepageBusy === row.id}
+                    onChange={(v) => toggleHomepage(row, v)}
                   />
                 </div>
               </div>
@@ -525,6 +562,13 @@ return (
             <Input label="Trial duration (days)" type="number" min="1" value={form.trial_days} onChange={set('trial_days')} />
           ) : null}
         </div>
+        <div className="mt-5 flex items-center justify-between gap-2">
+          <span className="text-sm font-medium text-slate-600">Show on public apply list</span>
+          <Switch
+            checked={form.show_on_homepage !== false}
+            onChange={(v) => setForm((f) => ({ ...f, show_on_homepage: v }))}
+          />
+        </div>
         <div className="mt-5 flex flex-col items-center gap-2 border-t border-slate-100 pt-5">
           <PhotoUpload value={logoFile} onChange={setLogoFile} maxMb={1} circle />
         </div>
@@ -564,6 +608,16 @@ return (
           {editForm.plan_version === 'trial' ? (
             <Input label="Trial duration (days)" type="number" min="1" value={editForm.trial_days || '14'} onChange={setEdit('trial_days')} />
           ) : null}
+        </div>
+        <div
+          className="mt-5 flex items-center justify-between gap-2"
+          title="Allow this school to appear in the public apply-for-admission list"
+        >
+          <span className="text-sm font-medium text-slate-600">Show on public apply list</span>
+          <Switch
+            checked={editForm.show_on_homepage !== false}
+            onChange={(v) => setEditForm((f) => ({ ...f, show_on_homepage: v }))}
+          />
         </div>
       </Modal>
 <Modal open={!!viewing} onClose={() => setViewing(null)} title="School details" size="lg"

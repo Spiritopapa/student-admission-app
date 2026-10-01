@@ -67,6 +67,7 @@ The interface uses one signature **three-colour blend** (indigo → teal → amb
 ### Super Admin portal
 - Platform overview (schools, pending applications, students, teachers)
 - Schools: approve/unapprove, reset administrator password
+- Schools: allow or disallow a school's name on the public "apply for admission" list
 - School applications: approve, reject, delete
 
 ---
@@ -134,6 +135,7 @@ Your existing data and tables are untouched. Run the migrations in the Supabase 
 1. `sql/073-supabase-storage-buckets.sql` - creates the public buckets (`student-photos`, `applications`, `school-logos`, `documents`) with RLS policies. Authenticated users upload; anonymous users may only upload to `applications`; deletes happen server-side through `/api/storage-delete`.
 2. `sql/074-public-admission-application.sql` - secure public admission application RPC + public school lookup for the apply page.
 3. `sql/075-delete-student-complete.sql` - extends `delete_student_completely` so deleting a student removes **every** related record (parent links, SMS logs, attendance, exam results/details, payments, receipts, fees, transport records, the application row + assessments, the user profile, the `auth.users` portal account) in one atomic transaction.
+4. `sql/076-school-public-listing.sql` - adds a `show_on_homepage` flag so a **Super Admin can allow or disallow a school's name from appearing on the public "apply for admission" list**. `get_public_schools()` and `submit_admission_application()` only return/accept schools that are approved **and** flagged as visible. Existing schools stay visible by default.
 
 ### Deployment (Vercel)
 

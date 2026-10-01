@@ -576,6 +576,14 @@
 -- via cascade), the user profile and the auth.users portal account.
 -- Safe to re-run (CREATE OR REPLACE).
 \i 075-delete-student-complete.sql
+
+-- Step 69: School public listing control
+-- Adds schools.show_on_homepage so a Super Admin can allow or disallow a
+-- school name from appearing in the public "apply for admission" list.
+-- get_public_schools() and submit_admission_application() are recreated to
+-- respect the flag. Existing schools stay visible (default true).
+-- Safe to re-run (IF NOT EXISTS / CREATE OR REPLACE).
+\i 076-school-public-listing.sql
 -- ============================================================
 --  SCHEMA DEPLOYMENT COMPLETE
 -- ============================================================
