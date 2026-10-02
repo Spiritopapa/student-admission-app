@@ -102,10 +102,25 @@ export default function AdminExams() {
   const [transcriptClassFilter, setTranscriptClassFilter] = useState('');
 
   // Subjects that apply to the selected class: class-specific rows plus
-  // legacy rows with no class ("applies to all classes").
+  // legacy rows with no class ("applies to all classes"). De-duplicated by
+  // subject name so duplicate rows (legacy "all classes" subjects, repeated
+  // class subjects) can never create duplicate score columns or duplicate
+  // upsert keys when results are saved.
   const visibleSubjectsForWorkspace = () => {
-    if (!workspace || !workspaceClass) return examSubjects;
-    return examSubjects.filter((s) => !s.class_name || s.class_name === workspaceClass);
+    const source =
+      !workspace || !workspaceClass
+        ? examSubjects
+        : examSubjects.filter((s) => !s.class_name || s.class_name === workspaceClass);
+    const seen = new Set();
+    const unique = [];
+    source.forEach((s) => {
+      const key = s.subject.toLowerCase();
+      if (!seen.has(key)) {
+        seen.add(key);
+        unique.push(s);
+      }
+    });
+    return unique;
   };
 
   const load = async () => {
@@ -270,7 +285,11 @@ export default function AdminExams() {
       const existing = new Set((current || []).map((r) => `${r.class_name ?? '*'}|${r.subject}`.toLowerCase()));
       const missing = (classSubs || [])
         .map((r) => r.subject_name)
-        .filter((s) => s && !existing.has(`${cls}|${s}`.toLowerCase()));
+        .filter((s) => s && !existing.has(`${cls}|${s}`.toLowerCase()))
+        // If an "all classes" (class_name IS NULL) subject with the same name
+        // already exists, it already applies to this class — don't create a
+        // class-specific copy that would collide in the score sheet / upserts.
+        .filter((s) => s && !existing.has(`*|${s}`.toLowerCase()));
       if (missing.length) {
         const { error } = await supabase.from('exam_subjects').insert(
           missing.map((subject) => ({ exam_id: workspace.id, class_name: cls, subject }))
@@ -310,7 +329,16 @@ export default function AdminExams() {
       supabase.from('exam_results').select('*').eq('exam_id', workspace.id),
     ]);
     const resultMap = new Map((results || []).map((r) => [`${r.student_id}|${r.subject}`, r]));
-    const data = (students || []).map((student) => ({
+    // A student can appear more than once if the applications table holds
+    // duplicate rows; keep one score-sheet row per student_id so the same
+    // (exam, student, subject) key is never upserted twice.
+    const seenStudents = new Set();
+    const uniqueStudents = (students || []).filter((st) => {
+      if (seenStudents.has(st.student_id)) return false;
+      seenStudents.add(st.student_id);
+      return true;
+    });
+    const data = uniqueStudents.map((student) => ({
       student,
       scores: Object.fromEntries(
         examSubjects.map((sbj) => {
@@ -387,12 +415,16 @@ export default function AdminExams() {
     if (!workspace) return;
     setSavingMarks(true);
     try {
+      // Save only the subjects that apply to the selected class, de-duplicated
+      // (see visibleSubjectsForWorkspace) so one (exam, student, subject) key
+      // can never be emitted twice for the same batch.
+      const classSubjects = visibleSubjectsForWorkspace();
       const upserts = [];
       const detailUpserts = [];
       for (const row of marksData) {
         let totalMarks = 0;
         let count = 0;
-        for (const sbj of examSubjects) {
+        for (const sbj of classSubjects) {
           const sc = row.scores[sbj.subject];
           if (sc && (sc.classScore !== '' || sc.examScoreInput !== '')) {
             const cls = sc.classScore === '' ? null : Math.min(parseFloat(sc.classScore) || 0, 50);
@@ -421,8 +453,20 @@ export default function AdminExams() {
           detailUpserts.push({ exam_id: workspace.id, student_id: row.student.student_id, interest: 'mathematics', attitude: 'active', class_teacher_remarks: remarks });
         }
       }
-      if (upserts.length) {
-        const { error } = await supabase.from('exam_results').upsert(upserts, { onConflict: 'exam_id,student_id,subject' });
+      // Last line of defence: never send a batch containing the same conflict
+      // key twice — Postgres rejects that with "ON CONFLICT DO UPDATE command
+      // cannot affect row a second time".
+      const seenKeys = new Set();
+      const uniqueUpserts = [];
+      upserts.forEach((u) => {
+        const key = `${u.exam_id}|${u.student_id}|${u.subject.toLowerCase()}`;
+        if (!seenKeys.has(key)) {
+          seenKeys.add(key);
+          uniqueUpserts.push(u);
+        }
+      });
+      if (uniqueUpserts.length) {
+        const { error } = await supabase.from('exam_results').upsert(uniqueUpserts, { onConflict: 'exam_id,student_id,subject' });
         if (error) throw new Error(error.message);
       }
       for (const d of detailUpserts) {
@@ -430,7 +474,7 @@ export default function AdminExams() {
       }
       setDirty(false);
       setLastSavedAt(new Date());
-      toast.success('Results saved', `${upserts.length} subject scores recorded.`);
+      toast.success('Results saved', `${uniqueUpserts.length} subject scores recorded.`);
     } catch (err) {
       toast.error('Could not save results', err.message);
     } finally {
