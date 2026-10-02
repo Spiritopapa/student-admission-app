@@ -71,6 +71,22 @@ export default function StudentProfile() {
         })
         .eq('student_id', application.student_id);
       if (updateError) throw new Error(updateError.message);
+
+      // Keep the student's own auth profile in sync so the profile photo (and,
+      // when relevant, the parent/guardian contact) reflects immediately in the
+      // portal header / dashboards that read from `profiles`.
+      if (photoUrlValue !== (application.student_photo_url || null)) {
+        try {
+          const { error: profilePhotoErr } = await supabase
+            .from('profiles')
+            .update({ photo_url: photoUrlValue })
+            .eq('id', user.id);
+          if (profilePhotoErr) console.warn('Could not sync student photo to profile:', profilePhotoErr.message);
+        } catch (profileSyncErr) {
+          console.warn('Could not sync student photo to profile:', profileSyncErr.message);
+        }
+      }
+
       toast.success('Profile updated', 'Your student details have been saved.');
       await reload();
       setForm((f) => ({ ...f, photo_url: photoUrlValue }));

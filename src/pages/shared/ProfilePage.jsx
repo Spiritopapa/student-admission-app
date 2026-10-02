@@ -44,11 +44,16 @@ export default function ProfilePage() {
         );
         photoUrlValue = stored;
       }
-      await updateProfile({
+      const patch = {
         full_name: fullName.trim(),
         phone: phone.trim() || null,
-        photo_url: photoUrlValue,
-      });
+      };
+      // Only touch the photo when it actually changed, so an untouched photo is
+      // never mirrored back into the staff/school records as stale or null.
+      if (photoUrlValue !== (profile?.photo_url || null)) {
+        patch.photo_url = photoUrlValue;
+      }
+      await updateProfile(patch);
       if (photoFile) setCurrentPhoto(resolveFileUrl(photoUrlValue));
       setPhotoFile(null);
       toast.success('Profile updated', 'Your profile has been saved.');

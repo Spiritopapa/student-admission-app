@@ -90,6 +90,23 @@ export default function AdminAccountants() {
           })
           .eq('id', editing.id);
         if (updateError) throw new Error(updateError.message);
+        // Keep the accountant's linked portal profile in sync so their own
+        // header / dashboards reflect the change (the accountant cannot change
+        // their own name due to the name-lock trigger; the admin is the only
+        // one who can). RLS allows school admins/sub_admins to update profiles
+        // in their own school. Email is intentionally not synced because the
+        // accountant signs in with a generated @accountant.local address.
+        if (editing.user_id) {
+          try {
+            const { error: profileErr } = await supabase
+              .from('profiles')
+              .update({ full_name: form.full_name.trim(), phone: form.phone.trim() || null })
+              .eq('id', editing.user_id);
+            if (profileErr) console.warn('Could not sync accountant profile:', profileErr.message);
+          } catch (profileSyncErr) {
+            console.warn('Could not sync accountant profile:', profileSyncErr.message);
+          }
+        }
         toast.success('Accountant updated', form.full_name.trim());
       } else {
         const { data: regId, error: idError } = await supabase.rpc('generate_accountant_id', {

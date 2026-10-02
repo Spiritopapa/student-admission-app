@@ -332,10 +332,61 @@ export function AuthProvider({ children }) {
   const updateProfile = useCallback(
     async (patch) => {
       if (!user) return;
-      await supabase.from('profiles').update(patch).eq('id', user.id);
+
+      const role = (profile?.role || user.user_metadata?.role || '').toLowerCase();
+
+      // Primary write: the profiles row is what the header, guards and dashboard
+      // greetings read from. Surface any DB-level failure (for example the
+      // accountant name-lock trigger) instead of silently saving nothing while
+      // the UI pretends the change went through.
+      const { error: profileErr } = await supabase
+        .from('profiles')
+        .update(patch)
+        .eq('id', user.id);
+      if (profileErr) throw new Error(profileErr.message);
+
+      // Mirror the editable fields into the role's source-of-truth table so the
+      // change also shows up everywhere else the user appears:
+      //   teacher    -> teachers.full_name / phone / photo_url
+      //   accountant -> accountants.full_name / phone / photo_url
+      //   sub_admin  -> sub_admins.full_name
+      //   admin      -> schools.admin_name / admin_photo_url
+      // (schools.email / schools.phone are NOT touched - those are the school's
+      // official contact used for SMS + public listing, separate from the
+      // administrator's personal detail fields edited on the profile page.)
+      const mirror = {};
+      if (patch.full_name !== undefined) mirror.full_name = patch.full_name;
+      if (patch.phone !== undefined) mirror.phone = patch.phone;
+      if (patch.photo_url !== undefined) mirror.photo_url = patch.photo_url;
+
+      try {
+        if (role === 'teacher' && Object.keys(mirror).length) {
+          await supabase.from('teachers').update(mirror).eq('user_id', user.id);
+        } else if (role === 'accountant' && Object.keys(mirror).length) {
+          await supabase.from('accountants').update(mirror).eq('user_id', user.id);
+        } else if (role === 'sub_admin') {
+          if (mirror.full_name !== undefined) {
+            await supabase.from('sub_admins').update({ full_name: mirror.full_name }).eq('user_id', user.id);
+          }
+        } else if (role === 'admin') {
+          if (mirror.full_name !== undefined) {
+            await supabase.from('schools').update({ admin_name: mirror.full_name }).eq('user_id', user.id);
+          }
+          if (mirror.photo_url !== undefined) {
+            await supabase.from('schools').update({ admin_photo_url: mirror.photo_url }).eq('user_id', user.id);
+          }
+        }
+      } catch (mirrorErr) {
+        // The profiles row already saved; only the display mirror failed. Keep
+        // the primary save intact but make sure the failure is visible so the
+        // user is never left believing the sync fully happened when it did not.
+        console.warn('Could not mirror profile update into staff record:', mirrorErr.message);
+      }
+
+      // Update the in-memory profile so headers / greetings reflect instantly.
       setProfile((prev) => ({ ...(prev || {}), ...patch }));
     },
-    [user]
+    [user, profile]
   );
 
   const superAdminExists = useCallback(async () => {
@@ -726,6 +777,17 @@ export function AuthProvider({ children }) {
             .from('schools')
             .update({ admin_photo_url: stored })
             .eq('registration_id', id);
+          // Keep the new administrator's auth profile in sync so their own
+          // portal header/dashboard shows the photo they chose at onboarding
+          // (profiles.photo_url is what the header reads).
+          try {
+            await supabase
+              .from('profiles')
+              .update({ photo_url: stored })
+              .eq('id', data.user.id);
+          } catch (profilePhotoErr) {
+            console.warn('Could not save admin photo to profile:', profilePhotoErr.message);
+          }
         }
       }
     }

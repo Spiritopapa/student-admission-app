@@ -593,6 +593,15 @@
 -- number. Fee receipt / debtor messages are composed client-side.
 -- Safe to re-run (CREATE OR REPLACE).
 \i 077-sms-school-branding.sql
+
+-- Step 71: Profile photo sync
+-- Guarantees profiles.photo_url exists (the React profile page writes it but
+-- no earlier migration created the column), backfills it from the role tables
+-- (teachers.photo_url, accountants.photo_url, schools.admin_photo_url,
+-- applications.student_photo_url) and mirrors existing profile photos back
+-- into those tables so profile edits reflect in every part of the app.
+-- Safe to re-run (IF NOT EXISTS / UPDATE ... WHERE ... NULL-updates).
+\i 078-profile-photo-sync.sql
 -- ============================================================
 --  SCHEMA DEPLOYMENT COMPLETE
 -- ============================================================
