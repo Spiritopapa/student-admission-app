@@ -9,7 +9,7 @@ import { supabase } from '../../lib/supabase';
 import { uploadFile, randomPath, resolveFileUrl } from '../../lib/storage';
 import { fetchAdmissionItems } from '../../lib/queries';
 import { formatCurrency, formatDate } from '../../lib/format';
-import { TERMS, TERM_LABELS, currentAcademicYear } from '../../lib/constants';
+import { TERMS, TERM_LABELS, currentAcademicYear, academicYearList } from '../../lib/constants';
 
 export default function AdminSettings() {
   const schoolId = useSchoolId();
@@ -182,7 +182,13 @@ export default function AdminSettings() {
         </div>
         <div className="mt-5 grid gap-4 sm:grid-cols-2">
           <Input label="School name" value={form.school_name} onChange={set('school_name')} />
-          <Input label="Academic year" value={form.academic_year} onChange={set('academic_year')} />
+          <Select label="Academic year" value={form.academic_year || currentAcademicYear()} onChange={set('academic_year')}>
+            {academicYearList(6, [form.academic_year]).map((y) => (
+              <option key={y} value={y}>
+                {y}
+              </option>
+            ))}
+          </Select>
           <Select label="Current term" value={form.current_term} onChange={set('current_term')}>
             {TERMS.map((t) => (
               <option key={t} value={t}>

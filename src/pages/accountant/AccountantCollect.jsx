@@ -11,7 +11,7 @@ import { supabase } from '../../lib/supabase';
 import { fetchStudentFees } from '../../lib/queries';
 import { sendStudentPaymentSms, fetchSchoolContact } from '../../lib/api';
 import { buildStudentName, cedi, termLabel } from '../../lib/format';
-import { TERMS, PAYMENT_METHODS, PAYMENT_METHOD_LABELS, currentAcademicYear } from '../../lib/constants';
+import { TERMS, PAYMENT_METHODS, PAYMENT_METHOD_LABELS, currentAcademicYear, academicYearList } from '../../lib/constants';
 import { photoUrl } from '../../lib/storage';
 
 export default function AccountantCollect() {
@@ -408,7 +408,7 @@ export default function AccountantCollect() {
 
                 <div className="grid grid-cols-2 gap-3">
                   <Select label="Academic year" value={year} onChange={(e) => setYear(e.target.value)}>
-                    {[...new Set([settings?.academic_year, currentAcademicYear()].filter(Boolean))].map((y) => (
+                    {academicYearList(6, [settings?.academic_year]).map((y) => (
                       <option key={y} value={y}>
                         {y}
                       </option>

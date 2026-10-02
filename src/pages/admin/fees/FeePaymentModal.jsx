@@ -8,7 +8,7 @@ import { supabase } from '../../../lib/supabase';
 import { fetchStudentFees } from '../../../lib/queries';
 import { sendStudentPaymentSms, fetchSchoolContact } from '../../../lib/api';
 import { buildStudentName, termLabel } from '../../../lib/format';
-import { TERMS, PAYMENT_METHODS, PAYMENT_METHOD_LABELS, currentAcademicYear } from '../../../lib/constants';
+import { TERMS, PAYMENT_METHODS, PAYMENT_METHOD_LABELS, currentAcademicYear, academicYearList } from '../../../lib/constants';
 
 const TERM_ORDER = { First: 0, Second: 1, Third: 2 };
 const yearStart = (y) => Number(String(y || '').split('/')[0] || 0);
@@ -231,7 +231,13 @@ export default function FeePaymentModal({ open, student, onClose, onPaid }) {
             ) : null}
           </div>
           <div className="mt-4 grid grid-cols-2 gap-3">
-            <Input label="Academic year" value={year} onChange={(e) => setYear(e.target.value)} />
+            <Select label="Academic year" value={year} onChange={(e) => setYear(e.target.value)}>
+              {academicYearList(6, [year]).map((y) => (
+                <option key={y} value={y}>
+                  {y}
+                </option>
+              ))}
+            </Select>
             <Select label="Term" value={term} onChange={(e) => setTerm(e.target.value)}>
               {TERMS.map((t) => (
                 <option key={t} value={t}>

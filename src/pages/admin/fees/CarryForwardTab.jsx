@@ -5,7 +5,7 @@ import { useToast } from '../../../context/ToastContext';
 import { Card, Button, Input, Select, Spinner, EmptyState } from '../../../components/ui';
 import { supabase } from '../../../lib/supabase';
 import { termLabel } from '../../../lib/format';
-import { TERMS, currentAcademicYear } from '../../../lib/constants';
+import { TERMS, currentAcademicYear, academicYearList } from '../../../lib/constants';
 
 export default function CarryForwardTab() {
   const schoolId = useSchoolId();
@@ -170,7 +170,13 @@ export default function CarryForwardTab() {
             ))}
           </Select>
           <div className="grid grid-cols-2 gap-2">
-            <Input label="From year" value={cf.fromYear} onChange={setCfField('fromYear')} />
+            <Select label="From year" value={cf.fromYear} onChange={setCfField('fromYear')}>
+              {academicYearList(6, [cf.fromYear]).map((y) => (
+                <option key={y} value={y}>
+                  {y}
+                </option>
+              ))}
+            </Select>
             <Select label="From term" value={cf.fromTerm} onChange={setCfField('fromTerm')}>
               {TERMS.map((t) => (
                 <option key={t} value={t}>
@@ -180,7 +186,13 @@ export default function CarryForwardTab() {
             </Select>
           </div>
           <div className="grid grid-cols-2 gap-2">
-            <Input label="To year" value={cf.toYear} onChange={setCfField('toYear')} />
+            <Select label="To year" value={cf.toYear} onChange={setCfField('toYear')}>
+              {academicYearList(6, [cf.toYear]).map((y) => (
+                <option key={y} value={y}>
+                  {y}
+                </option>
+              ))}
+            </Select>
             <Select label="To term" value={cf.toTerm} onChange={setCfField('toTerm')}>
               {TERMS.map((t) => (
                 <option key={t} value={t}>

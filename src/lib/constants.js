@@ -83,3 +83,27 @@ export function currentAcademicYear() {
   // silently fail every academic-year lookup.
   return `${startYear}/${startYear + 1}`;
 }
+
+/**
+ * Academic-year list for <select> combos. Starts at the currently computed
+ * academic year and adds `count` years forward, e.g.
+ * ["2026/2027", "2027/2028", "2028/2029", ...]. Any `include` values (e.g. an
+ * already-stored year on an existing record) are merged in (appended when not
+ * part of the current + future run) so an existing selection never disappears.
+ */
+export function academicYearList(count = 5, include = []) {
+  const current = Number(currentAcademicYear().split('/')[0]);
+  const extra = new Set();
+  (include || []).forEach((y) => {
+    if (typeof y === 'string' && /^\d{4}\/\d{4}$/.test(y)) extra.add(y);
+  });
+  const years = [];
+  for (let i = 0; i < count; i += 1) {
+    const start = current + i;
+    years.push(`${start}/${start + 1}`);
+  }
+  extra.forEach((y) => {
+    if (!years.includes(y)) years.push(y);
+  });
+  return years;
+}

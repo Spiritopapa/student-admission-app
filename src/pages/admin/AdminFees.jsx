@@ -5,7 +5,7 @@ import { useToast } from '../../context/ToastContext';
 import { PageHeader, Card, Button, Input, Select, Spinner, EmptyState, Badge } from '../../components/ui';
 import { Modal, ConfirmDialog, Alert } from '../../components/ui-extras';
 import { supabase } from '../../lib/supabase';
-import { TERMS, currentAcademicYear, TERM_LABELS } from '../../lib/constants';
+import { TERMS, currentAcademicYear, academicYearList, TERM_LABELS } from '../../lib/constants';
 import { cedi, termLabel } from '../../lib/format';
 import StudentFeesTab from './fees/StudentFeesTab';
 import DebtorsTab from './fees/DebtorsTab';
@@ -330,7 +330,13 @@ export default function AdminFees() {
               </option>
             ))}
           </Select>
-          <Input label="Academic year" value={form.academic_year} onChange={set('academic_year')} />
+          <Select label="Academic year" value={form.academic_year || currentAcademicYear()} onChange={set('academic_year')}>
+            {academicYearList(6, [form.academic_year]).map((y) => (
+              <option key={y} value={y}>
+                {y}
+              </option>
+            ))}
+          </Select>
           <Select label="Term" value={form.term} onChange={set('term')}>
             {TERMS.map((t) => (
               <option key={t} value={t}>

@@ -338,7 +338,7 @@ return (
     <div>
       <PageHeader
         title={settings?.school_name || 'School Dashboard'}
-        subtitle={`Academic year ${settings?.academic_year || currentAcademicYear()} - ${settings?.current_term || 'First'} Term · ${data.classCount} classes`}
+        subtitle={`Academic year ${currentAcademicYear()} - ${settings?.current_term || 'First'} Term · ${data.classCount} classes`}
         icon={LayoutDashboard}
         actions={
           <div className="flex flex-wrap items-center gap-2">

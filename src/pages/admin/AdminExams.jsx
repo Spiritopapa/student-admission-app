@@ -9,7 +9,7 @@ import { PageHeader, Card, Button, Input, Select, Spinner, EmptyState, Badge, St
 import { Modal, ConfirmDialog, Alert, Tabs } from '../../components/ui-extras';
 import { supabase } from '../../lib/supabase';
 import { buildStudentName, formatDate, getSubjectGrade, termLabel } from '../../lib/format';
-import { TERMS, TERM_LABELS, currentAcademicYear } from '../../lib/constants';
+import { TERMS, TERM_LABELS, currentAcademicYear, academicYearList } from '../../lib/constants';
 import { buildCSV, parseCSV } from '../../lib/csv';
 import { buildReportCardHTML, buildTranscriptHTML, computeExamRankings } from '../../lib/examReports';
 
@@ -1160,7 +1160,13 @@ export default function AdminExams() {
         ) : null}
         <div className="grid gap-4 sm:grid-cols-2">
           <Input label="Exam name *" value={examForm.name} onChange={set('name')} placeholder="e.g. End of Term Exams" className="sm:col-span-2" />
-          <Input label="Academic year" value={examForm.academic_year} onChange={set('academic_year')} />
+          <Select label="Academic year" value={examForm.academic_year} onChange={set('academic_year')}>
+            {academicYearList(6, [examForm.academic_year]).map((y) => (
+              <option key={y} value={y}>
+                {y}
+              </option>
+            ))}
+          </Select>
           <Select label="Term" value={examForm.term} onChange={set('term')}>
             {TERMS.map((t) => (
               <option key={t} value={t}>{TERM_LABELS[t]}</option>
