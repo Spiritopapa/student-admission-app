@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ReceiptText } from 'lucide-react';
+import { ReceiptText, Building2, RefreshCw } from 'lucide-react';
 import { useSchoolId } from '../../hooks/useSchool';
-import { PageHeader, Spinner, EmptyState, SearchInput, Badge, Input, Select } from '../../components/ui';
+import { PageHeader, Spinner, EmptyState, SearchInput, Badge, Input, Select, Button } from '../../components/ui';
 import ReceiptModal from '../../components/ReceiptModal';
 import { supabase } from '../../lib/supabase';
 import { cedi, formatDateTime } from '../../lib/format';
@@ -12,6 +12,8 @@ export default function AccountantReceipts() {
   const [appsMap, setAppsMap] = useState({});
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [attempt, setAttempt] = useState(0);
   const [query, setQuery] = useState('');
   const [classFilter, setClassFilter] = useState('');
   const [fromDate, setFromDate] = useState('');
@@ -19,7 +21,12 @@ export default function AccountantReceipts() {
   const [active, setActive] = useState(null);
 
   useEffect(() => {
-    if (!schoolId) return;
+    if (!schoolId) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    setError('');
     Promise.all([
       supabase
         .from('receipts')
@@ -32,13 +39,18 @@ export default function AccountantReceipts() {
         .select('student_id, first_name, middle_name, last_name, class_applying')
         .eq('school_id', schoolId),
       supabase.from('classes').select('id, name').eq('school_id', schoolId).order('name'),
-    ]).then(([{ data }, { data: appsData }, { data: classRows }]) => {
-      setReceipts(data || []);
-      setAppsMap(Object.fromEntries((appsData || []).map((a) => [a.student_id, a])));
-      setClasses(classRows || []);
-      setLoading(false);
-    });
-  }, [schoolId]);
+    ])
+      .then(([{ data }, { data: appsData }, { data: classRows }]) => {
+        setReceipts(data || []);
+        setAppsMap(Object.fromEntries((appsData || []).map((a) => [a.student_id, a])));
+        setClasses(classRows || []);
+        setLoading(false);
+      })
+      .catch((err) => {
+        setError(err.message || 'Could not load receipts.');
+        setLoading(false);
+      });
+  }, [schoolId, attempt]);
 
   const studentName = (r) => {
     const app = appsMap[r.student_id];
@@ -76,6 +88,28 @@ export default function AccountantReceipts() {
       />
       <ReceiptModal receipt={active} onClose={() => setActive(null)} />
 
+      {!schoolId ? (
+        <EmptyState
+          icon={Building2}
+          title="No school linked"
+          message="This accountant account is not linked to a school yet. Ask the school administrator to link your account, then sign out and back in."
+        />
+      ) : loading ? (
+        <Spinner label="Loading receipts..." />
+      ) : error ? (
+        <EmptyState
+          icon={ReceiptText}
+          title="Could not load receipts"
+          message={`${error} Check that the school's receipt records are available, then try again.`}
+          action={
+            <Button onClick={() => setAttempt((a) => a + 1)}>
+              <RefreshCw className="h-4 w-4" aria-hidden="true" />
+              Retry
+            </Button>
+          }
+        />
+      ) : (
+        <>
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <Badge tone="slate">{summary.count} receipt(s)</Badge>
         <Badge tone="green">Total {cedi(summary.total)}</Badge>
@@ -138,6 +172,8 @@ export default function AccountantReceipts() {
           title="No receipts found"
           message={receipts.length ? 'Try different search or filters.' : 'Receipts issued at this school will appear here.'}
         />
+      )}
+        </>
       )}
     </div>
   );
