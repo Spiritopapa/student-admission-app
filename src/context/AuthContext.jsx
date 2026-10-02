@@ -171,6 +171,19 @@ async function applyGuards(user) {
     return record;
   };
 
+  // Self-heal: RLS blocks the pre-signup school_id lookup, so older staff
+  // profiles may have been created with NULL school_id. If the staff record
+  // carries the school, backfill the profile so dashboards never show
+  // "No school linked".
+  const healProfileSchool = async (record) => {
+    if (!record?.school_id || profile?.school_id) return;
+    const { error: healErr } = await supabase
+      .from('profiles')
+      .update({ school_id: record.school_id })
+      .eq('id', user.id);
+    if (!healErr) profile = { ...profile, school_id: record.school_id };
+  };
+
   if (role === 'sub_admin') {
     const record = await approvalFlow('sub_admins', 'auto_approve_sub_admin_on_login', 'School Administrator');
     if (record.school_id) {
@@ -186,14 +199,17 @@ async function applyGuards(user) {
         );
       }
     }
+    await healProfileSchool(record);
   }
 
   if (role === 'teacher') {
-    await approvalFlow('teachers', 'auto_approve_teacher_on_login', 'Sub Administrator');
+    const record = await approvalFlow('teachers', 'auto_approve_teacher_on_login', 'Sub Administrator');
+    await healProfileSchool(record);
   }
 
   if (role === 'accountant') {
-    await approvalFlow('accountants', 'auto_approve_accountant_on_login', 'Sub Administrator');
+    const record = await approvalFlow('accountants', 'auto_approve_accountant_on_login', 'Sub Administrator');
+    await healProfileSchool(record);
   }
 
   if (role === 'student') {
@@ -334,12 +350,27 @@ export function AuthProvider({ children }) {
     if (!idExists) {
       throw new Error('Invalid Student ID. Please check with your Sub Administrator.');
     }
-    const { data: studentInfo } = await supabase
-      .from('applications')
-      .select('first_name, last_name, school_id, class_applying')
-      .eq('student_id', id)
-      .single();
-    const fullName = studentInfo
+    // Direct table reads are RLS-blocked for unauthenticated visitors, so pull
+    // the school_id through the anon-safe SECURITY DEFINER RPC first — otherwise
+    // the profile would be created with a NULL school_id and the dashboard would
+    // show "No school linked". The direct read is kept as a fallback (it also
+    // supplies the student's name when the RPC is absent).
+    let studentInfo = null;
+    try {
+      const rpcRes = await supabase.rpc('get_student_registration_info', { p_student_id: id }).single();
+      if (!rpcRes.error && rpcRes.data) studentInfo = rpcRes.data;
+    } catch (rpcErr) {
+      console.warn('get_student_registration_info failed:', rpcErr.message);
+    }
+    if (!studentInfo) {
+      const directRes = await supabase
+        .from('applications')
+        .select('first_name, last_name, school_id, class_applying')
+        .eq('student_id', id)
+        .single();
+      if (!directRes.error) studentInfo = directRes.data;
+    }
+    const fullName = studentInfo?.first_name
       ? `${studentInfo.first_name || ''} ${studentInfo.last_name || ''}`.trim()
       : id;
     const schoolId = studentInfo?.school_id || null;
@@ -381,12 +412,21 @@ export function AuthProvider({ children }) {
     if (!wardExists) {
       throw new Error('Ward Student ID not found. Please check with your Sub Administrator.');
     }
-    const { data: app } = await supabase
-      .from('applications')
-      .select('school_id')
-      .eq('student_id', wardId)
-      .maybeSingle();
-    const schoolId = app?.school_id || null;
+    let schoolId = null;
+    try {
+      const rpcRes = await supabase.rpc('get_student_registration_info', { p_student_id: wardId }).single();
+      if (!rpcRes.error && rpcRes.data?.school_id) schoolId = rpcRes.data.school_id;
+    } catch (rpcErr) {
+      console.warn('get_student_registration_info failed:', rpcErr.message);
+    }
+    if (!schoolId) {
+      const { data: app } = await supabase
+        .from('applications')
+        .select('school_id')
+        .eq('student_id', wardId)
+        .maybeSingle();
+      schoolId = app?.school_id || null;
+    }
     const { data, error } = await supabase.auth.signUp({
       email: email.trim(),
       password,
@@ -424,7 +464,7 @@ export function AuthProvider({ children }) {
       .eq('registration_id', id)
       .single();
     const fullName = subAdmin?.full_name || id;
-    const schoolId = subAdmin?.school_id || null;
+    let schoolId = subAdmin?.school_id || null;
     const email = id.toLowerCase() + '@subadmin.local';
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -447,6 +487,18 @@ export function AuthProvider({ children }) {
       } catch (err) {
         await supabase.from('sub_admins').update({ user_id: data.user.id }).eq('registration_id', id);
       }
+      // RLS blocked the pre-signup read, so school_id may still be null here.
+      // The record is now linked to this user — read the school_id back and
+      // write it into the profile so the admin dashboard isn't left showing
+      // "No school linked".
+      if (!schoolId) {
+        const { data: linkedSub } = await supabase
+          .from('sub_admins')
+          .select('school_id')
+          .eq('user_id', data.user.id)
+          .maybeSingle();
+        if (linkedSub?.school_id) schoolId = linkedSub.school_id;
+      }
       await supabase.from('profiles').upsert({
         id: data.user.id,
         full_name: fullName,
@@ -466,13 +518,27 @@ export function AuthProvider({ children }) {
     if (!idExists) {
       throw new Error('Invalid Registration ID. Please check with your Sub Administrator.');
     }
-    const { data: teacher } = await supabase
-      .from('teachers')
-      .select('full_name, school_id')
-      .eq('registration_id', id)
-      .single();
-    const fullName = teacher?.full_name || id;
-    const schoolId = teacher?.school_id || null;
+    // Direct table reads are RLS-blocked for unauthenticated visitors, so look
+    // the record up through the anon-safe SECURITY DEFINER RPC first — otherwise
+    // the profile would be created with a NULL school_id and the dashboard would
+    // show "No school linked". Falls back to the direct read if the RPC is absent.
+    let teacherInfo = null;
+    try {
+      const rpcRes = await supabase.rpc('get_teacher_registration_info', { p_registration_id: id }).single();
+      if (!rpcRes.error && rpcRes.data) teacherInfo = rpcRes.data;
+    } catch (rpcErr) {
+      console.warn('get_teacher_registration_info failed:', rpcErr.message);
+    }
+    if (!teacherInfo) {
+      const directRes = await supabase
+        .from('teachers')
+        .select('full_name, school_id')
+        .eq('registration_id', id)
+        .single();
+      if (!directRes.error) teacherInfo = directRes.data;
+    }
+    const fullName = teacherInfo?.full_name || id;
+    const schoolId = teacherInfo?.school_id || null;
     const email = id.toLowerCase() + '@teacher.local';
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -519,13 +585,27 @@ export function AuthProvider({ children }) {
     if (!idExists) {
       throw new Error('Invalid Registration ID. Please check with your Sub Administrator.');
     }
-    const { data: accountant } = await supabase
-      .from('accountants')
-      .select('full_name, school_id')
-      .eq('registration_id', id)
-      .single();
-    const fullName = accountant?.full_name || id;
-    const schoolId = accountant?.school_id || null;
+    // Direct table reads are RLS-blocked for unauthenticated visitors, so look
+    // the record up through the anon-safe SECURITY DEFINER RPC first — otherwise
+    // the profile would be created with a NULL school_id and the dashboard would
+    // show "No school linked". Falls back to the direct read if the RPC is absent.
+    let accountantInfo = null;
+    try {
+      const rpcRes = await supabase.rpc('get_accountant_registration_info', { p_registration_id: id }).single();
+      if (!rpcRes.error && rpcRes.data) accountantInfo = rpcRes.data;
+    } catch (rpcErr) {
+      console.warn('get_accountant_registration_info failed:', rpcErr.message);
+    }
+    if (!accountantInfo) {
+      const directRes = await supabase
+        .from('accountants')
+        .select('full_name, school_id')
+        .eq('registration_id', id)
+        .single();
+      if (!directRes.error) accountantInfo = directRes.data;
+    }
+    const fullName = accountantInfo?.full_name || id;
+    const schoolId = accountantInfo?.school_id || null;
     const email = id.toLowerCase() + '@accountant.local';
     const { data, error } = await supabase.auth.signUp({
       email,

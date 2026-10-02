@@ -83,18 +83,24 @@ function StudentPopulationChart({ population }) {
               <span className="w-24 shrink-0 truncate text-right text-xs font-medium text-slate-500" title={p.className}>
                 {p.className}
               </span>
-              <div className="h-6 flex-1 overflow-hidden rounded-lg bg-slate-100">
+              <div className="h-6 flex-1 overflow-hidden rounded-lg bg-slate-100" title={`${p.male || 0} male · ${p.female || 0} female`}>
                 <motion.div
                   initial={{ width: 0 }}
                   animate={{ width: `${heightPct}%` }}
                   transition={{ duration: 0.8, ease: 'easeOut' }}
                   className="flex h-full"
                 >
-                  <div className="h-full bg-brand-500/80" style={{ flex: maleFlex }} />
-                  <div className="h-full bg-pink-400/80" style={{ flex: femaleFlex }} />
+                  <div className="h-full bg-brand-500/80" style={{ flex: maleFlex }} title={`${p.male || 0} male`} />
+                  <div className="h-full bg-pink-400/80" style={{ flex: femaleFlex }} title={`${p.female || 0} female`} />
                 </motion.div>
               </div>
-              <span className="w-14 shrink-0 text-right text-xs font-bold text-slate-700">{p.total}</span>
+              <span className="w-32 shrink-0 text-right text-xs tabular-nums">
+                <span className="font-bold text-brand-600">M {p.male || 0}</span>
+                <span className="mx-1 text-slate-300">·</span>
+                <span className="font-bold text-pink-500">F {p.female || 0}</span>
+                <span className="mx-1 text-slate-300">·</span>
+                <span className="font-bold text-slate-700">{p.total}</span>
+              </span>
             </div>
           );
         })}
