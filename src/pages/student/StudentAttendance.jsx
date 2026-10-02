@@ -137,6 +137,7 @@ export default function StudentAttendance() {
                     <p className="text-xs text-slate-400">
                       {r.academic_year} - {termLabel(r.term)}
                     </p>
+                    {r.remarks ? <p className="mt-0.5 text-xs text-slate-500">{r.remarks}</p> : null}
                   </div>
                 </div>
                 <Badge tone={r.status === 'present' ? 'green' : 'red'}>{r.status}</Badge>
