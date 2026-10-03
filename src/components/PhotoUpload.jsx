@@ -70,7 +70,9 @@ export function PhotoUpload({ value, onChange, maxMb = DEFAULT_MAX_MB, circle = 
   };
 
   /* ----------------------------- camera ----------------------------- */
-  const stopCamera = () => {
+  // Stop the currently open stream and release the preview element so the
+  // next getUserMedia() call can grab a different camera (front <-> rear).
+  const stopStream = () => {
     try {
       const stream = streamRef.current;
       if (stream && typeof stream.getTracks === 'function') {
@@ -94,6 +96,10 @@ export function PhotoUpload({ value, onChange, maxMb = DEFAULT_MAX_MB, circle = 
         // ignore
       }
     }
+  };
+
+  const stopCamera = () => {
+    stopStream();
     setCameraOpen(false);
   };
 
@@ -103,8 +109,13 @@ export function PhotoUpload({ value, onChange, maxMb = DEFAULT_MAX_MB, circle = 
     setCameraBusy(true);
     try {
       if (!navigator.mediaDevices?.getUserMedia) throw new Error('Camera capture not supported here.');
+      // Release any previously opened stream first — some platforms expose
+      // only one camera at a time while a stream is active.
+      stopStream();
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: facing === 'user' ? { facingMode: 'user' } : true,
+        // 'user' = the camera on the screen side (selfie camera),
+        // 'environment' = the camera on the back of the device (rear camera).
+        video: facing === 'user' ? { facingMode: 'user' } : { facingMode: 'environment' },
         audio: false,
       });
       streamRef.current = stream;
