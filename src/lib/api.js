@@ -58,8 +58,26 @@ export async function sendStudentPaymentSms({ schoolId, studentId, receiptNumber
 }
 
 async function logSms(entry) {
+  // Map every caller convention (camelCase and snake_case) onto the actual
+  // sms_logs columns. PostgREST rejects unknown/aliased keys, and before this
+  // normalisation fee-payment / reminder logs were silently dropped, leaving
+  // the SMS Monitor with no rows to fetch.
+  const row = {
+    school_id: entry.school_id ?? entry.schoolId ?? null,
+    student_id: entry.student_id ?? entry.studentId ?? null,
+    receipt_number: entry.receipt_number ?? entry.receiptNumber ?? null,
+    recipient: entry.recipient ?? null,
+    message: entry.message ?? null,
+    sender_id: entry.sender_id ?? entry.senderId ?? null,
+    status: entry.status ?? null,
+    success: Boolean(entry.success),
+    provider_response: entry.provider_response ?? entry.providerResponse ?? entry.providerRaw ?? null,
+    error: entry.error ?? null,
+    created_by: entry.created_by ?? entry.createdBy ?? null,
+  };
   try {
-    await supabase.from('sms_logs').insert([entry]);
+    const { error } = await supabase.from('sms_logs').insert([row]);
+    if (error) console.warn('SMS log insert failed:', error.message);
   } catch (err) {
     console.warn('SMS log insert failed:', err.message);
   }
@@ -117,4 +135,26 @@ export async function submitSupportReport({ type, subject, details }) {
   });
   if (error) throw new Error(error.message);
   return true;
+}
+
+/**
+ * Outstanding school-fee balance for a student AFTER a payment processed via
+ * `process_fee_payment`. That RPC returns the paid term's remaining balance
+ * (`remaining_balance`); other terms are untouched by the payment, so their
+ * pre-payment balances are added on top. Used to include the balance in the
+ * fee-payment SMS sent to the parent.
+ *
+ * @param {object} options
+ * @param {object} options.data - the RPC result (uses remaining_balance)
+ * @param {Array}  options.feeRecords - the student's `fees` rows
+ * @param {string} options.year - academic year that was paid (e.g. "2025/2026")
+ * @param {string} options.term - term that was paid ("First" | "Second" | "Third")
+ * @returns {number} the student's total remaining balance (never negative)
+ */
+export function outstandingBalanceAfterPayment({ data, feeRecords = [], year, term }) {
+  const paidTermBalance = Math.max(Number(data?.remaining_balance) || 0, 0);
+  const otherTerms = (feeRecords || [])
+    .filter((f) => !(f.academic_year === year && f.term === term))
+    .reduce((sum, f) => sum + Math.max(Number(f.total_amount) + Number(f.debt || 0) - Number(f.amount_paid), 0), 0);
+  return paidTermBalance + otherTerms;
 }

@@ -602,6 +602,14 @@
 -- into those tables so profile edits reflect in every part of the app.
 -- Safe to re-run (IF NOT EXISTS / UPDATE ... WHERE ... NULL-updates).
 \i 078-profile-photo-sync.sql
+
+-- Step 72: Bidirectional school logo/name sync
+-- Keeps `schools` and `school_settings` in sync for name + logo_url in both
+-- directions (25/021 only synced schools.name -> settings). Fixes the Super
+-- Admin dashboard showing a stale logo after the school admin updates it in
+-- School Settings, and backfills existing gaps.
+-- Safe to re-run (CREATE OR REPLACE / trigger drop / guarded UPDATEs).
+\i 079-school-logo-bidirectional-sync.sql
 -- ============================================================
 --  SCHEMA DEPLOYMENT COMPLETE
 -- ============================================================

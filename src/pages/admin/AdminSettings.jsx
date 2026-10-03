@@ -134,6 +134,19 @@ export default function AdminSettings() {
         current_term: form.current_term,
         logo_url: logoUrlValue,
       });
+      // Keep the `schools` row in sync too — the Super Admin dashboard and the
+      // school list read `schools.name` / `schools.logo_url`, so without this
+      // they keep showing the previous logo/name. Best-effort: sub-admins may
+      // not have UPDATE rights on `schools` (RLS), in which case the DB trigger
+      // from sql/079 keeps the row consistent.
+      try {
+        await supabase
+          .from('schools')
+          .update({ name: form.school_name.trim(), logo_url: logoUrlValue })
+          .eq('id', schoolId);
+      } catch (schoolSyncErr) {
+        console.warn('Could not sync schools row from settings:', schoolSyncErr.message);
+      }
       toast.success('Settings saved', 'Your school settings were updated.');
       setLogoUrl(logoUrlValue);
       setLogoFile(null);

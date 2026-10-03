@@ -9,7 +9,7 @@ import { Alert } from '../../components/ui-extras';
 import ReceiptModal from '../../components/ReceiptModal';
 import { supabase } from '../../lib/supabase';
 import { fetchStudentFees } from '../../lib/queries';
-import { sendStudentPaymentSms, fetchSchoolContact } from '../../lib/api';
+import { sendStudentPaymentSms, fetchSchoolContact, outstandingBalanceAfterPayment } from '../../lib/api';
 import { buildStudentName, cedi, termLabel } from '../../lib/format';
 import { TERMS, PAYMENT_METHODS, PAYMENT_METHOD_LABELS, currentAcademicYear, academicYearList } from '../../lib/constants';
 import { photoUrl } from '../../lib/storage';
@@ -229,7 +229,12 @@ export default function AccountantCollect() {
       if (sendSms && selected.parent_contact) {
         const brand = schoolContact.name ? `${schoolContact.name}: ` : '';
         const contact = schoolContact.phone ? ` For any assistance, call ${schoolContact.phone}.` : '';
-        const message = `${brand}Fee payment of GHC ${(Number(data.amount_paid) || amt).toFixed(2)} received for ${data.student_name || selected.first_name}. Receipt: ${data.receipt_number}. Paid for ${data.academic_year} ${termLabel(data.term)}. Thank you.${contact}`;
+        const balanceAfter = outstandingBalanceAfterPayment({ data, feeRecords: feeInfo || [], year, term });
+        const balancePart =
+          balanceAfter > 0
+            ? ` Remaining balance: GHC ${balanceAfter.toFixed(2)}.`
+            : " Your ward's fees are fully settled.";
+        const message = `${brand}Fee payment of GHC ${(Number(data.amount_paid) || amt).toFixed(2)} received for ${data.student_name || selected.first_name}. Receipt: ${data.receipt_number}. Paid for ${data.academic_year} ${termLabel(data.term)}.${balancePart} Thank you.${contact}`;
         const sms = await sendStudentPaymentSms({
           schoolId,
           studentId: selected.student_id,
