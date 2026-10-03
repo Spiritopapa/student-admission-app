@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Wallet, Plus, Pencil, Trash2, LayoutGrid } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Wallet, Plus, Pencil, Trash2, LayoutGrid, ChevronDown, ChevronsDown, ChevronsUp } from 'lucide-react';
 import { useSchoolId, useSchoolSettings } from '../../hooks/useSchool';
 import { useToast } from '../../context/ToastContext';
 import { PageHeader, Card, Button, Input, Select, Spinner, EmptyState, Badge } from '../../components/ui';
@@ -19,6 +19,8 @@ const TABS = [
   { value: 'receipts', label: 'Receipts' },
   { value: 'carry', label: 'Carry Forward' },
 ];
+
+const yearStart = (y) => Number(String(y || '').split('/')[0] || 0);
 
 export default function AdminFees() {
   const schoolId = useSchoolId();
@@ -40,6 +42,7 @@ export default function AdminFees() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [deleting, setDeleting] = useState(null);
+  const [openClasses, setOpenClasses] = useState({}); // class_name -> expanded (collapsible fee structure)
 
   const load = () => {
     if (!schoolId) return;
@@ -64,12 +67,38 @@ export default function AdminFees() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [schoolId]);
 
+  // Group the fee structure rows by class so the list stays compact — every
+  // class is a collapsible section, and only classes that already have at
+  // least one term/amount configured appear at all.
+  const grouped = useMemo(() => {
+    const map = {};
+    (rows || []).forEach((r) => {
+      if (!map[r.class_name]) map[r.class_name] = [];
+      map[r.class_name].push(r);
+    });
+    return Object.keys(map)
+      .sort((a, b) => a.localeCompare(b))
+      .map((name) => {
+        const terms = map[name];
+        const yearSet = [...new Set(terms.map((r) => r.academic_year))];
+        const latestYear = yearSet.slice().sort((a, b) => yearStart(b) - yearStart(a))[0] || '';
+        const latestYearTotal = terms
+          .filter((r) => r.academic_year === latestYear)
+          .reduce((s, r) => s + Number(r.fee_amount || 0), 0);
+        return { class_name: name, terms, years: yearSet.length, latestYear, latestYearTotal };
+      });
+  }, [rows]);
+
+  const toggleClass = (name) => setOpenClasses((prev) => ({ ...prev, [name]: !prev[name] }));
+  const expandAll = () => setOpenClasses(Object.fromEntries(grouped.map((g) => [g.class_name, true])));
+  const collapseAll = () => setOpenClasses({});
+
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
 
-  const openAdd = () => {
+  const openAdd = (className) => {
     setEditing(null);
     setForm({
-      class_name: classes[0]?.name || '',
+      class_name: className || classes[0]?.name || '',
       academic_year: settings?.academic_year || currentAcademicYear(),
       term: 'First',
       fee_amount: '',
@@ -233,7 +262,7 @@ export default function AdminFees() {
         icon={Wallet}
         actions={
           tab === 'structure' ? (
-            <Button onClick={openAdd}>
+            <Button onClick={() => openAdd()}>
               <Plus className="h-4 w-4" aria-hidden="true" />
               Add fee structure
             </Button>
@@ -266,37 +295,103 @@ export default function AdminFees() {
         <Spinner label="Loading fee structure..." />
       ) : rows.length ? (
         <div className="space-y-3">
-          {rows.map((row) => (
-            <Card key={row.id} className="flex flex-wrap items-center justify-between gap-3 p-4">
-              <div className="flex items-center gap-3">
-                <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-accent-500/10 text-accent-600">
-                  <Wallet className="h-5 w-5" aria-hidden="true" />
-                </span>
-                <div>
-                  <p className="text-sm font-bold text-slate-800">{row.class_name}</p>
-                  <p className="text-xs text-slate-400">
-                    {row.academic_year} · {termLabel(row.term)}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <Badge tone="amber">{cedi(row.fee_amount)}</Badge>
-                <button type="button" onClick={() => openEdit(row)} className="rounded-lg p-1.5 text-slate-400 hover:bg-brand-50 hover:text-brand-600" aria-label="Edit fee structure">
-                  <Pencil className="h-4 w-4" aria-hidden="true" />
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-sm text-slate-500">
+              {grouped.length} class{grouped.length === 1 ? '' : 'es'} · {rows.length} term fee{rows.length === 1 ? '' : 's'} configured
+            </p>
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="secondary" onClick={expandAll}>
+                <ChevronsDown className="h-3.5 w-3.5" aria-hidden="true" />
+                Expand all
+              </Button>
+              <Button size="sm" variant="secondary" onClick={collapseAll}>
+                <ChevronsUp className="h-3.5 w-3.5" aria-hidden="true" />
+                Collapse all
+              </Button>
+            </div>
+          </div>
+
+          {grouped.map((group) => {
+            const isOpen = !!openClasses[group.class_name];
+            return (
+              <Card key={group.class_name} className="overflow-hidden p-0">
+                <button
+                  type="button"
+                  onClick={() => toggleClass(group.class_name)}
+                  aria-expanded={isOpen}
+                  className="flex w-full flex-wrap items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-slate-50"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-accent-500/10 text-accent-600">
+                      <ChevronDown className={`h-5 w-5 transition-transform ${isOpen ? '' : '-rotate-90'}`} aria-hidden="true" />
+                    </span>
+                    <div>
+                      <p className="text-sm font-bold text-slate-800">{group.class_name}</p>
+                      <p className="text-xs text-slate-400">
+                        {group.terms.length} term fee{group.terms.length === 1 ? '' : 's'} · {group.years} academic year{group.years === 1 ? '' : 's'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {group.latestYearTotal > 0 ? (
+                      <Badge tone="amber">
+                        {cedi(group.latestYearTotal)} for {group.latestYear}
+                      </Badge>
+                    ) : null}
+                    <span className="text-xs text-slate-400">{isOpen ? 'Click to hide' : 'Click to expand'}</span>
+                  </div>
                 </button>
-                <button type="button" onClick={() => setDeleting(row)} className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600" aria-label="Delete fee structure">
-                  <Trash2 className="h-4 w-4" aria-hidden="true" />
-                </button>
-              </div>
-            </Card>
-          ))}
+
+                {isOpen ? (
+                  <div className="space-y-2 border-t border-slate-100 bg-slate-50/50 p-3">
+                    {group.terms.map((row) => (
+                      <div
+                        key={row.id}
+                        className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-100 bg-white px-3 py-2.5"
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="font-mono text-xs text-slate-400">{row.academic_year}</span>
+                          <span className="text-sm font-semibold text-slate-700">{termLabel(row.term)} Term</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <Badge tone="amber">{cedi(row.fee_amount)}</Badge>
+                          <button
+                            type="button"
+                            onClick={() => openEdit(row)}
+                            className="rounded-lg p-1.5 text-slate-400 hover:bg-brand-50 hover:text-brand-600"
+                            aria-label={`Edit ${row.class_name} ${termLabel(row.term)} Term fee`}
+                          >
+                            <Pencil className="h-4 w-4" aria-hidden="true" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDeleting(row)}
+                            className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600"
+                            aria-label={`Delete ${row.class_name} ${termLabel(row.term)} Term fee`}
+                          >
+                            <Trash2 className="h-4 w-4" aria-hidden="true" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                    <div>
+                      <Button size="sm" variant="ghost" onClick={() => openAdd(group.class_name)}>
+                        <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+                        Add term for {group.class_name}
+                      </Button>
+                    </div>
+                  </div>
+                ) : null}
+              </Card>
+            );
+          })}
         </div>
       ) : (
         <EmptyState
           icon={Wallet}
           title="No fee structures yet"
           message="Add the term fee for each class. New students admitted to a class automatically get this fee, and existing students get a fee record when the structure is saved."
-          action={<Button onClick={openAdd}>Add fee structure</Button>}
+          action={<Button onClick={() => openAdd()}>Add fee structure</Button>}
         />
       )}
 
