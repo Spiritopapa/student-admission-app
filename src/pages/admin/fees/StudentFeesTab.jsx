@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Wallet, Plus, Trash2, ReceiptText, Printer, Search, Eye, Pencil } from 'lucide-react';
+import { Wallet, Plus, Trash2, ReceiptText, Printer, Search, Eye, Pencil, FileText } from 'lucide-react';
 import { useSchoolId } from '../../../hooks/useSchool';
 import { useToast } from '../../../context/ToastContext';
 import { PageHeader, Card, Button, Input, Select, Spinner, EmptyState, Badge, SearchInput } from '../../../components/ui';
@@ -8,9 +8,10 @@ import ReceiptModal from '../../../components/ReceiptModal';
 import FeePaymentModal from './FeePaymentModal';
 import { supabase } from '../../../lib/supabase';
 import { buildStudentName, cedi, formatDate, termLabel } from '../../../lib/format';
-import { TERMS, TERM_LABELS, currentAcademicYear } from '../../../lib/constants';
+import { TERMS, TERM_LABELS, currentAcademicYear, academicYearList } from '../../../lib/constants';
 import { openPrintWindow, escapeHtml } from '../../../lib/print';
 import { photoUrl } from '../../../lib/storage';
+import { printTermlyBills, fetchTermClosingDate } from '../../../lib/termBill';
 
 const TERM_ORDER = { First: 0, Second: 1, Third: 2 };
 const yearStart = (y) => Number(String(y || '').split('/')[0] || 0);
@@ -39,6 +40,14 @@ export default function StudentFeesTab() {
   const [deleteReceipt, setDeleteReceipt] = useState(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [classes, setClasses] = useState([]);
+
+  // Termly bill print dialog
+  const [billOpen, setBillOpen] = useState(false);
+  const [billScope, setBillScope] = useState(null); // { kind: 'all' } | { kind: 'one', row }
+  const [billYear, setBillYear] = useState(currentAcademicYear());
+  const [billTerm, setBillTerm] = useState('First');
+  const [billClosing, setBillClosing] = useState('');
+  const [billBusy, setBillBusy] = useState(false);
 
   const load = async () => {
     if (!schoolId) return;
@@ -252,6 +261,51 @@ export default function StudentFeesTab() {
     `);
   };
 
+const openBillDialog = (scope) => {
+    setBillScope(scope);
+    setBillYear(currentAcademicYear());
+    setBillTerm(termFilter || 'First');
+    setBillClosing('');
+    setBillOpen(true);
+  };
+
+  useEffect(() => {
+    if (!billOpen || billBusy) return;
+    let cancelled = false;
+    fetchTermClosingDate(schoolId, billYear, billTerm).then((date) => {
+      if (!cancelled && date) setBillClosing(date || '');
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [billOpen, billYear, billTerm, schoolId]);
+
+  const doPrintBills = async () => {
+    if (!billScope) return;
+    setBillBusy(true);
+    try {
+      const targets = billScope.kind === 'one' ? [billScope.row.app] : rows.map((r) => r.app);
+      const count = await printTermlyBills({
+        schoolId,
+        students: targets,
+        year: billYear,
+        term: billTerm,
+        closingDate: billClosing || null,
+      });
+      if (!count) {
+        toast.error('Nothing to print', 'No students match the current filters.');
+        return;
+      }
+      toast.success('Termly bills printed', `${count} bill(s) generated for ${billTerm} Term ${billYear}.`);
+      setBillOpen(false);
+    } catch (err) {
+      toast.error('Could not print bills', err.message);
+    } finally {
+      setBillBusy(false);
+    }
+  };
+
   return (
     <div>
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
@@ -291,6 +345,10 @@ export default function StudentFeesTab() {
           <Button variant="secondary" onClick={printList} disabled={!rows.length}>
             <Printer className="h-4 w-4" aria-hidden="true" />
             Print list
+          </Button>
+          <Button variant="secondary" onClick={() => openBillDialog({ kind: 'all' })} disabled={!rows.length}>
+            <FileText className="h-4 w-4" aria-hidden="true" />
+            Print termly bills
           </Button>
         </div>
       </div>
@@ -339,6 +397,10 @@ export default function StudentFeesTab() {
                       <Printer className="h-3.5 w-3.5" aria-hidden="true" />
                       Reminder
                     </Button>
+                    <Button size="sm" variant="ghost" onClick={() => openBillDialog({ kind: 'one', row })}>
+                      <FileText className="h-3.5 w-3.5" aria-hidden="true" />
+                      Bill
+                    </Button>
                   </div>
                 </div>
                 {row.fees.length ? (
@@ -369,6 +431,51 @@ export default function StudentFeesTab() {
       )}
 
       <FeePaymentModal open={!!paying} student={paying} onClose={() => setPaying(null)} onPaid={load} />
+<Modal
+        open={billOpen}
+        onClose={() => setBillOpen(false)}
+        title={billScope?.kind === 'one' ? 'Print termly bill' : 'Print termly bills'}
+        subtitle={`${billTerm} Term ${billYear}${billScope?.kind === 'one' && billScope.row ? ` — ${buildStudentName(billScope.row.app.first_name, billScope.row.app.middle_name, billScope.row.app.last_name)}` : ''}`}
+        size="sm"
+        footer={
+          <div className="flex w-full gap-2">
+            <Button variant="secondary" onClick={() => setBillOpen(false)} className="flex-1">
+              Cancel
+            </Button>
+            <Button onClick={doPrintBills} loading={billBusy} className="flex-1">
+              <Printer className="h-4 w-4" aria-hidden="true" />
+              Print {billScope?.kind === 'one' ? 'bill' : `${rows.length} bills`}
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <Select label="Academic year" value={billYear} onChange={(e) => setBillYear(e.target.value)}>
+            {academicYearList(6, [billYear]).map((y) => (
+              <option key={y} value={y}>
+                {y}
+              </option>
+            ))}
+          </Select>
+          <Select label="Term" value={billTerm} onChange={(e) => setBillTerm(e.target.value)}>
+            {TERMS.map((t) => (
+              <option key={t} value={t}>
+                {TERM_LABELS[t]}
+              </option>
+            ))}
+          </Select>
+          <Input
+            label="Closing / vacation date"
+            type="date"
+            value={billClosing}
+            onChange={(e) => setBillClosing(e.target.value)}
+            hint="Auto-filled from the term's exam closing date — change it if your school closes on a different day."
+          />
+          <p className="rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-500">
+            The bill shows the term's charges, debt brought forward, itemised payments and the outstanding balance for each student.
+          </p>
+        </div>
+      </Modal>
 
       <Modal
         open={!!editingFees}
