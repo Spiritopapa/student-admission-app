@@ -1,9 +1,10 @@
+import { useEffect, useState } from 'react';
 import { QRCodeSVG, QRCodeCanvas } from 'qrcode.react';
 import { Building2, ShieldCheck, ExternalLink, Printer } from 'lucide-react';
 import { Modal } from './ui-extras';
 import { Button } from './ui';
 import { cedi } from '../lib/format';
-import { RECEIPT_VERIFY_BASE_URL } from '../lib/supabase';
+import { supabase, RECEIPT_VERIFY_BASE_URL } from '../lib/supabase';
 import { photoUrl, resolveFileUrl } from '../lib/storage';
 import { openPrintWindow, escapeHtml } from '../lib/print';
 
@@ -15,10 +16,54 @@ function buildVerifyLink(receipt) {
 }
 
 export default function ReceiptModal({ receipt, onClose }) {
+  const [schoolLogo, setSchoolLogo] = useState('');
+  const [schoolName, setSchoolName] = useState('School');
+
+  // Resolve the school logo for the receipt. New receipts are expected to embed
+  // it in receipt_data, but older receipts are not — so we fall back to the
+  // school's current logo so every receipt (and its print-out) shows it.
+  useEffect(() => {
+    if (!receipt) return;
+    let cancelled = false;
+    const rdata = receipt.receipt_data || {};
+    const embedded = photoUrl(rdata.school_logo_url) || resolveFileUrl(rdata.school_logo_url) || '';
+    setSchoolLogo(embedded);
+    setSchoolName(rdata.school_name || 'School');
+    if (embedded || !receipt.school_id) return undefined;
+    (async () => {
+      try {
+        const { data: ss } = await supabase
+          .from('school_settings')
+          .select('school_name, logo_url')
+          .eq('school_id', receipt.school_id)
+          .maybeSingle();
+        let logo = ss?.logo_url || '';
+        let name = ss?.school_name || rdata.school_name || 'School';
+        if (!logo) {
+          const { data: sch } = await supabase
+            .from('schools')
+            .select('name, logo_url')
+            .eq('id', receipt.school_id)
+            .maybeSingle();
+          logo = sch?.logo_url || '';
+          if (name === 'School' && sch?.name) name = sch.name;
+        }
+        if (!cancelled) {
+          setSchoolLogo(photoUrl(logo) || resolveFileUrl(logo) || '');
+          setSchoolName(name);
+        }
+      } catch (err) {
+        // best-effort: keep whatever is already resolved
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [receipt]);
+
   if (!receipt) return null;
   const data = receipt.receipt_data || {};
   const verifyLink = buildVerifyLink(receipt);
-  const schoolLogo = photoUrl(data.school_logo_url) || resolveFileUrl(data.school_logo_url) || '';
   const receiptDate = new Date(receipt.receipt_date).toLocaleString('en-GB', {
     day: '2-digit',
     month: 'short',
@@ -67,7 +112,7 @@ export default function ReceiptModal({ receipt, onClose }) {
       <div style="position:relative;">
         <div style="text-align:center;border-bottom:2px dashed #333;padding-bottom:10px;margin-bottom:10px;">
           ${schoolLogo ? `<img src="${escapeHtml(schoolLogo)}" alt="School logo" style="width:56px;height:56px;object-fit:contain;display:inline-block;margin-bottom:4px;" />` : ''}
-          <div style="font-size:18px;font-weight:bold;">${escapeHtml(data.school_name || 'School')}</div>
+          <div style="font-size:18px;font-weight:bold;">${escapeHtml(schoolName)}</div>
           <div style="font-size:14px;font-weight:bold;letter-spacing:2px;margin:5px 0;">PAYMENT RECEIPT</div>
           <div style="font-size:12px;color:#666;">${escapeHtml(receipt.receipt_number)}</div>
         </div>
@@ -132,7 +177,7 @@ export default function ReceiptModal({ receipt, onClose }) {
               </span>
             )}
             <div>
-              <p className="text-sm font-bold text-slate-800">{data.school_name || 'School'}</p>
+              <p className="text-sm font-bold text-slate-800">{schoolName}</p>
               <p className="text-xs text-slate-400">
                 {receipt.academic_year} - {receipt.term} Term
               </p>
