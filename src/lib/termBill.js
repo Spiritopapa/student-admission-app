@@ -139,10 +139,13 @@ export function mergeBillItems(recurring = [], extra = []) {
  *   STAGE 1 - PRESENT TERM ACCOUNT   debt b/f + term charges (class fee +
  *             fee_breakdown items) - payments  ->  PRESENT TERM BALANCE,
  *             which is an arrear (positive) or a credit (negative).
- *   STAGE 2 - NEXT TERM FEE STRUCTURE class_fees row for the NEXT year/term
- *             (fallback: current term's class fee, flagged on the bill).
+ *   STAGE 2 - NEXT TERM FEE STRUCTURE class_fees row for the NEXT year/term.
+ *             When the structure has not been set for the class, the next
+ *             term is NOT billed — no class fee and no other items are
+ *             included (the bill then covers the present term only).
  *   STAGE 3 - OTHER BILL ITEMS       recurring fee_breakdown items projected
- *             onto next term + one-off items supplied by the office.
+ *             onto next term + one-off items supplied by the office. Only
+ *             applied when the next term fee structure exists.
  *   STAGE 4 - SUB-TOTAL              present arrear + next-term class fee +
  *             other items. A present CREDIT is deliberately left out here so
  *             it is subtracted exactly once, in stage 5.
@@ -175,11 +178,16 @@ export function computeTermlyBillStages({ fee = null, receipts = [], nextClassFe
   const presentCredit = Math.max(-presentBalance, 0);
 
   /* --- Stage 2: next term fee structure ------------------------------- */
+  // If the school has not set a fee structure for this class in the NEXT
+  // year/term, we do NOT bill the next term at all (no fallback to the present
+  // term's rate). The bill then only states the present term account.
   const hasNextStructure = !!(nextClassFee && Number(nextClassFee.fee_amount) > 0);
-  const nextTermClassFee = hasNextStructure ? Number(nextClassFee.fee_amount) : classFeeThisTerm;
+  const nextTermClassFee = hasNextStructure ? Number(nextClassFee.fee_amount) : 0;
 
   /* --- Stage 3: other bill items -------------------------------------- */
-  const otherItems = mergeBillItems(recurringItems, billItems);
+  // Other bill items (recurring + office-added) are next-term charges too, so
+  // they are only included when the next term is actually being billed.
+  const otherItems = hasNextStructure ? mergeBillItems(recurringItems, billItems) : [];
   const otherItemsTotal = otherItems.reduce((s, it) => s + it.amount, 0);
 
   /* --- Stages 4 & 5 ---------------------------------------------------- */
@@ -294,29 +302,30 @@ export function buildTermlyBillPage({
     <table class="bill-table">
       <thead><tr><th style="width:70%;">Fee structure — ${esc(nextTerm)} Term ${esc(nextYear)}</th><th class="right" style="width:30%;">Amount (GHC)</th></tr></thead>
       <tbody>
-        <tr><td>${esc(nextTerm)} Term class fee — ${esc(student?.class_applying || 'Class fee')}</td><td class="right">${money(nextTermClassFee)}</td></tr>
         ${
           hasNextStructure
-            ? ''
-            : `<tr><td colspan="2" class="bill-muted">No fee structure published yet for ${esc(nextYear)} ${esc(nextTerm)} — the current term's rate is shown pending review.</td></tr>`
+            ? `<tr><td>${esc(nextTerm)} Term class fee — ${esc(student?.class_applying || 'Class fee')}</td><td class="right">${money(nextTermClassFee)}</td></tr>
+        <tr class="bill-subrow"><td><b>Next term fee structure subtotal</b></td><td class="right"><b>${money(nextTermClassFee)}</b></td></tr>`
+            : '<tr><td colspan="2" class="bill-muted">Fee structure for this class has not been set yet — next term fees are <b>not included</b> in this bill.</td></tr>'
         }
-        <tr class="bill-subrow"><td><b>Next term fee structure subtotal</b></td><td class="right"><b>${money(nextTermClassFee)}</b></td></tr>
       </tbody>
     </table>`;
 
   /* ---------- Stage 3 : other bill items ---------- */
-  const otherItemRows = otherItems.length
-    ? otherItems
-        .map((it, i) => `<tr><td>${i + 1}. ${esc(it.name)}</td><td class="right">${money(it.amount)}</td></tr>`)
-        .join('')
-    : '<tr><td colspan="2" class="bill-muted">No other bill items — next term consists of the class fee above.</td></tr>';
+  const otherItemRows = !hasNextStructure
+    ? '<tr><td colspan="2" class="bill-muted">Next term not billed — no fee structure has been set for this class yet.</td></tr>'
+    : otherItems.length
+      ? otherItems
+          .map((it, i) => `<tr><td>${i + 1}. ${esc(it.name)}</td><td class="right">${money(it.amount)}</td></tr>`)
+          .join('')
+      : '<tr><td colspan="2" class="bill-muted">No other bill items — next term consists of the class fee above.</td></tr>';
 
   const stage3 = `
     <table class="bill-table">
       <thead><tr><th style="width:70%;">Other bill items — ${esc(nextTerm)} Term ${esc(nextYear)}</th><th class="right" style="width:30%;">Amount (GHC)</th></tr></thead>
       <tbody>
         ${otherItemRows}
-        <tr class="bill-subrow"><td><b>Other bill items subtotal</b></td><td class="right"><b>${money(otherItemsTotal)}</b></td></tr>
+        ${hasNextStructure ? `<tr class="bill-subrow"><td><b>Other bill items subtotal</b></td><td class="right"><b>${money(otherItemsTotal)}</b></td></tr>` : ''}
       </tbody>
     </table>`;
 
@@ -333,8 +342,12 @@ export function buildTermlyBillPage({
             ? `<tr><td>Balance carried forward — ${esc(term)} Term</td><td class="right">${money(arrearBf)}</td></tr>`
             : ''
         }
-        <tr><td>Next term class fee — ${esc(nextTerm)} Term</td><td class="right">${money(nextTermClassFee)}</td></tr>
-        ${otherItemsTotal > 0 ? `<tr><td>Other bill items — next term</td><td class="right">${money(otherItemsTotal)}</td></tr>` : ''}
+        ${
+          hasNextStructure
+            ? `<tr><td>Next term class fee — ${esc(nextTerm)} Term</td><td class="right">${money(nextTermClassFee)}</td></tr>
+        ${otherItemsTotal > 0 ? `<tr><td>Other bill items — next term</td><td class="right">${money(otherItemsTotal)}</td></tr>` : ''}`
+            : '<tr><td colspan="2" class="bill-muted">Next term fees not yet published — only the present term balance applies.</td></tr>'
+        }
         <tr class="bill-subrow"><td><b>SUBTOTAL</b></td><td class="right"><b>${money(subTotal)}</b></td></tr>
         ${
           presentCredit > 0
@@ -342,22 +355,26 @@ export function buildTermlyBillPage({
             : ''
         }
         <tr class="bill-amount">
-          <td><b>AMOUNT DUE FOR NEXT TERM</b><br/><span class="bill-muted bill-amt-sub">${esc(nextTerm)} Term ${esc(nextYear)} — payable before reopening</span></td>
+          <td><b>AMOUNT DUE FOR NEXT TERM</b><br/><span class="bill-muted bill-amt-sub">${esc(nextTerm)} Term ${esc(nextYear)}</span></td>
           <td class="right">${amountCell}</td>
         </tr>
       </tbody>
     </table>`;
 
   /* ---------- Note to parent ---------- */
-  const notice = amountDue > 0
-    ? `Your ward's fees for ${esc(nextTerm)} Term ${esc(nextYear)} come to <b>${money(amountDue)}</b>. `
-      + (arrearBf > 0 ? `This includes the outstanding ${esc(term)} Term balance of <b>${money(arrearBf)}</b>. ` : '')
-      + (presentCredit > 0 ? `A credit of <b>${money(presentCredit)}</b> from ${esc(term)} Term has been applied. ` : '')
-      + (closingDate ? `Kindly pay before the school reopens on ${esc(formatDate(closingDate))} to secure your ward's place. ` : `Kindly pay at the school's accounts office before ${esc(nextTerm)} Term begins. `)
-      + 'Thank you for your continued support.'
-    : presentCredit > 0
-      ? `Your ward's ${esc(nextTerm)} Term ${esc(nextYear)} fees of <b>${money(nextTermTotal)}</b> are fully covered by the existing credit of <b>${money(presentCredit)}</b>. Thank you for your timely payment.`
-      : `Your ward's fees are fully settled for ${esc(term)} Term, and no amount is due for ${esc(nextTerm)} Term ${esc(nextYear)}. Thank you for your support.`;
+  const notice = !hasNextStructure
+    ? amountDue > 0
+      ? `The fee structure for ${esc(nextTerm)} Term ${esc(nextYear)} has not been set yet, so next term fees are <b>not included</b> in this bill. Please settle the outstanding ${esc(term)} Term balance of <b>${money(amountDue)}</b>${closingDate ? ` before the term closes on ${esc(formatDate(closingDate))}` : ''}. Thank you.`
+      : `The fee structure for ${esc(nextTerm)} Term ${esc(nextYear)} has not been set yet, so next term fees are <b>not included</b> in this bill. Your ward's ${esc(term)} Term balance is fully settled; you will be notified once the next term fees are published.`
+    : amountDue > 0
+      ? `Your ward's fees for ${esc(nextTerm)} Term ${esc(nextYear)} come to <b>${money(amountDue)}</b>. `
+        + (arrearBf > 0 ? `This includes the outstanding ${esc(term)} Term balance of <b>${money(arrearBf)}</b>. ` : '')
+        + (presentCredit > 0 ? `A credit of <b>${money(presentCredit)}</b> from ${esc(term)} Term has been applied. ` : '')
+        + (closingDate ? `Kindly pay before the school reopens on ${esc(formatDate(closingDate))} to secure your ward's place. ` : `Kindly pay at the school's accounts office before ${esc(nextTerm)} Term begins. `)
+        + 'Thank you for your continued support.'
+      : presentCredit > 0
+        ? `Your ward's ${esc(nextTerm)} Term ${esc(nextYear)} fees of <b>${money(nextTermTotal)}</b> are fully covered by the existing credit of <b>${money(presentCredit)}</b>. Thank you for your timely payment.`
+        : `Your ward's fees are fully settled for ${esc(term)} Term, and no amount is due for ${esc(nextTerm)} Term ${esc(nextYear)}. Thank you for your support.`;
   return `<div class="bill-page" style="${lastPage ? '' : 'page-break-after: always;'}" data-student="${esc(student?.student_id || '')}">
     <div class="bill-head">
       ${logoHtml}

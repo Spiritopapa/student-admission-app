@@ -119,8 +119,13 @@ export default function CarryForwardTab() {
           .maybeSingle();
         if (existing) {
           const outstanding = Number(existing.total_amount) + Number(existing.debt || 0) - Number(existing.amount_paid);
-          if (outstanding > 0 && existing.payment_status === 'paid') {
-            await supabase.from('fees').update({ payment_status: 'unpaid' }).eq('id', existing.id);
+          if (outstanding > 0) {
+            // Keep the stored status truthful: it must be 'partial' when some
+            // money was already paid this term, otherwise 'unpaid'.
+            const nextStatus = Number(existing.amount_paid) > 0 ? 'partial' : 'unpaid';
+            if (existing.payment_status !== nextStatus) {
+              await supabase.from('fees').update({ payment_status: nextStatus }).eq('id', existing.id);
+            }
           }
           skipped += 1;
           continue;

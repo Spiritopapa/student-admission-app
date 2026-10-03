@@ -93,11 +93,30 @@ export default function StudentFeesTab() {
 
   const appMap = useMemo(() => Object.fromEntries(apps.map((a) => [a.student_id, a])), [apps]);
 
+  // Aggregated fee status for a student across ALL of their term records.
+  // Mirrors the database's per-record rule (balance = total + debt - paid):
+  //   balance <= 0            -> 'paid'
+  //   balance > 0  & paid > 0 -> 'partial'
+  //   balance > 0  & paid = 0 -> 'unpaid'
+  // Students with no fee records at all get 'none' (never shown as "paid").
   const statusOf = (fees) => {
-    const unpaid = fees.some((f) => Number(f.total_amount) + Number(f.debt || 0) - Number(f.amount_paid) > 0);
-    if (unpaid) return 'unpaid';
-    const partial = fees.some((f) => Number(f.amount_paid) > 0);
-    return partial ? 'partial' : 'paid';
+    if (!fees || !fees.length) return 'none';
+    let anyOutstanding = false;
+    let anyPayment = false;
+    fees.forEach((f) => {
+      const balance = Number(f.total_amount) + Number(f.debt || 0) - Number(f.amount_paid);
+      if (balance > 0) anyOutstanding = true;
+      if (Number(f.amount_paid) > 0) anyPayment = true;
+    });
+    if (!anyOutstanding) return 'paid';
+    return anyPayment ? 'partial' : 'unpaid';
+  };
+
+  // Single source of truth for a fee record's status from its numbers, using
+  // the same rule the process_fee_payment / delete_receipt RPCs apply in SQL.
+  const derivedStatusOf = (r) => {
+    const balance = Number(r.total_amount || 0) + Number(r.debt || 0) - Number(r.amount_paid || 0);
+    return balance <= 0 ? 'paid' : Number(r.amount_paid || 0) > 0 ? 'partial' : 'unpaid';
   };
 
   const rows = useMemo(() => {
@@ -164,7 +183,9 @@ export default function StudentFeesTab() {
           total_amount: Number(r.total_amount || 0),
           amount_paid: Number(r.amount_paid || 0),
           debt: Number(r.debt || 0),
-          payment_status: r.payment_status,
+          // Never trust a hand-picked status: derive it from the numbers so the
+          // record stays consistent with the list badge and the dashboard.
+          payment_status: derivedStatusOf(r),
         };
         if (r.id) {
           const { error } = await supabase.from('fees').update(payload).eq('id', r.id);
@@ -438,7 +459,9 @@ const openBillDialog = (scope) => {
                       <p className="truncate text-sm font-bold text-slate-800">{buildStudentName(row.app.first_name, row.app.middle_name, row.app.last_name)}</p>
                       <p className="font-mono text-xs text-slate-400">{row.app.student_id} · {row.app.class_applying}</p>
                     </div>
-                    <Badge tone={status === 'paid' ? 'green' : status === 'partial' ? 'amber' : 'red'}>{status}</Badge>
+                    <Badge tone={status === 'paid' ? 'green' : status === 'partial' ? 'amber' : status === 'none' ? 'slate' : 'red'}>
+                      {status === 'none' ? 'No fees' : status}
+                    </Badge>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <div className="text-right">
@@ -628,6 +651,9 @@ const openBillDialog = (scope) => {
                 None — next-term bills show the class fee plus any recurring items already on each student's fee record.
               </p>
             )}
+            <p className="mt-2 text-[11px] text-slate-400">
+              Applied only where the next term fee structure is already set for the class — otherwise the next term is not billed at all.
+            </p>
           </div>
 
           {billPreview ? (
@@ -703,11 +729,13 @@ const openBillDialog = (scope) => {
                 <Input label="Total" type="number" min="0" step="0.01" value={r.total_amount} onChange={(e) => setEdit(i, 'total_amount', e.target.value)} />
                 <Input label="Paid" type="number" min="0" step="0.01" value={r.amount_paid} onChange={(e) => setEdit(i, 'amount_paid', e.target.value)} />
                 <Input label="Debt" type="number" min="0" step="0.01" value={r.debt} onChange={(e) => setEdit(i, 'debt', e.target.value)} />
-                <Select label="Status" value={r.payment_status} onChange={(e) => setEdit(i, 'payment_status', e.target.value)}>
-                  <option value="paid">paid</option>
-                  <option value="partial">partial</option>
-                  <option value="unpaid">unpaid</option>
-                </Select>
+                <div>
+                  <p className="mb-1.5 text-sm font-medium text-slate-600">Status (auto)</p>
+                  {(() => {
+                    const st = derivedStatusOf(r);
+                    return <Badge tone={st === 'paid' ? 'green' : st === 'partial' ? 'amber' : 'red'}>{st}</Badge>;
+                  })()}
+                </div>
               </div>
             ))}
           </div>

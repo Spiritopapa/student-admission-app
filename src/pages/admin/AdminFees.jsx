@@ -134,7 +134,7 @@ export default function AdminFees() {
     for (const student of students || []) {
       const { data: existing } = await supabase
         .from('fees')
-        .select('id, overpaid_amount')
+        .select('id, overpaid_amount, amount_paid')
         .eq('student_id', student.student_id)
         .eq('academic_year', year)
         .eq('term', termName)
@@ -165,9 +165,16 @@ export default function AdminFees() {
             .gt('overpaid_amount', 0);
           if (credit > 0) credits += 1;
         }
+        // Update existing fee record with the new amount, keeping the status
+        // consistent with what the student has already paid this term.
+        const existingPaid = Number(existing.amount_paid || 0);
+        const newBalance = amount - existingPaid;
         await supabase
           .from('fees')
-          .update({ total_amount: amount, payment_status: amount > 0 ? 'unpaid' : 'paid' })
+          .update({
+            total_amount: amount,
+            payment_status: newBalance <= 0 ? 'paid' : existingPaid > 0 ? 'partial' : 'unpaid',
+          })
           .eq('id', existing.id);
         updated += 1;
       } else {
