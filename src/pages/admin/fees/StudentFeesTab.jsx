@@ -11,7 +11,7 @@ import { buildStudentName, cedi, formatDate, termLabel } from '../../../lib/form
 import { TERMS, TERM_LABELS, currentAcademicYear, academicYearList } from '../../../lib/constants';
 import { openPrintWindow, escapeHtml } from '../../../lib/print';
 import { photoUrl } from '../../../lib/storage';
-import { printTermlyBills, fetchTermClosingDate } from '../../../lib/termBill';
+import { printTermlyBills, previewTermlyBills, nextTermOf, fetchTermClosingDate } from '../../../lib/termBill';
 
 const TERM_ORDER = { First: 0, Second: 1, Third: 2 };
 const yearStart = (y) => Number(String(y || '').split('/')[0] || 0);
@@ -51,6 +51,8 @@ export default function StudentFeesTab() {
   const [billClass, setBillClass] = useState(''); // class filter for bulk print
   const [billMode, setBillMode] = useState('all'); // 'all' | 'one'
   const [billStudentId, setBillStudentId] = useState('');
+  const [billItems, setBillItems] = useState([]); // one-off "other bill items" applied to the next term
+  const [billPreview, setBillPreview] = useState(null); // staged totals for the print button label
 
   const load = async () => {
     if (!schoolId) return;
@@ -272,6 +274,8 @@ const openBillDialog = (scope) => {
     setBillMode(scope?.kind === 'one' ? 'one' : 'all');
     setBillStudentId(scope?.kind === 'one' && scope.row ? scope.row.app.student_id : '');
     setBillClosing('');
+    setBillItems([]);
+    setBillPreview(null);
     setBillOpen(true);
   };
 
@@ -287,10 +291,48 @@ const openBillDialog = (scope) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [billOpen, billYear, billTerm, schoolId]);
 
+  // Live staged-total preview for the print button label + dialog strip.
+  useEffect(() => {
+    if (!billOpen) return;
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      let targets;
+      if (billMode === 'one') {
+        const found = rows.find((r) => r.app.student_id === billStudentId);
+        targets = found ? [found.app] : [];
+      } else {
+        targets = rows.filter((r) => !billClass || r.app.class_applying === billClass).map((r) => r.app);
+      }
+      try {
+        const preview = await previewTermlyBills({
+          schoolId,
+          students: targets,
+          year: billYear,
+          term: billTerm,
+          billItems,
+        });
+        if (!cancelled) setBillPreview(preview);
+      } catch (err) {
+        if (!cancelled) setBillPreview(null);
+      }
+    }, 300);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [billOpen, billMode, billStudentId, billClass, billYear, billTerm, billItems, schoolId, rows]);
+
   const billTargetRows = useMemo(
     () => rows.filter((r) => !billClass || r.app.class_applying === billClass),
     [rows, billClass]
   );
+
+  const addBillItem = () =>
+    setBillItems((prev) => [...prev, { id: Math.random().toString(36).slice(2), name: '', amount: '' }]);
+  const setBillItem = (index, key, value) =>
+    setBillItems((prev) => prev.map((it, i) => (i === index ? { ...it, [key]: value } : it)));
+  const removeBillItem = (index) => setBillItems((prev) => prev.filter((_, i) => i !== index));
 
   const doPrintBills = async () => {
     if (!billScope) return;
@@ -313,6 +355,7 @@ const openBillDialog = (scope) => {
         year: billYear,
         term: billTerm,
         closingDate: billClosing || null,
+        billItems,
       });
       if (!count) {
         toast.error('Nothing to print', 'No students match the selected filters.');
@@ -465,7 +508,11 @@ const openBillDialog = (scope) => {
             </Button>
             <Button onClick={doPrintBills} loading={billBusy} disabled={billMode === 'one' && !billStudentId} className="flex-1">
               <Printer className="h-4 w-4" aria-hidden="true" />
-              Print {billMode === 'one' ? 'bill' : `${billTargetRows.length} bills`}
+              {billPreview
+                ? `Print ${billPreview.count} bill${billPreview.count === 1 ? '' : 's'} · ${cedi(billPreview.amountDue)} due next term`
+                : billMode === 'one'
+                  ? 'Print bill'
+                  : `Print ${billTargetRows.length} bills`}
             </Button>
           </div>
         }
@@ -532,9 +579,83 @@ const openBillDialog = (scope) => {
             onChange={(e) => setBillClosing(e.target.value)}
             hint="Auto-filled from the term's exam closing date — change it if your school closes on a different day."
           />
+          <div className="rounded-xl border border-slate-100 bg-slate-50/60 p-3">
+            <p className="mb-1.5 text-sm font-medium text-slate-600">
+              Next term <span className="font-normal text-slate-400">(auto — bills forecast the term after the one selected)</span>
+            </p>
+            <p className="text-xs text-slate-500">
+              Stage 1 bills <b className="text-slate-700">{billTerm} Term {billYear}</b>; stages 2–5 forecast the following
+              term: <b className="text-slate-700">{nextTermOf(billYear, billTerm).term} Term {nextTermOf(billYear, billTerm).year}</b>.
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-slate-100 bg-slate-50/60 p-3">
+            <div className="mb-1.5 flex items-center justify-between gap-2">
+              <p className="text-sm font-medium text-slate-600">Other bill items for next term</p>
+              <Button size="sm" variant="ghost" onClick={addBillItem}>
+                <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+                Add item
+              </Button>
+            </div>
+            {billItems.length ? (
+              <div className="space-y-2">
+                {billItems.map((it, i) => (
+                  <div key={it.id} className="flex items-end gap-2">
+                    <Input
+                      label="Item"
+                      value={it.name}
+                      onChange={(e) => setBillItem(i, 'name', e.target.value)}
+                      placeholder="e.g. Bus, Feeding"
+                      className="flex-1"
+                    />
+                    <Input
+                      label="Amount"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={it.amount}
+                      onChange={(e) => setBillItem(i, 'amount', e.target.value)}
+                      className="w-28"
+                    />
+                    <Button size="sm" variant="ghost" onClick={() => removeBillItem(i)}>
+                      <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-slate-400">
+                None — next-term bills show the class fee plus any recurring items already on each student's fee record.
+              </p>
+            )}
+          </div>
+
+          {billPreview ? (
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <div className="rounded-xl border border-slate-100 bg-white p-2.5">
+                <p className="text-[11px] text-slate-400">Present balance</p>
+                <p className="text-sm font-bold text-slate-700">{cedi(billPreview.presentBalance)}</p>
+              </div>
+              <div className="rounded-xl border border-slate-100 bg-white p-2.5">
+                <p className="text-[11px] text-slate-400">Next term fees</p>
+                <p className="text-sm font-bold text-slate-700">{cedi(billPreview.nextTermTotal)}</p>
+              </div>
+              <div className="rounded-xl border border-slate-100 bg-white p-2.5">
+                <p className="text-[11px] text-slate-400">Sub-total</p>
+                <p className="text-sm font-bold text-slate-700">{cedi(billPreview.subTotal)}</p>
+              </div>
+              <div className="rounded-xl border border-emerald-600/20 bg-emerald-50 p-2.5">
+                <p className="text-[11px] text-emerald-600">Due next term</p>
+                <p className="text-sm font-bold text-emerald-700">{cedi(billPreview.amountDue)}</p>
+              </div>
+            </div>
+          ) : (
+            <p className="text-xs text-slate-400">Calculating staged totals…</p>
+          )}
+
           <p className="rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-500">
-            Each bill shows the term's charges, debt brought forward, itemised payments, the outstanding balance and the
-            next term's class fee structure.
+            Each bill walks through all five stages: present term account (Stage 1), next term fee structure (Stage 2),
+            other bill items (Stage 3), sub-total (Stage 4) and amount due for next term (Stage 5).
           </p>
         </div>
       </Modal>
