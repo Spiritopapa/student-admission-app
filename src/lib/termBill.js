@@ -73,6 +73,32 @@ export async function fetchTermReceipts(schoolId, studentId, year, term) {
   return data || [];
 }
 
+/** The academic year + term that follows the given term. */
+export function nextTermOf(year, term) {
+  const order = ['First', 'Second', 'Third'];
+  const idx = order.indexOf(term);
+  if (idx < 0) return { year, term: 'First' };
+  if (idx === order.length - 1) {
+    const start = Number(String(year || '').split('/')[0] || 0) + 1;
+    return { year: `${start}/${start + 1}`, term: order[0] };
+  }
+  return { year, term: order[idx + 1] };
+}
+
+/** The fee structure (class_fees row) for a class in a given year/term. */
+export async function fetchClassFee(schoolId, className, year, term) {
+  if (!schoolId || !className || !year || !term) return null;
+  const { data } = await supabase
+    .from('class_fees')
+    .select('*')
+    .eq('school_id', schoolId)
+    .eq('class_name', className)
+    .eq('academic_year', year)
+    .eq('term', term)
+    .maybeSingle();
+  return data || null;
+}
+
 function money(n) {
   const value = Number(n || 0);
   const sign = value < 0 ? '-' : '';
@@ -89,9 +115,12 @@ function money(n) {
  * @param {string}  p.year    - academic year, e.g. "2025/2026"
  * @param {string}  p.term    - "First" | "Second" | "Third"
  * @param {string|null} p.closingDate - term closing/vacation date
+ * @param {string|null} p.nextYear    - next term's academic year (preview)
+ * @param {string|null} p.nextTerm    - next term name (preview)
+ * @param {object|null} p.nextClassFee - class_fees row for the next term (preview)
  * @param {boolean} p.lastPage - suppress the trailing page break
  */
-export function buildTermlyBillPage({ school, student, fee, receipts, year, term, closingDate, lastPage = false }) {
+export function buildTermlyBillPage({ school, student, fee, receipts, year, term, closingDate, nextYear, nextTerm, nextClassFee, lastPage = false }) {
   const studentName = buildStudentName(student?.first_name, student?.middle_name, student?.last_name) || student?.student_id || 'Student';
   const totalAmount = Number(fee?.total_amount || 0);
   const debt = Number(fee?.debt || 0);
@@ -141,6 +170,14 @@ const notice = due > 0
     : credit > 0
       ? `Your ward's fees are fully settled with a credit of <b>${money(credit)}</b>, which will be applied to the next term. Thank you for your timely payment.`
       : "Your ward's fees are fully settled for this term. Thank you for your timely payment.";
+
+  const classFeeAmount = Number(nextClassFee?.fee_amount || 0);
+  const nextPreview =
+    nextTerm && nextYear
+      ? classFeeAmount > 0
+        ? `Next term (${nextTerm} Term ${nextYear}) fees for ${esc(student?.class_applying || 'your class')}: <b>GHC ${classFeeAmount.toFixed(2)}</b> — subject to the school's review.`
+        : `Fees for the next term (${nextTerm} Term ${nextYear}) will be communicated by the school before reopening.`
+      : '';
 
   return `<div class="bill-page" style="${lastPage ? '' : 'page-break-after: always;'}" data-student="${esc(student?.student_id || '')}">
     <div class="bill-head">
@@ -195,6 +232,8 @@ const notice = due > 0
       Dear ${student?.parent_name ? esc(student.parent_name) : 'Parent/Guardian'},<br/>${notice}
     </div>
 
+    ${nextPreview ? `<div class="bill-next"><b>NEXT TERM PREVIEW</b><br/>${nextPreview}</div>` : ''}
+
     <div class="bill-sig">
       <div>______________________<br/>Student's Signature</div>
       <div>______________________<br/>Parent's Signature</div>
@@ -225,6 +264,7 @@ const BILL_CSS = `
   .bill-light { background: transparent; }
   .bill-section { font-size: 10px; font-weight: 800; letter-spacing: 1px; color: #1e3a5f; margin-top: 4px; }
   .bill-note { border: 1px solid #d97706; background: #fffbeb; color: #78350f; border-radius: 6px; padding: 7px 9px; margin-top: 6px; line-height: 1.5; }
+  .bill-next { border: 1px dashed #1e3a5f; background: #f0f4f9; color: #1e3a5f; border-radius: 6px; padding: 7px 9px; margin-top: 6px; line-height: 1.5; }
   .bill-sig { display: flex; justify-content: space-between; margin-top: 26px; font-size: 10px; color: #475569; }
   .bill-foot { margin-top: 8px; font-size: 9.5px; color: #64748b; text-align: center; border-top: 1px solid #cbd5e1; padding-top: 6px; }
   .right { text-align: right; }
@@ -254,11 +294,13 @@ export async function printTermlyBills({ schoolId, students = [], year, term, cl
   const closing = closingDate || (await fetchTermClosingDate(schoolId, year, term));
 
   const pages = [];
+  const next = nextTermOf(year, term);
   for (let i = 0; i < list.length; i += 1) {
     const student = list[i];
-    const [fee, receipts] = await Promise.all([
+    const [fee, receipts, nextClassFee] = await Promise.all([
       fetchTermFee(schoolId, student.student_id, year, term),
       fetchTermReceipts(schoolId, student.student_id, year, term),
+      fetchClassFee(schoolId, student.class_applying, next.year, next.term),
     ]);
     pages.push(
       buildTermlyBillPage({
@@ -269,6 +311,9 @@ export async function printTermlyBills({ schoolId, students = [], year, term, cl
         year,
         term,
         closingDate: closing,
+        nextYear: next.year,
+        nextTerm: next.term,
+        nextClassFee,
         lastPage: i === list.length - 1,
       })
     );

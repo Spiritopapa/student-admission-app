@@ -48,6 +48,9 @@ export default function StudentFeesTab() {
   const [billTerm, setBillTerm] = useState('First');
   const [billClosing, setBillClosing] = useState('');
   const [billBusy, setBillBusy] = useState(false);
+  const [billClass, setBillClass] = useState(''); // class filter for bulk print
+  const [billMode, setBillMode] = useState('all'); // 'all' | 'one'
+  const [billStudentId, setBillStudentId] = useState('');
 
   const load = async () => {
     if (!schoolId) return;
@@ -265,6 +268,9 @@ const openBillDialog = (scope) => {
     setBillScope(scope);
     setBillYear(currentAcademicYear());
     setBillTerm(termFilter || 'First');
+    setBillClass(classFilter || '');
+    setBillMode(scope?.kind === 'one' ? 'one' : 'all');
+    setBillStudentId(scope?.kind === 'one' && scope.row ? scope.row.app.student_id : '');
     setBillClosing('');
     setBillOpen(true);
   };
@@ -281,11 +287,26 @@ const openBillDialog = (scope) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [billOpen, billYear, billTerm, schoolId]);
 
+  const billTargetRows = useMemo(
+    () => rows.filter((r) => !billClass || r.app.class_applying === billClass),
+    [rows, billClass]
+  );
+
   const doPrintBills = async () => {
     if (!billScope) return;
+    let targets;
+    if (billMode === 'one') {
+      const found = rows.find((r) => r.app.student_id === billStudentId);
+      if (!found) {
+        toast.error('Select a student', 'Choose the student whose bill you want to print.');
+        return;
+      }
+      targets = [found.app];
+    } else {
+      targets = billTargetRows.map((r) => r.app);
+    }
     setBillBusy(true);
     try {
-      const targets = billScope.kind === 'one' ? [billScope.row.app] : rows.map((r) => r.app);
       const count = await printTermlyBills({
         schoolId,
         students: targets,
@@ -294,7 +315,7 @@ const openBillDialog = (scope) => {
         closingDate: billClosing || null,
       });
       if (!count) {
-        toast.error('Nothing to print', 'No students match the current filters.');
+        toast.error('Nothing to print', 'No students match the selected filters.');
         return;
       }
       toast.success('Termly bills printed', `${count} bill(s) generated for ${billTerm} Term ${billYear}.`);
@@ -434,22 +455,62 @@ const openBillDialog = (scope) => {
 <Modal
         open={billOpen}
         onClose={() => setBillOpen(false)}
-        title={billScope?.kind === 'one' ? 'Print termly bill' : 'Print termly bills'}
-        subtitle={`${billTerm} Term ${billYear}${billScope?.kind === 'one' && billScope.row ? ` — ${buildStudentName(billScope.row.app.first_name, billScope.row.app.middle_name, billScope.row.app.last_name)}` : ''}`}
+        title="Print termly bills"
+        subtitle={`${billTerm} Term ${billYear}${billClass ? ` · ${billClass}` : ''}`}
         size="sm"
         footer={
           <div className="flex w-full gap-2">
             <Button variant="secondary" onClick={() => setBillOpen(false)} className="flex-1">
               Cancel
             </Button>
-            <Button onClick={doPrintBills} loading={billBusy} className="flex-1">
+            <Button onClick={doPrintBills} loading={billBusy} disabled={billMode === 'one' && !billStudentId} className="flex-1">
               <Printer className="h-4 w-4" aria-hidden="true" />
-              Print {billScope?.kind === 'one' ? 'bill' : `${rows.length} bills`}
+              Print {billMode === 'one' ? 'bill' : `${billTargetRows.length} bills`}
             </Button>
           </div>
         }
       >
         <div className="space-y-4">
+          <Select label="Class" value={billClass} onChange={(e) => setBillClass(e.target.value)}>
+            <option value="">
+              All classes ({rows.length})
+            </option>
+            {classes.map((c) => (
+              <option key={c.id} value={c.name}>
+                {c.name}
+              </option>
+            ))}
+          </Select>
+          <div>
+            <p className="mb-1.5 text-sm font-medium text-slate-600">Print</p>
+            <div className="flex gap-2">
+              <Button size="sm" variant={billMode === 'all' ? 'brand' : 'secondary'} onClick={() => setBillMode('all')}>
+                All students
+              </Button>
+              <Button
+                size="sm"
+                variant={billMode === 'one' ? 'brand' : 'secondary'}
+                onClick={() => {
+                  setBillMode('one');
+                  if (!billTargetRows.find((r) => r.app.student_id === billStudentId)) {
+                    setBillStudentId(billTargetRows[0]?.app.student_id || '');
+                  }
+                }}
+              >
+                One student
+              </Button>
+            </div>
+          </div>
+          {billMode === 'one' ? (
+            <Select label="Student" value={billStudentId} onChange={(e) => setBillStudentId(e.target.value)}>
+              <option value="">Select student...</option>
+              {billTargetRows.map((r) => (
+                <option key={r.app.student_id} value={r.app.student_id}>
+                  {buildStudentName(r.app.first_name, r.app.middle_name, r.app.last_name)} ({r.app.student_id})
+                </option>
+              ))}
+            </Select>
+          ) : null}
           <Select label="Academic year" value={billYear} onChange={(e) => setBillYear(e.target.value)}>
             {academicYearList(6, [billYear]).map((y) => (
               <option key={y} value={y}>
@@ -472,7 +533,8 @@ const openBillDialog = (scope) => {
             hint="Auto-filled from the term's exam closing date — change it if your school closes on a different day."
           />
           <p className="rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-500">
-            The bill shows the term's charges, debt brought forward, itemised payments and the outstanding balance for each student.
+            Each bill shows the term's charges, debt brought forward, itemised payments, the outstanding balance and the
+            next term's class fee structure.
           </p>
         </div>
       </Modal>
