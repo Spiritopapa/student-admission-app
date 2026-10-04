@@ -1,14 +1,17 @@
 import { useEffect, useState } from 'react';
 import { Users } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { PageHeader, Card, Spinner, EmptyState, Badge, SearchInput } from '../../components/ui';
+import { PageHeader, Card, Spinner, EmptyState, Badge, SearchInput, Select } from '../../components/ui';
 import { supabase } from '../../lib/supabase';
 import { buildStudentName } from '../../lib/format';
 import { photoUrl } from '../../lib/storage';
+import { fetchTeacherClassSet } from '../../lib/queries';
 
 export default function TeacherStudents() {
   const { user } = useAuth();
   const [teacher, setTeacher] = useState(null);
+  const [classes, setClasses] = useState([]); // all assigned class names
+  const [classFilter, setClassFilter] = useState('');
   const [students, setStudents] = useState([]);
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(true);
@@ -23,15 +26,22 @@ export default function TeacherStudents() {
           .eq('user_id', user.id)
           .maybeSingle();
         setTeacher(teacherData || null);
-        if (teacherData?.class_taught) {
-          const { data } = await supabase
-            .from('applications')
-            .select('*')
-            .eq('class_applying', teacherData.class_taught)
-            .eq('school_id', teacherData.school_id)
-            .order('last_name')
-            .eq('status', 'admitted');
-          setStudents(data || []);
+        if (teacherData) {
+          // A teacher may be assigned to several classes (class_taught CSV +
+          // the teacher_classes_subjects junction) — show every one of them.
+          const names = await fetchTeacherClassSet(teacherData.id, teacherData.class_taught);
+          setClasses(names);
+          if (names.length) {
+            const { data } = await supabase
+              .from('applications')
+              .select('*')
+              .eq('school_id', teacherData.school_id)
+              .eq('status', 'admitted')
+              .in('class_applying', names)
+              .order('last_name');
+            setStudents(data || []);
+            setClassFilter(names[0]);
+          }
         }
       } catch (err) {
         // ignore
@@ -42,19 +52,32 @@ export default function TeacherStudents() {
   }, [user]);
 
   if (loading) return <Spinner label="Loading class list..." />;
-  if (!teacher?.class_taught) {
+  if (!classes.length) {
     return <EmptyState icon={Users} title="No class assigned" message="The administrator has not assigned you a class yet." />;
   }
 
-  const filtered = students.filter((s) => {
+  const scoped = classFilter ? students.filter((s) => s.class_applying === classFilter) : students;
+  const filtered = scoped.filter((s) => {
     const name = buildStudentName(s.first_name, s.middle_name, s.last_name).toLowerCase();
     return !query || name.includes(query.toLowerCase()) || s.student_id.toLowerCase().includes(query.toLowerCase());
   });
 
   return (
     <div>
-      <PageHeader title="My Class" subtitle={`Students in ${teacher.class_taught}`} icon={Users} />
-      <SearchInput value={query} onChange={setQuery} placeholder="Search students..." className="mb-5 max-w-sm" />
+      <PageHeader title="My Class" subtitle={`Students in ${classes.join(', ')}`} icon={Users} />
+      <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-end">
+        <SearchInput value={query} onChange={setQuery} placeholder="Search students..." className="flex-1 max-w-sm" />
+        {classes.length > 1 ? (
+          <Select value={classFilter} onChange={(e) => setClassFilter(e.target.value)} className="w-44">
+            <option value="">All my classes</option>
+            {classes.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </Select>
+        ) : null}
+      </div>
 
       {filtered.length ? (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

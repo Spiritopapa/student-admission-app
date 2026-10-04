@@ -151,3 +151,33 @@ export async function fetchAdmissionItems(schoolId) {
   if (error) throw new Error(error.message);
   return data || [];
 }
+
+/**
+ * All the class names a teacher is assigned to: merged from the legacy
+ * `teachers.class_taught` CSV column and the `teacher_classes_subjects`
+ * junction table (multi-class / multi-subject assignments). Used by the
+ * teacher dashboards (My Class / Attendance / Home) so a teacher assigned to
+ * several classes sees every one of them.
+ */
+export async function fetchTeacherClassSet(teacherId, classTaught) {
+  const set = new Set();
+  String(classTaught || '')
+    .split(',')
+    .map((c) => c.trim())
+    .filter(Boolean)
+    .forEach((c) => set.add(c));
+  if (teacherId) {
+    try {
+      const { data } = await supabase
+        .from('teacher_classes_subjects')
+        .select('class_name')
+        .eq('teacher_id', teacherId);
+      (data || []).forEach((a) => {
+        if (a.class_name) set.add(a.class_name);
+      });
+    } catch (err) {
+      // best effort
+    }
+  }
+  return [...set].sort();
+}

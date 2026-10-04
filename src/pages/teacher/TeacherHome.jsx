@@ -4,6 +4,7 @@ import { Users, BookOpen, LayoutDashboard, ArrowRight, CalendarCheck } from 'luc
 import { useAuth } from '../../context/AuthContext';
 import { PageHeader, Card, Spinner, StatCard, EmptyState } from '../../components/ui';
 import { supabase } from '../../lib/supabase';
+import { fetchTeacherClassSet } from '../../lib/queries';
 
 export default function TeacherHome() {
   const { user, profile } = useAuth();
@@ -22,14 +23,18 @@ export default function TeacherHome() {
   }, [user]);
 
   useEffect(() => {
-    if (!teacher?.class_taught) return;
-    supabase
-      .from('applications')
-      .select('id')
-      .eq('class_applying', teacher.class_taught)
-      .eq('school_id', teacher.school_id)
-      .eq('status', 'admitted')
-      .then(({ data }) => setClassCount((data || []).length));
+    if (!teacher?.id) return;
+    (async () => {
+      const classNames = await fetchTeacherClassSet(teacher.id, teacher.class_taught);
+      if (!classNames.length) return;
+      const { data } = await supabase
+        .from('applications')
+        .select('id')
+        .eq('school_id', teacher.school_id)
+        .eq('status', 'admitted')
+        .in('class_applying', classNames);
+      setClassCount((data || []).length);
+    })();
   }, [teacher]);
 
   // Today's attendance summary across all of the teacher's assigned classes.
