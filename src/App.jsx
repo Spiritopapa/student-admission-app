@@ -43,6 +43,7 @@ import AdminFees from './pages/admin/AdminFees';
 import AdminTransport from './pages/admin/AdminTransport';
 import AdminIncomeExpenses from './pages/admin/AdminIncomeExpenses';
 import AdminSmsMonitor from './pages/admin/AdminSmsMonitor';
+import AdminActivityLog from './pages/admin/AdminActivityLog';
 import AdminBackupRestore from './pages/admin/AdminBackupRestore';
 import AdminSettings from './pages/admin/AdminSettings';
 
@@ -127,6 +128,7 @@ export default function App() {
           <Route path="/admin/fees" element={<RoleRoute roles={['admin', 'sub_admin']}><AdminFees /></RoleRoute>} />
           <Route path="/admin/transport" element={<RoleRoute roles={['admin', 'sub_admin']}><AdminTransport /></RoleRoute>} />
           <Route path="/admin/income-expenses" element={<RoleRoute roles={['admin', 'sub_admin']}><AdminIncomeExpenses /></RoleRoute>} />
+          <Route path="/admin/activity-log" element={<RoleRoute roles={['admin', 'sub_admin']}><AdminActivityLog /></RoleRoute>} />
           <Route path="/admin/sms-monitoring" element={<RoleRoute roles={['admin', 'sub_admin']}><AdminSmsMonitor /></RoleRoute>} />
           <Route path="/admin/backup" element={<RoleRoute roles={['admin', 'sub_admin']}><AdminBackupRestore /></RoleRoute>} />
           <Route path="/admin/settings" element={<RoleRoute roles={['admin', 'sub_admin']}><AdminSettings /></RoleRoute>} />

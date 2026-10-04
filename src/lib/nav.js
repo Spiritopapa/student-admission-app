@@ -20,6 +20,7 @@ import {
   MessageSquare,
   DatabaseBackup,
   LifeBuoy,
+  Activity,
 } from 'lucide-react';
 
 export const NAV_BY_ROLE = {
@@ -55,6 +56,7 @@ export const NAV_BY_ROLE = {
     { path: '/admin/fees', label: 'Fee Structure', icon: Wallet },
     { path: '/admin/transport', label: 'Transport', icon: Bus },
     { path: '/admin/income-expenses', label: 'Income & Expenses', icon: Coins },
+    { path: '/admin/activity-log', label: 'Activity Log', icon: Activity },
     { path: '/admin/sms-monitoring', label: 'SMS Monitoring', icon: MessageSquare },
     { path: '/admin/backup', label: 'Backup & Restore', icon: DatabaseBackup },
     { path: '/admin/settings', label: 'School Settings', icon: Settings },

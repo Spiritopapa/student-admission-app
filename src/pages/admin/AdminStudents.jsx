@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Users, UserPlus, Eye, Trash2, Pencil, Printer, ArrowUp, Upload, Download,
-  FileDown, CheckCircle2, RefreshCw,
+  FileDown, CheckCircle2, RefreshCw, Activity,
 } from 'lucide-react';
 import { useSchoolId, useSchoolSettings } from '../../hooks/useSchool';
 import { useToast } from '../../context/ToastContext';
 import { PageHeader, Button, Input, Select, Badge, Spinner, EmptyState, SearchInput, Card } from '../../components/ui';
 import { Modal, ConfirmDialog, Alert } from '../../components/ui-extras';
 import { PhotoUpload } from '../../components/PhotoUpload';
+import ActivityLogModal from '../../components/ActivityLogModal';
 import { supabase } from '../../lib/supabase';
 import { uploadFile, randomPath, photoUrl, deleteStoredFiles } from '../../lib/storage';
 import { GENDERS, RELIGIONS, TERMS, CLASS_LEVELS, currentAcademicYear } from '../../lib/constants';
@@ -140,6 +141,7 @@ export default function AdminStudents() {
   const [genderFilter, setGenderFilter] = useState('');
 
   const [admitOpen, setAdmitOpen] = useState(false);
+  const [activityTarget, setActivityTarget] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [photoFile, setPhotoFile] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -1331,6 +1333,15 @@ return (
                   </button>
                   <button
                     type="button"
+                    onClick={() => setActivityTarget(s)}
+                    className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-brand-50 hover:text-brand-600"
+                    aria-label="Activity log"
+                    title="Activity log"
+                  >
+                    <Activity className="h-4 w-4" aria-hidden="true" />
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => printAdmissionForm(s)}
                     className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-indigo-50 hover:text-indigo-600"
                     aria-label="Print admission form"
@@ -1697,6 +1708,12 @@ return (
         title="Delete student?"
         message={`This permanently removes ${deleting ? buildStudentName(deleting.first_name, deleting.middle_name, deleting.last_name) : 'this student'} and every related record — fees, receipts, payments, attendance, exam results, parent links, SMS logs, transport records, their portal account and stored photo. This cannot be undone.`}
         confirmLabel="Delete student"
+      />
+
+      <ActivityLogModal
+        open={!!activityTarget}
+        person={activityTarget ? { id: activityTarget.student_id, display: buildStudentName(activityTarget.first_name, activityTarget.middle_name, activityTarget.last_name), sub: activityTarget.class_applying, role: 'student' } : null}
+        onClose={() => setActivityTarget(null)}
       />
     </div>
   );

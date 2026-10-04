@@ -610,6 +610,15 @@
 -- School Settings, and backfills existing gaps.
 -- Safe to re-run (CREATE OR REPLACE / trigger drop / guarded UPDATEs).
 \i 079-school-logo-bidirectional-sync.sql
+
+-- Step 73: Student Activity Log
+-- Creates: student_activities table (with RLS + DELETE policies) so school
+--          admins can audit student actions — login, profile updates and
+--          other key operations — exactly like the teacher/accountant
+--          `staff_activities` log.
+-- Used by: src/lib/activity.js (logStudentActivity), the admin Activity Log
+--          page and the per-student Activity modal / "Clear All Logs" button.
+\i 080-student-activity-log.sql
 -- ============================================================
 --  SCHEMA DEPLOYMENT COMPLETE
 -- ============================================================

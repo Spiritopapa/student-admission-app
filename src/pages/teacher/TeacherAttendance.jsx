@@ -16,6 +16,7 @@ import { useToast } from '../../context/ToastContext';
 import { PageHeader, Card, Spinner, EmptyState, Button, Input, Select, Badge, SearchInput } from '../../components/ui';
 import MonthlyAttendanceGrid from '../../components/MonthlyAttendanceGrid';
 import { supabase } from '../../lib/supabase';
+import { logStaffActivity } from '../../lib/activity';
 import { buildStudentName, formatDate, termLabel } from '../../lib/format';
 import { photoUrl } from '../../lib/storage';
 import { TERMS, currentAcademicYear } from '../../lib/constants';
@@ -196,6 +197,11 @@ const saveDaily = async () => {
       const parts = [`${res.saved} new`, `${res.updated} updated`];
       if (skipped) parts.push(`${skipped} locked skipped (admin only)`);
       toast.success('Attendance saved', parts.join(', '));
+      logStaffActivity(`Marked attendance for ${res.saved + res.updated} students (${res.saved} new, ${res.updated} updated)`, {
+        role: 'teacher',
+        entityType: 'attendance',
+        entityDetails: `${date} · ${className}`,
+      }).catch(() => {});
       loadDaily();
     } catch (err) {
       toast.error('Could not save attendance', err.message);
@@ -350,6 +356,11 @@ const toggleMonthlyCell = (studentId, dateStr) => {
       if (res.updated) parts.push(`${res.updated} updated`);
       if (res.deleted) parts.push(`${res.deleted} removed`);
       toast.success('30-Day attendance saved', parts.join(', ') || 'No changes');
+      logStaffActivity('Saved 30-day attendance', {
+        role: 'teacher',
+        entityType: 'attendance',
+        entityDetails: `${className} · ${monthlyDates.length} days covered`,
+      }).catch(() => {});
     } catch (err) {
       toast.error('Could not save 30-day attendance', err.message);
     } finally {

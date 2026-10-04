@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, useCallback, useMemo } 
 import { supabase } from '../lib/supabase';
 import { uploadFile, randomPath } from '../lib/storage';
 import { currentAcademicYear } from '../lib/constants';
+import { logStaffActivity, logStudentActivity } from '../lib/activity';
 
 const AuthContext = createContext(null);
 
@@ -320,6 +321,14 @@ export function AuthProvider({ children }) {
     const child = await applyGuards(data.user);
     setUser(data.user);
     setProfile(child.profile);
+    // Audit trail: record the sign-in for teachers, accountants & students
+    // (matches the legacy app's activity log). Fail-safe.
+    const role = String(child.profile?.role || '').toLowerCase();
+    if (role === 'teacher' || role === 'accountant') {
+      logStaffActivity('Logged in', { role, entityType: 'auth' }).catch(() => {});
+    } else if (role === 'student') {
+      logStudentActivity('Logged in', { entityType: 'auth' }).catch(() => {});
+    }
     return { user: data.user, profile: child.profile, app: child.app };
   }, []);
 

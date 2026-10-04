@@ -8,6 +8,7 @@ import { Button, Input, Card, PageHeader } from '../../components/ui';
 import { Alert } from '../../components/ui-extras';
 import { PhotoUpload } from '../../components/PhotoUpload';
 import { ROLE_LABELS } from '../../lib/constants';
+import { logActivityForCurrentUser } from '../../lib/activity';
 
 export default function ProfilePage() {
   const { profile, user, updateProfile } = useAuth();
@@ -57,6 +58,7 @@ export default function ProfilePage() {
       if (photoFile) setCurrentPhoto(resolveFileUrl(photoUrlValue));
       setPhotoFile(null);
       toast.success('Profile updated', 'Your profile has been saved.');
+      logActivityForCurrentUser('Updated profile', { entityType: 'profile' }).catch(() => {});
     } catch (err) {
       setError(err.message || 'Could not update your profile.');
     } finally {
@@ -86,6 +88,7 @@ export default function ProfilePage() {
       setNewPassword('');
       setConfirmPassword('');
       toast.success('Password changed', 'Use your new password next time you sign in.');
+      logActivityForCurrentUser('Changed account password', { entityType: 'password' }).catch(() => {});
     } catch (err) {
       setPasswordError(err.message);
     } finally {

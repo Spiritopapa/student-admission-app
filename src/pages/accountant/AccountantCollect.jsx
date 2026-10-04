@@ -9,7 +9,7 @@ import { Alert } from '../../components/ui-extras';
 import ReceiptModal from '../../components/ReceiptModal';
 import { supabase } from '../../lib/supabase';
 import { fetchStudentFees } from '../../lib/queries';
-import { sendStudentPaymentSms, fetchSchoolContact, outstandingBalanceAfterPayment } from '../../lib/api';
+import { sendStudentPaymentSms, fetchSchoolContact, outstandingBalanceAfterPayment, logStaffActivity } from '../../lib/api';
 import { buildStudentName, cedi, termLabel } from '../../lib/format';
 import { TERMS, PAYMENT_METHODS, PAYMENT_METHOD_LABELS, currentAcademicYear, academicYearList } from '../../lib/constants';
 import { photoUrl } from '../../lib/storage';
@@ -225,6 +225,14 @@ export default function AccountantCollect() {
       if (error) throw new Error(error.message);
       if (!data || !data.success) throw new Error(data?.error || 'Payment could not be processed.');
       setResult(data);
+
+      // Audit trail: record the fee payment (matches the legacy activity log).
+      const paidAmount = Number(data.amount_paid) || amt;
+      logStaffActivity(`Recorded fee payment of GHC ${paidAmount.toFixed(2)} for ${selected.student_id} (Receipt: ${data.receipt_number})`, {
+        role: 'accountant',
+        entityType: 'payment',
+        entityDetails: `${selected.student_id} · ${termLabel(data.term || term)} ${data.academic_year || year} · GHC ${paidAmount.toFixed(2)}`,
+      }).catch(() => {});
 
       if (sendSms && selected.parent_contact) {
         const brand = schoolContact.name ? `${schoolContact.name}: ` : '';

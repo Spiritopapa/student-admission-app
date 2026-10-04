@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { UserRound, Plus, Trash2, BadgeCheck } from 'lucide-react';
+import { UserRound, Plus, Trash2, BadgeCheck, Activity } from 'lucide-react';
 import { useSchoolId } from '../../hooks/useSchool';
 import { useToast } from '../../context/ToastContext';
 import { PageHeader, Card, Button, Input, Spinner, EmptyState, Switch } from '../../components/ui';
 import { Modal, ConfirmDialog, Alert } from '../../components/ui-extras';
+import ActivityLogModal from '../../components/ActivityLogModal';
 import { supabase } from '../../lib/supabase';
 
 export default function AdminTeachers() {
@@ -17,6 +18,7 @@ export default function AdminTeachers() {
   const [error, setError] = useState('');
   const [deleting, setDeleting] = useState(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
+  const [activityTarget, setActivityTarget] = useState(null);
 
   const load = () => {
     if (!schoolId) return;
@@ -165,6 +167,12 @@ export default function AdminTeachers() {
                   <Switch checked={!!teacher.is_transport_collector} onChange={(v) => toggleCollector(teacher, v)} />
                 </div>
               </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button size="sm" variant="secondary" onClick={() => setActivityTarget(teacher)}>
+                  <Activity className="h-3.5 w-3.5" aria-hidden="true" />
+                  Activity
+                </Button>
+              </div>
             </Card>
           ))}
         </div>
@@ -218,6 +226,12 @@ export default function AdminTeachers() {
         loading={deleteBusy}
         title="Delete teacher?"
         message={`This permanently removes ${deleting?.full_name || 'this teacher'} and their related records.`}
+      />
+
+      <ActivityLogModal
+        open={!!activityTarget}
+        person={activityTarget ? { id: activityTarget.id, display: activityTarget.full_name, sub: activityTarget.registration_id, role: 'teacher' } : null}
+        onClose={() => setActivityTarget(null)}
       />
     </div>
   );

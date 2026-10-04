@@ -10,6 +10,7 @@ import { Alert } from '../../components/ui-extras';
 import { PhotoUpload } from '../../components/PhotoUpload';
 import { buildStudentName, formatDate } from '../../lib/format';
 import { GENDERS, RELIGIONS } from '../../lib/constants';
+import { logStudentActivity } from '../../lib/activity';
 
 export default function StudentProfile() {
   const { user } = useAuth();
@@ -88,6 +89,7 @@ export default function StudentProfile() {
       }
 
       toast.success('Profile updated', 'Your student details have been saved.');
+      logStudentActivity('Updated profile', { entityType: 'profile' }).catch(() => {});
       await reload();
       setForm((f) => ({ ...f, photo_url: photoUrlValue }));
       setPhotoFile(null);
@@ -120,6 +122,7 @@ export default function StudentProfile() {
       setNewPassword('');
       setConfirmPassword('');
       toast.success('Password changed', 'Use your new password next time you sign in.');
+      logStudentActivity('Changed account password', { entityType: 'password' }).catch(() => {});
     } catch (err) {
       setPasswordError(err.message);
     } finally {

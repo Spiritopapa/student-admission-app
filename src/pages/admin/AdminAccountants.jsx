@@ -4,8 +4,8 @@ import { useSchoolId } from '../../hooks/useSchool';
 import { useToast } from '../../context/ToastContext';
 import { PageHeader, Card, Button, Input, Spinner, EmptyState, Badge, SearchInput } from '../../components/ui';
 import { Modal, ConfirmDialog, Alert } from '../../components/ui-extras';
+import ActivityLogModal from '../../components/ActivityLogModal';
 import { supabase } from '../../lib/supabase';
-import { formatDateTime } from '../../lib/format';
 
 export default function AdminAccountants() {
   const schoolId = useSchoolId();
@@ -27,8 +27,7 @@ export default function AdminAccountants() {
   const [newPassword, setNewPassword] = useState('');
   const [passwordBusy, setPasswordBusy] = useState(false);
 
-  const [activities, setActivities] = useState(null);
-  const [activitiesBusy, setActivitiesBusy] = useState(false);
+  const [activityTarget, setActivityTarget] = useState(null);
 
   const load = () => {
     if (!schoolId) return;
@@ -214,24 +213,7 @@ export default function AdminAccountants() {
     }
   };
 
-  const openActivities = async (acc) => {
-    setActivities(null);
-    setActivitiesBusy(true);
-    try {
-      const { data } = await supabase
-        .from('staff_activities')
-        .select('*')
-        .eq('staff_id', acc.id)
-        .eq('staff_type', 'accountant')
-        .order('created_at', { ascending: false })
-        .limit(500);
-      setActivities({ accountant: acc, list: data || [] });
-    } catch (err) {
-      toast.error('Could not load activities', err.message);
-    } finally {
-      setActivitiesBusy(false);
-    }
-  };
+  const openActivities = (acc) => setActivityTarget(acc);
 
   return (
     <div>
@@ -375,27 +357,11 @@ export default function AdminAccountants() {
         </div>
       </Modal>
 
-      <Modal open={!!activities} onClose={() => setActivities(null)} title={`Activity log: ${activities?.accountant?.full_name || ''}`} size="lg">
-        {activitiesBusy ? (
-          <Spinner label="Loading activities..." />
-        ) : activities?.list?.length ? (
-          <div className="max-h-[60vh] space-y-2 overflow-y-auto">
-            {activities.list.map((a) => (
-              <div key={a.id} className="flex items-start justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50/60 px-4 py-2.5">
-                <div>
-                  <p className="text-sm font-semibold text-slate-800">{a.action}</p>
-                  <p className="text-xs text-slate-400">
-                    {a.entity_type || '-'} · {a.entity_details || '-'}
-                  </p>
-                </div>
-                <p className="shrink-0 text-xs text-slate-400">{formatDateTime(a.created_at)}</p>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <EmptyState icon={Activity} title="No activity logged" message="This accountant has no recorded activity yet." />
-        )}
-      </Modal>
+      <ActivityLogModal
+        open={!!activityTarget}
+        person={activityTarget ? { id: activityTarget.id, display: activityTarget.full_name, sub: activityTarget.registration_id, role: 'accountant' } : null}
+        onClose={() => setActivityTarget(null)}
+      />
 
       <ConfirmDialog
         open={!!deleting}
