@@ -517,7 +517,7 @@ const openBillDialog = (scope) => {
         />
       )}
 
-      <FeePaymentModal open={!!paying} student={paying} onClose={() => setPaying(null)} onPaid={load} />
+      <FeePaymentModal open={!!paying} student={paying} students={apps} onClose={() => setPaying(null)} onPaid={load} />
 <Modal
         open={billOpen}
         onClose={() => setBillOpen(false)}

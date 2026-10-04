@@ -13,7 +13,7 @@ import { TERMS, PAYMENT_METHODS, PAYMENT_METHOD_LABELS, currentAcademicYear, aca
 const TERM_ORDER = { First: 0, Second: 1, Third: 2 };
 const yearStart = (y) => Number(String(y || '').split('/')[0] || 0);
 
-export default function FeePaymentModal({ open, student, onClose, onPaid }) {
+export default function FeePaymentModal({ open, student, students = null, onClose, onPaid }) {
   const toast = useToast();
   const [feeInfo, setFeeInfo] = useState([]);
   const [year, setYear] = useState(currentAcademicYear());
@@ -29,18 +29,30 @@ export default function FeePaymentModal({ open, student, onClose, onPaid }) {
   const [receiptForModal, setReceiptForModal] = useState(null);
   const [schoolContact, setSchoolContact] = useState({ name: '', phone: '' });
 
+  // `selected` is the student the payment is being recorded for. `student`
+  // comes from the triggering row; the in-modal search bar lets the clerk
+  // switch to any other student without closing the window.
+  const [selected, setSelected] = useState(null);
+  const [search, setSearch] = useState('');
+
   useEffect(() => {
-    if (!open || !student) return;
+    setSelected(student || null);
+    setSearch('');
+    setError('');
+  }, [student]);
+
+  useEffect(() => {
+    if (!open || !selected) return;
     setFeeInfo([]);
     setAmount('');
     setReference('');
     setNotes('');
     setError('');
     setReceiptForModal(null);
-    fetchSchoolContact(student.school_id).then((contact) => setSchoolContact(contact || { name: '', phone: '' }));
+    fetchSchoolContact(selected.school_id).then((contact) => setSchoolContact(contact || { name: '', phone: '' }));
     (async () => {
       try {
-        const fees = await fetchStudentFees(student.student_id);
+        const fees = await fetchStudentFees(selected.student_id);
         setFeeInfo(fees);
         const sorted = [...(fees || [])].sort(
           (a, b) => yearStart(a.academic_year) - yearStart(b.academic_year) || TERM_ORDER[a.term] - TERM_ORDER[b.term]
@@ -64,7 +76,7 @@ export default function FeePaymentModal({ open, student, onClose, onPaid }) {
         // ignore
       }
     })();
-  }, [open, student]);
+  }, [open, selected]);
 
   const sortedFees = useMemo(
     () => [...feeInfo].sort((a, b) => yearStart(a.academic_year) - yearStart(b.academic_year) || TERM_ORDER[a.term] - TERM_ORDER[b.term]),
@@ -82,27 +94,45 @@ export default function FeePaymentModal({ open, student, onClose, onPaid }) {
     });
   }, [sortedFees, year, term]);
 
+  const searchMatches = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q || q.length < 2 || !Array.isArray(students)) return [];
+    return students
+      .filter((s) => {
+        const haystack =
+          `${buildStudentName(s.first_name, s.middle_name, s.last_name)} ${s.student_id}`.toLowerCase();
+        return haystack.includes(q);
+      })
+      .slice(0, 8);
+  }, [students, search]);
+
+  const pickStudent = (s) => {
+    setSelected(s);
+    setSearch('');
+    setError('');
+  };
+
   const ensureFeeRecord = async () => {
     if (targetFee) return targetFee;
     const { data: classFee } = await supabase
       .from('class_fees')
       .select('*')
-      .eq('class_name', student.class_applying)
+      .eq('class_name', selected?.class_applying)
       .eq('academic_year', year)
       .eq('term', term)
-      .eq('school_id', student.school_id)
+      .eq('school_id', selected?.school_id)
       .maybeSingle();
     if (!classFee) return null;
     const feeAmount = Number(classFee.fee_amount || 0);
     const { error } = await supabase.from('fees').insert({
-      student_id: student.student_id,
+      student_id: selected?.student_id,
       academic_year: year,
       term,
       total_amount: feeAmount,
       amount_paid: 0,
       debt: 0,
       payment_status: feeAmount > 0 ? 'unpaid' : 'paid',
-      school_id: student.school_id,
+      school_id: selected?.school_id,
     });
     if (error) throw new Error(error.message);
     return { total_amount: feeAmount, debt: 0, amount_paid: 0 };
@@ -111,7 +141,7 @@ export default function FeePaymentModal({ open, student, onClose, onPaid }) {
   const submit = async () => {
     setError('');
     const amt = Number(amount || 0);
-    if (!student) return;
+    if (!selected) return;
     if (amt <= 0) {
       setError('Enter a valid amount greater than zero.');
       return;
@@ -137,7 +167,7 @@ export default function FeePaymentModal({ open, student, onClose, onPaid }) {
       }
       const { data: { user } } = await supabase.auth.getUser();
       const { data, error: rpcError } = await supabase.rpc('process_fee_payment', {
-        p_student_id: student.student_id,
+        p_student_id: selected.student_id,
         p_academic_year: year,
         p_term: term,
         p_amount: amt,
@@ -145,13 +175,13 @@ export default function FeePaymentModal({ open, student, onClose, onPaid }) {
         p_reference_number: reference.trim() || null,
         p_notes: notes.trim() || null,
         p_recorded_by: user?.id,
-        p_school_id: student.school_id,
+        p_school_id: selected.school_id,
         p_payment_date: payDate ? new Date(payDate).toISOString() : null,
       });
       if (rpcError) throw new Error(rpcError.message);
       if (!data || !data.success) throw new Error(data?.error || 'Payment could not be processed.');
 
-      if (sendSms && student.parent_contact) {
+      if (sendSms && selected.parent_contact) {
         const brand = schoolContact.name ? `${schoolContact.name}: ` : '';
         const contact = schoolContact.phone ? ` For any assistance, call ${schoolContact.phone}.` : '';
         const balanceAfter = outstandingBalanceAfterPayment({ data, feeRecords: feeInfo, year, term });
@@ -159,12 +189,12 @@ export default function FeePaymentModal({ open, student, onClose, onPaid }) {
           balanceAfter > 0
             ? ` Remaining balance: GHC ${balanceAfter.toFixed(2)}.`
             : " Your ward's fees are fully settled.";
-        const message = `${brand}Fee payment of GHC ${(Number(data.amount_paid) || amt).toFixed(2)} received for ${data.student_name || student.first_name}. Receipt: ${data.receipt_number}. Paid for ${data.academic_year} ${termLabel(data.term)}.${balancePart} Thank you.${contact}`;
+        const message = `${brand}Fee payment of GHC ${(Number(data.amount_paid) || amt).toFixed(2)} received for ${data.student_name || selected.first_name}. Receipt: ${data.receipt_number}. Paid for ${data.academic_year} ${termLabel(data.term)}.${balancePart} Thank you.${contact}`;
         const sms = await sendStudentPaymentSms({
-          schoolId: student.school_id,
-          studentId: student.student_id,
+          schoolId: selected.school_id,
+          studentId: selected.student_id,
           receiptNumber: data.receipt_number,
-          phone: student.parent_contact,
+          phone: selected.parent_contact,
           message,
         });
         if (!sms.success) {
@@ -192,7 +222,7 @@ export default function FeePaymentModal({ open, student, onClose, onPaid }) {
     <Modal
       open={open}
       onClose={onClose}
-      title={`Record payment — ${student ? buildStudentName(student.first_name, student.middle_name, student.last_name) : ''}`}
+      title={`Record payment — ${selected ? buildStudentName(selected.first_name, selected.middle_name, selected.last_name) : ''}`}
       size="md"
       footer={
         <div className="flex w-full gap-2">
@@ -211,13 +241,50 @@ export default function FeePaymentModal({ open, student, onClose, onPaid }) {
           {error}
         </Alert>
       ) : null}
-      {student ? (
+      {Array.isArray(students) && students.length ? (
+        <div className="mb-4 rounded-xl border border-slate-100 bg-slate-50/60 p-3">
+          <label className="mb-1.5 block text-sm font-medium text-slate-600" htmlFor="feePayStudentSearch">
+            Search student
+          </label>
+          <Input
+            id="feePayStudentSearch"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Type a name or ID to switch student..."
+            className="w-full"
+          />
+          {searchMatches.length ? (
+            <div className="mt-1 max-h-52 space-y-1 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1.5">
+              {searchMatches.map((s) => (
+                <button
+                  key={s.student_id}
+                  type="button"
+                  onClick={() => pickStudent(s)}
+                  className={`flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-left text-sm ${
+                    selected?.student_id === s.student_id ? 'bg-brand-50 text-brand-700' : 'hover:bg-slate-100'
+                  }`}
+                >
+                  <span className="truncate font-medium">{buildStudentName(s.first_name, s.middle_name, s.last_name)}</span>
+                  <span className="shrink-0 font-mono text-[11px] text-slate-400">{s.student_id} · {s.class_applying}</span>
+                </button>
+              ))}
+            </div>
+          ) : search.trim().length >= 2 ? (
+            <p className="mt-1 text-xs text-slate-400">No students match "{search.trim()}".</p>
+          ) : null}
+          <p className="mt-1.5 text-xs text-slate-500">
+            Recording payment for:&nbsp;
+            <b>{selected ? `${buildStudentName(selected.first_name, selected.middle_name, selected.last_name)} (${selected.student_id})` : '—'}</b>
+          </p>
+        </div>
+      ) : null}
+      {selected ? (
         <>
           <div className="rounded-xl bg-slate-50 p-3">
             <p className="text-sm font-bold text-slate-800">
-              {buildStudentName(student.first_name, student.middle_name, student.last_name)}
+              {buildStudentName(selected.first_name, selected.middle_name, selected.last_name)}
             </p>
-            <p className="font-mono text-xs text-slate-400">{student.student_id} · {student.class_applying}</p>
+            <p className="font-mono text-xs text-slate-400">{selected.student_id} · {selected.class_applying}</p>
             {sortedFees.map((f) => {
               const bal = outstandingOf(f);
               return (
