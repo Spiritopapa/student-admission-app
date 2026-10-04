@@ -12,12 +12,21 @@ import { supabase } from '../../lib/supabase';
 import { buildCSV, parseCSV, downloadCSV } from '../../lib/csv';
 import { formatDate } from '../../lib/format';
 import { openPrintWindow, escapeHtml } from '../../lib/print';
+import {
+  PERSONAL_FIELDS,
+  IDENTIFICATION_FIELDS,
+  APPOINTMENT_FIELDS,
+  RANK_FIELDS,
+  EDUCATION_FIELDS,
+  TEACHER_FIELD_KEYS,
+  fieldLabel,
+} from '../../lib/staffFields';
 
 const TEACHER_CSV_HEADERS = ['Registration ID', 'Full Name *', 'Email', 'Phone', 'Staff Type', 'Class(es)', 'Subject(s)', 'Qualification'];
 const esc = escapeHtml;
 
 function emptyForm() {
-  return {
+  const f = {
     registration_id: '',
     full_name: '',
     email: '',
@@ -29,6 +38,10 @@ function emptyForm() {
     classes: [], // selected class names
     subjectsByClass: {}, // { class_name: [subject, ...] }
   };
+  TEACHER_FIELD_KEYS.forEach((k) => {
+    f[k] = '';
+  });
+  return f;
 }
 
 export default function AdminTeachers() {
@@ -161,6 +174,43 @@ const stats = useMemo(() => {
     const canonical = classSubjectMap[className];
     return canonical && canonical.length ? canonical : subjects;
   };
+
+  const renderFieldGrid = (fields) => (
+    <div className="mt-2 grid gap-3 sm:grid-cols-2">
+      {fields.map((entry) => {
+        const [key, label, type, options] = entry;
+        return type === 'select' ? (
+          <Select key={key} label={label} value={form[key] || ''} onChange={set(key)}>
+            <option value="">Select...</option>
+            {(options || []).map((o) => (
+              <option key={o} value={o}>
+                {o}
+              </option>
+            ))}
+          </Select>
+        ) : (
+          <Input key={key} label={label} type={type} value={form[key] || ''} onChange={set(key)} />
+        );
+      })}
+    </div>
+  );
+
+  const renderDetailGroup = (title, fields, source) => (
+    <div className="mt-3">
+      <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">{title}</p>
+      <div className="mt-1 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+        {fields.map((entry) => {
+          const [key, label] = entry;
+          const v = source?.[key];
+          return (
+            <span key={key}>
+              <span className="text-slate-400">{label}:</span> <b className="text-slate-700">{v && String(v).trim() ? String(v) : '—'}</b>
+            </span>
+          );
+        })}
+      </div>
+    </div>
+  );
 /* ----------------------------- form ----------------------------- */
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
   const setPhone = (e) => setForm((f) => ({ ...f, phone: e.target.value }));
@@ -207,6 +257,11 @@ const stats = useMemo(() => {
     const isTeaching = form.staff_type !== 'non_teaching';
     const classList = isTeaching ? (form.classes || []) : [];
     const subjectList = [...new Set(Object.values(form.subjectsByClass || {}).flat())];
+    const extra = {};
+    TEACHER_FIELD_KEYS.forEach((k) => {
+      const v = form[k];
+      extra[k] = v === '' || v == null ? null : v;
+    });
     setBusy(true);
     try {
       let teacherId = editing?.id;
@@ -221,6 +276,7 @@ const stats = useMemo(() => {
         is_transport_collector: !!form.is_transport_collector,
         class_taught: classList.length ? classList.join(', ') : null,
         subject: subjectList.length ? subjectList.join(', ') : null,
+        ...extra,
       };
       if (editing) {
         const { error: upErr } = await supabase.from('teachers').update(base).eq('id', teacherId);
@@ -291,6 +347,10 @@ const openAdd = async () => {
       is_transport_collector: !!teacher.is_transport_collector,
       classes: Object.keys(byClass),
       subjectsByClass: byClass,
+    });
+    TEACHER_FIELD_KEYS.forEach((k) => {
+      const v = teacher[k];
+      setForm((f) => ({ ...f, [k]: v == null || v === '' ? '' : String(v).slice(0, 10) }));
     });
     setEditing(teacher);
     setOpen(true);
@@ -372,6 +432,10 @@ const subjectsOfClassFor = (t, className) => {
           .map((c) => `<tr><td>${esc(c)}</td><td>${esc(subjectsOfClassFor(t, c).join(', ') || '—')}</td></tr>`)
           .join('')
       : '<tr><td colspan="2">None assigned.</td></tr>';
+    const detailsHtml = TEACHER_FIELD_KEYS
+      .filter((k) => t[k] != null && String(t[k]).trim() !== '')
+      .map((k) => `<tr><td>${esc(fieldLabel(k))}</td><td>${esc(String(t[k]))}</td></tr>`)
+      .join('');
     openPrintWindow(`Teacher Profile — ${t.full_name}`, `
       <h1>Teacher Profile</h1>
       <p><b>${esc(t.full_name)}</b> (${esc(t.registration_id || '—')})</p>
@@ -383,6 +447,7 @@ const subjectsOfClassFor = (t, className) => {
         <thead><tr><th>Class</th><th>Subjects</th></tr></thead>
         <tbody>${rowsHtml}</tbody>
       </table>
+      ${detailsHtml ? `<h2>Profile details</h2><table><tbody>${detailsHtml}</tbody></table>` : ''}
     `);
   };
 
@@ -697,6 +762,18 @@ return (
           </div>
         </div>
 
+        <div className="mt-4 border-t border-slate-200" />
+        <p className="mt-1 text-[11px] font-bold uppercase tracking-wide text-slate-400">Personal information</p>
+        {renderFieldGrid(PERSONAL_FIELDS)}
+        <p className="mt-3 text-[11px] font-bold uppercase tracking-wide text-slate-400">Identification</p>
+        {renderFieldGrid(IDENTIFICATION_FIELDS)}
+        <p className="mt-3 text-[11px] font-bold uppercase tracking-wide text-slate-400">Appointment &amp; school</p>
+        {renderFieldGrid(APPOINTMENT_FIELDS)}
+        <p className="mt-3 text-[11px] font-bold uppercase tracking-wide text-slate-400">Rank &amp; salary</p>
+        {renderFieldGrid(RANK_FIELDS)}
+        <p className="mt-3 text-[11px] font-bold uppercase tracking-wide text-slate-400">Education &amp; additional info</p>
+        {renderFieldGrid(EDUCATION_FIELDS)}
+
         {form.staff_type === 'non_teaching' ? (
           <p className="mt-4 rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-500">
             Non-teaching staff have no class or subject assignments.
@@ -801,6 +878,11 @@ return (
                   <p className="mt-1 text-xs text-slate-400">No classes assigned.</p>
                 )}
               </div>
+              {renderDetailGroup('Personal information', PERSONAL_FIELDS, t)}
+              {renderDetailGroup('Identification', IDENTIFICATION_FIELDS, t)}
+              {renderDetailGroup('Appointment & school', APPOINTMENT_FIELDS, t)}
+              {renderDetailGroup('Rank & salary', RANK_FIELDS, t)}
+              {renderDetailGroup('Education & additional info', EDUCATION_FIELDS, t)}
             </div>
           );
         })()}

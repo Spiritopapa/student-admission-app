@@ -1,14 +1,19 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { User, KeyRound, Save } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { supabase } from '../../lib/supabase';
 import { uploadFile, randomPath, resolveFileUrl } from '../../lib/storage';
-import { Button, Input, Card, PageHeader } from '../../components/ui';
+import { Button, Input, Select, Spinner, Card, PageHeader } from '../../components/ui';
 import { Alert } from '../../components/ui-extras';
 import { PhotoUpload } from '../../components/PhotoUpload';
 import { ROLE_LABELS } from '../../lib/constants';
 import { logActivityForCurrentUser } from '../../lib/activity';
+import { TEACHER_FIELD_GROUPS, TEACHER_FIELD_KEYS } from '../../lib/staffFields';
+
+const STAFF_DATE_KEYS = new Set(
+  TEACHER_FIELD_GROUPS.flatMap(([, fields]) => fields.filter((f) => f[2] === 'date').map((f) => f[0]))
+);
 
 export default function ProfilePage() {
   const { profile, user, updateProfile } = useAuth();
@@ -27,6 +32,63 @@ export default function ProfilePage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [changing, setChanging] = useState(false);
   const [passwordError, setPasswordError] = useState('');
+
+  // Staff details (teachers only): the same profile fields the administrator
+  // manages in the Staff module, editable by the teacher themself.
+  const [staffId, setStaffId] = useState(null);
+  const [staffForm, setStaffForm] = useState({});
+  const [staffLoaded, setStaffLoaded] = useState(false);
+  const [staffSaving, setStaffSaving] = useState(false);
+  const [staffError, setStaffError] = useState('');
+  const [staffOk, setStaffOk] = useState('');
+
+  useEffect(() => {
+    if (profile?.role !== 'teacher' || !user) {
+      setStaffLoaded(true);
+      return;
+    }
+    supabase
+      .from('teachers')
+      .select(`id, ${TEACHER_FIELD_KEYS.join(', ')}`)
+      .eq('user_id', user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.id) {
+          setStaffId(data.id);
+          const fv = {};
+          TEACHER_FIELD_KEYS.forEach((k) => {
+            const v = data[k];
+            fv[k] = v == null || v === '' ? '' : STAFF_DATE_KEYS.has(k) ? String(v).slice(0, 10) : String(v);
+          });
+          setStaffForm(fv);
+        }
+        setStaffLoaded(true);
+      })
+      .catch(() => setStaffLoaded(true));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, profile?.role]);
+
+  const saveStaff = async () => {
+    if (!staffId) return;
+    setStaffError('');
+    setStaffOk('');
+    setStaffSaving(true);
+    try {
+      const payload = {};
+      TEACHER_FIELD_KEYS.forEach((k) => {
+        const v = staffForm[k];
+        payload[k] = v === '' || v == null ? null : v;
+      });
+      const { error } = await supabase.from('teachers').update(payload).eq('id', staffId);
+      if (error) throw new Error(error.message);
+      setStaffOk('Staff details saved.');
+      logActivityForCurrentUser('Updated staff profile details', { entityType: 'profile' }).catch(() => {});
+    } catch (err) {
+      setStaffError(err.message);
+    } finally {
+      setStaffSaving(false);
+    }
+  };
 
   const saveProfile = async () => {
     setError('');
@@ -174,6 +236,69 @@ export default function ProfilePage() {
           </div>
         </Card>
       </div>
+
+      {profile?.role === 'teacher' ? (
+        <Card className="mt-6 p-6">
+          <h2 className="text-base font-bold text-slate-800">Staff details</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Keep the school's staff record up to date — these details are shown to the administrator in the Staff module.
+          </p>
+
+          {staffError ? (
+            <Alert tone="error" className="mt-4">
+              {staffError}
+            </Alert>
+          ) : null}
+          {staffOk ? (
+            <Alert tone="success" className="mt-4">
+              {staffOk}
+            </Alert>
+          ) : null}
+
+          {staffLoaded ? (
+            <div>
+              {TEACHER_FIELD_GROUPS.map(([title, fields]) => (
+                <div key={title} className="mt-5">
+                  <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">{title}</p>
+                  <div className="mt-2 grid gap-3 sm:grid-cols-2">
+                    {fields.map(([key, label, type, options]) =>
+                      type === 'select' ? (
+                        <Select
+                          key={key}
+                          label={label}
+                          value={staffForm[key] || ''}
+                          onChange={(e) => setStaffForm((f) => ({ ...f, [key]: e.target.value }))}
+                        >
+                          <option value="">Select...</option>
+                          {(options || []).map((o) => (
+                            <option key={o} value={o}>
+                              {o}
+                            </option>
+                          ))}
+                        </Select>
+                      ) : (
+                        <Input
+                          key={key}
+                          label={label}
+                          type={type}
+                          value={staffForm[key] || ''}
+                          onChange={(e) => setStaffForm((f) => ({ ...f, [key]: e.target.value }))}
+                        />
+                      )
+                    )}
+                  </div>
+                </div>
+              ))}
+              <Button onClick={saveStaff} loading={staffSaving} className="mt-6 w-full">
+                <Save className="h-4 w-4" aria-hidden="true" />
+                Save staff details
+              </Button>
+            </div>
+          ) : (
+            <Spinner label="Loading staff details..." />
+          )}
+        </Card>
+      ) : null}
     </div>
   );
 }
