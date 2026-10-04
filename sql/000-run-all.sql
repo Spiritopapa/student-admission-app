@@ -619,6 +619,16 @@
 -- Used by: src/lib/activity.js (logStudentActivity), the admin Activity Log
 --          page and the per-student Activity modal / "Clear All Logs" button.
 \i 080-student-activity-log.sql
+
+-- Step 74: Multi-Class Teacher RLS
+-- Adds is_teacher_for_class() and rewrites the teacher SELECT policy on
+-- applications + the tutor branches of exam_results / exam_student_details,
+-- so teachers assigned to several classes (teacher_classes_subjects junction
+-- or class_taught CSV) can read their students and enter exam marks for every
+-- class they teach.
+-- Used by: src/pages/teacher/TeacherExams.jsx (Examinations module), and
+--          the My Class / Attendance teacher pages for multi-class staff.
+\i 081-teacher-multi-class-rls.sql
 -- ============================================================
 --  SCHEMA DEPLOYMENT COMPLETE
 -- ============================================================

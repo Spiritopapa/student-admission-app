@@ -51,6 +51,7 @@ import TeacherHome from './pages/teacher/TeacherHome';
 import TeacherStudents from './pages/teacher/TeacherStudents';
 import TeacherAttendance from './pages/teacher/TeacherAttendance';
 import TeacherAssessments from './pages/teacher/TeacherAssessments';
+import TeacherExams from './pages/teacher/TeacherExams';
 
 import AccountantHome from './pages/accountant/AccountantHome';
 import AccountantCollect from './pages/accountant/AccountantCollect';
@@ -137,6 +138,7 @@ export default function App() {
           <Route path="/teacher" element={<RoleRoute roles={['teacher']}><TeacherHome /></RoleRoute>} />
           <Route path="/teacher/students" element={<RoleRoute roles={['teacher']}><TeacherStudents /></RoleRoute>} />
           <Route path="/teacher/attendance" element={<RoleRoute roles={['teacher']}><TeacherAttendance /></RoleRoute>} />
+          <Route path="/teacher/exams" element={<RoleRoute roles={['teacher']}><TeacherExams /></RoleRoute>} />
           <Route path="/teacher/assessments" element={<RoleRoute roles={['teacher']}><TeacherAssessments /></RoleRoute>} />
           <Route path="/teacher/profile" element={<RoleRoute roles={['teacher']}><ProfilePage /></RoleRoute>} />
 

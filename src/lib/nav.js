@@ -66,6 +66,7 @@ export const NAV_BY_ROLE = {
     { path: '/teacher', label: 'Overview', icon: LayoutDashboard },
     { path: '/teacher/students', label: 'My Class', icon: Users },
     { path: '/teacher/attendance', label: 'Attendance', icon: CalendarCheck },
+    { path: '/teacher/exams', label: 'Examinations', icon: Award },
     { path: '/teacher/assessments', label: 'Assessments', icon: ClipboardList },
     { path: '/teacher/profile', label: 'My Profile', icon: User },
   ],
