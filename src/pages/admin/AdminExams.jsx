@@ -8,19 +8,11 @@ import { useToast } from '../../context/ToastContext';
 import { PageHeader, Card, Button, Input, Select, Spinner, EmptyState, Badge, StatCard, SearchInput } from '../../components/ui';
 import { Modal, ConfirmDialog, Alert, Tabs } from '../../components/ui-extras';
 import { supabase } from '../../lib/supabase';
-import { buildStudentName, formatDate, getSubjectGrade, termLabel } from '../../lib/format';
+import { buildStudentName, formatDate, termLabel } from '../../lib/format';
 import { TERMS, TERM_LABELS, currentAcademicYear, academicYearList } from '../../lib/constants';
 import { buildCSV, parseCSV } from '../../lib/csv';
 import { buildReportCardHTML, buildTranscriptHTML, computeExamRankings } from '../../lib/examReports';
-
-const GRADE_CLASSES = {
-  'grade-a': 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200',
-  'grade-b': 'bg-brand-50 text-brand-700 ring-1 ring-brand-200',
-  'grade-c': 'bg-sky-50 text-sky-700 ring-1 ring-sky-200',
-  'grade-d': 'bg-amber-50 text-amber-700 ring-1 ring-amber-200',
-  'grade-e': 'bg-orange-50 text-orange-700 ring-1 ring-orange-200',
-  'grade-f': 'bg-rose-50 text-rose-700 ring-1 ring-rose-200',
-};
+import { GRADE_CLASSES, resolveScale, gradeForScale } from '../../lib/gradingScale';
 
 const EMPTY_META = { subjectCount: 0, classCoverage: 0, classNames: [], results: 0, recordedSlots: 0, expectedSlots: 0, students: 0 };
 
@@ -377,18 +369,17 @@ export default function AdminExams() {
     ? transcriptStudents.filter((s) => s.class_applying === transcriptClassFilter)
     : transcriptStudents;
 
-  const gradeFor = (subject, marks) => {
-    const row =
-      grades.find((g) => g.subject_name === subject && marks >= g.min_score && marks <= (g.max_score ?? 100)) ||
-      grades.find((g) => g.subject_name === null && marks >= g.min_score && marks <= (g.max_score ?? 100));
-    return row?.grade_label || getSubjectGrade(marks).grade;
-  };
+  // Effective grading scale for the class currently open in the marks sheet:
+  // class override -> school-wide -> system defaults.
+  const scale = resolveScale(grades, workspaceClass).rows;
 
-  const scoreTotals = (sc) => {
+  const gradeFor = (subject, marks) => gradeForScale(scale, marks, subject).grade;
+
+  const scoreTotals = (sc, forSubject = '') => {
     const cls = sc.classScore === '' ? null : Math.min(parseFloat(sc.classScore) || 0, 50);
     const esi = sc.examScoreInput === '' ? null : Math.min(parseFloat(sc.examScoreInput) || 0, 100);
     const tot = cls !== null || esi !== null ? Math.min((cls || 0) + (esi || 0) / 2, 100) : null;
-    return { cls, esi, tot, perf: tot != null ? getSubjectGrade(tot) : null };
+    return { cls, esi, tot, perf: tot != null ? gradeForScale(scale, tot, forSubject) : null };
   };
 
   const setScore = (studentIndex, subject, field, value) => {
@@ -994,12 +985,12 @@ export default function AdminExams() {
                       }
                     });
                     const avg = count ? sum / count : null;
-                    const avgPerf = avg != null ? getSubjectGrade(avg) : null;
+                    const avgPerf = avg != null ? gradeForScale(scale, avg, '') : null;
                     return (
                       <tr key={row.student.id} className="hover:bg-slate-50/60">
                         {columnSubjects.map((sbj) => {
                           const sc = row.scores[sbj.subject] || { classScore: '', examScoreInput: '' };
-                          const t = scoreTotals(sc);
+                          const t = scoreTotals(sc, sbj.subject);
                           return (
                             <Fragment key={sbj.subject}>
                               <td className="border-l border-slate-100 px-1 py-1.5">
@@ -1261,6 +1252,8 @@ export default function AdminExams() {
               const groups = rankClass ? rankData.overall.filter((g) => g.cls === rankClass) : rankData.overall;
               return groups.map((group) => {
                 const top3 = group.rows.slice(0, 3);
+                // Class-aware grading scale for this ranking group
+                const groupScale = resolveScale(grades, group.cls).rows;
                 const medals = ['🥇', '🥈', '🥉'];
                 return (
                   <div key={group.cls} className="rounded-2xl border border-slate-200/80 bg-white p-4">
@@ -1277,7 +1270,7 @@ export default function AdminExams() {
                             <p className="mt-1 truncate text-center text-sm font-bold text-slate-800" title={r.name}>{r.name}</p>
                             <p className="mt-1 flex items-center justify-center gap-1.5 text-xs">
                               <span className="font-mono font-semibold text-slate-600">{r.avg.toFixed(1)}%</span>
-                              <span className={`badge ${GRADE_CLASSES[getSubjectGrade(r.avg).cls]}`}>{r.grade}</span>
+                              <span className={`badge ${GRADE_CLASSES[gradeForScale(groupScale, r.avg, '').cls]}`}>{gradeForScale(groupScale, r.avg, '').grade}</span>
                             </p>
                           </div>
                         ))}
@@ -1301,7 +1294,7 @@ export default function AdminExams() {
                             <td className="py-1.5 pr-2 font-semibold text-slate-700">{r.name}</td>
                             <td className="py-1.5 pr-2 text-right font-bold text-slate-700">{r.avg.toFixed(1)}%</td>
                             <td className="py-1.5 text-center">
-                              <span className={`badge ${GRADE_CLASSES[getSubjectGrade(r.avg).cls]}`}>{r.grade}</span>
+                              <span className={`badge ${GRADE_CLASSES[gradeForScale(groupScale, r.avg, '').cls]}`}>{gradeForScale(groupScale, r.avg, '').grade}</span>
                             </td>
                           </tr>
                         ))}

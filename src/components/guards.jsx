@@ -1,18 +1,31 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Spinner } from './ui';
+import { photoUrl } from '../lib/storage';
 import { ROLES } from '../lib/constants';
 import { roleBasePath } from '../lib/nav';
 
 export function AuthLoader() {
-  const { loading } = useAuth();
+  const { loading, schoolBranding } = useAuth();
   if (!loading) return null;
+  const logoUrl = schoolBranding?.logo_url ? photoUrl(schoolBranding.logo_url) : null;
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-50">
       <div className="flex flex-col items-center gap-4">
-        <div className="inline-flex items-center justify-center bg-blend p-4 text-white shadow-card">
-          <span className="h-8 w-8 animate-pulse rounded-xl" />
-        </div>
+        {logoUrl ? (
+          <img
+            src={logoUrl}
+            alt="School logo"
+            className="img-zoom h-16 w-16 rounded-2xl bg-white object-contain p-1 shadow-card ring-1 ring-slate-200"
+          />
+        ) : (
+          <div className="inline-flex items-center justify-center bg-blend p-4 text-white shadow-card">
+            <span className="h-8 w-8 animate-pulse rounded-xl" />
+          </div>
+        )}
+        {schoolBranding?.school_name ? (
+          <p className="text-sm font-semibold text-slate-700">{schoolBranding.school_name}</p>
+        ) : null}
         <Spinner label="Preparing your workspace..." />
       </div>
     </div>

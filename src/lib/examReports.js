@@ -12,6 +12,7 @@ import {
   getTeacherRemarks,
   getHeadTeacherRemarks,
 } from './format';
+import { resolveScale, gradeForScale } from './gradingScale';
 
 export function esc(value) {
   return String(value ?? '')
@@ -68,14 +69,12 @@ async function getSchoolIdentity(schoolId) {
   return { schoolName, schoolLogoUrl, address, motto, academicYear, currentTerm };
 }
 
-async function getGradingScale(schoolId) {
+async function getGradingScale(schoolId, className = '') {
   if (!schoolId) return null;
-  const { data } = await supabase
-    .from('grading_systems')
-    .select('grade_label, min_score, max_score')
-    .eq('school_id', schoolId)
-    .order('min_score', { ascending: false });
-  return data || null;
+  // Fetch every school row once, then resolve the EFFECTIVE scale for the
+  // student's class: class override -> school-wide -> system defaults.
+  const { data } = await supabase.from('grading_systems').select('*').eq('school_id', schoolId);
+  return resolveScale(data || [], className).rows || null;
 }
 
 // Position (1-based) of a student among classmates by average marks in an exam.
@@ -183,7 +182,7 @@ export async function buildReportCardHTML({ examId, studentId, schoolId }) {
   if (!subjects.length) return '<p>No subjects configured for this exam.</p>';
 
   const school = await getSchoolIdentity(schoolId);
-  const gradingScale = await getGradingScale(schoolId);
+  const gradingScale = await getGradingScale(schoolId, app.class_applying);
 
   const [{ data: results }, { data: allResults }, { data: details }] = await Promise.all([
     supabase.from('exam_results').select('*').eq('exam_id', examId).eq('student_id', studentId),
@@ -243,7 +242,7 @@ export async function buildReportCardHTML({ examId, studentId, schoolId }) {
       sorted.forEach(([sid], idx) => {
         if (sid === studentId) pos = idx + 1;
       });
-      const g = getSubjectGrade(marks ?? 0);
+      const g = gradeForScale(gradingScale || [], marks ?? 0, sub);
       const perf = getPerformanceLevel(marks ?? 0);
       return `<tr>
         <td>${esc(sub)}</td>
@@ -258,7 +257,7 @@ export async function buildReportCardHTML({ examId, studentId, schoolId }) {
     .join('');
 
   const average = entered ? total / entered : 0;
-  const avgGrade = getSubjectGrade(average);
+  const avgGrade = gradeForScale(gradingScale || [], average, '');
   const overallPosition = details?.overall_position || computeClassPosition(allResults, classIds, studentId);
   const positionDisplay = overallPosition ? ordinal(overallPosition) : '-';
   const name = buildStudentName(app.first_name, app.middle_name, app.last_name);
@@ -268,6 +267,7 @@ export async function buildReportCardHTML({ examId, studentId, schoolId }) {
   const attitude = details?.attitude || app.attitude || 'active';
   const toTitle = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : '-');
   const gradingKey = (gradingScale || [])
+    .filter((g) => !g.subject_name)
     .slice(0, 4)
     .map((g) => `${esc(g.grade_label)} (${g.min_score}-${g.max_score ?? 100})`)
     .join(' · ');
@@ -321,6 +321,7 @@ export async function buildTranscriptHTML({ studentId, schoolId }) {
   const { data: app } = await supabase.from('applications').select('*').eq('student_id', studentId).maybeSingle();
   if (!app) return '<p>Student not found.</p>';
   const school = await getSchoolIdentity(schoolId);
+  const gradingScale = await getGradingScale(schoolId, app.class_applying);
   const { data: allExams } = await supabase.from('exams').select('id, name, academic_year, term').eq('school_id', schoolId);
   const { data: allStudentResults } = await supabase.from('exam_results').select('*').eq('student_id', studentId);
 
@@ -377,14 +378,14 @@ export async function buildTranscriptHTML({ studentId, schoolId }) {
         count += 1;
         grandTotal += marks;
         grandCount += 1;
-        const g = getSubjectGrade(marks);
+        const g = gradeForScale(gradingScale || [], marks, sub);
         const perf = getPerformanceLevel(marks);
         return { sub, cls, exm, marks, grade: g.grade, perf: perf.text };
       })
       .filter(Boolean);
     const avg = count ? total / count : 0;
     const details = detailsByExam.get(exam.id);
-    const avgGrade = getSubjectGrade(avg);
+    const avgGrade = gradeForScale(gradingScale || [], avg, '');
     termRecords.push({
       exam,
       rows,
@@ -395,7 +396,7 @@ export async function buildTranscriptHTML({ studentId, schoolId }) {
   }
 
   const overallAvg = grandCount ? grandTotal / grandCount : 0;
-  const overallGrade = getSubjectGrade(overallAvg);
+  const overallGrade = gradeForScale(gradingScale || [], overallAvg, '');
   const overallName = buildStudentName(app.first_name, app.middle_name, app.last_name);
   const verdicts = [
     { verdict: 'Excellent', min: 80 },
@@ -414,6 +415,7 @@ export async function buildTranscriptHTML({ studentId, schoolId }) {
           ? { decision: 'PROBATIONARY PROMOTION', note: 'Progresses conditionally; must show clear improvement.' }
           : { decision: 'REPEAT CLASS', note: 'Strongly recommended to repeat the current class.' };
 const key = (gradingScale) => (gradingScale || [])
+    .filter((g) => !g.subject_name)
     .slice(0, 3)
     .map((g) => `${esc(g.grade_label)} (${g.min_score}-${g.max_score ?? 100})`)
     .join(' · ');
@@ -451,8 +453,6 @@ const key = (gradingScale) => (gradingScale || [])
       </div>`;
     })
     .join('');
-
-  const gradingScale = await getGradingScale(schoolId);
 
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8" /><title>${esc(overallName)} - Academic Transcript</title>
 <style>${REPORT_CSS}

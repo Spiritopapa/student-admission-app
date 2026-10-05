@@ -5,7 +5,8 @@ import { PageHeader, Card, Button, Select, Spinner, EmptyState, Badge } from '..
 import { Alert } from '../../components/ui-extras';
 import { supabase } from '../../lib/supabase';
 import { fetchTeacherClassSet } from '../../lib/queries';
-import { buildStudentName, getSubjectGrade } from '../../lib/format';
+import { buildStudentName } from '../../lib/format';
+import { fetchGradingScale, gradeForScale, gradeTone } from '../../lib/gradingScale';
 import { openPrintWindow, escapeHtml } from '../../lib/print';
 
 const esc = escapeHtml;
@@ -27,6 +28,24 @@ export default function TeacherExams() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState('');
+  const [scale, setScale] = useState(null); // effective grading scale for the chosen class
+
+  // Class-aware grading scale: class override -> school-wide -> system defaults.
+  useEffect(() => {
+    if (!teacher?.school_id || !className) {
+      setScale(null);
+      return;
+    }
+    let on = true;
+    fetchGradingScale(teacher.school_id, className)
+      .then((s) => {
+        if (on) setScale(s);
+      })
+      .catch(() => {});
+    return () => {
+      on = false;
+    };
+  }, [teacher, className]);
 
   useEffect(() => {
     if (!user) return;
@@ -145,7 +164,8 @@ useEffect(() => {
     const cls = r.classScore === '' ? null : Math.min(parseFloat(r.classScore) || 0, 50);
     const esi = r.examScoreInput === '' ? null : Math.min(parseFloat(r.examScoreInput) || 0, 100);
     const total = cls !== null || esi !== null ? Math.min((cls || 0) + (esi || 0) / 2, 100) : null;
-    return { cls, esi, total, perf: total != null ? getSubjectGrade(total) : null };
+    const perf = total != null ? gradeForScale(scale?.rows || [], total, subject) : null;
+    return { cls, esi, total, perf };
   };
 
   const enteredCount = useMemo(() => rows.filter((r) => r.classScore !== '' || r.examScoreInput !== '').length, [rows]);
@@ -342,7 +362,7 @@ return (
                           {t.total != null ? t.total.toFixed(1) : '—'}
                         </td>
                         <td className="px-3 py-2">
-                          {t.total != null ? <Badge tone="blue">{t.perf?.grade || '—'}</Badge> : <span className="text-slate-300">—</span>}
+                          {t.total != null ? <Badge tone={gradeTone(t.perf?.cls)}>{t.perf?.grade || '—'}</Badge> : <span className="text-slate-300">—</span>}
                         </td>
                       </tr>
                     );

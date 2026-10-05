@@ -630,6 +630,13 @@
 --          the My Class / Attendance teacher pages for multi-class staff.
 \i 081-teacher-multi-class-rls.sql
 -- ============================================================
+--  Per-class grading systems (grading_systems.class_name + class-aware helpers)
+--  Used by: src/pages/admin/AdminGrading.jsx (class-scope editor),
+--           src/lib/gradingScale.js (effective scale resolution),
+--           AdminExams / TeacherExams / examReports / StudentResults.
+-- ============================================================
+\i 082-grading-class-scope.sql
+-- ============================================================
 --  SCHEMA DEPLOYMENT COMPLETE
 -- ============================================================
 --  Next steps:

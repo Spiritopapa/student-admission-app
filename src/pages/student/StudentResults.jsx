@@ -14,12 +14,12 @@ import {
 import {
   buildStudentName,
   formatDate,
-  getSubjectGrade,
   getPerformanceLevel,
   getTeacherRemarks,
   getHeadTeacherRemarks,
   termLabel,
 } from '../../lib/format';
+import { fetchGradingScale, gradeForScale, GRADE_CLASSES } from '../../lib/gradingScale';
 import { photoUrl } from '../../lib/storage';
 
 export default function StudentResults() {
@@ -32,10 +32,12 @@ export default function StudentResults() {
   const [attendance, setAttendance] = useState([]);
   const [busy, setBusy] = useState(false);
   const [schoolName, setSchoolName] = useState('My School');
+  const [scale, setScale] = useState(null); // class-aware grading scale
 
   useEffect(() => {
     if (!application) return;
     fetchSchoolName(application.school_id).then(setSchoolName).catch(() => {});
+    fetchGradingScale(application.school_id, application.class_applying).then(setScale).catch(() => {});
     fetchExamsForStudent(application.school_id)
       .then((list) => {
         setExams(list);
@@ -75,7 +77,7 @@ export default function StudentResults() {
       .map((r) => {
         const marks = Number(r.marks_obtained || 0);
         total += marks;
-        return { ...r, marks, grade: getSubjectGrade(marks), level: getPerformanceLevel(marks) };
+        return { ...r, marks, grade: gradeForScale(scale?.rows || [], marks, r.subject), level: getPerformanceLevel(marks) };
       });
     const average = total / rows.length || 0;
     return {
@@ -87,7 +89,7 @@ export default function StudentResults() {
       teacherRemarks: getTeacherRemarks(average),
       headRemarks: getHeadTeacherRemarks(average),
     };
-  }, [results]);
+  }, [results, scale]);
 
   const exam = exams.find((e) => e.id === selected);
   const att = useMemo(() => {
@@ -199,15 +201,7 @@ export default function StudentResults() {
                         <td className="py-2.5 pr-3 text-slate-600">{Number(row.exam_score || 0).toFixed(2)}</td>
                         <td className="py-2.5 pr-3 font-bold text-slate-800">{row.marks.toFixed(2)}</td>
                         <td className="py-2.5 pr-3">
-                          <span
-                            className={`badge ${
-                              ['A', 'B'].includes(row.grade.grade)
-                                ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200'
-                                : ['C', 'D'].includes(row.grade.grade)
-                                  ? 'bg-brand-50 text-brand-700 ring-1 ring-brand-200'
-                                  : 'bg-accent-500/10 text-accent-600 ring-1 ring-accent-500/30'
-                            }`}
-                          >
+                          <span className={`badge ${GRADE_CLASSES[row.grade.cls] || 'bg-slate-100 text-slate-600 ring-1 ring-slate-200'}`}>
                             {row.grade.grade}
                           </span>
                         </td>

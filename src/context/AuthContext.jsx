@@ -243,10 +243,25 @@ async function applyGuards(user) {
   return { profile, app: null };
 }
 
+// School identity used while the app prepares the workspace (AuthLoader): the
+// logo + name shown on the "Preparing your workspace..." splash screen.
+async function fetchSchoolBranding(schoolId) {
+  if (!schoolId) return null;
+  const { data } = await supabase
+    .from('school_settings')
+    .select('school_name, logo_url')
+    .eq('school_id', schoolId)
+    .maybeSingle();
+  if (data) return { school_name: data.school_name || '', logo_url: data.logo_url || '' };
+  const { data: school } = await supabase.from('schools').select('name, logo_url').eq('id', schoolId).maybeSingle();
+  return school ? { school_name: school.name || '', logo_url: school.logo_url || '' } : null;
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [schoolBranding, setSchoolBranding] = useState(null);
 
   const refreshSession = useCallback(async () => {
     const {
@@ -261,6 +276,7 @@ export function AuthProvider({ children }) {
     const child = await applyGuards(session.user);
     setUser(session.user);
     setProfile(child.profile);
+    setSchoolBranding(await fetchSchoolBranding(child.profile?.school_id || child.app?.school_id || null));
     setLoading(false);
     return { user: session.user, ...child };
   }, []);
@@ -288,6 +304,7 @@ export function AuthProvider({ children }) {
             // Keep an existing profile if the just-fetched one is missing; never
             // clobber a valid profile with null.
             setProfile((prev) => child.profile || prev);
+            setSchoolBranding(await fetchSchoolBranding(child.profile?.school_id || child.app?.school_id || null));
           })
           .catch(() => {})
           .finally(() => setLoading(false));
@@ -300,6 +317,7 @@ export function AuthProvider({ children }) {
           const child = await applyGuards(session.user);
           setUser(session.user);
           setProfile(child.profile);
+          setSchoolBranding(await fetchSchoolBranding(child.profile?.school_id || child.app?.school_id || null));
         } catch (err) {
           setUser(null);
           setProfile(null);
@@ -321,6 +339,7 @@ export function AuthProvider({ children }) {
     const child = await applyGuards(data.user);
     setUser(data.user);
     setProfile(child.profile);
+    setSchoolBranding(await fetchSchoolBranding(child.profile?.school_id || child.app?.school_id || null));
     // Audit trail: record the sign-in for teachers, accountants & students
     // (matches the legacy app's activity log). Fail-safe.
     const role = String(child.profile?.role || '').toLowerCase();
@@ -336,6 +355,7 @@ export function AuthProvider({ children }) {
     await supabase.auth.signOut();
     setUser(null);
     setProfile(null);
+    setSchoolBranding(null);
   }, []);
 
   const updateProfile = useCallback(
@@ -808,6 +828,7 @@ export function AuthProvider({ children }) {
       user,
       profile,
       loading,
+      schoolBranding,
       signIn,
       signOut,
       refreshSession,
@@ -825,6 +846,7 @@ export function AuthProvider({ children }) {
       user,
       profile,
       loading,
+      schoolBranding,
       signIn,
       signOut,
       refreshSession,
