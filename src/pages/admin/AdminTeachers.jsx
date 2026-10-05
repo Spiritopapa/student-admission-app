@@ -12,15 +12,7 @@ import { supabase } from '../../lib/supabase';
 import { buildCSV, parseCSV, downloadCSV } from '../../lib/csv';
 import { formatDate } from '../../lib/format';
 import { openPrintWindow, escapeHtml } from '../../lib/print';
-import {
-  PERSONAL_FIELDS,
-  IDENTIFICATION_FIELDS,
-  APPOINTMENT_FIELDS,
-  RANK_FIELDS,
-  EDUCATION_FIELDS,
-  TEACHER_FIELD_KEYS,
-  fieldLabel,
-} from '../../lib/staffFields';
+import { TEACHER_FIELD_GROUPS, TEACHER_FIELD_KEYS, fieldLabel } from '../../lib/staffFields';
 
 const TEACHER_CSV_HEADERS = ['Registration ID', 'Full Name *', 'Email', 'Phone', 'Staff Type', 'Class(es)', 'Subject(s)', 'Qualification'];
 const esc = escapeHtml;
@@ -763,16 +755,12 @@ return (
         </div>
 
         <div className="mt-4 border-t border-slate-200" />
-        <p className="mt-1 text-[11px] font-bold uppercase tracking-wide text-slate-400">Personal information</p>
-        {renderFieldGrid(PERSONAL_FIELDS)}
-        <p className="mt-3 text-[11px] font-bold uppercase tracking-wide text-slate-400">Identification</p>
-        {renderFieldGrid(IDENTIFICATION_FIELDS)}
-        <p className="mt-3 text-[11px] font-bold uppercase tracking-wide text-slate-400">Appointment &amp; school</p>
-        {renderFieldGrid(APPOINTMENT_FIELDS)}
-        <p className="mt-3 text-[11px] font-bold uppercase tracking-wide text-slate-400">Rank &amp; salary</p>
-        {renderFieldGrid(RANK_FIELDS)}
-        <p className="mt-3 text-[11px] font-bold uppercase tracking-wide text-slate-400">Education &amp; additional info</p>
-        {renderFieldGrid(EDUCATION_FIELDS)}
+        {TEACHER_FIELD_GROUPS.map(([title, fields]) => (
+          <div key={title} className="mt-3">
+            <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">{title}</p>
+            {renderFieldGrid(fields)}
+          </div>
+        ))}
 
         {form.staff_type === 'non_teaching' ? (
           <p className="mt-4 rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-500">
@@ -878,11 +866,7 @@ return (
                   <p className="mt-1 text-xs text-slate-400">No classes assigned.</p>
                 )}
               </div>
-              {renderDetailGroup('Personal information', PERSONAL_FIELDS, t)}
-              {renderDetailGroup('Identification', IDENTIFICATION_FIELDS, t)}
-              {renderDetailGroup('Appointment & school', APPOINTMENT_FIELDS, t)}
-              {renderDetailGroup('Rank & salary', RANK_FIELDS, t)}
-              {renderDetailGroup('Education & additional info', EDUCATION_FIELDS, t)}
+              {TEACHER_FIELD_GROUPS.map(([title, fields]) => renderDetailGroup(title, fields, t))}
             </div>
           );
         })()}
