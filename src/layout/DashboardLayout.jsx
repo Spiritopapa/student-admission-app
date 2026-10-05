@@ -1,9 +1,10 @@
 import { useMemo, useState, useEffect } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Menu, X, LogOut, ChevronDown, PanelLeftClose, PanelLeftOpen, LifeBuoy } from 'lucide-react';
+import { Menu, X, LogOut, ChevronDown, PanelLeftClose, PanelLeftOpen, LifeBuoy, Sun, Moon } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { useTheme } from '../context/ThemeContext';
 import { useSchoolSettings } from '../hooks/useSchool';
 import { NAV_BY_ROLE, roleBasePath } from '../lib/nav';
 import { supabase } from '../lib/supabase';
@@ -45,6 +46,7 @@ export function DashboardLayout() {
   const { profile, user, signOut } = useAuth();
   const { settings: schoolSettings } = useSchoolSettings();
   const toast = useToast();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -287,7 +289,22 @@ export function DashboardLayout() {
               </div>
             </div>
 
-            <div className="relative">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={toggleTheme}
+                aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+                title={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+                className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 shadow-sm transition-colors hover:border-brand-300 hover:text-brand-600"
+              >
+                {theme === 'dark' ? (
+                  <Sun className="h-4 w-4" aria-hidden="true" />
+                ) : (
+                  <Moon className="h-4 w-4" aria-hidden="true" />
+                )}
+              </button>
+
+              <div className="relative">
               <button
                 type="button"
                 onClick={() => setMenuOpen((m) => !m)}
@@ -335,6 +352,7 @@ export function DashboardLayout() {
                   </motion.div>
                 ) : null}
               </AnimatePresence>
+            </div>
             </div>
           </div>
         </header>

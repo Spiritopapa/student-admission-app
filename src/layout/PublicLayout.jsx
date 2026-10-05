@@ -1,13 +1,15 @@
 import { Link, Outlet, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
-import { Menu, X, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Menu, X, ArrowRight, ShieldCheck, Sun, Moon } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import { Logo } from '../components/Logo';
 import { roleBasePath } from '../lib/nav';
 
 export function PublicLayout() {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
+  const { theme, toggleTheme } = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
 
   const goDashboard = () => {
@@ -38,7 +40,22 @@ export function PublicLayout() {
             </a>
           </nav>
 
-          <div className="hidden items-center gap-3 md:flex">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={toggleTheme}
+              aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+              title={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+              className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition-colors hover:border-brand-300 hover:text-brand-600"
+            >
+              {theme === 'dark' ? (
+                <Sun className="h-4 w-4" aria-hidden="true" />
+              ) : (
+                <Moon className="h-4 w-4" aria-hidden="true" />
+              )}
+            </button>
+
+            <div className="hidden items-center gap-3 md:flex">
             {user ? (
               <button type="button" onClick={goDashboard} className="btn-secondary">
                 Open Dashboard
@@ -55,6 +72,7 @@ export function PublicLayout() {
                 </Link>
               </>
             )}
+          </div>
           </div>
 
           <button
