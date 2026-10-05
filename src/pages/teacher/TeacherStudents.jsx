@@ -85,7 +85,7 @@ export default function TeacherStudents() {
             <Card key={s.id} className="p-4">
               <div className="flex items-center gap-3">
                 {s.student_photo_url ? (
-                  <img src={photoUrl(s.student_photo_url)} alt="Student" className="h-14 w-12 rounded-xl object-cover ring-2 ring-brand-100" />
+                  <img src={photoUrl(s.student_photo_url)} alt="Student" className="img-zoom h-14 w-12 rounded-xl object-cover ring-2 ring-brand-100" />
                 ) : (
                   <span className="flex h-14 w-12 items-center justify-center rounded-xl bg-brand-50 text-lg font-extrabold text-brand-600">
                     {(s.first_name || 'S').charAt(0)}

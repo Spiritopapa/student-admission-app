@@ -348,7 +348,7 @@ export default function AccountantCollect() {
                       }`}
                     >
                       {s.student_photo_url ? (
-                        <img src={photoUrl(s.student_photo_url)} alt="Student" className="h-9 w-8 rounded-lg object-cover" />
+                        <img src={photoUrl(s.student_photo_url)} alt="Student" className="img-zoom h-9 w-8 rounded-lg object-cover" />
                       ) : (
                         <span className="flex h-9 w-8 items-center justify-center rounded-lg bg-brand-50 text-sm font-bold text-brand-600">
                           {(s.first_name || 'S').charAt(0)}

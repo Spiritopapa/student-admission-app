@@ -57,7 +57,7 @@ export default function ParentWards() {
               <Card key={ward.id} className="p-5">
                 <div className="flex items-center gap-4">
                   {photo ? (
-                    <img src={photo} alt={name} className="h-20 w-16 rounded-2xl object-cover ring-2 ring-brand-100" />
+                    <img src={photo} alt={name} className="img-zoom h-20 w-16 rounded-2xl object-cover ring-2 ring-brand-100" />
                   ) : (
                     <span className="flex h-20 w-16 items-center justify-center rounded-2xl bg-brand-50 text-2xl font-extrabold text-brand-600">
                       {name.charAt(0)}

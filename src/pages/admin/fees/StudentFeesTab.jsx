@@ -449,7 +449,7 @@ const openBillDialog = (scope) => {
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                   <div className="flex min-w-0 items-center gap-3">
                     {row.app.student_photo_url ? (
-                      <img src={photoUrl(row.app.student_photo_url)} alt="Student" className="h-12 w-10 rounded-lg object-cover ring-1 ring-slate-100" />
+                      <img src={photoUrl(row.app.student_photo_url)} alt="Student" className="img-zoom h-12 w-10 rounded-lg object-cover ring-1 ring-slate-100" />
                     ) : (
                       <span className="flex h-12 w-10 items-center justify-center rounded-lg bg-brand-50 text-base font-bold text-brand-600">
                         {(row.app.first_name || 'S').charAt(0)}

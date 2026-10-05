@@ -314,7 +314,7 @@ export function DashboardLayout() {
                   <img
                     src={avatarUrl}
                     alt="Profile"
-                    className="h-8 w-8 rounded-full object-cover ring-2 ring-brand-100"
+                    className="img-zoom h-8 w-8 rounded-full object-cover ring-2 ring-brand-100"
                   />
                 ) : (
                   <span className="flex h-8 w-8 items-center justify-center rounded-full bg-blend text-xs font-bold text-white">

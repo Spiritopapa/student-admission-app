@@ -259,6 +259,24 @@ html[data-theme='dark'] .ring-rose-200 {
   --tw-ring-color: #452a36;
 }
 
+/* --- profile photo hover zoom (add className="img-zoom" to any photo <img>) --- */
+img.img-zoom {
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.35s ease, filter 0.35s ease;
+  will-change: transform;
+  cursor: zoom-in;
+}
+img.img-zoom:hover {
+  transform: scale(1.18);
+  filter: brightness(1.05);
+  box-shadow: 0 10px 26px -8px rgba(15, 23, 42, 0.4);
+  z-index: 5;
+}
+@media (prefers-reduced-motion: reduce) {
+  img.img-zoom {
+    transition: none;
+  }
+}
+
 /* --- tables & print helpers stay light --- */
 @media print {
   html[data-theme='dark'] body {

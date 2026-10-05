@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useSchoolId, useSchoolSettings } from '../../hooks/useSchool';
 import { PageHeader, Card, Spinner, Badge, StatCard, Button } from '../../components/ui';
+import { Modal } from '../../components/ui-extras';
 import { supabase } from '../../lib/supabase';
 import { buildStudentName, cedi, formatDate } from '../../lib/format';
 import { photoUrl } from '../../lib/storage';
@@ -167,11 +168,22 @@ function MiniStat({ label, value, tone = 'default' }) {
     </div>
   );
 }
+
+// Clickable Paid / Partial / Unpaid chips on the fee overview card. Tapping a
+// chip opens the list of students whose aggregate balance falls in that status.
+const STATUS_META = {
+  paid: { label: 'Paid', toneCls: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' },
+  partial: { label: 'Partial', toneCls: 'bg-accent-500/10 text-accent-600 ring-1 ring-accent-500/30' },
+  unpaid: { label: 'Unpaid', toneCls: 'bg-rose-50 text-rose-700 ring-1 ring-rose-200' },
+};
+
 export default function AdminHome() {
   const schoolId = useSchoolId();
   const { settings } = useSchoolSettings();
   const [data, setData] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+  // Fee overview card: the status whose student list is currently open in the modal.
+  const [statusModal, setStatusModal] = useState(null);
 
   const load = useCallback(async () => {
     if (!schoolId) return;
@@ -262,22 +274,45 @@ export default function AdminHome() {
       });
       let totalAmount = 0;
       let totalPaid = 0;
-      let paidCount = 0;
-      let partialCount = 0;
-      let unpaidCount = 0;
       feesArr.forEach((f) => {
         const total = (Number(f.total_amount) || 0) + (Number(f.debt) || 0);
         const paid = Number(f.amount_paid) || 0;
         totalAmount += total;
         totalPaid += paid;
-        if (f.payment_status === 'paid') paidCount += 1;
-        else if (f.payment_status === 'partial') partialCount += 1;
-        else unpaidCount += 1;
         const cls = studentClassMap[f.student_id] || 'Unassigned';
         const row = ensure(feeClassMap, cls);
         row.totalFees += total;
         row.collected += paid;
         row.outstanding += Math.max(total - paid, 0);
+      });
+
+      // Per-student fee status (aggregated across every fee record of the
+      // student): balance <= 0 -> paid, balance > 0 with something paid ->
+      // partial, otherwise unpaid. These lists power the clickable Paid /
+      // Partial / Unpaid chips on the fee overview card.
+      const feeAgg = {};
+      feesArr.forEach((f) => {
+        const total = (Number(f.total_amount) || 0) + (Number(f.debt) || 0);
+        const paid = Number(f.amount_paid) || 0;
+        const g = feeAgg[f.student_id] || (feeAgg[f.student_id] = { total: 0, paid: 0 });
+        g.total += Math.max(total, 0);
+        g.paid += Math.max(paid, 0);
+      });
+      const feeStatusLists = { paid: [], partial: [], unpaid: [] };
+      studentsArr.forEach((s) => {
+        const g = feeAgg[s.student_id];
+        if (!g) return; // no fees billed for this student yet
+        const balance = Math.max(g.total - g.paid, 0);
+        const status = balance <= 0 ? 'paid' : g.paid > 0 ? 'partial' : 'unpaid';
+        feeStatusLists[status].push({
+          id: s.id || s.student_id,
+          name: buildStudentName(s.first_name, s.middle_name, s.last_name),
+          student_id: s.student_id,
+          classApp: s.class_applying || 'Unassigned',
+          photo: s.student_photo_url ? photoUrl(s.student_photo_url) : null,
+          initial: (s.first_name || 'S').charAt(0).toUpperCase(),
+          balance,
+        });
       });
       const feesByClass = orderClasses(Object.keys(feeClassMap)).map((cls) => ({
         className: cls,
@@ -310,10 +345,11 @@ export default function AdminHome() {
           totalAmount,
           totalPaid,
           totalBalance: Math.max(totalAmount - totalPaid, 0),
-          paidCount,
-          partialCount,
-          unpaidCount,
+          paidCount: feeStatusLists.paid.length,
+          partialCount: feeStatusLists.partial.length,
+          unpaidCount: feeStatusLists.unpaid.length,
         },
+        feeStatusLists,
         feesByClass,
         schoolFeesToday: sumAmount(paymentsToday, 'amount_paid'),
         transportToday: sumAmount(transportToday, 'fee_amount'),
@@ -418,10 +454,25 @@ return (
               </div>
             </div>
 
-            <div className="mt-4 flex flex-wrap gap-2 text-xs">
-              <Badge tone="green">{feeStats.paidCount} paid</Badge>
-              <Badge tone="amber">{feeStats.partialCount} partial</Badge>
-              <Badge tone="red">{feeStats.unpaidCount} unpaid</Badge>
+            <div className="mt-4">
+              <div className="flex flex-wrap gap-2 text-xs">
+                {(['paid', 'partial', 'unpaid']).map((key) => {
+                  const meta = STATUS_META[key];
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setStatusModal(key)}
+                      className={`badge cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-300 ${meta.toneCls}`}
+                      title={`View all ${meta.label} students`}
+                    >
+                      {feeStats[`${key}Count`]} {meta.label.toLowerCase()}
+                      <ArrowRight className="h-3 w-3" aria-hidden="true" />
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="mt-1.5 text-[11px] text-slate-400">Click a status to open the list of students.</p>
             </div>
 
             <div className="mt-4 space-y-2 border-t border-slate-50 pt-3 text-sm">
@@ -537,7 +588,7 @@ return (
               {recent.map((s) => (
                 <div key={s.id} className="flex items-center gap-3 py-2.5">
                   {s.student_photo_url ? (
-                    <img src={photoUrl(s.student_photo_url)} alt="Student" className="h-10 w-10 rounded-lg object-cover ring-1 ring-slate-100" />
+                    <img src={photoUrl(s.student_photo_url)} alt="Student" className="img-zoom h-10 w-10 rounded-lg object-cover ring-1 ring-slate-100" />
                   ) : (
                     <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-50 text-sm font-bold text-brand-600">
                       {(s.first_name || 'S').charAt(0)}
@@ -582,6 +633,60 @@ return (
           </div>
         </div>
       </div>
+
+      <Modal
+        open={!!statusModal}
+        onClose={() => setStatusModal(null)}
+        size="md"
+        title={
+          statusModal
+            ? `${STATUS_META[statusModal].label} students (${data.feeStatusLists[statusModal].length})`
+            : ''
+        }
+        footer={
+          <Link
+            to="/admin/fees"
+            onClick={() => setStatusModal(null)}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-4 py-2 text-xs font-semibold text-white shadow-soft transition-colors hover:bg-brand-700"
+          >
+            <Wallet className="h-3.5 w-3.5" aria-hidden="true" />
+            Open fees module
+          </Link>
+        }
+      >
+        {statusModal ? (
+          data.feeStatusLists[statusModal].length ? (
+            <div className="max-h-[60vh] divide-y divide-slate-100 overflow-y-auto">
+              {data.feeStatusLists[statusModal].map((s) => (
+                <div key={s.id} className="flex items-center gap-3 py-2.5">
+                  {s.photo ? (
+                    <img
+                      src={s.photo}
+                      alt="Student"
+                      className="img-zoom h-11 w-9 shrink-0 rounded-lg object-cover ring-1 ring-slate-100"
+                    />
+                  ) : (
+                    <span className="flex h-11 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-sm font-bold text-brand-600">
+                      {s.initial}
+                    </span>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-slate-800">{s.name}</p>
+                    <p className="truncate text-xs text-slate-400">
+                      {s.student_id} · {s.classApp}
+                    </p>
+                  </div>
+                  <span className={`badge shrink-0 ${STATUS_META[statusModal].toneCls}`} title="Outstanding balance">
+                    {statusModal === 'paid' ? 'Cleared' : cedi(Math.round(s.balance))}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-slate-400">No students in this fee status yet.</p>
+          )
+        ) : null}
+      </Modal>
     </div>
   );
 }

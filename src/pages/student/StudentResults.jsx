@@ -159,7 +159,7 @@ export default function StudentResults() {
               <div className="flex flex-col items-start justify-between gap-4 border-b border-slate-100 px-6 py-5 sm:flex-row sm:items-center">
                 <div className="flex items-center gap-4">
                   {photo ? (
-                    <img src={photo} alt="Student" className="h-16 w-14 rounded-xl object-cover ring-2 ring-brand-100" />
+                    <img src={photo} alt="Student" className="img-zoom h-16 w-14 rounded-xl object-cover ring-2 ring-brand-100" />
                   ) : (
                     <span className="flex h-16 w-14 items-center justify-center rounded-xl bg-brand-50 text-xl font-extrabold text-brand-600">
                       {name.charAt(0)}

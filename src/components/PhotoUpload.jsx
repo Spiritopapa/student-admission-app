@@ -202,13 +202,13 @@ const capture = () => {
             <img
               src={preview}
               alt="Photo preview"
-              className={`h-full w-full object-cover ${circle ? 'rounded-full' : 'rounded-lg'}`}
+              className={`img-zoom h-full w-full object-cover ${circle ? 'rounded-full' : 'rounded-lg'}`}
             />
           ) : value && typeof value === 'string' ? (
             <img
               src={value}
               alt="Photo preview"
-              className={`h-full w-full object-cover ${circle ? 'rounded-full' : 'rounded-lg'}`}
+              className={`img-zoom h-full w-full object-cover ${circle ? 'rounded-full' : 'rounded-lg'}`}
             />
           ) : (
             <span className="flex flex-col items-center gap-1">

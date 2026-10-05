@@ -111,7 +111,7 @@ export default function StudentHome() {
         <div className="absolute inset-0 bg-blend-radial" />
         <div className="relative flex flex-col gap-6 sm:flex-row sm:items-center">
           {photo ? (
-            <img src={photo} alt="Student" className="h-24 w-20 rounded-2xl object-cover ring-4 ring-white/25" />
+            <img src={photo} alt="Student" className="img-zoom h-24 w-20 rounded-2xl object-cover ring-4 ring-white/25" />
           ) : (
             <span className="flex h-24 w-20 items-center justify-center rounded-2xl bg-white/20 text-2xl font-extrabold backdrop-blur">
               {name.charAt(0)}

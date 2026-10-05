@@ -608,7 +608,7 @@ const buildReportTableHtml = () => {
                       <div key={s.id} className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                         <div className="flex items-center gap-3">
                           {s.student_photo_url ? (
-                            <img src={photoUrl(s.student_photo_url)} alt="Student" className="h-10 w-9 rounded-lg object-cover ring-1 ring-slate-100" />
+                            <img src={photoUrl(s.student_photo_url)} alt="Student" className="img-zoom h-10 w-9 rounded-lg object-cover ring-1 ring-slate-100" />
                           ) : (
                             <span className="flex h-10 w-9 items-center justify-center rounded-lg bg-brand-50 text-sm font-bold text-brand-600">
                               {(s.first_name || 'S').charAt(0)}

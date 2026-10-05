@@ -74,7 +74,7 @@ export default function ParentHome() {
                 <Card key={ward.id} className="p-4">
                   <div className="flex items-center gap-4">
                     {photo ? (
-                      <img src={photo} alt={name} className="h-16 w-14 rounded-xl object-cover ring-2 ring-brand-100" />
+                      <img src={photo} alt={name} className="img-zoom h-16 w-14 rounded-xl object-cover ring-2 ring-brand-100" />
                     ) : (
                       <span className="flex h-16 w-14 items-center justify-center rounded-xl bg-brand-50 text-xl font-extrabold text-brand-600">
                         {name.charAt(0)}
