@@ -8,6 +8,7 @@ import { supabase } from '../../../lib/supabase';
 import { fetchStudentFees } from '../../../lib/queries';
 import { sendStudentPaymentSms, fetchSchoolContact, outstandingBalanceAfterPayment } from '../../../lib/api';
 import { buildStudentName, termLabel } from '../../../lib/format';
+import { orderFees, feeBalance, totalOutstanding, waterfallAllocations } from '../../../lib/feeMath';
 import { TERMS, PAYMENT_METHODS, PAYMENT_METHOD_LABELS, currentAcademicYear, academicYearList } from '../../../lib/constants';
 
 const TERM_ORDER = { First: 0, Second: 1, Third: 2 };
@@ -57,7 +58,7 @@ export default function FeePaymentModal({ open, student, students = null, onClos
         const sorted = [...(fees || [])].sort(
           (a, b) => yearStart(a.academic_year) - yearStart(b.academic_year) || TERM_ORDER[a.term] - TERM_ORDER[b.term]
         );
-        const unpaid = sorted.find((f) => Number(f.total_amount) + Number(f.debt || 0) - Number(f.amount_paid) > 0);
+        const unpaid = sorted.find((f) => feeBalance(f) > 0);
         if (unpaid) {
           setYear(unpaid.academic_year);
           setTerm(unpaid.term);
@@ -78,21 +79,18 @@ export default function FeePaymentModal({ open, student, students = null, onClos
     })();
   }, [open, selected]);
 
-  const sortedFees = useMemo(
-    () => [...feeInfo].sort((a, b) => yearStart(a.academic_year) - yearStart(b.academic_year) || TERM_ORDER[a.term] - TERM_ORDER[b.term]),
-    [feeInfo]
-  );
-  const outstandingOf = (f) => Math.max(Number(f.total_amount) + Number(f.debt || 0) - Number(f.amount_paid), 0);
+  const sortedFees = useMemo(() => orderFees(feeInfo), [feeInfo]);
+  const outstandingOf = (f) => feeBalance(f);
   const targetFee = useMemo(() => sortedFees.find((f) => f.academic_year === year && f.term === term) || null, [sortedFees, year, term]);
-  const outstanding = targetFee ? outstandingOf(targetFee) : 0;
+  // Total owed across ALL terms — a payment is waterfalled oldest-first, so the
+  // cap is the student's whole outstanding balance, not just the selected term.
+  const outstanding = useMemo(() => totalOutstanding(feeInfo), [feeInfo]);
 
-  const hasPriorBalance = useMemo(() => {
-    const targetStart = yearStart(year) * 10 + TERM_ORDER[term];
-    return sortedFees.some((f) => {
-      if (f.academic_year === year && f.term === term) return false;
-      return yearStart(f.academic_year) * 10 + TERM_ORDER[f.term] < targetStart && outstandingOf(f) > 0;
-    });
-  }, [sortedFees, year, term]);
+  // Preview of how the entered amount will be applied (oldest term first).
+  const allocations = useMemo(
+    () => waterfallAllocations(sortedFees, Number(amount || 0)).allocations,
+    [sortedFees, amount]
+  );
 
   const searchMatches = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -146,8 +144,8 @@ export default function FeePaymentModal({ open, student, students = null, onClos
       setError('Enter a valid amount greater than zero.');
       return;
     }
-    if (hasPriorBalance) {
-      setError('A previous term still has an outstanding balance. Clear it first before paying this term.');
+    if (outstanding <= 0) {
+      setError('All fee records for this student are already fully settled.');
       return;
     }
     if (outstanding > 0 && amt > outstanding) {
@@ -159,11 +157,6 @@ export default function FeePaymentModal({ open, student, students = null, onClos
       const fee = await ensureFeeRecord();
       if (!fee) {
         throw new Error('No fee record exists for this year/term. Set the class fee structure first so the record can be created.');
-      }
-      const due = Number(fee.total_amount) + Number(fee.debt || 0);
-      const paid = Number(fee.amount_paid || 0);
-      if (due - paid <= 0) {
-        throw new Error(`${termLabel(term)} ${year} is already fully paid.`);
       }
       const { data: { user } } = await supabase.auth.getUser();
       const { data, error: rpcError } = await supabase.rpc('process_fee_payment', {
@@ -296,10 +289,16 @@ export default function FeePaymentModal({ open, student, students = null, onClos
                 </div>
               );
             })}
-            {hasPriorBalance ? (
-              <p className="mt-2 rounded-lg bg-rose-50 px-2 py-1.5 text-xs font-semibold text-rose-700">
-                A previous term is unpaid — clear it before paying {termLabel(term)} {year}.
-              </p>
+            {allocations.length ? (
+              <div className="mt-2 rounded-lg bg-amber-50 px-2 py-1.5 text-xs">
+                <p className="font-semibold text-amber-800">This payment settles the oldest balance(s) first:</p>
+                {allocations.map((a, i) => (
+                  <p key={`${a.fee_id}-${i}`} className="text-amber-700">
+                    GHC {Number(a.amount).toFixed(2)} → {a.term} {a.academic_year}
+                  </p>
+                ))}
+                <p className="mt-0.5 text-[11px] text-amber-600">Receipt is issued for {termLabel(term)} {year}.</p>
+              </div>
             ) : null}
           </div>
           <div className="mt-4 grid grid-cols-2 gap-3">

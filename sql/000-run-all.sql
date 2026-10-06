@@ -637,6 +637,13 @@
 -- ============================================================
 \i 082-grading-class-scope.sql
 -- ============================================================
+--  FIFO fee payment waterfall (allocate payments oldest term first),
+--  itemised arrears on termly bills, and truthful non-double-counting
+--  balances (total_amount - amount_paid; fees.debt is display-only).
+--  Used by: src/lib/feeMath.js + all fee screens + process_fee_payment RPC.
+-- ============================================================
+\i 083-fee-payment-waterfall.sql
+-- ============================================================
 --  SCHEMA DEPLOYMENT COMPLETE
 -- ============================================================
 --  Next steps:

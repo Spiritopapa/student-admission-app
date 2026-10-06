@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 import { openPrintWindow, escapeHtml } from './print';
 import { formatDate, buildStudentName } from './format';
+import { orderFees, termKey, feeBalance } from './feeMath';
 
 const esc = escapeHtml;
 
@@ -156,11 +157,23 @@ export function mergeBillItems(recurring = [], extra = []) {
  * @param {Array}   p.receipts       - receipts for the billed term
  * @param {object|null} p.nextClassFee - class_fees row for the NEXT term
  * @param {Array}   p.billItems      - one-off items added by the office
+ * @param {Array}   p.history        - ALL of the student's fee records (any
+ *                                     year/term). Used to itemise the arrears
+ *                                     carried forward term-by-term and to keep
+ *                                     the bill free of double counting (each
+ *                                     earlier term's balance lives on its own
+ *                                     record, so `debt` is never re-added).
  */
-export function computeTermlyBillStages({ fee = null, receipts = [], nextClassFee = null, billItems = [] }) {
+export function computeTermlyBillStages({
+  fee = null,
+  receipts = [],
+  nextClassFee = null,
+  billItems = [],
+  history = [],
+}) {
   const breakdown = fee?.fee_breakdown && typeof fee.fee_breakdown === 'object' ? fee.fee_breakdown : {};
 
-  /* --- Stage 1: present term account ---------------------------------- */
+  /* --- Stage 1: arrears + present term account ------------------------ */
   const classFeeThisTerm =
     breakdown.class_fee != null && Number(breakdown.class_fee) >= 0
       ? Number(breakdown.class_fee)
@@ -169,12 +182,27 @@ export function computeTermlyBillStages({ fee = null, receipts = [], nextClassFe
     .map((it) => ({ name: String(it?.name || 'Additional Fee'), amount: Number(it?.amount || 0) }))
     .filter((it) => it.amount > 0);
   const thisTermCharges = Number(fee?.total_amount || 0); // authoritative snapshot (already includes items)
-  const debtBf = Number(fee?.debt || 0);
+
+  // Itemised arrears: every EARLIER term record with an outstanding balance.
+  // `debt` is deliberately ignored — the money is already represented by the
+  // earlier term records, so including it would double-count.
+  const feeKey = fee ? termKey(fee) : Number.MAX_SAFE_INTEGER;
+  const priorRecords = orderFees(history || []).filter((h) => termKey(h) < feeKey);
+  const arrearsLines = priorRecords
+    .map((h) => ({
+      academic_year: h.academic_year,
+      term: h.term,
+      amount: feeBalance(h),
+    }))
+    .filter((l) => l.amount > 0);
+  const arrearsTotal = arrearsLines.reduce((s, l) => s + l.amount, 0);
+
+  const debtBf = Number(fee?.debt || 0); // informational only (legacy b/f display)
   const paid = receipts && receipts.length
     ? receipts.reduce((s, r) => s + Number(r.amount || 0), 0)
     : Number(fee?.amount_paid || 0);
-  const presentBalance = thisTermCharges + debtBf - paid; // signed; negative = credit
-  const arrearBf = Math.max(presentBalance, 0);
+  const presentBalance = thisTermCharges - paid; // signed; negative = credit
+  const arrearBf = arrearsTotal + Math.max(presentBalance, 0); // true balance carried forward
   const presentCredit = Math.max(-presentBalance, 0);
 
   /* --- Stage 2: next term fee structure ------------------------------- */
@@ -204,6 +232,8 @@ export function computeTermlyBillStages({ fee = null, receipts = [], nextClassFe
     presentBalance,
     arrearBf,
     presentCredit,
+    arrearsLines,
+    arrearsTotal,
     hasNextStructure,
     nextTermClassFee,
     otherItems,
@@ -212,6 +242,17 @@ export function computeTermlyBillStages({ fee = null, receipts = [], nextClassFe
     subTotal,
     amountDue,
   };
+}
+
+/** All fee records for one student in chronological order. */
+export async function fetchStudentFeeHistory(schoolId, studentId) {
+  if (!schoolId || !studentId) return [];
+  const { data } = await supabase
+    .from('fees')
+    .select('*')
+    .eq('school_id', schoolId)
+    .eq('student_id', studentId);
+  return orderFees(data || []);
 }
 /**
  * Build one A4 staged termly fee bill page for a student.
@@ -232,12 +273,13 @@ export function computeTermlyBillStages({ fee = null, receipts = [], nextClassFe
  */
 export function buildTermlyBillPage({
   school, student, fee, receipts = [], year, term, closingDate,
-  nextYear, nextTerm, nextClassFee, billItems = [], lastPage = false,
+  nextYear, nextTerm, nextClassFee, billItems = [], history = [], lastPage = false,
 }) {
-  const stages = computeTermlyBillStages({ fee, receipts, nextClassFee, billItems });
+  const stages = computeTermlyBillStages({ fee, receipts, nextClassFee, billItems, history });
   const {
     classFeeThisTerm, recurringItems, thisTermCharges, debtBf, paid, presentBalance,
-    arrearBf, presentCredit, hasNextStructure, nextTermClassFee,
+    arrearBf, presentCredit, arrearsLines, arrearsTotal,
+    hasNextStructure, nextTermClassFee,
     otherItems, otherItemsTotal, nextTermTotal, subTotal, amountDue,
   } = stages;
 
@@ -265,22 +307,33 @@ export function buildTermlyBillPage({
         .join('')
     : '<tr><td colspan="4" style="text-align:center;color:#64748b;">No payments recorded for this term.</td></tr>';
 
-  /* ---------- Stage 1 : present term account ---------- */
+  /* ---------- Stage 1 : arrears + present term account ---------- */
+  const arrearsRows = arrearsLines.length
+    ? arrearsLines
+        .map(
+          (l) =>
+            `<tr><td>Balance carried forward — ${esc(l.term)} Term ${esc(l.academic_year)}</td><td class="right">${money(l.amount)}</td></tr>`
+        )
+        .join('')
+    : debtBf > 0
+      ? `<tr><td>Debt brought forward (b/f)</td><td class="right">${money(debtBf)}</td></tr>`
+      : '';
   const stage1 = `
     <table class="bill-table">
       <thead><tr><th style="width:70%;">Description</th><th class="right" style="width:30%;">Amount (GHC)</th></tr></thead>
       <tbody>
-        ${debtBf > 0 ? `<tr><td>Debt brought forward (b/f)</td><td class="right">${money(debtBf)}</td></tr>` : ''}
+        ${arrearsRows}
+        ${arrearsLines.length > 1 ? `<tr class="bill-subrow"><td><b>Total arrears carried forward</b></td><td class="right"><b>${money(arrearsTotal)}</b></td></tr>` : ''}
         <tr><td>${esc(term)} Term class fee — ${esc(student?.class_applying || 'Class fee')}</td><td class="right">${money(classFeeThisTerm)}</td></tr>
         ${recurringItems.map((it) => `<tr><td>&nbsp;&nbsp;${esc(it.name)}</td><td class="right">${money(it.amount)}</td></tr>`).join('')}
         <tr class="bill-subrow"><td><b>Total charges — ${esc(term)} Term ${esc(year)}</b></td><td class="right"><b>${money(thisTermCharges)}</b></td></tr>
         <tr><td>LESS: Payments received this term</td><td class="right">${money(paid)}</td></tr>
         ${
-          presentBalance > 0
-            ? `<tr class="bill-band bill-due-band"><td><b>PRESENT TERM BALANCE — OWED</b></td><td class="right"><b>${money(arrearBf)}</b></td></tr>`
-            : presentBalance < 0
+          arrearBf > 0
+            ? `<tr class="bill-band bill-due-band"><td><b>BALANCE CARRIED FORWARD — OWED</b></td><td class="right"><b>${money(arrearBf)}</b></td></tr>`
+            : (arrearBf === 0 && presentBalance < 0)
               ? `<tr class="bill-band bill-credit-band"><td><b>PRESENT TERM BALANCE — CREDIT</b></td><td class="right"><b>${money(presentCredit)}</b></td></tr>`
-              : `<tr class="bill-band bill-zero-band"><td><b>PRESENT TERM BALANCE</b></td><td class="right"><b>${money(0)}</b></td></tr>`
+              : `<tr class="bill-band bill-zero-band"><td><b>BALANCE CARRIED FORWARD</b></td><td class="right"><b>${money(arrearBf)}</b></td></tr>`
         }
       </tbody>
     </table>`;
@@ -475,12 +528,12 @@ export async function previewTermlyBills({ schoolId, students = [], year, term, 
   const classNames = [...new Set(list.map((s) => s.class_applying).filter(Boolean))];
 
   const [{ data: fees }, feeRows] = await Promise.all([
+    // All fee records for the selected students (every year/term) so each bill
+    // can itemise the true term-by-term arrears carried forward.
     supabase
       .from('fees')
       .select('*')
       .eq('school_id', schoolId)
-      .eq('academic_year', year)
-      .eq('term', term)
       .in('student_id', ids),
     classNames.length
       ? supabase
@@ -493,9 +546,9 @@ export async function previewTermlyBills({ schoolId, students = [], year, term, 
       : Promise.resolve({ data: [] }),
   ]);
 
-  const feeByStudent = {};
+  const historyByStudent = {};
   (fees || []).forEach((f) => {
-    feeByStudent[f.student_id] = f;
+    (historyByStudent[f.student_id] = historyByStudent[f.student_id] || []).push(f);
   });
   const feeByClass = {};
   (feeRows?.data || []).forEach((cf) => {
@@ -503,17 +556,22 @@ export async function previewTermlyBills({ schoolId, students = [], year, term, 
   });
 
   let presentBalance = 0;
+  let arrearsTotal = 0;
   let nextTermTotal = 0;
   let subTotal = 0;
   let amountDue = 0;
   list.forEach((student) => {
+    const history = historyByStudent[student.student_id] || [];
+    const fee = history.find((h) => h.academic_year === year && h.term === term) || null;
     const stages = computeTermlyBillStages({
-      fee: feeByStudent[student.student_id] || null,
+      fee,
       receipts: [],
       nextClassFee: feeByClass[student.class_applying] || null,
       billItems,
+      history,
     });
     presentBalance += stages.presentBalance;
+    arrearsTotal += stages.arrearsTotal;
     nextTermTotal += stages.nextTermTotal;
     subTotal += stages.subTotal;
     amountDue += stages.amountDue;
@@ -522,6 +580,7 @@ export async function previewTermlyBills({ schoolId, students = [], year, term, 
   return {
     count: list.length,
     presentBalance,
+    arrearsTotal,
     nextTermTotal,
     subTotal,
     amountDue,
@@ -554,16 +613,18 @@ export async function printTermlyBills({ schoolId, students = [], year, term, cl
   const next = nextTermOf(year, term);
   for (let i = 0; i < list.length; i += 1) {
     const student = list[i];
-    const [fee, receipts, nextClassFee] = await Promise.all([
-      fetchTermFee(schoolId, student.student_id, year, term),
+    const [history, receipts, nextClassFee] = await Promise.all([
+      fetchStudentFeeHistory(schoolId, student.student_id),
       fetchTermReceipts(schoolId, student.student_id, year, term),
       fetchClassFee(schoolId, student.class_applying, next.year, next.term),
     ]);
+    const fee = (history || []).find((h) => h.academic_year === year && h.term === term) || null;
     pages.push(
       buildTermlyBillPage({
         school,
         student,
         fee,
+        history,
         receipts,
         year,
         term,

@@ -9,6 +9,7 @@ import { sendPlainSms, normalizeGhanaPhone } from '../../../lib/api';
 import { buildStudentName, cedi, termLabel } from '../../../lib/format';
 import { openPrintWindow, escapeHtml } from '../../../lib/print';
 import { TERMS } from '../../../lib/constants';
+import { feeBalance } from '../../../lib/feeMath';
 
 const TERM_ORDER = { First: 0, Second: 1, Third: 2 };
 
@@ -50,7 +51,7 @@ export default function DebtorsTab() {
       const nameMap = Object.fromEntries((appsData || []).map((a) => [a.student_id, a]));
       const groups = {};
       (feesData || []).forEach((f) => {
-        const bal = Number(f.total_amount) + Number(f.debt || 0) - Number(f.amount_paid);
+        const bal = feeBalance(f);
         if (bal > 0) {
           if (!groups[f.student_id]) {
             const app = nameMap[f.student_id] || {};
@@ -162,7 +163,7 @@ export default function DebtorsTab() {
       .map((r) => {
         const terms = r.fees
           .map((f) => {
-            const bal = Number(f.total_amount) + Number(f.debt || 0) - Number(f.amount_paid);
+            const bal = feeBalance(f);
             return `${f.term} ${f.academic_year}: ${cedi(Math.max(bal, 0))}`;
           })
           .join('<br/>');
@@ -282,7 +283,7 @@ export default function DebtorsTab() {
                   <div className="flex items-center gap-2">
                     <div className="flex flex-wrap gap-1.5">
                       {r.fees.map((f) => {
-                        const bal = Number(f.total_amount) + Number(f.debt || 0) - Number(f.amount_paid);
+                        const bal = feeBalance(f);
                         return (
                           <Badge key={f.id} tone="red">
                             {f.term} {f.academic_year}: {cedi(Math.max(bal, 0))}

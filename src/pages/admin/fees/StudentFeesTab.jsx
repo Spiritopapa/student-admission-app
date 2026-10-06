@@ -12,6 +12,7 @@ import { TERMS, TERM_LABELS, currentAcademicYear, academicYearList } from '../..
 import { openPrintWindow, escapeHtml } from '../../../lib/print';
 import { photoUrl } from '../../../lib/storage';
 import { printTermlyBills, previewTermlyBills, nextTermOf, fetchTermClosingDate } from '../../../lib/termBill';
+import { feeBalance, totalOutstanding, studentFeeStatus, feeStatusOf } from '../../../lib/feeMath';
 
 const TERM_ORDER = { First: 0, Second: 1, Third: 2 };
 const yearStart = (y) => Number(String(y || '').split('/')[0] || 0);
@@ -93,31 +94,17 @@ export default function StudentFeesTab() {
 
   const appMap = useMemo(() => Object.fromEntries(apps.map((a) => [a.student_id, a])), [apps]);
 
-  // Aggregated fee status for a student across ALL of their term records.
-  // Mirrors the database's per-record rule (balance = total + debt - paid):
-  //   balance <= 0            -> 'paid'
-  //   balance > 0  & paid > 0 -> 'partial'
-  //   balance > 0  & paid = 0 -> 'unpaid'
-  // Students with no fee records at all get 'none' (never shown as "paid").
-  const statusOf = (fees) => {
-    if (!fees || !fees.length) return 'none';
-    let anyOutstanding = false;
-    let anyPayment = false;
-    fees.forEach((f) => {
-      const balance = Number(f.total_amount) + Number(f.debt || 0) - Number(f.amount_paid);
-      if (balance > 0) anyOutstanding = true;
-      if (Number(f.amount_paid) > 0) anyPayment = true;
-    });
-    if (!anyOutstanding) return 'paid';
-    return anyPayment ? 'partial' : 'unpaid';
-  };
+  // Aggregated fee status for a student across ALL of their term records. Each
+// record's balance is its own (total − paid); `debt` is legacy b/f info only.
+//   balance <= 0            -> 'paid'
+//   balance > 0  & paid > 0 -> 'partial'
+//   balance > 0  & paid = 0 -> 'unpaid'
+// Students with no fee records at all get 'none' (never shown as "paid").
+  const statusOf = (fees) => studentFeeStatus(fees);
 
   // Single source of truth for a fee record's status from its numbers, using
   // the same rule the process_fee_payment / delete_receipt RPCs apply in SQL.
-  const derivedStatusOf = (r) => {
-    const balance = Number(r.total_amount || 0) + Number(r.debt || 0) - Number(r.amount_paid || 0);
-    return balance <= 0 ? 'paid' : Number(r.amount_paid || 0) > 0 ? 'partial' : 'unpaid';
-  };
+  const derivedStatusOf = (r) => feeStatusOf(r);
 
   const rows = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -133,10 +120,7 @@ export default function StudentFeesTab() {
       const fees = (feeMap[s.student_id] || [])
         .slice()
         .sort((a, b) => yearStart(a.academic_year) - yearStart(b.academic_year) || TERM_ORDER[a.term] - TERM_ORDER[b.term]);
-      const totalBalance = fees.reduce(
-        (sum, f) => sum + Math.max(Number(f.total_amount) + Number(f.debt || 0) - Number(f.amount_paid), 0),
-        0
-      );
+      const totalBalance = totalOutstanding(fees);
       return { app: s, fees, totalBalance };
     });
   }, [apps, feeMap, search, classFilter, termFilter, statusFilter]);
@@ -239,7 +223,7 @@ export default function StudentFeesTab() {
     const { app, fees, totalBalance } = row;
     const rowsHtml = fees
       .map((f) => {
-        const bal = Math.max(Number(f.total_amount) + Number(f.debt || 0) - Number(f.amount_paid), 0);
+        const bal = feeBalance(f);
         return `<tr><td>${escapeHtml(f.term)} Term ${escapeHtml(f.academic_year)}</td><td class="right">${cedi(f.total_amount)}</td><td class="right">${cedi(f.amount_paid)}</td><td class="right">${cedi(bal)}</td></tr>`;
       })
       .join('');
@@ -263,7 +247,7 @@ export default function StudentFeesTab() {
           r.fees
             .filter((f) => !termFilter || f.term === termFilter)
             .map((f) => {
-              const bal = Math.max(Number(f.total_amount) + Number(f.debt || 0) - Number(f.amount_paid), 0);
+              const bal = feeBalance(f);
               return `${escapeHtml(f.term)} ${escapeHtml(f.academic_year)}: T ${cedi(f.total_amount)} P ${cedi(f.amount_paid)} B ${cedi(bal)}`;
             })
             .join('<br/>') || '<em>No fee records</em>';
@@ -493,7 +477,7 @@ const openBillDialog = (scope) => {
                 {row.fees.length ? (
                   <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 border-t border-slate-50 pt-3 text-xs">
                     {row.fees.map((f) => {
-                      const bal = Math.max(Number(f.total_amount) + Number(f.debt || 0) - Number(f.amount_paid), 0);
+                      const bal = feeBalance(f);
                       return (
                         <span key={f.id} className="text-slate-500">
                           <b className="text-slate-700">{termLabel(f.term)} {f.academic_year}:</b> Total {cedi(f.total_amount)} · Paid {cedi(f.amount_paid)}

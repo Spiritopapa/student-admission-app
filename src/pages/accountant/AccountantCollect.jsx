@@ -12,6 +12,7 @@ import { fetchStudentFees } from '../../lib/queries';
 import { sendStudentPaymentSms, fetchSchoolContact, outstandingBalanceAfterPayment, logStaffActivity } from '../../lib/api';
 import { buildStudentName, cedi, termLabel } from '../../lib/format';
 import { TERMS, PAYMENT_METHODS, PAYMENT_METHOD_LABELS, currentAcademicYear, academicYearList } from '../../lib/constants';
+import { orderFees, feeBalance, totalOutstanding } from '../../lib/feeMath';
 import { photoUrl } from '../../lib/storage';
 
 export default function AccountantCollect() {
@@ -67,7 +68,7 @@ export default function AccountantCollect() {
       .then(({ data }) => {
         const map = {};
         (data || []).forEach((f) => {
-          const bal = Math.max(Number(f.total_amount) + Number(f.debt || 0) - Number(f.amount_paid), 0);
+          const bal = feeBalance(f);
           map[f.student_id] = (map[f.student_id] || 0) + bal;
         });
         setBalanceMap(map);
@@ -91,17 +92,16 @@ export default function AccountantCollect() {
   const TERM_ORDER = { First: 0, Second: 1, Third: 2 };
   const yearStart = (y) => Number(String(y || '').split('/')[0] || 0);
 
-  const sortedFees = useMemo(
-    () => [...(feeInfo || [])].sort((a, b) => yearStart(a.academic_year) - yearStart(b.academic_year) || TERM_ORDER[a.term] - TERM_ORDER[b.term]),
-    [feeInfo]
-  );
+  const sortedFees = useMemo(() => orderFees(feeInfo || []), [feeInfo]);
 
-  const outstandingOf = (f) => Math.max((Number(f.total_amount) + Number(f.debt || 0)) - Number(f.amount_paid), 0);
+  const outstandingOf = (f) => feeBalance(f);
 
   // The earliest unpaid term (chronological); null if everything is cleared.
   const earliestUnpaid = useMemo(() => sortedFees.find((f) => outstandingOf(f) > 0) || null, [sortedFees]);
 
-  // A prior term with an outstanding balance that blocks paying a later term.
+  // Earliest unpaid term BEFORE the currently selected year/term — used purely
+  // as an informational note. Payment is NOT blocked: the RPC waterfalls the
+  // money oldest-first, so clearing older arrears is automatic.
   const priorBalance = useMemo(() => {
     if (!earliestUnpaid) return null;
     const targetStart = yearStart(year) * 10 + TERM_ORDER[term];
@@ -111,7 +111,9 @@ export default function AccountantCollect() {
 
   const targetFee = useMemo(() => sortedFees.find((f) => f.academic_year === year && f.term === term) || null, [sortedFees, year, term]);
 
-  const outstanding = useMemo(() => (targetFee ? outstandingOf(targetFee) : 0), [targetFee]);
+  // Total owed across ALL terms — with the FIFO waterfall any amount up to this
+  // whole balance can be collected and it always settles the oldest term first.
+  const outstanding = useMemo(() => totalOutstanding(feeInfo || []), [feeInfo]);
 
   const loadFeeInfo = async (student) => {
     setSelected(student);
@@ -123,7 +125,7 @@ export default function AccountantCollect() {
       const sorted = [...(fees || [])].sort(
         (a, b) => yearStart(a.academic_year) - yearStart(b.academic_year) || TERM_ORDER[a.term] - TERM_ORDER[b.term]
       );
-      const unpaid = sorted.find((f) => Number(f.total_amount) + Number(f.debt || 0) - Number(f.amount_paid) > 0);
+      const unpaid = sorted.find((f) => feeBalance(f) > 0);
       if (unpaid) {
         setYear(unpaid.academic_year);
         setTerm(unpaid.term);
@@ -185,12 +187,12 @@ export default function AccountantCollect() {
       toast.error('Enter an amount', 'The amount must be greater than zero.');
       return;
     }
-    // Prior-term gate: a later term cannot be paid before an earlier one is cleared.
-    if (priorBalance) {
-      toast.error(
-        'Previous term unpaid',
-        `Cannot pay for ${termLabel(term)} ${year}. ${priorBalance.term} Term ${priorBalance.academic_year} still has GHC ${outstandingOf(priorBalance).toFixed(2)} outstanding. Clear it first.`
-      );
+    if (outstanding <= 0) {
+      toast.error('Nothing to collect', 'All fee records for this student are already fully settled.');
+      return;
+    }
+    if (amt > outstanding) {
+      toast.error('Overpayment prevented', `Outstanding is GHC ${outstanding.toFixed(2)}. Enter an amount equal to or less than that.`);
       return;
     }
     setBusy(true);
@@ -198,17 +200,6 @@ export default function AccountantCollect() {
       const fee = await ensureFeeRecord();
       if (!fee) {
         throw new Error('No fee record exists for this year/term. Ask the admin to set the class fee structure first.');
-      }
-      const due = Number(fee.total_amount) + Number(fee.debt || 0);
-      const paid = Number(fee.amount_paid || 0);
-      const outstandingDue = Math.max(due - paid, 0);
-      if (outstandingDue <= 0) {
-        throw new Error(`${termLabel(term)} ${year} is already fully paid for this student.`);
-      }
-      if (amt > outstandingDue) {
-        toast.error('Overpayment prevented', `Outstanding is GHC ${outstandingDue.toFixed(2)}. Enter an amount equal to or less than that.`);
-        setBusy(false);
-        return;
       }
       const { data, error } = await supabase.rpc('process_fee_payment', {
         p_student_id: selected.student_id,
@@ -409,12 +400,12 @@ export default function AccountantCollect() {
                   )}
 
                   {priorBalance ? (
-                    <p className="mt-2 rounded-lg bg-rose-50 px-2 py-1.5 text-xs font-semibold text-rose-700">
-                      Cannot pay {termLabel(term)} until {priorBalance.term} {priorBalance.academic_year} (GHC {outstandingOf(priorBalance).toFixed(2)}) is cleared.
+                    <p className="mt-2 rounded-lg bg-amber-50 px-2 py-1.5 text-xs font-semibold text-amber-800">
+                      {priorBalance.term} {priorBalance.academic_year} (GHC {outstandingOf(priorBalance).toFixed(2)}) is the oldest unpaid balance — payments settle it first.
                     </p>
                   ) : suggestedFee ? (
                     <p className="mt-2 text-xs font-semibold text-accent-600">
-                      Outstanding for {termLabel(term)}: GHC {Number(suggestedFee).toFixed(2)}
+                      Outstanding balance (all terms): GHC {Number(suggestedFee).toFixed(2)}
                     </p>
                   ) : null}
                 </div>

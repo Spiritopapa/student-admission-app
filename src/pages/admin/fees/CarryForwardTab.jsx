@@ -5,6 +5,7 @@ import { useToast } from '../../../context/ToastContext';
 import { Card, Button, Input, Select, Spinner, EmptyState } from '../../../components/ui';
 import { supabase } from '../../../lib/supabase';
 import { termLabel } from '../../../lib/format';
+import { feeBalance } from '../../../lib/feeMath';
 import { TERMS, currentAcademicYear, academicYearList } from '../../../lib/constants';
 
 export default function CarryForwardTab() {
@@ -118,7 +119,7 @@ export default function CarryForwardTab() {
           .eq('term', gen.term)
           .maybeSingle();
         if (existing) {
-          const outstanding = Number(existing.total_amount) + Number(existing.debt || 0) - Number(existing.amount_paid);
+          const outstanding = feeBalance(existing);
           if (outstanding > 0) {
             // Keep the stored status truthful: it must be 'partial' when some
             // money was already paid this term, otherwise 'unpaid'.

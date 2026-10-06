@@ -142,23 +142,15 @@ export async function submitSupportReport({ type, subject, details }) {
 }
 
 /**
- * Outstanding school-fee balance for a student AFTER a payment processed via
- * `process_fee_payment`. That RPC returns the paid term's remaining balance
- * (`remaining_balance`); other terms are untouched by the payment, so their
- * pre-payment balances are added on top. Used to include the balance in the
- * fee-payment SMS sent to the parent.
+ * Total outstanding school-fee balance for a student AFTER a payment processed
+ * via `process_fee_payment`. With the FIFO payment waterfall the RPC's
+ * `remaining_balance` already covers EVERY term (not just the paid term), so it
+ * is used directly. Used to include the balance in the fee-payment SMS.
  *
  * @param {object} options
  * @param {object} options.data - the RPC result (uses remaining_balance)
- * @param {Array}  options.feeRecords - the student's `fees` rows
- * @param {string} options.year - academic year that was paid (e.g. "2025/2026")
- * @param {string} options.term - term that was paid ("First" | "Second" | "Third")
  * @returns {number} the student's total remaining balance (never negative)
  */
-export function outstandingBalanceAfterPayment({ data, feeRecords = [], year, term }) {
-  const paidTermBalance = Math.max(Number(data?.remaining_balance) || 0, 0);
-  const otherTerms = (feeRecords || [])
-    .filter((f) => !(f.academic_year === year && f.term === term))
-    .reduce((sum, f) => sum + Math.max(Number(f.total_amount) + Number(f.debt || 0) - Number(f.amount_paid), 0), 0);
-  return paidTermBalance + otherTerms;
+export function outstandingBalanceAfterPayment({ data }) {
+  return Math.max(Number(data?.remaining_balance) || 0, 0);
 }
