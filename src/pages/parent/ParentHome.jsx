@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Users, Wallet, Megaphone, ArrowRight, UserRound } from 'lucide-react';
+import { Users, Wallet, Megaphone, ArrowRight, UserRound, UserPlus } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { PageHeader, Card, Spinner, EmptyState, StatCard } from '../../components/ui';
+import { PageHeader, Card, Spinner, EmptyState, StatCard, Button } from '../../components/ui';
+import ConnectWardModal from '../../components/ConnectWardModal';
 import { fetchParentLinks, fetchWardApplication, fetchStudentFees, fetchStudentReceipts, fetchActiveAnnouncements } from '../../lib/queries';
 import { buildStudentName, formatDate } from '../../lib/format';
 import { photoUrl } from '../../lib/storage';
@@ -12,6 +13,8 @@ export default function ParentHome() {
   const [wards, setWards] = useState([]);
   const [loading, setLoading] = useState(true);
   const [totals, setTotals] = useState({ fees: 0, receipts: 0, announcements: 0 });
+  const [connectOpen, setConnectOpen] = useState(false);
+  const [refresh, setRefresh] = useState(0);
 
   useEffect(() => {
     if (!user) return;
@@ -45,7 +48,7 @@ export default function ParentHome() {
     return () => {
       cancelled = true;
     };
-  }, [user]);
+  }, [user, refresh]);
 
   if (loading) return <Spinner label="Loading parent dashboard..." />;
 
@@ -55,6 +58,12 @@ export default function ParentHome() {
         title={`Welcome, ${profile?.full_name?.split(' ')[0] || 'Parent'}`}
         subtitle="Follow your ward's progress at a glance."
         icon={UserRound}
+        actions={
+          <Button variant="secondary" onClick={() => setConnectOpen(true)}>
+            <UserPlus className="h-4 w-4" aria-hidden="true" />
+            Connect a ward
+          </Button>
+        }
       />
 
       {wards.length ? (
@@ -107,9 +116,17 @@ export default function ParentHome() {
         <EmptyState
           icon={Users}
           title="No wards linked yet"
-          message="Ask the school to link your account to your child's Student ID, then sign out and sign back in."
+          message="Connect your child's Student ID below, or ask the school to link your account. Refreshes automatically after linking."
+          action={
+            <Button onClick={() => setConnectOpen(true)}>
+              <UserPlus className="h-4 w-4" aria-hidden="true" />
+              Connect a ward
+            </Button>
+          }
         />
       )}
+
+      <ConnectWardModal open={connectOpen} onClose={() => setConnectOpen(false)} onLinked={() => setRefresh((r) => r + 1)} />
     </div>
   );
 }

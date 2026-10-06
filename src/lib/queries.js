@@ -109,6 +109,23 @@ export async function fetchParentLinks(parentUserId) {
   return data || [];
 }
 
+// Parent self-service: connect a ward using its Student ID. The backend applies
+// a contact guard (ward's parent_contact must be empty or match the parent's
+// phone/email on file). Returns the RPC result or throws a friendly error.
+export async function linkWardToParent(studentId) {
+  const { data, error } = await supabase.rpc('link_ward_to_parent', { p_student_id: studentId });
+  if (error) throw new Error(error.message);
+  if (!data?.success) throw new Error(data?.error || 'Could not link the ward.');
+  return data;
+}
+
+export async function unlinkWardFromParent(studentId) {
+  const { data, error } = await supabase.rpc('unlink_ward', { p_student_id: studentId });
+  if (error) throw new Error(error.message);
+  if (!data?.success) throw new Error(data?.error || 'Could not unlink the ward.');
+  return data;
+}
+
 export async function fetchWardApplication(studentId) {
   const { data, error } = await supabase
     .from('applications')

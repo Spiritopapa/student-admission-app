@@ -130,7 +130,7 @@ export function ParentForm() {
   return (
     <FormShell
       title="Register as a Parent"
-      subtitle="Link your account to your child using their Student ID."
+      subtitle="Link your account to your child's Student ID (from their admission letter)."
     >
       {error ? <Alert tone="error" className="mb-4">{error}</Alert> : null}
       <form
@@ -142,7 +142,14 @@ export function ParentForm() {
       >
         <Input label="Full Name *" value={form.fullName} onChange={set('fullName')} placeholder="Your full name" />
         <Input label="Email *" type="email" value={form.email} onChange={set('email')} placeholder="you@example.com" />
-        <Input label="Mobile Number *" type="tel" value={form.phone} onChange={set('phone')} placeholder="e.g. 0244 000 000" />
+        <Input
+          label="Mobile Number *"
+          type="tel"
+          value={form.phone}
+          onChange={set('phone')}
+          placeholder="e.g. 0244 000 000"
+          hint="Use the same number the school has on file for your child — this also lets you connect extra wards later."
+        />
         <Input label="Ward's Student ID *" value={form.wardID} onChange={set('wardID')} placeholder="e.g. STU-ABC12" />
         <Input label="Password *" type="password" minLength={6} value={form.password} onChange={set('password')} placeholder="Minimum 6 characters" />
         <Button type="submit" loading={busy} className="w-full">

@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Users, UsersRound } from 'lucide-react';
+import { Users, UsersRound, Link2 } from 'lucide-react';
 import { useSchoolId } from '../../hooks/useSchool';
 import { useToast } from '../../context/ToastContext';
-import { PageHeader, Card, Spinner, EmptyState, Badge, SearchInput, Select } from '../../components/ui';
+import { PageHeader, Card, Spinner, EmptyState, Badge, SearchInput, Select, Button, Input } from '../../components/ui';
+import { Modal, ConfirmDialog, Alert } from '../../components/ui-extras';
 import { supabase } from '../../lib/supabase';
 import { formatDate } from '../../lib/format';
 
@@ -13,6 +14,16 @@ export default function AdminParents() {
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState('all'); // all | hasWards | noWards
+
+  // Link-a-ward modal
+  const [linking, setLinking] = useState(null);
+  const [wardInput, setWardInput] = useState('');
+  const [linkError, setLinkError] = useState('');
+  const [linkBusy, setLinkBusy] = useState(false);
+
+  // Unlink confirmation
+  const [unlink, setUnlink] = useState(null); // { parent, studentId }
+  const [unlinkBusy, setUnlinkBusy] = useState(false);
 
   const load = async () => {
     if (!schoolId) return;
@@ -28,7 +39,8 @@ export default function AdminParents() {
             .from('parent_links')
             .select('student_id')
             .eq('parent_user_id', p.id);
-          return { ...p, wardCount: links?.length || 0 };
+          const ids = (links || []).map((l) => l.student_id);
+          return { ...p, wardCount: ids.length, wardIds: ids };
         })
       );
       setRows(enriched);
@@ -56,6 +68,58 @@ export default function AdminParents() {
       return matchesQuery && matchesFilter;
     });
   }, [rows, query, filter]);
+
+  const openLinkModal = (parent) => {
+    setLinking(parent);
+    setWardInput('');
+    setLinkError('');
+  };
+
+  const confirmLink = async () => {
+    const sid = wardInput.trim();
+    if (!sid || !linking) {
+      setLinkError('Enter a valid Student ID.');
+      return;
+    }
+    setLinkBusy(true);
+    setLinkError('');
+    try {
+      const { data, error } = await supabase.rpc('admin_link_parent_ward', {
+        p_parent_user_id: linking.id,
+        p_student_id: sid,
+      });
+      if (error) throw new Error(error.message);
+      if (!data?.success) throw new Error(data?.error || 'Could not link ward.');
+      toast.success('Ward linked', `${sid} linked to ${linking.full_name || 'this parent'}.`);
+      setLinking(null);
+      load();
+    } catch (err) {
+      setLinkError(err.message);
+    } finally {
+      setLinkBusy(false);
+    }
+  };
+
+  const confirmUnlink = async () => {
+    if (!unlink) return;
+    setUnlinkBusy(true);
+    try {
+      const { data, error } = await supabase.rpc('admin_unlink_parent_ward', {
+        p_parent_user_id: unlink.parent.id,
+        p_student_id: unlink.studentId,
+      });
+      if (error) throw new Error(error.message);
+      if (!data?.success) throw new Error(data?.error || 'Could not unlink ward.');
+      toast.success('Ward unlinked', `${unlink.studentId} removed from ${unlink.parent.full_name || 'this parent'}.`);
+      setUnlink(null);
+      load();
+    } catch (err) {
+      toast.error('Could not unlink ward', err.message);
+      setUnlink(null);
+    } finally {
+      setUnlinkBusy(false);
+    }
+  };
 
   return (
     <div>
@@ -93,11 +157,36 @@ export default function AdminParents() {
                   <p className="truncate text-xs text-slate-400">{p.email || '-'}</p>
                 </div>
               </div>
+              {p.wardIds?.length ? (
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {p.wardIds.map((sid) => (
+                    <span key={sid} className="inline-flex items-center gap-1.5 rounded-lg bg-brand-50 px-2 py-1 font-mono text-xs font-semibold text-brand-700">
+                      {sid}
+                      <button
+                        type="button"
+                        onClick={() => setUnlink({ parent: p, studentId: sid })}
+                        className="text-brand-400 transition-colors hover:text-rose-600"
+                        aria-label={`Unlink ${sid}`}
+                      >
+                        <span aria-hidden="true">×</span>
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-3 text-xs text-slate-400">No wards linked yet.</p>
+              )}
               <div className="mt-3 flex items-center justify-between border-t border-slate-50 pt-3">
                 <Badge tone={p.wardCount > 0 ? 'green' : 'slate'}>
                   {p.wardCount} linked ward{p.wardCount === 1 ? '' : 's'}
                 </Badge>
-                <span className="text-xs text-slate-400">{formatDate(p.created_at)}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-slate-400">{formatDate(p.created_at)}</span>
+                  <Button size="sm" variant="secondary" onClick={() => openLinkModal(p)}>
+                    <Link2 className="h-3.5 w-3.5" aria-hidden="true" />
+                    Link ward
+                  </Button>
+                </div>
               </div>
             </Card>
           ))}
@@ -109,6 +198,51 @@ export default function AdminParents() {
           message="Parents appear here once they register and link their child's Student ID."
         />
       )}
+
+      <Modal
+        open={!!linking}
+        onClose={() => setLinking(null)}
+        title={`Link a ward — ${linking?.full_name || 'Parent'}`}
+        size="sm"
+        footer={
+          <div className="flex w-full gap-2">
+            <Button variant="secondary" onClick={() => setLinking(null)} className="flex-1">
+              Cancel
+            </Button>
+            <Button onClick={confirmLink} loading={linkBusy} className="flex-1">
+              Link student
+            </Button>
+          </div>
+        }
+      >
+        {linkError ? (
+          <Alert tone="error" className="mb-4">
+            {linkError}
+          </Alert>
+        ) : null}
+        <Input
+          label="Ward's Student ID *"
+          value={wardInput}
+          onChange={(e) => setWardInput(e.target.value)}
+          placeholder="e.g. STU-ABC12"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              confirmLink();
+            }
+          }}
+        />
+      </Modal>
+
+      <ConfirmDialog
+        open={!!unlink}
+        onClose={() => setUnlink(null)}
+        onConfirm={confirmUnlink}
+        loading={unlinkBusy}
+        title="Unlink ward?"
+        message={`Remove ${unlink?.studentId || ''} from ${unlink?.parent?.full_name || 'this parent'}'s account? The parent can reconnect it later.`}
+        confirmLabel="Unlink ward"
+      />
     </div>
   );
 }

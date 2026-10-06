@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Wallet, ReceiptText } from 'lucide-react';
+import { Wallet, ReceiptText, UserPlus } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { PageHeader, Card, Spinner, EmptyState, Badge } from '../../components/ui';
+import { PageHeader, Card, Spinner, EmptyState, Badge, Button } from '../../components/ui';
 import ReceiptModal from '../../components/ReceiptModal';
+import ConnectWardModal from '../../components/ConnectWardModal';
 import { fetchParentLinks, fetchWardApplication, fetchStudentFees, fetchStudentReceipts } from '../../lib/queries';
 import { buildStudentName, cedi, formatDateTime, termLabel } from '../../lib/format';
 
@@ -11,6 +12,8 @@ export default function ParentFees() {
   const [wards, setWards] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeReceipt, setActiveReceipt] = useState(null);
+  const [connectOpen, setConnectOpen] = useState(false);
+  const [refresh, setRefresh] = useState(0);
 
   useEffect(() => {
     if (!user) return;
@@ -36,13 +39,23 @@ export default function ParentFees() {
     return () => {
       cancelled = true;
     };
-  }, [user]);
+  }, [user, refresh]);
 
   if (loading) return <Spinner label="Loading ward fees..." />;
 
   return (
     <div>
-      <PageHeader title="Ward Fees" subtitle="Fees, balances and receipts for your children." icon={Wallet} />
+      <PageHeader
+        title="Ward Fees"
+        subtitle="Fees, balances and receipts for your children."
+        icon={Wallet}
+        actions={
+          <Button variant="secondary" onClick={() => setConnectOpen(true)}>
+            <UserPlus className="h-4 w-4" aria-hidden="true" />
+            Connect a ward
+          </Button>
+        }
+      />
       <ReceiptModal receipt={activeReceipt} onClose={() => setActiveReceipt(null)} />
 
       {wards.length ? (
@@ -113,8 +126,20 @@ export default function ParentFees() {
           })}
         </div>
       ) : (
-        <EmptyState icon={Wallet} title="No wards linked" message="Link a student to see their fees." />
+        <EmptyState
+          icon={Wallet}
+          title="No wards linked"
+          message="Connect a student to see their fees."
+          action={
+            <Button onClick={() => setConnectOpen(true)}>
+              <UserPlus className="h-4 w-4" aria-hidden="true" />
+              Connect a ward
+            </Button>
+          }
+        />
       )}
+
+      <ConnectWardModal open={connectOpen} onClose={() => setConnectOpen(false)} onLinked={() => setRefresh((r) => r + 1)} />
     </div>
   );
 }

@@ -240,6 +240,47 @@ async function applyGuards(user) {
     return { profile, app };
   }
 
+  if (role === 'parent') {
+    // Self-heal a broken registration: if the ward link or profile school_id
+    // was not saved (RLS / email-confirmation interruption), reconnect using
+    // the ward_id stored on the auth profile at sign-up.
+    const { data: links } = await supabase
+      .from('parent_links')
+      .select('student_id, school_id')
+      .eq('parent_user_id', user.id);
+
+    const wardGuess = user.user_metadata?.ward_id || null;
+    if ((!links || !links.length) && wardGuess) {
+      try {
+        await supabase.rpc('link_ward_to_parent', { p_student_id: wardGuess });
+      } catch (err) {
+        // best effort — the Connect-a-Ward screen handles remaining cases
+      }
+    }
+
+    let schoolId = profile?.school_id || null;
+    if (!schoolId && links?.length) {
+      schoolId = links[0].school_id || null;
+      if (!schoolId) {
+        const { data: app } = await supabase
+          .from('applications')
+          .select('school_id')
+          .eq('student_id', links[0].student_id)
+          .maybeSingle();
+        schoolId = app?.school_id || null;
+      }
+    }
+    if (schoolId && profile?.school_id !== schoolId) {
+      try {
+        await supabase.from('profiles').update({ school_id: schoolId }).eq('id', user.id);
+      } catch (err) {
+        // keep in-memory value anyway
+      }
+      profile = { ...profile, school_id: schoolId };
+    }
+    return { profile, app: null };
+  }
+
   return { profile, app: null };
 }
 
@@ -510,15 +551,41 @@ export function AuthProvider({ children }) {
     const { data, error } = await supabase.auth.signUp({
       email: email.trim(),
       password,
-      options: { data: { full_name: fullName.trim(), role: 'parent', school_id: schoolId, phone } },
+      options: {
+        data: {
+          full_name: fullName.trim(),
+          role: 'parent',
+          school_id: schoolId,
+          phone,
+          // Persisted so an interrupted registration can be healed on first login.
+          ward_id: wardId,
+        },
+      },
     });
     if (error) throw new Error(error.message);
     if (data?.user) {
-      await supabase.from('parent_links').insert({
-        parent_user_id: data.user.id,
-        student_id: wardId,
-        school_id: schoolId,
-      });
+      // Link the ward through the dedicated RPC (works when the sign-up returns
+      // an active session and applies the same contact-guard as the dashboard's
+      // "Connect a ward" flow). Falls back to a direct insert (permitted by the
+      // parent_links RLS policy added in sql/084).
+      try {
+        const link = await supabase.rpc('link_ward_to_parent', { p_student_id: wardId });
+        if (!link?.data?.success) {
+          const { error: linkErr } = await supabase.from('parent_links').insert({
+            parent_user_id: data.user.id,
+            student_id: wardId,
+            school_id: schoolId,
+          });
+          if (linkErr) throw new Error(linkErr.message);
+        }
+        if (schoolId) {
+          await supabase.from('profiles').update({ school_id: schoolId }).eq('id', data.user.id);
+        }
+      } catch (linkError) {
+        // The account still exists; login self-healing (applyGuards) retries the
+        // link using the ward_id stored in the sign-up metadata.
+        console.warn('registerParent: could not auto-link ward:', linkError.message);
+      }
       await supabase.from('profiles').upsert({
         id: data.user.id,
         full_name: fullName.trim(),

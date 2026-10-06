@@ -1,15 +1,21 @@
 import { useEffect, useState } from 'react';
-import { Users } from 'lucide-react';
+import { Users, UserPlus, Trash2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { PageHeader, Card, Spinner, EmptyState, Badge } from '../../components/ui';
-import { fetchParentLinks, fetchWardApplication } from '../../lib/queries';
+import { useToast } from '../../context/ToastContext';
+import { PageHeader, Card, Spinner, EmptyState, Badge, Button } from '../../components/ui';
+import ConnectWardModal from '../../components/ConnectWardModal';
+import { fetchParentLinks, fetchWardApplication, unlinkWardFromParent } from '../../lib/queries';
 import { buildStudentName, formatDate } from '../../lib/format';
 import { photoUrl } from '../../lib/storage';
 
 export default function ParentWards() {
   const { user } = useAuth();
+  const toast = useToast();
   const [wards, setWards] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [connectOpen, setConnectOpen] = useState(false);
+  const [refresh, setRefresh] = useState(0);
+  const [unlinking, setUnlinking] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -31,13 +37,37 @@ export default function ParentWards() {
     return () => {
       cancelled = true;
     };
-  }, [user]);
+  }, [user, refresh]);
+
+  const removeWard = async (studentId, name) => {
+    if (!window.confirm(`Remove ${name} (${studentId}) from your account? You can connect them again any time.`)) return;
+    setUnlinking(true);
+    try {
+      await unlinkWardFromParent(studentId);
+      toast.success('Ward removed', `${studentId} was unlinked from your account.`);
+      setRefresh((r) => r + 1);
+    } catch (err) {
+      toast.error('Could not unlink ward', err.message);
+    } finally {
+      setUnlinking(false);
+    }
+  };
 
   if (loading) return <Spinner label="Loading wards..." />;
 
   return (
     <div>
-      <PageHeader title="My Wards" subtitle="Students linked to your parent account." icon={Users} />
+      <PageHeader
+        title="My Wards"
+        subtitle="Students linked to your parent account."
+        icon={Users}
+        actions={
+          <Button variant="secondary" onClick={() => setConnectOpen(true)}>
+            <UserPlus className="h-4 w-4" aria-hidden="true" />
+            Connect a ward
+          </Button>
+        }
+      />
 
       {wards.length ? (
         <div className="grid gap-4 sm:grid-cols-2">
@@ -79,6 +109,12 @@ export default function ParentWards() {
                     </div>
                   ))}
                 </dl>
+                <div className="mt-4 flex justify-end border-t border-slate-50 pt-3">
+                  <Button size="sm" variant="ghost" onClick={() => removeWard(app.student_id, name)} disabled={unlinking}>
+                    <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                    Remove
+                  </Button>
+                </div>
               </Card>
             );
           })}
@@ -87,9 +123,17 @@ export default function ParentWards() {
         <EmptyState
           icon={Users}
           title="No wards linked yet"
-          message="Ask the school to link your account to your child's Student ID."
+          message="Connect your child's Student ID to start following their progress."
+          action={
+            <Button onClick={() => setConnectOpen(true)}>
+              <UserPlus className="h-4 w-4" aria-hidden="true" />
+              Connect a ward
+            </Button>
+          }
         />
       )}
+
+      <ConnectWardModal open={connectOpen} onClose={() => setConnectOpen(false)} onLinked={() => setRefresh((r) => r + 1)} />
     </div>
   );
 }

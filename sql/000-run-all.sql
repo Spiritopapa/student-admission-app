@@ -644,6 +644,13 @@
 -- ============================================================
 \i 083-fee-payment-waterfall.sql
 -- ============================================================
+--  Parent ⇄ ward connectivity (self-service linking, login self-heal,
+--  school-staff linking from the Parents management screen).
+--  Used by: src/pages/parent/* (Connect a Ward), AuthContext login
+--  self-heal, and src/pages/admin/AdminParents.jsx.
+-- ============================================================
+\i 084-parent-ward-linking.sql
+-- ============================================================
 --  SCHEMA DEPLOYMENT COMPLETE
 -- ============================================================
 --  Next steps:
