@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { Camera, Trash2 } from 'lucide-react';
 import { validateImageFile, optimizeImageFile } from '../lib/storage';
 import { Alert } from './ui-extras';
+import { isMobileShell, mobilePickImage } from '../lib/mobileHost';
 
 const DEFAULT_MAX_MB = 0.5; // recommended output size for uploaded photos
 const DEFAULT_RAW_MAX_MB = 10; // raw input accepted before automatic compression
@@ -105,6 +106,13 @@ export function PhotoUpload({ value, onChange, maxMb = DEFAULT_MAX_MB, circle = 
 
   const startCamera = async (facing = 'environment') => {
     if (!camera) return;
+    // In the native Android shell the in-app camera preview is not available;
+    // the device photo picker (which also offers the camera) is used instead.
+    if (isMobileShell()) {
+      const picked = await mobilePickImage();
+      if (picked) await handleFile(picked);
+      return;
+    }
     setCameraError('');
     setCameraBusy(true);
     try {
@@ -187,12 +195,22 @@ const capture = () => {
     }
   };
 
+  const triggerPicker = async () => {
+    if (isMobileShell()) {
+      // WebView file inputs are inert on Android - ask the native shell.
+      const picked = await mobilePickImage();
+      if (picked) await handleFile(picked);
+      return;
+    }
+    inputRef.current?.click();
+  };
+
   return (
     <div className="flex flex-col items-center gap-3">
       <div className="flex flex-col items-center gap-2">
         <button
           type="button"
-          onClick={() => inputRef.current?.click()}
+          onClick={triggerPicker}
           className={`group relative flex items-center justify-center overflow-hidden border-2 border-dashed border-slate-300 bg-slate-100 text-slate-400 transition-colors hover:border-brand-400 hover:bg-brand-50 hover:text-brand-500 ${
             circle ? 'h-28 w-28 rounded-full' : 'h-32 w-28 rounded-xl'
           }`}

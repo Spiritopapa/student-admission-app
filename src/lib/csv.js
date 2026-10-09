@@ -5,6 +5,7 @@
  * can export / import student spreadsheets with identical behaviour across
  * both the old and the new app.
  */
+import { mobileDownload } from './mobileHost';
 
 // Escape a single CSV cell. A cell is wrapped in double quotes when it contains
 // a comma, double quote, carriage return or line feed, or starts/ends with
@@ -103,8 +104,14 @@ export function parseCSV(text) {
 // Trigger a client-side download of a CSV document. A UTF-8 BOM is prepended by
 // default so Excel recognises the file as UTF-8 (important for names with
 // accented characters).
+//
+// Inside the native Android app the download is handed to the shell, which
+// saves the file to the device. Returns 'mobile' when handled natively,
+// 'blob' otherwise (callers may adjust their confirmation message).
 export function downloadCSV(filename, csv, { withBom = true } = {}) {
-  const blob = new Blob([withBom ? '\uFEFF' : '', csv], { type: 'text/csv;charset=utf-8;' });
+  const content = (withBom ? '\uFEFF' : '') + csv;
+  if (mobileDownload(filename, content)) return 'mobile';
+  const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
@@ -113,5 +120,5 @@ export function downloadCSV(filename, csv, { withBom = true } = {}) {
   link.click();
   document.body.removeChild(link);
   setTimeout(() => URL.revokeObjectURL(url), 1000);
-  return blob;
+  return 'blob';
 }

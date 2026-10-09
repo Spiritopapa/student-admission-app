@@ -147,6 +147,21 @@ Your existing data and tables are untouched. Run the migrations in the Supabase 
 
 Old QR links still work: `/verify-receipt.html?t=...` is rewritten to the new React verification page.
 
+## Android app (APK)
+
+A clean Android APK of this app lives in [`mobile/`](./mobile) — a thin Flutter
+shell that embeds an Android WebView pointing at the deployed web app. The
+React codebase remains the single source of truth.
+
+```bash
+cd mobile
+flutter build apk --debug    # or --release
+# APK → mobile/build/app/outputs/flutter-apk/
+```
+
+See [`mobile/README.md`](./mobile/README.md) for branding, permissions and
+build details.
+
 ---
 
 ## Migration roadmap

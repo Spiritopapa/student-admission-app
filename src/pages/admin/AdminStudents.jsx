@@ -706,8 +706,13 @@ const openPromote = () => {
       : query
       ? 'search_results'
       : 'all_students';
-    downloadCSV(`student_admission_template_${suffix}.csv`, studentsToCSV(filtered));
-    toast.success('CSV exported', `${filtered.length} student(s) exported.`);
+    const mode = downloadCSV(`student_admission_template_${suffix}.csv`, studentsToCSV(filtered));
+    toast.success(
+      mode === 'mobile' ? 'CSV saved on this device' : 'CSV exported',
+      mode === 'mobile'
+        ? 'Saved to SchoolRunner/Downloads in your Files app.'
+        : `${filtered.length} student(s) exported.`
+    );
   };
 
   const downloadTemplate = () => {
@@ -716,8 +721,12 @@ const openPromote = () => {
       'Akosua Mensah', '0551234567', 'Kumasi', 'Deduako', '', "St. Mary's JHS", '2026-09-02',
       'admitted', 'No',
     ];
-    downloadCSV('student_import_template.csv', buildCSV([STUDENT_CSV_HEADERS, example]));
-    toast.success('Template downloaded', 'Fill in the rows (keep the header) and use Import CSV.');
+    const mode = downloadCSV('student_import_template.csv', buildCSV([STUDENT_CSV_HEADERS, example]));
+    if (mode === 'mobile') {
+      toast.success('Template saved on this device', 'Saved to SchoolRunner/Downloads in your Files app.');
+    } else {
+      toast.success('Template downloaded', 'Fill in the rows (keep the header) and use Import CSV.');
+    }
   };
 
   const buildColumnMap = (headerRow) => {

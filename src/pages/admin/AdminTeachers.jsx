@@ -455,14 +455,23 @@ const subjectsOfClassFor = (t, className) => {
       (t.subject || '').replace(/, /g, ';'),
       t.qualification || '',
     ]);
-    downloadCSV(`teachers_${new Date().toISOString().slice(0, 10)}.csv`, buildCSV([TEACHER_CSV_HEADERS, ...body]));
-    toast.success('CSV exported', `${filtered.length} teacher(s) exported.`);
+    const mode = downloadCSV(`teachers_${new Date().toISOString().slice(0, 10)}.csv`, buildCSV([TEACHER_CSV_HEADERS, ...body]));
+    toast.success(
+      mode === 'mobile' ? 'CSV saved on this device' : 'CSV exported',
+      mode === 'mobile'
+        ? 'Saved to SchoolRunner/Downloads in your Files app.'
+        : `${filtered.length} teacher(s) exported.`
+    );
   };
 
   const downloadTemplate = () => {
     const example = ['', 'Kwame Mensah', 'kwame@school.org', '0551234567', 'Teaching', 'JHS 1;JHS 2', 'Mathematics;Science', 'B.Ed'];
-    downloadCSV('teacher_import_template.csv', buildCSV([TEACHER_CSV_HEADERS, example]));
-    toast.success('Template downloaded', 'Fill in the rows (keep the header) and use Import CSV.');
+    const mode = downloadCSV('teacher_import_template.csv', buildCSV([TEACHER_CSV_HEADERS, example]));
+    if (mode === 'mobile') {
+      toast.success('Template saved on this device', 'Saved to SchoolRunner/Downloads in your Files app.');
+    } else {
+      toast.success('Template downloaded', 'Fill in the rows (keep the header) and use Import CSV.');
+    }
   };
 
   const importCsv = async (e) => {
