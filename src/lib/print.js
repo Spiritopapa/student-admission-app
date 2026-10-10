@@ -1,8 +1,9 @@
 /**
  * Minimal print helper. Opens a print-styled window AND, inside the native
- * Android app, an in-app print sheet preview with Print / Save to device.
+ * Android app, an in-app print sheet preview with Print / Save as PDF
+ * (system print dialog) + Save HTML copy.
  */
-import { isMobileShell, mobilePrint, onNativeAction } from "./mobileHost";
+import { isMobileShell, mobilePrint, mobilePrintPdf, onNativeAction } from "./mobileHost";
 
 function buildPrintDocument(title, bodyHtml) {
   return `<!DOCTYPE html>
@@ -57,8 +58,8 @@ function showMobilePrintSheet(title, bodyHtml) {
   const bar = document.createElement("div");
   bar.setAttribute("style", "display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 12px;background:#fff;border-bottom:1px solid #e2e8f0;box-shadow:0 1px 2px #cbd5e1;");
   bar.innerHTML =
-    `<button type="button" data-sr-act="print" style="background:#4f46e5;color:#fff;border:0;border-radius:8px;padding:7px 14px;font-size:13px;font-weight:600;">Print</button>` +
-    `<button type="button" data-sr-act="save" style="background:#fff;color:#0f172a;border:1px solid #cbd5e1;border-radius:8px;padding:6px 13px;font-size:13px;font-weight:500;">Save to device</button>` +
+    `<button type="button" data-sr-act="print" style="background:#4f46e5;color:#fff;border:0;border-radius:8px;padding:7px 14px;font-size:13px;font-weight:600;">Print / Save as PDF</button>` +
+    `<button type="button" data-sr-act="save" style="background:#fff;color:#0f172a;border:1px solid #cbd5e1;border-radius:8px;padding:6px 13px;font-size:13px;font-weight:500;">Save HTML copy</button>` +
     `<button type="button" data-sr-act="close" style="background:#fff;color:#dc2626;border:1px solid #fecaca;border-radius:8px;padding:6px 13px;font-size:13px;font-weight:500;">Close</button>` +
     `<span data-sr-act="title" style="color:#475569;font-size:12px;font-weight:600;margin-left:auto;max-width:50%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">` +
     String(title ?? "").replace(/[<>&"]/g, "") + `</span>`;
@@ -100,13 +101,43 @@ function showMobilePrintSheet(title, bodyHtml) {
     document.body.removeChild(sheet);
   });
   bar.querySelector("[data-sr-act=print]").addEventListener("click", () => {
-    try { window.print(); } catch (err) { setStatus("Printing unavailable here - use Save to device.", "err"); }
+    // Hand the document to the native Android print dialog, whose default
+    // destination is "Save as PDF" (window.print() is a no-op in a WebView).
+    if (mobilePrintPdf(title ?? "Document", doc)) {
+      setStatus("Opening the print dialog - choose Save as PDF.", "ok");
+      clearTimeout(printAckTimer);
+      printAckTimer = setTimeout(() => {
+        setStatus("PDF printing needs the latest SchoolRunner app - use Save HTML copy.", "err");
+      }, 3000);
+      return;
+    }
+    try { window.print(); } catch (err) { setStatus("Printing unavailable here - use Save HTML copy.", "err"); }
   });
   bar.querySelector("[data-sr-act=save]").addEventListener("click", () => {
     if (mobilePrint(title ?? "Document", doc)) setStatus("Saving to SchoolRunner/Print...", "ok");
     else setStatus("Could not save on this device.", "err");
   });
 }
+
+// The native shell acknowledges that the system print dialog was opened.
+let printAckTimer = null;
+
+onNativeAction("printPdf", (result) => {
+  if (printAckTimer) {
+    clearTimeout(printAckTimer);
+    printAckTimer = null;
+  }
+  const status = document.getElementById("srPrintStatus");
+  if (!status) return;
+  status.hidden = false;
+  if (result === "failed") {
+    status.style.color = "#dc2626";
+    status.textContent = "Could not open the print dialog - use Save HTML copy.";
+  } else {
+    status.style.color = "#0f766e";
+    status.textContent = "Print dialog open - choose Save as PDF (or a printer).";
+  }
+});
 
 onNativeAction("print", (name) => {
   const status = document.getElementById("srPrintStatus");

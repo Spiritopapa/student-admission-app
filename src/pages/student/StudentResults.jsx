@@ -21,6 +21,8 @@ import {
 } from '../../lib/format';
 import { fetchGradingScale, gradeForScale, GRADE_CLASSES } from '../../lib/gradingScale';
 import { photoUrl } from '../../lib/storage';
+import { openPrintWindow, escapeHtml } from '../../lib/print';
+import { isMobileShell } from '../../lib/mobileHost';
 
 export default function StudentResults() {
   const { application, loading } = useStudentApplication();
@@ -108,6 +110,44 @@ export default function StudentResults() {
   const photo = application.student_photo_url ? photoUrl(application.student_photo_url) : null;
 
   const print = () => {
+    // Inside the Android app window.print() is a no-op in the WebView, so
+    // hand the report to the native print sheet (Print / Save as PDF).
+    if (isMobileShell()) {
+      const rowsHtml = report.rows
+        .map(
+          (row) => `<tr>
+            <td>${escapeHtml(row.subject)}</td>
+            <td class="right">${Number(row.class_score || 0).toFixed(2)}</td>
+            <td class="right">${Number(row.exam_score || 0).toFixed(2)}</td>
+            <td class="right"><b>${row.marks.toFixed(2)}</b></td>
+            <td class="right">${escapeHtml(row.grade.grade)}</td>
+            <td>${escapeHtml(row.level.text)}</td>
+          </tr>`
+        )
+        .join('');
+      openPrintWindow(`Report Card - ${name}`, `
+        <div style="text-align:center;">
+          <h1>${escapeHtml(schoolName)}</h1>
+          <p>Academic Report - ${escapeHtml(exam?.name || '')}</p>
+          ${photo ? `<img src="${escapeHtml(photo)}" alt="" style="height:100px;" />` : ''}
+          <p><b>${escapeHtml(name)}</b> (${escapeHtml(application.student_id)})</p>
+          <p>Class: ${escapeHtml(application.class_applying || '-')} · ${escapeHtml(exam?.academic_year || '')} ${escapeHtml(termLabel(exam?.term))}</p>
+        </div>
+        <table>
+          <thead>
+            <tr><th>Subject</th><th>Class Score</th><th>Exam Score</th><th>Total Marks</th><th>Grade</th><th>Level</th></tr>
+          </thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+        <h2>Summary</h2>
+        <p>Total: <b>${report.total.toFixed(2)} / ${report.max}</b> · Average: <b>${report.average}%</b> · Performance: <b>${escapeHtml(report.level.text)}</b></p>
+        ${att.total ? `<p>Attendance: ${att.present} present, ${att.absent} absent (${att.pct}%)</p>` : ''}
+        <h2>Remarks</h2>
+        <p><b>Class Teacher:</b> ${escapeHtml(report.teacherRemarks)}</p>
+        <p><b>Head Teacher:</b> ${escapeHtml(report.headRemarks)}</p>
+      `);
+      return;
+    }
     window.print();
   };
 

@@ -56,6 +56,19 @@ class _HomePageState extends State<_HomePage> {
   bool _started = false;
   String _error = '';
 
+  /// True once the hosted app finished loading successfully at least once.
+  /// Network/HTTP errors reported by the WebView are only fatal BEFORE this
+  /// (i.e. the initial "can't reach the server" load). After the app is up,
+  /// a failing image, API response or fetch must never replace a live
+  /// session with the full-screen error panel - that used to abort fee
+  /// payments with "the SchoolRunner server is not responding".
+  bool _loadedOnce = false;
+
+  /// URL of the main-frame document currently loading (used to tell a real
+  /// page-load HTTP error apart from sub-resource errors, which the plugin
+  /// reports without a main-frame flag).
+  String _loadingUrl = '';
+
   @override
   Widget build(BuildContext context) {
     if (_phase == _Phase.error) {
@@ -97,23 +110,42 @@ class _HomePageState extends State<_HomePage> {
       },
     );
     await controller.setNavigationDelegate(NavigationDelegate(
+      onPageStarted: (String url) {
+        _loadingUrl = url;
+      },
       onPageFinished: (String url) {
         // Best-effort page polish: smaller root font, etc.
         _applyUiTweaks(controller);
+        _loadedOnce = true;
         if (_phase == _Phase.ready) return;
         setState(() {
           _phase = _Phase.ready;
         });
       },
       onWebResourceError: (WebResourceError error) {
-        if (error.isForMainFrame == true) {
-          _fail(
-            'Could not reach the SchoolRunner server.\n'
-            'Check your internet connection and try again.',
-          );
-        }
+        // Sub-resource failures (images, fetch/XHR, iframes...) are reported
+        // here too. Only a MAIN FRAME failure while the app is still loading
+        // means the server itself is unreachable.
+        if (error.isForMainFrame != true) return;
+        if (_loadedOnce) return;
+        _fail(
+          'Could not reach the SchoolRunner server.\n'
+          'Check your internet connection and try again.',
+        );
       },
       onHttpError: (HttpResponseError error) {
+        // NOTE: onReceivedHttpError fires for EVERY resource (broken receipt
+        // logos, /api/* responses, subframes...). Reacting to those used to
+        // replace the whole app with this error screen in the middle of e.g.
+        // a fee payment. Only an HTTP error on the MAIN DOCUMENT while it is
+        // still loading (before the first successful page load) is fatal.
+        if (_loadedOnce) return;
+        final String uri = error.request?.uri.toString() ?? '';
+        String strip(String u) =>
+            u.length > 1 && u.endsWith('/') ? u.substring(0, u.length - 1) : u;
+        // onPageStarted only fires for the main document, so a match means
+        // this error IS the page load itself - not a sub-resource/API call.
+        if (_loadingUrl.isEmpty || strip(uri) != strip(_loadingUrl)) return;
         _fail(
           'The SchoolRunner server returned an unexpected response.\n'
           'Please try again in a moment.',
@@ -194,6 +226,9 @@ class _HomePageState extends State<_HomePage> {
           case 'print':
             await _hostSaveToDocuments(root, 'Print');
             break;
+          case 'printPdf':
+            await _hostNativePrint(root);
+            break;
           case 'pickImage':
             await _hostPickImage();
             break;
@@ -234,6 +269,47 @@ class _HomePageState extends State<_HomePage> {
       // ignore - fall through to temp
     }
     return Directory.systemTemp.path;
+  }
+
+  /// Hands a standalone print document (a full HTML document) to the native
+  /// print pipeline. MainActivity renders it in a hidden WebView and opens
+  /// the system print dialog, whose default destination is "Save as PDF"
+  /// (real printers work too) - the only reliable way to produce a real PDF
+  /// from inside the WebView shell.
+  Future<void> _hostNativePrint(Map root) async {
+    final String title = ('${root['title'] ?? 'Document'}').trim();
+    final String html = '${root['html'] ?? ''}';
+    // The document travels as a temp file so large reports never hit the
+    // platform channel's transaction size limit.
+    final File file = File(
+      p.join(
+        Directory.systemTemp.path,
+        'sr_print_${DateTime.now().millisecondsSinceEpoch}.html',
+      ),
+    );
+    file.writeAsStringSync(html, flush: true);
+    const MethodChannel channel = MethodChannel('schoolrunner_host');
+    try {
+      await channel.invokeMethod('printHtml', <String, Object?>{
+        'title': title.isEmpty ? 'Document' : title,
+        'path': file.path,
+        'baseUrl': kAppUrl,
+      });
+      await _runPageJs(
+        "(() => { const f = window.__schoolrunnerOnAction;"
+        " if (f) f('printPdf', 'opened'); })();",
+      );
+    } catch (_) {
+      await _runPageJs(
+        "(() => { const f = window.__schoolrunnerOnAction;"
+        " if (f) f('printPdf', 'failed'); })();",
+      );
+    } finally {
+      // The native side already read the file synchronously.
+      try {
+        file.deleteSync();
+      } catch (_) {}
+    }
   }
 
   /// Asks the user to choose a photo with the native device picker, then
@@ -303,6 +379,8 @@ class _HomePageState extends State<_HomePage> {
   void _retry() {
     _controller = null;
     _started = false;
+    _loadedOnce = false;
+    _loadingUrl = '';
     setState(() {
       _phase = _Phase.splash;
     });

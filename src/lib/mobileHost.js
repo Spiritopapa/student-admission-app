@@ -10,6 +10,8 @@
  *                    (WebView has no download manager).
  *   - `print`     -> the native app saves the print document as .html on the
  *                    device (WebView has no print dialog on older Android).
+ *   - `printPdf`  -> the native app opens the SYSTEM print dialog for the
+ *                    document (default destination: "Save as PDF").
  *   - `pickImage` -> the native app opens the device photo picker and returns
  *                    the chosen file's bytes (WebView file inputs are inert).
  *
@@ -45,6 +47,15 @@ export function mobileDownload(filename, content) {
 /** Hand a printable document (full standalone <html>) to the native app. */
 export function mobilePrint(title, html) {
   return post('print', { title, html });
+}
+
+/**
+ * Hand a printable document to the native app's SYSTEM print dialog, whose
+ * default destination is "Save as PDF" (real printers work too). Returns
+ * true if the native shell received the message.
+ */
+export function mobilePrintPdf(title, html) {
+  return post('printPdf', { title, html });
 }
 
 /** Ask the native app for an image chosen from the device. Resolves File|null. */
