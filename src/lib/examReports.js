@@ -13,6 +13,7 @@ import {
   getHeadTeacherRemarks,
 } from './format';
 import { resolveScale, gradeForScale } from './gradingScale';
+import { photoUrl } from './storage';
 
 export function esc(value) {
   return String(value ?? '')
@@ -52,7 +53,7 @@ async function getSchoolIdentity(schoolId) {
       if (data.school_name) schoolName = data.school_name;
       address = data.school_address || '';
       motto = data.school_motto || '';
-      schoolLogoUrl = data.logo_url || '';
+      schoolLogoUrl = photoUrl(data.logo_url) || '';
       academicYear = data.academic_year || '';
       currentTerm = data.current_term || '';
     }
@@ -63,7 +64,7 @@ async function getSchoolIdentity(schoolId) {
         .eq('id', schoolId)
         .maybeSingle();
       if (sch?.name) schoolName = sch.name;
-      if (!schoolLogoUrl && sch?.logo_url) schoolLogoUrl = sch.logo_url;
+      if (!schoolLogoUrl && sch?.logo_url) schoolLogoUrl = photoUrl(sch.logo_url) || '';
     }
   }
   return { schoolName, schoolLogoUrl, address, motto, academicYear, currentTerm };
@@ -271,8 +272,13 @@ export async function buildReportCardHTML({ examId, studentId, schoolId }) {
     .slice(0, 4)
     .map((g) => `${esc(g.grade_label)} (${g.min_score}-${g.max_score ?? 100})`)
     .join(' · ');
-  const photoHtml = app.student_photo_url
-    ? `<img class="rc-photo" src="${esc(app.student_photo_url)}" alt="student" />`
+  // applications.student_photo_url holds a storage bucket path (e.g.
+  // "student-photos/students/STU-XXXX/photo.jpg"), not a loadable URL.
+  // Resolve it with photoUrl() like everywhere else in the app, otherwise the
+  // <img src> points at a relative path that 404s and the photo never shows.
+  const studentPhotoSrc = photoUrl(app.student_photo_url) || '';
+  const photoHtml = studentPhotoSrc
+    ? `<img class="rc-photo" src="${esc(studentPhotoSrc)}" alt="student" />`
     : '<div class="rc-photo-ph"></div>';
   const attPct = attTotal ? Math.round((present / attTotal) * 100) : 0;
 return `<!DOCTYPE html><html><head><meta charset="utf-8" /><title>${esc(name)} - Report Card</title><style>${REPORT_CSS}</style></head><body>
