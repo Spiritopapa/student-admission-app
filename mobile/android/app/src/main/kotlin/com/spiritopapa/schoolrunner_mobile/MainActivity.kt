@@ -19,6 +19,7 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import java.io.File
 import java.io.FileOutputStream
+import org.json.JSONArray
 
 class MainActivity : FlutterActivity() {
     private val channelName = "schoolrunner_host"
@@ -104,10 +105,12 @@ class MainActivity : FlutterActivity() {
         val container = FrameLayout(this)
         printWebView = webView
         printContainer = container
+        // A4 render width from the start: the document lays out for the PAGE,
+        // not for the phone screen - the PDF is a true A4 document.
         container.addView(
             webView,
             FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
+                A4_RENDER_WIDTH,
                 ViewGroup.LayoutParams.MATCH_PARENT,
             ),
         )
@@ -130,12 +133,16 @@ class MainActivity : FlutterActivity() {
         val beginRender: () -> Unit = {
             if (!renderStarted) {
                 renderStarted = true
-                // Give remote images a beat to finish rendering first.
-                mainHandler.postDelayed({ renderAndSave(webView, title, complete) }, 400)
+                // Give the viewport reflow + remote images a beat to settle.
+                mainHandler.postDelayed({ renderA4Pdf(webView, title, complete) }, 500)
             }
         }
         webView.webViewClient = object : WebViewClient() {
             override fun onPageFinished(view: WebView, url: String) {
+                // Force a device-width viewport so CSS px == view px at the A4
+                // render width (docs without a viewport meta would otherwise
+                // lay out at 980 CSS px and scale down - "screenshot" pages).
+                view.evaluateJavascript(FORCE_VIEWPORT_JS, null)
                 beginRender()
             }
         }
@@ -151,47 +158,80 @@ class MainActivity : FlutterActivity() {
         )
     }
 
-    /// Headless PDF render: the hidden WebView is re-laid out to its FULL
-    /// content height, then drawn page-by-page (A4-ratio slices) into an
-    /// android.graphics.pdf.PdfDocument and stored in Downloads. Uses only
-    /// public, unrestricted APIs (the print-adapter callbacks are
-    /// package-private in recent Android SDKs). Any failure falls back to
-    /// the system print dialog.
-    private fun renderAndSave(webView: WebView, title: String, complete: (String?) -> Unit) {
+    /// A4 PDF pipeline: ask the DOM for its full height at the A4 render
+    /// width, re-layout the hidden WebView to that height, collect natural
+    /// page-break candidates (table rows / headings), then draw page-by-page
+    /// into an android PdfDocument sized in exact A4 points (595 x 842).
+    private fun renderA4Pdf(webView: WebView, title: String, complete: (String?) -> Unit) {
         try {
-            val width = webView.width
-            if (width <= 0) {
-                openPrintDialogFallback(webView, title, complete)
-                return
-            }
-            // Re-measure + re-layout at FULL content height so the whole
-            // document can be drawn (standard WebView-to-PDF technique).
-            webView.measure(
-                View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
-                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
-            )
-            webView.layout(0, 0, width, webView.measuredHeight)
-            val totalHeight = webView.measuredHeight
-            if (totalHeight <= 0) {
-                openPrintDialogFallback(webView, title, complete)
-                return
-            }
+            webView.evaluateJavascript(CONTENT_HEIGHT_JS) { raw ->
+                val jsHeight = parseJsInt(raw) ?: 0
+                webView.measure(
+                    View.MeasureSpec.makeMeasureSpec(A4_RENDER_WIDTH, View.MeasureSpec.EXACTLY),
+                    View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+                )
+                val contentHeight = maxOf(jsHeight, webView.measuredHeight, 1)
+                webView.layout(0, 0, A4_RENDER_WIDTH, contentHeight)
 
-            val pageWidth = width
-            val pageHeight = ((pageWidth.toDouble() * 297.0) / 210.0).toInt().coerceAtLeast(1)
+                // Let the re-layout settle before measuring break positions.
+                mainHandler.postDelayed({
+                    webView.evaluateJavascript(BREAKS_JS) { rawBreaks ->
+                        drawA4Document(
+                            webView,
+                            contentHeight,
+                            parseJsIntArray(rawBreaks),
+                            title,
+                            complete,
+                        )
+                    }
+                }, 150)
+            }
+        } catch (e: Exception) {
+            openPrintDialogFallback(webView, title, complete)
+        }
+    }
+
+    /// Draws the laid-out WebView into true A4 pages (595 x 842 points).
+    /// Page breaks snap to natural document boundaries (table rows, headings)
+    /// whenever one fits on the page, so rows are never sliced in half.
+    private fun drawA4Document(
+        webView: WebView,
+        contentHeight: Int,
+        breaks: IntArray,
+        title: String,
+        complete: (String?) -> Unit,
+    ) {
+        try {
+            val scale = A4_PAGE_WIDTH_PT.toFloat() / A4_RENDER_WIDTH
+            val pageContentHeight = A4_PAGE_HEIGHT_PT / scale.toDouble() // content px per page
+
             val pdf = PdfDocument()
-            var y = 0
+            var y = 0.0
             var pageNo = 1
-            while (y < totalHeight && pageNo <= 200) {
-                val pageInfo = PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNo).create()
+            while (y < contentHeight && pageNo <= 300) {
+                val remaining = contentHeight - y
+                val limit = y + pageContentHeight
+                val end: Double = if (remaining <= pageContentHeight + 0.5) {
+                    contentHeight.toDouble()
+                } else {
+                    val fitting = breaks.lastOrNull { it > y + 8 && it <= limit }
+                    val candidate = fitting?.toDouble() ?: limit
+                    if (candidate - y < 8) limit else candidate
+                }
+                val used = (end - y).toFloat()
+
+                val pageInfo = PdfDocument.PageInfo.Builder(A4_PAGE_WIDTH_PT, A4_PAGE_HEIGHT_PT, pageNo).create()
                 val page = pdf.startPage(pageInfo)
                 val canvas = page.canvas
                 canvas.save()
+                canvas.scale(scale, scale)
+                canvas.clipRect(0f, 0f, A4_RENDER_WIDTH.toFloat(), used)
                 canvas.translate(0f, -y.toFloat())
                 webView.draw(canvas)
                 canvas.restore()
                 pdf.finishPage(page)
-                y += pageHeight
+
+                y = end
                 pageNo += 1
             }
 
@@ -213,6 +253,22 @@ class MainActivity : FlutterActivity() {
             openPrintDialogFallback(webView, title, complete)
         } catch (e: Exception) {
             openPrintDialogFallback(webView, title, complete)
+        }
+    }
+
+    private fun parseJsInt(raw: String?): Int? {
+        val v = raw?.trim() ?: return null
+        if (v == "null" || v.isEmpty()) return null
+        return v.toIntOrNull()
+    }
+
+    private fun parseJsIntArray(raw: String?): IntArray {
+        if (raw.isNullOrBlank() || raw == "null") return intArrayOf()
+        return try {
+            val arr = JSONArray(raw)
+            IntArray(arr.length()) { i -> arr.getInt(i) }
+        } catch (_: Exception) {
+            intArrayOf()
         }
     }
 
@@ -286,6 +342,40 @@ class MainActivity : FlutterActivity() {
         }
         printWebView = null
         printContainer = null
+    }
+
+    private companion object {
+        /// A4 at 96dpi: 210mm -> 794 CSS-pixel render width. Documents are
+        /// laid out at this width so every PDF page is a true A4 page.
+        const val A4_RENDER_WIDTH = 794
+
+        /// Exact A4 page size in PDF points (72dpi).
+        const val A4_PAGE_WIDTH_PT = 595
+        const val A4_PAGE_HEIGHT_PT = 842
+
+        /// Force a device-width viewport so CSS px == view px at the A4
+        /// render width (documents without a viewport meta would otherwise
+        /// lay out at 980 CSS px and scale down - "screenshot"-style pages).
+        val FORCE_VIEWPORT_JS =
+            "(function(){try{var m=document.querySelector('meta[name=\"viewport\"]');" +
+                "if(!m){m=document.createElement('meta');m.setAttribute('name','viewport');" +
+                "(document.head||document.documentElement).appendChild(m);}" +
+                "m.setAttribute('content','width=device-width, initial-scale=1');}catch(e){}})()"
+
+        /// Full document height in CSS pixels at the current layout width.
+        val CONTENT_HEIGHT_JS =
+            "Math.max(document.body?document.body.scrollHeight:0," +
+                "document.documentElement?document.documentElement.scrollHeight:0)"
+
+        /// Top offsets of natural page-break candidates (rows / headings).
+        val BREAKS_JS =
+            "JSON.stringify((function(){var o=[],e=document.querySelectorAll(" +
+                "'tr,thead,h1,h2,h3,h4,li');" +
+                "for(var i=0;i<e.length;i++){var r=e[i].getBoundingClientRect();" +
+                "var t=Math.round(r.top+(window.pageYOffset||document.documentElement.scrollTop||0));" +
+                "if(t>0)o.push(t);}o.sort(function(a,b){return a-b;});" +
+                "var u=[];for(var j=0;j<o.length;j++){if(j===0||o[j]!==o[j-1])u.push(o[j]);}" +
+                "return u;})())"
     }
 }
 

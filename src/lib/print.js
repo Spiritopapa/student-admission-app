@@ -10,6 +10,7 @@ function buildPrintDocument(title, bodyHtml) {
 <html>
 <head>
   <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>` + String(title).replace(/[<>&"]/g, "") + `</title>
   <style>
     body { font-family: Arial, Helvetica, sans-serif; color: #111; margin: 24px; }
@@ -34,22 +35,30 @@ function buildPrintDocument(title, bodyHtml) {
 }
 
 export function openPrintWindow(title, bodyHtml) {
+  return openPrintFullDocument(title, buildPrintDocument(title, bodyHtml));
+}
+
+/**
+ * Variant for callers that already have a complete standalone HTML document
+ * (report-card builders, etc.). Same desktop popup / mobile sheet behaviour
+ * as openPrintWindow.
+ */
+export function openPrintFullDocument(title, fullHtml) {
   if (isMobileShell()) {
-    showMobilePrintSheet(title, bodyHtml);
+    showMobilePrintSheet(title, fullHtml);
     return null;
   }
   const win = window.open("", "_blank", "width=1100,height=800");
   if (!win) return null;
-  win.document.write(buildPrintDocument(title, bodyHtml));
+  win.document.write(fullHtml);
   win.document.close();
   return win;
 }
 
 const PRINT_SHEET_ID = "srMobilePrintSheet";
 
-function showMobilePrintSheet(title, bodyHtml) {
+function showMobilePrintSheet(title, doc) {
   if (document.getElementById(PRINT_SHEET_ID)) return;
-  const doc = buildPrintDocument(title, bodyHtml);
 
   const sheet = document.createElement("div");
   sheet.id = PRINT_SHEET_ID;

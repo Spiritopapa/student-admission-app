@@ -13,6 +13,8 @@ import { TERMS, TERM_LABELS, currentAcademicYear, academicYearList } from '../..
 import { buildCSV, parseCSV } from '../../lib/csv';
 import { buildReportCardHTML, buildTranscriptHTML, computeExamRankings } from '../../lib/examReports';
 import { GRADE_CLASSES, resolveScale, gradeForScale } from '../../lib/gradingScale';
+import { openPrintFullDocument } from '../../lib/print';
+import { isMobileShell } from '../../lib/mobileHost';
 
 const EMPTY_META = { subjectCount: 0, classCoverage: 0, classNames: [], results: 0, recordedSlots: 0, expectedSlots: 0, students: 0 };
 
@@ -557,6 +559,12 @@ export default function AdminExams() {
   };
 
   const printHtmlDoc = (title, fullHtml) => {
+    // Inside the Android app popups do not exist: hand the FULL document to
+    // the shared print sheet so it is rendered to a real A4 PDF.
+    if (isMobileShell()) {
+      openPrintFullDocument(title, fullHtml);
+      return;
+    }
     const win = window.open('', '_blank', 'width=1100,height=800');
     if (!win) {
       toast.error('Pop-up blocked', 'Allow pop-ups to print report cards.');
