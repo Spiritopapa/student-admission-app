@@ -109,10 +109,13 @@ const double kWebFontSizePx = 14; // smaller = smaller site text
   (`src/lib/mobileHost.js`) hands these to the shell:
   - **CSV** → saved to the device Documents (`getExternalFilesDir(Documents)`
     via a `schoolrunner_host` method channel in `MainActivity.kt`).
-  - **Print** → an in-app print sheet with **Print / Save as PDF** (the
-    native side renders the document in a hidden WebView and opens the
-    system print dialog via `PrintManager` — "Save as PDF" is the default
-    destination) plus an **Save HTML copy** fallback.
+  - **Print** → **Save PDF**: the native side renders the document to a real
+    PDF (hidden attached WebView + WebView print adapter, headless) and
+    stores it in the device **Downloads** via `MediaStore` (app Documents
+    folder on pre-Android 10), reporting the file name back to the page.
+    If headless rendering fails it falls back to the system print dialog
+    (`PrintManager`, "Save as PDF" is the default destination). The
+    `print` (HTML save) command also emits a best-effort PDF copy.
   - **Photo** → the native picker (`file_selector`) returns the chosen file.
   - ⚠️ These web-side hooks only take effect when the **deployed site**
     contains them — after changing `src/`, rebuild and redeploy the web app

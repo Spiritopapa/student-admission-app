@@ -225,6 +225,9 @@ class _HomePageState extends State<_HomePage> {
             break;
           case 'print':
             await _hostSaveToDocuments(root, 'Print');
+            // Best-effort PDF copy: builds of the site that only know the
+            // .html save still get a real PDF in the device Downloads.
+            await _hostNativePrint(root, notifyPage: false);
             break;
           case 'printPdf':
             await _hostNativePrint(root);
@@ -272,11 +275,12 @@ class _HomePageState extends State<_HomePage> {
   }
 
   /// Hands a standalone print document (a full HTML document) to the native
-  /// print pipeline. MainActivity renders it in a hidden WebView and opens
-  /// the system print dialog, whose default destination is "Save as PDF"
-  /// (real printers work too) - the only reliable way to produce a real PDF
-  /// from inside the WebView shell.
-  Future<void> _hostNativePrint(Map root) async {
+  /// PDF pipeline. MainActivity renders it to a REAL PDF in a hidden WebView
+  /// (WebView print adapter, headless) and stores the file in the device
+  /// Downloads; when that fails it falls back to the system print dialog
+  /// ("Save as PDF"). The page is notified with the outcome:
+  /// "saved:" + file name, "dialog" or "failed".
+  Future<void> _hostNativePrint(Map root, {bool notifyPage = true}) async {
     final String title = ('${root['title'] ?? 'Document'}').trim();
     final String html = '${root['html'] ?? ''}';
     // The document travels as a temp file so large reports never hit the
@@ -289,26 +293,28 @@ class _HomePageState extends State<_HomePage> {
     );
     file.writeAsStringSync(html, flush: true);
     const MethodChannel channel = MethodChannel('schoolrunner_host');
+    String outcome = 'failed';
     try {
-      await channel.invokeMethod('printHtml', <String, Object?>{
-        'title': title.isEmpty ? 'Document' : title,
-        'path': file.path,
-        'baseUrl': kAppUrl,
-      });
-      await _runPageJs(
-        "(() => { const f = window.__schoolrunnerOnAction;"
-        " if (f) f('printPdf', 'opened'); })();",
-      );
+      // Resolves once the PDF has been written (or the fallback dialog was
+      // opened) - the native side already read the HTML file synchronously.
+      outcome = await channel.invokeMethod<String>('printPdf', <String, Object?>{
+            'title': title.isEmpty ? 'Document' : title,
+            'path': file.path,
+            'baseUrl': kAppUrl,
+          }) ??
+          'failed';
     } catch (_) {
-      await _runPageJs(
-        "(() => { const f = window.__schoolrunnerOnAction;"
-        " if (f) f('printPdf', 'failed'); })();",
-      );
+      outcome = 'failed';
     } finally {
-      // The native side already read the file synchronously.
       try {
         file.deleteSync();
       } catch (_) {}
+    }
+    if (notifyPage) {
+      await _runPageJs(
+        "(() => { const f = window.__schoolrunnerOnAction;"
+        " if (f) f('printPdf', ${jsonEncode(outcome)}); })();",
+      );
     }
   }
 

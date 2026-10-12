@@ -58,7 +58,7 @@ function showMobilePrintSheet(title, bodyHtml) {
   const bar = document.createElement("div");
   bar.setAttribute("style", "display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 12px;background:#fff;border-bottom:1px solid #e2e8f0;box-shadow:0 1px 2px #cbd5e1;");
   bar.innerHTML =
-    `<button type="button" data-sr-act="print" style="background:#4f46e5;color:#fff;border:0;border-radius:8px;padding:7px 14px;font-size:13px;font-weight:600;">Print / Save as PDF</button>` +
+    `<button type="button" data-sr-act="print" style="background:#4f46e5;color:#fff;border:0;border-radius:8px;padding:7px 14px;font-size:13px;font-weight:600;">Save PDF</button>` +
     `<button type="button" data-sr-act="save" style="background:#fff;color:#0f172a;border:1px solid #cbd5e1;border-radius:8px;padding:6px 13px;font-size:13px;font-weight:500;">Save HTML copy</button>` +
     `<button type="button" data-sr-act="close" style="background:#fff;color:#dc2626;border:1px solid #fecaca;border-radius:8px;padding:6px 13px;font-size:13px;font-weight:500;">Close</button>` +
     `<span data-sr-act="title" style="color:#475569;font-size:12px;font-weight:600;margin-left:auto;max-width:50%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">` +
@@ -90,25 +90,29 @@ function showMobilePrintSheet(title, bodyHtml) {
     document.head.appendChild(css);
   }
 
-  const setStatus = (text, tone) => {
+  let statusHideTimer = null;
+  const setStatus = (text, tone, autoHideMs = 5000) => {
     status.hidden = false;
     status.style.color = tone === "err" ? "#dc2626" : "#0f766e";
     status.textContent = text;
-    setTimeout(() => { status.hidden = true; }, 5000);
+    if (statusHideTimer) clearTimeout(statusHideTimer);
+    if (autoHideMs > 0) statusHideTimer = setTimeout(() => { status.hidden = true; }, autoHideMs);
   };
 
   bar.querySelector("[data-sr-act=close]").addEventListener("click", () => {
     document.body.removeChild(sheet);
   });
   bar.querySelector("[data-sr-act=print]").addEventListener("click", () => {
-    // Hand the document to the native Android print dialog, whose default
-    // destination is "Save as PDF" (window.print() is a no-op in a WebView).
+    // Hand the document to the native app, which renders a REAL PDF
+    // headlessly and stores it in the device Downloads (window.print() is a
+    // no-op in a WebView). The native side falls back to the system print
+    // dialog ("Save as PDF") if headless rendering fails.
     if (mobilePrintPdf(title ?? "Document", doc)) {
-      setStatus("Opening the print dialog - choose Save as PDF.", "ok");
+      setStatus("Preparing your PDF... it will be saved to Downloads.", "ok", 0);
       clearTimeout(printAckTimer);
       printAckTimer = setTimeout(() => {
-        setStatus("PDF printing needs the latest SchoolRunner app - use Save HTML copy.", "err");
-      }, 3000);
+        setStatus("PDF export needs the latest SchoolRunner app - use Save HTML copy.", "err");
+      }, 30000);
       return;
     }
     try { window.print(); } catch (err) { setStatus("Printing unavailable here - use Save HTML copy.", "err"); }
@@ -119,7 +123,9 @@ function showMobilePrintSheet(title, bodyHtml) {
   });
 }
 
-// The native shell acknowledges that the system print dialog was opened.
+// The native shell reports the PDF result: "saved:<file>" (written to the
+// device Downloads), "dialog" (system print dialog opened as a fallback) or
+// "failed".
 let printAckTimer = null;
 
 onNativeAction("printPdf", (result) => {
@@ -129,13 +135,17 @@ onNativeAction("printPdf", (result) => {
   }
   const status = document.getElementById("srPrintStatus");
   if (!status) return;
+  const value = String(result ?? "");
   status.hidden = false;
-  if (result === "failed") {
-    status.style.color = "#dc2626";
-    status.textContent = "Could not open the print dialog - use Save HTML copy.";
-  } else {
+  if (value.startsWith("saved:")) {
+    status.style.color = "#0f766e";
+    status.textContent = "PDF saved to Downloads: " + value.slice(6);
+  } else if (value === "dialog") {
     status.style.color = "#0f766e";
     status.textContent = "Print dialog open - choose Save as PDF (or a printer).";
+  } else {
+    status.style.color = "#dc2626";
+    status.textContent = "Could not create the PDF - use Save HTML copy.";
   }
 });
 
