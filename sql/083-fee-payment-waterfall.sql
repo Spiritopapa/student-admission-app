@@ -16,6 +16,11 @@
 --  This matches the generated `fees.balance = total_amount - amount_paid`.
 --
 --  Requires the fees/payment/receipt tables + RLS from sql/015/045/067.
+--
+--  ⚠️ SUPERSEDED (balance rule): migration 086 changed the invariant —
+--  `fees.debt` now COUNTS as a real charge (balance = total + debt −
+--  paid) and carry-forward writes debt = 0. The function below is kept
+--  for history; the live definition lives in 086.
 -- ============================================================
 
 -- ============================================================
@@ -126,12 +131,19 @@ BEGIN
     AND academic_year = p_academic_year AND term = p_term
     AND (p_school_id IS NULL OR school_id = p_school_id);
 
+  -- Lock every fee row for this student BEFORE computing the outstanding
+  -- total. PostgreSQL rejects FOR UPDATE on a query that also uses
+  -- aggregates ("FOR UPDATE is not allowed with aggregate functions"), so
+  -- the row lock and the SUM have to be two separate statements.
+  PERFORM 1 FROM public.fees
+  WHERE student_id = p_student_id AND (p_school_id IS NULL OR school_id = p_school_id)
+  FOR UPDATE;
+
   -- Total outstanding across EVERY term on the record-balance basis.
   SELECT COALESCE(SUM(GREATEST(total_amount - amount_paid, 0)), 0)
   INTO v_total_outstanding
   FROM public.fees
-  WHERE student_id = p_student_id AND (p_school_id IS NULL OR school_id = p_school_id)
-  FOR UPDATE;
+  WHERE student_id = p_student_id AND (p_school_id IS NULL OR school_id = p_school_id);
 
   IF v_total_outstanding <= 0 THEN
     RETURN jsonb_build_object('success', false, 'error', 'This student has no outstanding fee balance.');

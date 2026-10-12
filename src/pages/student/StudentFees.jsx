@@ -45,7 +45,9 @@ export default function StudentFees() {
 
   const totals = fees.reduce(
     (acc, fee) => {
-      acc.total += Number(fee.total_amount || 0);
+      // Billed total includes the admin-added `debt` charge, so the balance
+      // shown here matches what the office actually collects.
+      acc.total += Number(fee.total_amount || 0) + Number(fee.debt || 0);
       acc.paid += Number(fee.amount_paid || 0);
       return acc;
     },
@@ -121,7 +123,12 @@ export default function StudentFees() {
                         }`}
                         style={{
                           width: `${
-                            fee.total_amount ? Math.min(100, (Number(fee.amount_paid) / Number(fee.total_amount)) * 100) : 0
+                            Number(fee.total_amount || 0) + Number(fee.debt || 0) > 0
+                              ? Math.min(
+                                  100,
+                                  (Number(fee.amount_paid) / (Number(fee.total_amount || 0) + Number(fee.debt || 0))) * 100
+                                )
+                              : 0
                           }%`,
                         }}
                       />
@@ -129,7 +136,7 @@ export default function StudentFees() {
                     <div className="mt-3 grid grid-cols-3 gap-3 text-center">
                       <div>
                         <p className="text-[11px] uppercase tracking-wide text-slate-400">Total</p>
-                        <p className="text-sm font-bold text-slate-800">{cedi(fee.total_amount)}</p>
+                        <p className="text-sm font-bold text-slate-800">{cedi(Number(fee.total_amount || 0) + Number(fee.debt || 0))}</p>
                       </div>
                       <div>
                         <p className="text-[11px] uppercase tracking-wide text-slate-400">Paid</p>
@@ -138,7 +145,7 @@ export default function StudentFees() {
                       <div>
                         <p className="text-[11px] uppercase tracking-wide text-slate-400">Balance</p>
                         <p className="text-sm font-bold text-accent-600">
-                          {cedi(Number(fee.balance) >= 0 ? fee.balance : 0)}
+                          {cedi(Math.max(Number(fee.total_amount || 0) + Number(fee.debt || 0) - Number(fee.amount_paid || 0), 0))}
                         </p>
                       </div>
                     </div>

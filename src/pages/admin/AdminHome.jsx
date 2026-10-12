@@ -275,10 +275,10 @@ export default function AdminHome() {
       let totalAmount = 0;
       let totalPaid = 0;
       feesArr.forEach((f) => {
-        // Liability basis per record is total_amount (the generated
-        // `fees.balance` column); `debt` is legacy b/f info only — adding it
-        // here would double-count earlier-term arrears across a chain of terms.
-        const total = Number(f.total_amount) || 0;
+        // Liability per record = total_amount + debt − amount_paid. `debt` is
+        // a real admin-added charge; migration 086 guarantees it never
+        // duplicates earlier-term arrears (those live on their own records).
+        const total = (Number(f.total_amount) || 0) + (Number(f.debt) || 0);
         const paid = Number(f.amount_paid) || 0;
         totalAmount += total;
         totalPaid += paid;
@@ -295,7 +295,7 @@ export default function AdminHome() {
       // Partial / Unpaid chips on the fee overview card.
       const feeAgg = {};
       feesArr.forEach((f) => {
-        const total = Number(f.total_amount) || 0;
+        const total = (Number(f.total_amount) || 0) + (Number(f.debt) || 0);
         const paid = Number(f.amount_paid) || 0;
         const g = feeAgg[f.student_id] || (feeAgg[f.student_id] = { total: 0, paid: 0 });
         g.total += Math.max(total, 0);

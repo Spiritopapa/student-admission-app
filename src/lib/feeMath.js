@@ -3,13 +3,14 @@
  *
  * Single source of truth for how a student's fee liability is computed:
  *
- *   RECORD BALANCE  = total_amount − amount_paid   (per term record)
+ *   RECORD BALANCE  = total_amount + debt − amount_paid   (per term record)
  *
- * The `fees.debt` column is treated as INFORMATIONAL ONLY ("balance brought
- * forward" at the time the record was created). It is never summed into
- * liabilities — the genuine arrears live in the earlier term RECORDS, so adding
- * `debt` as well would double-count the same money across a chain of terms.
- * This exactly mirrors the database's generated `fees.balance` column.
+ * `fees.debt` is a REAL extra charge added by the admin (penalty, offline
+ * adjustment, ...) and is part of what the student owes on that record. It
+ * must never DUPLICATE arrears that already live on earlier-term records:
+ * `promote_student_fees` therefore writes debt = 0 for generated records, and
+ * migration 086 zeroed legacy carried values — so every cedi of arrears is
+ * counted exactly once.
  *
  * Payments are WATERFALLED across terms oldest-first: every payment settles the
  * oldest outstanding term balance before touching a newer one. That way a
@@ -35,17 +36,18 @@ export function orderFees(fees = []) {
   return [...(fees || [])].filter(Boolean).sort((a, b) => termKey(a) - termKey(b));
 }
 
-/** Outstanding balance of one term record (never negative). */
+/** Outstanding balance of one term record (never negative). Debt is a real
+ *  admin-added charge on the record, so it is part of the balance. */
 export function feeBalance(f) {
-  return Math.max((Number(f?.total_amount) || 0) - (Number(f?.amount_paid) || 0), 0);
+  return Math.max((Number(f?.total_amount) || 0) + (Number(f?.debt) || 0) - (Number(f?.amount_paid) || 0), 0);
 }
 
 /** Credit (overpayment) inside one term record (never negative). */
 export function feeCredit(f) {
-  return Math.max((Number(f?.amount_paid) || 0) - (Number(f?.total_amount) || 0), 0);
+  return Math.max((Number(f?.amount_paid) || 0) - ((Number(f?.total_amount) || 0) + (Number(f?.debt) || 0)), 0);
 }
 
-/** Total outstanding across all records, without double-counting debt. */
+/** Total outstanding across all records (each record's debt counted once). */
 export function totalOutstanding(fees = []) {
   return orderFees(fees).reduce((s, f) => s + feeBalance(f), 0);
 }

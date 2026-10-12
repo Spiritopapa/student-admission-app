@@ -651,6 +651,18 @@
 -- ============================================================
 \i 084-parent-ward-linking.sql
 -- ============================================================
+--  FIX: process_fee_payment failed with "FOR UPDATE is not allowed
+--  with aggregate functions" (row lock + SUM in one statement).
+-- ============================================================
+\i 085-fix-fee-payment-for-update.sql
+-- ============================================================
+--  fees.debt is now a REAL charge: balance = total + debt − paid, so
+--  debt entered on the admin Edit Fees screen adds to the outstanding.
+--  Carry-forward no longer duplicates arrears into debt; existing debt
+--  values are zeroed (balances unchanged) — re-enter manual debts.
+-- ============================================================
+\i 086-debt-counts-as-real-charge.sql
+-- ============================================================
 --  SCHEMA DEPLOYMENT COMPLETE
 -- ============================================================
 --  Next steps:

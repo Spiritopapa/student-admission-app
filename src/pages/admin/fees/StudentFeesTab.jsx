@@ -95,7 +95,9 @@ export default function StudentFeesTab() {
   const appMap = useMemo(() => Object.fromEntries(apps.map((a) => [a.student_id, a])), [apps]);
 
   // Aggregated fee status for a student across ALL of their term records. Each
-// record's balance is its own (total − paid); `debt` is legacy b/f info only.
+  // record's balance is its own (total + debt − paid); `debt` is a real
+  // admin-added charge on that record (it must not duplicate earlier-term
+  // arrears, which live on their own records).
 //   balance <= 0            -> 'paid'
 //   balance > 0  & paid > 0 -> 'partial'
 //   balance > 0  & paid = 0 -> 'unpaid'
@@ -694,7 +696,7 @@ const openBillDialog = (scope) => {
         {editingFees ? (
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-2">
-              <p className="text-xs text-slate-400">Add or update fee records for each term.</p>
+              <p className="text-xs text-slate-400">Add or update fee records for each term. "Debt" is a real charge — it is added to what the student owes for that term.</p>
               <Button size="sm" variant="ghost" onClick={addEditRow}>
                 <Plus className="h-3.5 w-3.5" aria-hidden="true" />
                 Add term
@@ -712,7 +714,7 @@ const openBillDialog = (scope) => {
                 </Select>
                 <Input label="Total" type="number" min="0" step="0.01" value={r.total_amount} onChange={(e) => setEdit(i, 'total_amount', e.target.value)} />
                 <Input label="Paid" type="number" min="0" step="0.01" value={r.amount_paid} onChange={(e) => setEdit(i, 'amount_paid', e.target.value)} />
-                <Input label="Debt" type="number" min="0" step="0.01" value={r.debt} onChange={(e) => setEdit(i, 'debt', e.target.value)} />
+                <Input label="Debt (added to balance)" type="number" min="0" step="0.01" value={r.debt} onChange={(e) => setEdit(i, 'debt', e.target.value)} />
                 <div>
                   <p className="mb-1.5 text-sm font-medium text-slate-600">Status (auto)</p>
                   {(() => {

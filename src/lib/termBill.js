@@ -159,10 +159,11 @@ export function mergeBillItems(recurring = [], extra = []) {
  * @param {Array}   p.billItems      - one-off items added by the office
  * @param {Array}   p.history        - ALL of the student's fee records (any
  *                                     year/term). Used to itemise the arrears
- *                                     carried forward term-by-term and to keep
- *                                     the bill free of double counting (each
+ *                                     carried forward term-by-term. Each
  *                                     earlier term's balance lives on its own
- *                                     record, so `debt` is never re-added).
+ *                                     record, so those records are itemised
+ *                                     directly (any debt on them is already
+ *                                     inside their balance).
  */
 export function computeTermlyBillStages({
   fee = null,
@@ -183,9 +184,8 @@ export function computeTermlyBillStages({
     .filter((it) => it.amount > 0);
   const thisTermCharges = Number(fee?.total_amount || 0); // authoritative snapshot (already includes items)
 
-  // Itemised arrears: every EARLIER term record with an outstanding balance.
-  // `debt` is deliberately ignored — the money is already represented by the
-  // earlier term records, so including it would double-count.
+  // Itemised arrears: every EARLIER term record with an outstanding balance
+  // (feeBalance already includes any admin-added debt on those records).
   const feeKey = fee ? termKey(fee) : Number.MAX_SAFE_INTEGER;
   const priorRecords = orderFees(history || []).filter((h) => termKey(h) < feeKey);
   const arrearsLines = priorRecords
@@ -197,11 +197,12 @@ export function computeTermlyBillStages({
     .filter((l) => l.amount > 0);
   const arrearsTotal = arrearsLines.reduce((s, l) => s + l.amount, 0);
 
-  const debtBf = Number(fee?.debt || 0); // informational only (legacy b/f display)
+  // Admin-added extra charge on THIS term's record — counted once, below.
+  const debtBf = Number(fee?.debt || 0);
   const paid = receipts && receipts.length
     ? receipts.reduce((s, r) => s + Number(r.amount || 0), 0)
     : Number(fee?.amount_paid || 0);
-  const presentBalance = thisTermCharges - paid; // signed; negative = credit
+  const presentBalance = thisTermCharges + debtBf - paid; // signed; negative = credit
   const arrearBf = arrearsTotal + Math.max(presentBalance, 0); // true balance carried forward
   const presentCredit = Math.max(-presentBalance, 0);
 
@@ -308,6 +309,10 @@ export function buildTermlyBillPage({
     : '<tr><td colspan="4" style="text-align:center;color:#64748b;">No payments recorded for this term.</td></tr>';
 
   /* ---------- Stage 1 : arrears + present term account ---------- */
+  const debtBfRow =
+    debtBf > 0
+      ? `<tr><td>Debt / extra charge added to this term</td><td class="right">${money(debtBf)}</td></tr>`
+      : '';
   const arrearsRows = arrearsLines.length
     ? arrearsLines
         .map(
@@ -315,14 +320,13 @@ export function buildTermlyBillPage({
             `<tr><td>Balance carried forward — ${esc(l.term)} Term ${esc(l.academic_year)}</td><td class="right">${money(l.amount)}</td></tr>`
         )
         .join('')
-    : debtBf > 0
-      ? `<tr><td>Debt brought forward (b/f)</td><td class="right">${money(debtBf)}</td></tr>`
-      : '';
+    : '';
   const stage1 = `
     <table class="bill-table">
       <thead><tr><th style="width:70%;">Description</th><th class="right" style="width:30%;">Amount (GHC)</th></tr></thead>
       <tbody>
         ${arrearsRows}
+        ${debtBfRow}
         ${arrearsLines.length > 1 ? `<tr class="bill-subrow"><td><b>Total arrears carried forward</b></td><td class="right"><b>${money(arrearsTotal)}</b></td></tr>` : ''}
         <tr><td>${esc(term)} Term class fee — ${esc(student?.class_applying || 'Class fee')}</td><td class="right">${money(classFeeThisTerm)}</td></tr>
         ${recurringItems.map((it) => `<tr><td>&nbsp;&nbsp;${esc(it.name)}</td><td class="right">${money(it.amount)}</td></tr>`).join('')}

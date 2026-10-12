@@ -57,7 +57,10 @@ export default function StudentHome() {
       const currentFee = fees.find((f) => f.academic_year === year) || fees[0];
       const totalPaid = txs.reduce((s, t) => s + Number(t.amount_paid || 0), 0);
       const balance = currentFee
-        ? Number(currentFee.balance || currentFee.total_amount - currentFee.amount_paid) || 0
+        ? Math.max(
+            (Number(currentFee.total_amount) || 0) + (Number(currentFee.debt) || 0) - (Number(currentFee.amount_paid) || 0),
+            0
+          )
         : 0;
 
       const att = { present: 0, absent: 0 };

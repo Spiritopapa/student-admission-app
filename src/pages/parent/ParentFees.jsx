@@ -90,7 +90,9 @@ export default function ParentFees() {
                           </div>
                           <div>
                             <p className="text-[11px] uppercase tracking-wide text-slate-400">Balance</p>
-                            <p className="text-sm font-bold text-accent-600">{cedi(fee.balance >= 0 ? fee.balance : 0)}</p>
+                            <p className="text-sm font-bold text-accent-600">
+                              {cedi(Math.max(Number(fee.total_amount || 0) + Number(fee.debt || 0) - Number(fee.amount_paid || 0), 0))}
+                            </p>
                           </div>
                         </div>
                       </Card>
