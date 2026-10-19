@@ -40,6 +40,8 @@ export default function AdminFees() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [deleting, setDeleting] = useState(null);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteError, setDeleteError] = useState('');
   const [openClasses, setOpenClasses] = useState({}); // class_name -> expanded (collapsible fee structure)
 
   const load = () => {
@@ -232,8 +234,25 @@ export default function AdminFees() {
   };
 
   const confirmDelete = async () => {
-    if (!deleting) return;
+    if (!deleting || busy) return;
+    setDeleteError('');
+    if (!deletePassword) {
+      setDeleteError('Type your login password to confirm the deletion.');
+      return;
+    }
+    setBusy(true);
     try {
+      // Password gate: re-authenticate the signed-in admin against Supabase
+      // Auth before any data is touched. A wrong password aborts here and the
+      // dialog stays open — nothing is deleted.
+      const { data: authRes, error: authErr } = await supabase.auth.getUser();
+      const email = authRes?.user?.email;
+      if (authErr || !email) {
+        throw new Error('Could not read your account details. Sign out and back in, then try again.');
+      }
+      const { error: pwErr } = await supabase.auth.signInWithPassword({ email, password: deletePassword });
+      if (pwErr) throw new Error('Incorrect login password — the fee structure was not deleted.');
+
       // Legacy behaviour: deleting a class fee structure also removes the
       // per-student fee records for that class/term (receipts/payments kept).
       const { data: students } = await supabase
@@ -252,11 +271,16 @@ export default function AdminFees() {
       const { error } = await supabase.from('class_fees').delete().eq('id', deleting.id);
       if (error) throw new Error(error.message);
       toast.success('Fee structure deleted', `${deleting.class_name} — fee records removed for ${students?.length || 0} student(s).`);
+      setDeleting(null);
+      setDeletePassword('');
+      load();
     } catch (err) {
+      // Keep the dialog open so the admin can retry with the right password.
+      setDeleteError(err.message);
       toast.error('Could not delete fee structure', err.message);
+    } finally {
+      setBusy(false);
     }
-    setDeleting(null);
-    load();
   };
 
   return (
@@ -448,11 +472,34 @@ export default function AdminFees() {
 
       <ConfirmDialog
         open={!!deleting}
-        onClose={() => setDeleting(null)}
+        onClose={() => {
+          setDeleting(null);
+          setDeletePassword('');
+          setDeleteError('');
+        }}
         onConfirm={confirmDelete}
         title="Delete fee structure?"
         message={`This removes the fee for ${deleting?.class_name || 'this class'} together with the fee records for every student in that class/term. Receipts and payment transactions are preserved.`}
-      />
+        loading={busy}
+      >
+        <div className="mt-4 space-y-3">
+          <Input
+            label="Type your login password to confirm"
+            type="password"
+            autoComplete="current-password"
+            placeholder="Login password"
+            value={deletePassword}
+            onChange={(e) => setDeletePassword(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                confirmDelete();
+              }
+            }}
+          />
+          {deleteError ? <Alert tone="error">{deleteError}</Alert> : null}
+        </div>
+      </ConfirmDialog>
     </div>
   );
 }

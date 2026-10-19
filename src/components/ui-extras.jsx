@@ -92,7 +92,7 @@ export function Alert({ tone = 'info', title, children, className = '' }) {
   );
 }
 
-export function ConfirmDialog({ open, onClose, onConfirm, title, message, confirmLabel = 'Delete', loading }) {
+export function ConfirmDialog({ open, onClose, onConfirm, title, message, confirmLabel = 'Delete', loading, children }) {
   return (
     <Modal
       open={open}
@@ -116,6 +116,7 @@ export function ConfirmDialog({ open, onClose, onConfirm, title, message, confir
       }
     >
       <p className="text-sm leading-relaxed text-slate-600">{message}</p>
+      {children}
     </Modal>
   );
 }
