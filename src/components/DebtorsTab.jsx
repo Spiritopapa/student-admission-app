@@ -159,17 +159,27 @@ export default function DebtorsTab() {
   };
 
   const printDebtors = () => {
+    // Per-column filter choices offered in the print window are derived from
+    // the rows actually being printed.
+    const classOptions = [...new Set(filtered.map((r) => r.app.class_applying).filter(Boolean))]
+      .sort()
+      .map((c) => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`)
+      .join('');
+    const termOptions = [...new Set(filtered.flatMap((r) => r.fees.map((f) => `${f.term} ${f.academic_year}`)))]
+      .sort()
+      .map((t) => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`)
+      .join('');
+
     const rowsHtml = filtered
       .map((r) => {
+        const name = buildStudentName(r.app.first_name, r.app.middle_name, r.app.last_name);
+        const termKeys = r.fees.map((f) => `${f.term} ${f.academic_year}`);
         const terms = r.fees
-          .map((f) => {
-            const bal = feeBalance(f);
-            return `${f.term} ${f.academic_year}: ${cedi(Math.max(bal, 0))}`;
-          })
+          .map((f) => `${f.term} ${f.academic_year}: ${cedi(Math.max(feeBalance(f), 0))}`)
           .join('<br/>');
-        return `<tr>
+        return `<tr data-id="${escapeHtml(String(r.studentId).toLowerCase())}" data-name="${escapeHtml(name.toLowerCase())}" data-class="${escapeHtml(r.app.class_applying || '')}" data-phone="${escapeHtml(r.app.parent_contact || '')}" data-terms="${escapeHtml(termKeys.join('|'))}" data-total="${Number(r.total) || 0}">
           <td>${escapeHtml(r.studentId)}</td>
-          <td>${escapeHtml(buildStudentName(r.app.first_name, r.app.middle_name, r.app.last_name))}</td>
+          <td>${escapeHtml(name)}</td>
           <td>${escapeHtml(r.app.class_applying || '-')}</td>
           <td>${escapeHtml(r.app.parent_contact || '-')}</td>
           <td>${terms}</td>
@@ -177,14 +187,91 @@ export default function DebtorsTab() {
         </tr>`;
       })
       .join('');
+
     openPrintWindow('Debtors list', `
+      <style>
+        .filter-row th { background: #eef2ff; padding: 4px 5px; }
+        .filter-row input, .filter-row select { width: 100%; box-sizing: border-box; font-size: 11px; padding: 3px 5px; border: 1px solid #cbd5e1; border-radius: 4px; background: #fff; color: #0f172a; }
+        .controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 8px; font-size: 12px; color: #444; }
+        .controls button { padding: 6px 14px; font-size: 12px; }
+        .empty-row td { text-align: center; color: #777; }
+        @media print { .controls, .filter-row { display: none; } }
+      </style>
       <h1>${escapeHtml(schoolName)} — Debtors List</h1>
-      <p>${escapeHtml(classFilter ? `Class: ${classFilter}` : 'All classes')}${termFilter ? ` · Term: ${termFilter}` : ''} · ${filtered.length} debtor(s)</p>
+      <p>${escapeHtml(classFilter ? `Class: ${classFilter}` : 'All classes')}${termFilter ? ` · Term: ${termFilter}` : ''} · <span id="dCount">${filtered.length}</span> debtor(s)</p>
+      <div class="controls">
+        <span>Type or pick a value under any column heading to narrow the list, then print — the filters are hidden on paper.</span>
+        <button type="button" id="dReset">Reset filters</button>
+      </div>
       <table>
-        <thead><tr><th>ID</th><th>Name</th><th>Class</th><th>Parent phone</th><th>Outstanding terms</th><th class="right">Total</th></tr></thead>
-        <tbody>${rowsHtml}</tbody>
-        <tr class="total-row"><td colspan="5">Total outstanding</td><td class="right">${cedi(totalOutstanding)}</td></tr>
+        <thead>
+          <tr><th>ID</th><th>Name</th><th>Class</th><th>Parent phone</th><th>Outstanding terms</th><th class="right">Total</th></tr>
+          <tr class="filter-row">
+            <th><input id="fId" type="text" placeholder="All IDs" aria-label="Filter by student ID" /></th>
+            <th><input id="fName" type="text" placeholder="All names" aria-label="Filter by student name" /></th>
+            <th><select id="fClass" aria-label="Filter by class"><option value="">All classes</option>${classOptions}</select></th>
+            <th><input id="fPhone" type="text" placeholder="All phones" aria-label="Filter by parent phone" /></th>
+            <th><select id="fTerm" aria-label="Filter by outstanding term"><option value="">All terms</option>${termOptions}</select></th>
+            <th class="right"><span style="display:flex;gap:4px;justify-content:flex-end;"><input id="fMin" type="number" min="0" step="any" placeholder="Min" aria-label="Minimum total" style="width:64px;" /><input id="fMax" type="number" min="0" step="any" placeholder="Max" aria-label="Maximum total" style="width:64px;" /></span></th>
+          </tr>
+        </thead>
+        <tbody id="dBody">
+          ${rowsHtml}
+          <tr id="dEmpty" class="empty-row" style="display:none;"><td colspan="6">No debtors match the current filters.</td></tr>
+        </tbody>
+        <tr class="total-row"><td colspan="5">Total outstanding</td><td class="right"><b id="dSum">${cedi(totalOutstanding)}</b></td></tr>
       </table>
+      <script>
+      (function () {
+        var tbody = document.getElementById('dBody');
+        if (!tbody) return;
+        var rows = Array.prototype.slice.call(tbody.querySelectorAll('tr[data-total]'));
+        var f = ['fId', 'fName', 'fClass', 'fPhone', 'fTerm', 'fMin', 'fMax'].map(function (id) { return document.getElementById(id); });
+        if (f.some(function (el) { return !el; })) return;
+        var countEl = document.getElementById('dCount');
+        var sumEl = document.getElementById('dSum');
+        var emptyEl = document.getElementById('dEmpty');
+        var digits = function (s) { return String(s || '').replace(/\D/g, ''); };
+
+        function apply() {
+          var idq = f[0].value.trim().toLowerCase();
+          var nameq = f[1].value.trim().toLowerCase();
+          var clsq = f[2].value;
+          var phoneq = digits(f[3].value);
+          var termq = f[4].value;
+          var minv = f[5].value === '' ? null : Number(f[5].value);
+          var maxv = f[6].value === '' ? null : Number(f[6].value);
+          var shown = 0, sum = 0;
+          rows.forEach(function (tr) {
+            var total = Number(tr.getAttribute('data-total')) || 0;
+            var ok = true;
+            if (idq && String(tr.getAttribute('data-id') || '').indexOf(idq) === -1) ok = false;
+            if (ok && nameq && String(tr.getAttribute('data-name') || '').indexOf(nameq) === -1) ok = false;
+            if (ok && clsq && String(tr.getAttribute('data-class') || '') !== clsq) ok = false;
+            if (ok && phoneq && digits(tr.getAttribute('data-phone')).indexOf(phoneq) === -1) ok = false;
+            if (ok && termq && String(tr.getAttribute('data-terms') || '').split('|').indexOf(termq) === -1) ok = false;
+            if (ok && minv !== null && !isNaN(minv) && total < minv) ok = false;
+            if (ok && maxv !== null && !isNaN(maxv) && total > maxv) ok = false;
+            tr.style.display = ok ? '' : 'none';
+            if (ok) { shown += 1; sum += total; }
+          });
+          if (countEl) countEl.textContent = shown + ' debtor(s)';
+          if (sumEl) sumEl.textContent = 'GHC ' + sum.toLocaleString('en-GH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+          if (emptyEl) emptyEl.style.display = shown ? 'none' : '';
+        }
+
+        f.forEach(function (el) {
+          el.addEventListener('input', apply);
+          el.addEventListener('change', apply);
+        });
+        var reset = document.getElementById('dReset');
+        if (reset) reset.addEventListener('click', function () {
+          f.forEach(function (el) { el.value = ''; });
+          apply();
+        });
+        apply();
+      })();
+      </script>
     `);
   };
 
