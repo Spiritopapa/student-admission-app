@@ -1,4 +1,5 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
+import { Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Spinner } from './ui';
 import { photoUrl } from '../lib/storage';
@@ -32,22 +33,56 @@ export function AuthLoader() {
   );
 }
 
+// Non-blocking indicator for BACKGROUND auth refreshes (token refresh, silent
+// re-auth). The signed-in page stays mounted underneath so dialogs, filters,
+// scroll position and form input are all retained — this pill only signals
+// that the workspace is being prepared. pointer-events-none keeps every
+// control clickable while it is visible.
+export function AuthRefreshPill() {
+  return (
+    <div
+      className="pointer-events-none fixed right-4 top-4 z-[2147483000] flex items-center gap-2 rounded-full border border-slate-200 bg-white/95 px-4 py-2 shadow-card backdrop-blur"
+      role="status"
+      aria-live="polite"
+    >
+      <Loader2 className="h-4 w-4 animate-spin text-brand-500" aria-hidden="true" />
+      <span className="text-xs font-semibold text-slate-600">Preparing your workspace...</span>
+    </div>
+  );
+}
+
 export function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
   const location = useLocation();
 
-  if (loading) return <AuthLoader />;
+  // Full-screen loader only when there is no signed-in user to render for
+  // (initial load / login transitions). During a background auth refresh the
+  // current page stays MOUNTED so its state (dialogs, filters, scroll, form
+  // input) is retained — only the small non-blocking pill is overlaid.
+  if (loading && !user) return <AuthLoader />;
   if (!user) {
     return <Navigate to="/login" state={{ from: location.pathname }} replace />;
   }
   // When used as a layout route (<Route element={<ProtectedRoute />}> with nested
   // routes), children is undefined — the nested dashboard must render via <Outlet />.
-  return children ?? <Outlet />;
+  const content = children ?? <Outlet />;
+  if (loading) {
+    return (
+      <>
+        {content}
+        <AuthRefreshPill />
+      </>
+    );
+  }
+  return content;
 }
 
 export function RoleRoute({ roles, children }) {
   const { profile, user, loading } = useAuth();
-  if (loading) return <AuthLoader />;
+  // Full-screen loader only while there is no user/profile to render for;
+  // a background auth refresh keeps the current page mounted (see
+  // ProtectedRoute) so the page is never reset mid-task.
+  if (loading && (!user || !profile)) return <AuthLoader />;
   if (!user) return <Navigate to="/login" replace />;
   const role = profile?.role;
   if (!roles.includes(role)) {
@@ -66,12 +101,20 @@ export function RoleRoute({ roles, children }) {
                 : '/login';
     return <Navigate to={fallback} replace />;
   }
+  if (loading) {
+    return (
+      <>
+        {children}
+        <AuthRefreshPill />
+      </>
+    );
+  }
   return children;
 }
 
 export function PublicOnlyRoute({ children }) {
   const { user, profile, loading } = useAuth();
-  if (loading) return <AuthLoader />;
+  if (loading && !user) return <AuthLoader />;
   if (user) {
     if (profile?.role) {
       // Signed-in user with a known role → send them to their role home.
