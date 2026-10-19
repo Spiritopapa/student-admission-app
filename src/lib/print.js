@@ -28,8 +28,62 @@ function buildPrintDocument(title, bodyHtml) {
 </head>
 <body>
   ` + bodyHtml + `
-  <button class="print-btn" onclick="window.print()">Print</button>
-  <script>setTimeout(function(){ window.focus(); }, 200);</script>
+  <button class="print-btn" onclick="__srPrintDoc(this)">Print</button>
+  <script>
+    // In the Android APK window.print() is a no-op (or prints the PARENT app
+    // page instead of this document), so the Print button hands the document
+    // to the native pipeline, which renders its FULL content into a real
+    // multi-page A4 PDF in the device Downloads. Desktop keeps window.print().
+    function __srPrintDoc(btn) {
+      var host = null;
+      try {
+        host = window.flutterHost || (window.parent !== window ? window.parent.flutterHost : null);
+      } catch (e) {}
+      if (host && typeof host.postMessage === "function") {
+        btn.disabled = true;
+        btn.textContent = "Generating full PDF...";
+        try {
+          host.postMessage(JSON.stringify({
+            cmd: "printPdf",
+            title: document.title || "Document",
+            html: "<!DOCTYPE html>" + document.documentElement.outerHTML
+          }));
+        } catch (e) {
+          btn.disabled = false;
+          btn.textContent = "Print";
+          return;
+        }
+        // Mirror the sheet's status line (visible above this preview): flip the
+        // button back on a native failure, otherwise report where the PDF went.
+        var last = "";
+        try { var st = window.parent.document.getElementById("srPrintStatus"); last = st ? st.textContent : ""; } catch (e) {}
+        var polls = 0;
+        var t = setInterval(function () {
+          polls += 1;
+          var now = last;
+          try { var s = window.parent.document.getElementById("srPrintStatus"); now = s && s.textContent ? s.textContent : last; } catch (e) {}
+          if (now !== last) {
+            clearInterval(t);
+            if (/could not|needs the latest|unavailable|failed/i.test(now)) {
+              btn.disabled = false;
+              btn.textContent = "Print";
+            } else if (/dialog/i.test(now)) {
+              btn.textContent = "Print dialog opened";
+            } else {
+              btn.textContent = "PDF saved - check Downloads";
+            }
+          } else if (polls >= 115) {
+            clearInterval(t);
+            btn.disabled = false;
+            btn.textContent = "Print";
+          }
+        }, 400);
+        return;
+      }
+      window.print();
+    }
+    setTimeout(function(){ window.focus(); }, 200);
+  </script>
 </body>
 </html>`;
 }
@@ -67,7 +121,7 @@ function showMobilePrintSheet(title, doc) {
   const bar = document.createElement("div");
   bar.setAttribute("style", "display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 12px;background:#fff;border-bottom:1px solid #e2e8f0;box-shadow:0 1px 2px #cbd5e1;");
   bar.innerHTML =
-    `<button type="button" data-sr-act="print" style="background:#4f46e5;color:#fff;border:0;border-radius:8px;padding:7px 14px;font-size:13px;font-weight:600;">Save PDF</button>` +
+    `<button type="button" data-sr-act="print" style="background:#4f46e5;color:#fff;border:0;border-radius:8px;padding:7px 14px;font-size:13px;font-weight:600;">Print (full PDF)</button>` +
     `<button type="button" data-sr-act="save" style="background:#fff;color:#0f172a;border:1px solid #cbd5e1;border-radius:8px;padding:6px 13px;font-size:13px;font-weight:500;">Save HTML copy</button>` +
     `<button type="button" data-sr-act="close" style="background:#fff;color:#dc2626;border:1px solid #fecaca;border-radius:8px;padding:6px 13px;font-size:13px;font-weight:500;">Close</button>` +
     `<span data-sr-act="title" style="color:#475569;font-size:12px;font-weight:600;margin-left:auto;max-width:50%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">` +

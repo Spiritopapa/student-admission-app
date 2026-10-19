@@ -173,21 +173,44 @@ class MainActivity : FlutterActivity() {
                 val contentHeight = maxOf(jsHeight, webView.measuredHeight, 1)
                 webView.layout(0, 0, A4_RENDER_WIDTH, contentHeight)
 
-                // Let the re-layout settle before measuring break positions.
+                // Let the re-layout settle, then wait until every image has
+                // finished loading. Lazy images only START loading once the
+                // full-height layout puts them in view, and remote logos /
+                // photos take a beat - drawing before they arrive would ship a
+                // PDF with blank image boxes (incomplete content).
                 mainHandler.postDelayed({
-                    webView.evaluateJavascript(BREAKS_JS) { rawBreaks ->
-                        drawA4Document(
-                            webView,
-                            contentHeight,
-                            parseJsIntArray(rawBreaks),
-                            title,
-                            complete,
-                        )
+                    waitForImages(webView, 0) {
+                        webView.evaluateJavascript(BREAKS_JS) { rawBreaks ->
+                            drawA4Document(
+                                webView,
+                                contentHeight,
+                                parseJsIntArray(rawBreaks),
+                                title,
+                                complete,
+                            )
+                        }
                     }
                 }, 150)
             }
         } catch (e: Exception) {
             openPrintDialogFallback(webView, title, complete)
+        }
+    }
+
+    /// Polls document.images until everything has finished loading (a FAILED
+    /// image is also "complete", so a dead CDN can never stall the job) and
+    /// then runs [done]. Caps at 30 x 200ms = 6s of patience.
+    private fun waitForImages(webView: WebView, attempt: Int, done: () -> Unit) {
+        webView.evaluateJavascript(
+            "(function(){var im=document.images,n=0;" +
+                "for(var i=0;i<im.length;i++){if(!im[i].complete)n++;}return n;})()",
+        ) { raw ->
+            val pending = parseJsInt(raw) ?: 0
+            if (pending == 0 || attempt >= 30) {
+                done()
+            } else {
+                mainHandler.postDelayed({ waitForImages(webView, attempt + 1, done) }, 200)
+            }
         }
     }
 
@@ -208,7 +231,9 @@ class MainActivity : FlutterActivity() {
             val pdf = PdfDocument()
             var y = 0.0
             var pageNo = 1
-            while (y < contentHeight && pageNo <= 300) {
+            // 1000 pages: whole-school bulk documents (term bills, report
+            // cards) must never be truncated - "full content" means ALL of it.
+            while (y < contentHeight && pageNo <= 1000) {
                 val remaining = contentHeight - y
                 val limit = y + pageContentHeight
                 val end: Double = if (remaining <= pageContentHeight + 0.5) {
