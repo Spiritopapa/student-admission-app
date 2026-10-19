@@ -223,10 +223,14 @@ export default function StudentFeesTab() {
 
   const printReminder = (row) => {
     const { app, fees, totalBalance } = row;
+    // Only show the Debt column when at least one fee record carries an
+    // admin-added debt — otherwise the table stays Term · Total · Paid · Balance.
+    const hasDebt = fees.some((f) => Number(f.debt || 0) > 0);
+    const debtCell = (f) => (hasDebt ? `<td class="right">${cedi(Number(f.debt) || 0)}</td>` : '');
     const rowsHtml = fees
       .map((f) => {
         const bal = feeBalance(f);
-        return `<tr><td>${escapeHtml(f.term)} Term ${escapeHtml(f.academic_year)}</td><td class="right">${cedi(f.total_amount)}</td><td class="right">${cedi(f.amount_paid)}</td><td class="right">${cedi(bal)}</td></tr>`;
+        return `<tr><td>${escapeHtml(f.term)} Term ${escapeHtml(f.academic_year)}</td><td class="right">${cedi(f.total_amount)}</td><td class="right">${cedi(f.amount_paid)}</td>${debtCell(f)}<td class="right">${cedi(bal)}</td></tr>`;
       })
       .join('');
     openPrintWindow('Fee reminder', `
@@ -234,9 +238,9 @@ export default function StudentFeesTab() {
       <p>Student: <b>${escapeHtml(buildStudentName(app.first_name, app.middle_name, app.last_name))}</b> (${escapeHtml(app.student_id)})</p>
       <p>Class: ${escapeHtml(app.class_applying)}</p>
       <table>
-        <thead><tr><th>Term</th><th class="right">Total</th><th class="right">Paid</th><th class="right">Balance</th></tr></thead>
+        <thead><tr><th>Term</th><th class="right">Total</th><th class="right">Paid</th>${hasDebt ? '<th class="right">Debt</th>' : ''}<th class="right">Balance</th></tr></thead>
         <tbody>${rowsHtml}</tbody>
-        <tr class="total-row"><td colspan="3">Total outstanding</td><td class="right">${cedi(totalBalance)}</td></tr>
+        <tr class="total-row"><td colspan="${hasDebt ? 4 : 3}">Total outstanding</td><td class="right">${cedi(totalBalance)}</td></tr>
       </table>
       <p>Please settle the outstanding balance at the school's accounts office. Thank you.</p>
     `);
