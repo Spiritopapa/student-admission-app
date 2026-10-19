@@ -27,6 +27,12 @@
 --  Also includes the migration-085 locking fix (PERFORM ... FOR UPDATE
 --  instead of FOR UPDATE on the aggregate SUM query).
 --
+--  ⚠️ SUPERSEDED (process_fee_payment ONLY): migration 087 re-adds
+--  processed_by / processed_by_label to the receipt snapshot (dropped
+--  by the 083 waterfall rewrite) and backfills existing receipts.
+--  The live function definition lives in 087; the debt / balance
+--  changes below remain the current behaviour.
+--
 --  Safe to re-run (idempotent).
 -- ============================================================
 
