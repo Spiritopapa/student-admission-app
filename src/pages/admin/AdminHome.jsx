@@ -177,6 +177,70 @@ const STATUS_META = {
   unpaid: { label: 'Unpaid', toneCls: 'bg-rose-50 text-rose-700 ring-1 ring-rose-200' },
 };
 
+// Trial-version banner with a live countdown, shown on the school dashboard
+// while the school's plan_version is 'trial' (mirrors the legacy
+// #adminTrialBanner: days left + a hh:mm:ss timer ticking every second).
+function TrialBanner({ planVersion, trialEndsAt }) {
+  const [now, setNow] = useState(() => Date.now());
+  const endMs = trialEndsAt ? new Date(trialEndsAt).getTime() : NaN;
+  const visible = planVersion === 'trial' && Number.isFinite(endMs) && endMs > 0;
+
+  useEffect(() => {
+    if (!visible) return undefined;
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [visible]);
+
+  if (!visible) return null;
+
+  const diff = Math.max(endMs - now, 0);
+  const expired = diff <= 0;
+  const days = Math.floor(diff / 86400000);
+  const hrs = Math.floor((diff % 86400000) / 3600000);
+  const mins = Math.floor((diff % 3600000) / 60000);
+  const secs = Math.floor((diff % 60000) / 1000);
+  const pad = (n) => String(n).padStart(2, '0');
+
+  if (expired) {
+    return (
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-rose-300 bg-rose-50 px-4 py-3">
+        <div className="flex items-center gap-3">
+          <Clock className="h-5 w-5 shrink-0 text-rose-600" aria-hidden="true" />
+          <div>
+            <p className="text-sm font-extrabold text-rose-800">Trial period has ended</p>
+            <p className="text-xs text-rose-600">
+              Your school's trial version has expired. Contact the Super Administrator to renew the trial or upgrade to the Full version.
+            </p>
+          </div>
+        </div>
+        <span className="text-xs font-semibold text-rose-500">Ended {formatDate(trialEndsAt)}</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-300 bg-gradient-to-r from-amber-50 to-orange-50 px-4 py-3">
+      <div className="flex items-center gap-3">
+        <Clock className="h-5 w-5 shrink-0 text-amber-600" aria-hidden="true" />
+        <div>
+          <p className="text-sm font-extrabold text-amber-800">
+            {days} day{days === 1 ? '' : 's'} left in your Trial
+          </p>
+          <p className="text-xs text-amber-600">
+            Contact the Super Administrator to upgrade to the Full Version before your trial ends.
+          </p>
+        </div>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="rounded-lg bg-white/80 px-3 py-1.5 font-mono text-lg font-bold tabular-nums text-amber-700 ring-1 ring-amber-200">
+          {pad(hrs)}:{pad(mins)}:{pad(secs)}
+        </span>
+        <span className="text-xs font-semibold text-amber-600">Ends {formatDate(trialEndsAt)}</span>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminHome() {
   const schoolId = useSchoolId();
   const { settings } = useSchoolSettings();
@@ -204,6 +268,7 @@ export default function AdminHome() {
         { data: paymentsToday },
         { data: transportToday },
         { data: lockedRows },
+        { data: schoolRow },
       ] = await Promise.all([
         supabase
           .from('applications')
@@ -232,6 +297,7 @@ export default function AdminHome() {
           .select('module_name')
           .eq('school_id', schoolId)
           .eq('is_locked', true),
+        supabase.from('schools').select('plan_version, trial_ends_at').eq('id', schoolId).maybeSingle(),
       ]);
 
       const studentsArr = students || [];
@@ -358,6 +424,8 @@ export default function AdminHome() {
         transportToday: sumAmount(transportToday, 'fee_amount'),
         attendanceToday,
         lockedModules: locked,
+        planVersion: schoolRow?.plan_version || 'full',
+        trialEndsAt: schoolRow?.trial_ends_at || null,
       });
     } catch (err) {
       console.warn('Dashboard load error:', err);
@@ -398,6 +466,8 @@ return (
           </div>
         }
       />
+
+      <TrialBanner planVersion={data.planVersion} trialEndsAt={data.trialEndsAt} />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <StatCard icon={Users} tone="blue" label="Students" value={data.studentCount} sub={`${data.admittedCount} admitted`} index={0} />
