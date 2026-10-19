@@ -8,7 +8,7 @@ import { supabase } from '../../lib/supabase';
 import { TERMS, currentAcademicYear, academicYearList, TERM_LABELS } from '../../lib/constants';
 import { cedi, termLabel } from '../../lib/format';
 import StudentFeesTab from './fees/StudentFeesTab';
-import DebtorsTab from './fees/DebtorsTab';
+import DebtorsTab from '../../components/DebtorsTab';
 import ReceiptsTab from './fees/ReceiptsTab';
 import CarryForwardTab from './fees/CarryForwardTab';
 

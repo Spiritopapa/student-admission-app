@@ -21,6 +21,7 @@ import {
   DatabaseBackup,
   LifeBuoy,
   Activity,
+  AlertTriangle,
 } from 'lucide-react';
 
 export const NAV_BY_ROLE = {
@@ -74,6 +75,7 @@ export const NAV_BY_ROLE = {
     { path: '/accountant', label: 'Overview', icon: LayoutDashboard },
     { path: '/accountant/collect', label: 'Collect Payment', icon: Wallet },
     { path: '/accountant/receipts', label: 'Receipts', icon: ReceiptText },
+    { path: '/accountant/debtors', label: 'Debtors', icon: AlertTriangle },
     { path: '/accountant/profile', label: 'My Profile', icon: User },
   ],
   super_admin: [

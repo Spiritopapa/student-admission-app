@@ -56,6 +56,7 @@ import TeacherExams from './pages/teacher/TeacherExams';
 import AccountantHome from './pages/accountant/AccountantHome';
 import AccountantCollect from './pages/accountant/AccountantCollect';
 import AccountantReceipts from './pages/accountant/AccountantReceipts';
+import AccountantDebtors from './pages/accountant/AccountantDebtors';
 
 import SuperAdminHome from './pages/superadmin/SuperAdminHome';
 import SuperAdminSchools from './pages/superadmin/SuperAdminSchools';
@@ -145,6 +146,7 @@ export default function App() {
           <Route path="/accountant" element={<RoleRoute roles={['accountant']}><AccountantHome /></RoleRoute>} />
           <Route path="/accountant/collect" element={<RoleRoute roles={['accountant']}><AccountantCollect /></RoleRoute>} />
           <Route path="/accountant/receipts" element={<RoleRoute roles={['accountant']}><AccountantReceipts /></RoleRoute>} />
+          <Route path="/accountant/debtors" element={<RoleRoute roles={['accountant']}><AccountantDebtors /></RoleRoute>} />
           <Route path="/accountant/profile" element={<RoleRoute roles={['accountant']}><ProfilePage /></RoleRoute>} />
 
           <Route path="/superadmin" element={<RoleRoute roles={['super_admin']}><SuperAdminHome /></RoleRoute>} />

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { LayoutDashboard, Wallet, ReceiptText, Building2, ArrowRight, RefreshCw } from 'lucide-react';
+import { LayoutDashboard, Wallet, ReceiptText, Building2, ArrowRight, RefreshCw, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useSchoolId } from '../../hooks/useSchool';
 import { PageHeader, Card, Spinner, StatCard, Button, EmptyState } from '../../components/ui';
@@ -132,7 +132,7 @@ export default function AccountantHome() {
         <StatCard icon={Wallet} tone="amber" label="Total collected" value={cedi(stats.total)} sub="Cumulative receipts amount" index={2} />
       </div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+      <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         <Link to="/accountant/collect" className="card block p-5 transition-shadow hover:shadow-card">
           <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-teal-50 text-teal-600">
             <Wallet className="h-5 w-5" aria-hidden="true" />
@@ -153,6 +153,18 @@ export default function AccountantHome() {
           <p className="mt-1 text-sm text-slate-500">Browse every receipt issued for this school.</p>
           <p className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-brand-600">
             View receipts
+            <ArrowRight className="h-4 w-4" aria-hidden="true" />
+          </p>
+        </Link>
+
+        <Link to="/accountant/debtors" className="card block p-5 transition-shadow hover:shadow-card">
+          <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-rose-50 text-rose-600">
+            <AlertTriangle className="h-5 w-5" aria-hidden="true" />
+          </span>
+          <h3 className="mt-3 text-sm font-bold text-slate-800">Debtors</h3>
+          <p className="mt-1 text-sm text-slate-500">Students with outstanding fee balances.</p>
+          <p className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-rose-600">
+            View debtors
             <ArrowRight className="h-4 w-4" aria-hidden="true" />
           </p>
         </Link>

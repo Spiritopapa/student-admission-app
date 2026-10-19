@@ -1,15 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Users, Printer, Download, MessageSquare } from 'lucide-react';
-import { useSchoolId } from '../../../hooks/useSchool';
-import { useToast } from '../../../context/ToastContext';
-import { Card, Button, Input, Select, Spinner, EmptyState, Badge, SearchInput } from '../../../components/ui';
-import { Alert } from '../../../components/ui-extras';
-import { supabase } from '../../../lib/supabase';
-import { sendPlainSms, normalizeGhanaPhone } from '../../../lib/api';
-import { buildStudentName, cedi, termLabel } from '../../../lib/format';
-import { openPrintWindow, escapeHtml } from '../../../lib/print';
-import { TERMS } from '../../../lib/constants';
-import { feeBalance } from '../../../lib/feeMath';
+import { useSchoolId } from '../hooks/useSchool';
+import { useToast } from '../context/ToastContext';
+import { Card, Button, Input, Select, Spinner, EmptyState, Badge, SearchInput } from './ui';
+import { Alert } from './ui-extras';
+import { supabase } from '../lib/supabase';
+import { sendPlainSms, normalizeGhanaPhone } from '../lib/api';
+import { buildStudentName, cedi, termLabel } from '../lib/format';
+import { openPrintWindow, escapeHtml } from '../lib/print';
+import { TERMS } from '../lib/constants';
+import { feeBalance } from '../lib/feeMath';
 
 const TERM_ORDER = { First: 0, Second: 1, Third: 2 };
 
