@@ -10,14 +10,12 @@ import { cedi, termLabel } from '../../lib/format';
 import StudentFeesTab from './fees/StudentFeesTab';
 import DebtorsTab from '../../components/DebtorsTab';
 import ReceiptsTab from './fees/ReceiptsTab';
-import CarryForwardTab from './fees/CarryForwardTab';
 
 const TABS = [
   { value: 'structure', label: 'Fee Structure' },
   { value: 'students', label: 'Student Fees' },
   { value: 'debtors', label: 'Debtors' },
   { value: 'receipts', label: 'Receipts' },
-  { value: 'carry', label: 'Carry Forward' },
 ];
 
 const yearStart = (y) => Number(String(y || '').split('/')[0] || 0);
@@ -296,8 +294,6 @@ export default function AdminFees() {
         <DebtorsTab />
       ) : tab === 'receipts' ? (
         <ReceiptsTab />
-      ) : tab === 'carry' ? (
-        <CarryForwardTab />
       ) : loading ? (
         <Spinner label="Loading fee structure..." />
       ) : rows.length ? (
