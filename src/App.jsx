@@ -62,6 +62,7 @@ import SuperAdminHome from './pages/superadmin/SuperAdminHome';
 import SuperAdminSchools from './pages/superadmin/SuperAdminSchools';
 import SuperAdminApplications from './pages/superadmin/SuperAdminApplications';
 import SuperAdminSupportReports from './pages/superadmin/SuperAdminSupportReports';
+import SuperAdminActivityLog from './pages/superadmin/SuperAdminActivityLog';
 
 import ProfilePage from './pages/shared/ProfilePage';
 import NotFound from './pages/NotFound';
@@ -153,6 +154,7 @@ export default function App() {
           <Route path="/superadmin/schools" element={<RoleRoute roles={['super_admin']}><SuperAdminSchools /></RoleRoute>} />
           <Route path="/superadmin/applications" element={<RoleRoute roles={['super_admin']}><SuperAdminApplications /></RoleRoute>} />
           <Route path="/superadmin/support-reports" element={<RoleRoute roles={['super_admin']}><SuperAdminSupportReports /></RoleRoute>} />
+          <Route path="/superadmin/activity-log" element={<RoleRoute roles={['super_admin']}><SuperAdminActivityLog /></RoleRoute>} />
           <Route path="/superadmin/profile" element={<RoleRoute roles={['super_admin']}><ProfilePage /></RoleRoute>} />
         </Route>
       </Route>

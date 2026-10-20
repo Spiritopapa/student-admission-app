@@ -5,6 +5,7 @@ import { useToast } from '../../context/ToastContext';
 import { PageHeader, Card, Button, Input, Select, Spinner, EmptyState, Badge } from '../../components/ui';
 import { Modal, ConfirmDialog, Alert } from '../../components/ui-extras';
 import { supabase } from '../../lib/supabase';
+import { logActivityForCurrentUser } from '../../lib/activity';
 import { TERMS, currentAcademicYear, academicYearList, TERM_LABELS } from '../../lib/constants';
 import { cedi, termLabel } from '../../lib/format';
 import StudentFeesTab from './fees/StudentFeesTab';
@@ -224,6 +225,10 @@ export default function AdminFees() {
         editing ? 'Fee structure updated' : 'Fee structure added',
         `${form.class_name} - ${termLabel(form.term)} = GHC ${amount.toFixed(2)} · ${applied.updated} student fee record${applied.updated === 1 ? '' : 's'} updated/created${applied.credits ? ` · ${applied.credits} credit(s) applied` : ''}`
       );
+      logActivityForCurrentUser(
+        `${editing ? 'Updated' : 'Created'} fee structure — ${form.class_name} · ${termLabel(form.term)} ${form.academic_year} · GHC ${amount.toFixed(2)}`,
+        { entityType: 'fee_structure', entityDetails: form.class_name }
+      ).catch(() => {});
       setOpen(false);
       load();
     } catch (err) {
@@ -271,6 +276,10 @@ export default function AdminFees() {
       const { error } = await supabase.from('class_fees').delete().eq('id', deleting.id);
       if (error) throw new Error(error.message);
       toast.success('Fee structure deleted', `${deleting.class_name} — fee records removed for ${students?.length || 0} student(s).`);
+      logActivityForCurrentUser(
+        `Deleted fee structure — ${deleting.class_name} · ${termLabel(deleting.term)} ${deleting.academic_year}`,
+        { entityType: 'fee_structure', entityDetails: deleting.class_name }
+      ).catch(() => {});
       setDeleting(null);
       setDeletePassword('');
       load();

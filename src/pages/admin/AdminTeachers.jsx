@@ -9,6 +9,7 @@ import { PageHeader, Card, Button, Input, Select, Spinner, EmptyState, Badge, Se
 import { Modal, ConfirmDialog, Alert } from '../../components/ui-extras';
 import ActivityLogModal from '../../components/ActivityLogModal';
 import { supabase } from '../../lib/supabase';
+import { logActivityForCurrentUser } from '../../lib/activity';
 import { buildCSV, parseCSV, downloadCSV } from '../../lib/csv';
 import { formatDate } from '../../lib/format';
 import { openPrintWindow, escapeHtml } from '../../lib/print';
@@ -289,6 +290,10 @@ const stats = useMemo(() => {
       }
       await saveAssignments(teacherId, form.subjectsByClass);
       toast.success(editing ? 'Teacher updated' : 'Teacher added', `${fullName}${editing ? '' : ` (${regId})`}.`);
+      logActivityForCurrentUser(`${editing ? 'Updated' : 'Added'} teacher ${fullName}`, {
+        entityType: 'teacher',
+        entityDetails: editing ? fullName : `${fullName} (${regId})`,
+      }).catch(() => {});
       setOpen(false);
       setEditing(null);
       setForm(emptyForm());
@@ -406,7 +411,13 @@ const openAdd = async () => {
     setDeleteBusy(true);
     const { error } = await supabase.rpc('delete_teacher_completely', { p_teacher_id: deleting.id });
     if (error) toast.error('Could not delete teacher', error.message);
-    else toast.success('Teacher deleted', deleting.full_name);
+    else {
+      toast.success('Teacher deleted', deleting.full_name);
+      logActivityForCurrentUser(`Deleted teacher ${deleting.full_name}`, {
+        entityType: 'teacher',
+        entityDetails: deleting.id,
+      }).catch(() => {});
+    }
     setDeleteBusy(false);
     setDeleting(null);
     load();

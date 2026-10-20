@@ -6,6 +6,7 @@ import { useToast } from '../../context/ToastContext';
 import { PageHeader, Card, Button, Input, Select, Textarea, Spinner, EmptyState, Badge } from '../../components/ui';
 import { Modal, ConfirmDialog, Alert } from '../../components/ui-extras';
 import { supabase } from '../../lib/supabase';
+import { logActivityForCurrentUser } from '../../lib/activity';
 import { PRIORITIES, PRIORITY_LABELS } from '../../lib/constants';
 import { formatDateTime } from '../../lib/format';
 
@@ -73,6 +74,10 @@ export default function AdminAnnouncements() {
           .eq('id', editing.id);
         if (updateError) throw new Error(updateError.message);
         toast.success('Announcement updated', form.title.trim());
+        logActivityForCurrentUser(`Updated announcement "${form.title.trim()}"`, {
+          entityType: 'announcement',
+          entityDetails: form.title.trim(),
+        }).catch(() => {});
       } else {
         const { error: insertError } = await supabase.from('announcements').insert([
           {
@@ -86,6 +91,10 @@ export default function AdminAnnouncements() {
         ]);
         if (insertError) throw new Error(insertError.message);
         toast.success('Announcement posted', form.title.trim());
+        logActivityForCurrentUser(`Posted announcement "${form.title.trim()}"`, {
+          entityType: 'announcement',
+          entityDetails: form.title.trim(),
+        }).catch(() => {});
       }
       setOpen(false);
       load();
@@ -109,7 +118,13 @@ export default function AdminAnnouncements() {
     if (!deleting) return;
     const { error } = await supabase.from('announcements').delete().eq('id', deleting.id);
     if (error) toast.error('Could not delete announcement', error.message);
-    else toast.success('Announcement deleted', deleting.title);
+    else {
+      toast.success('Announcement deleted', deleting.title);
+      logActivityForCurrentUser(`Deleted announcement "${deleting.title}"`, {
+        entityType: 'announcement',
+        entityDetails: deleting.title,
+      }).catch(() => {});
+    }
     setDeleting(null);
     load();
   };

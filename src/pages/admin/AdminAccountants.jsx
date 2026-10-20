@@ -6,6 +6,7 @@ import { PageHeader, Card, Button, Input, Spinner, EmptyState, Badge, SearchInpu
 import { Modal, ConfirmDialog, Alert } from '../../components/ui-extras';
 import ActivityLogModal from '../../components/ActivityLogModal';
 import { supabase } from '../../lib/supabase';
+import { logActivityForCurrentUser } from '../../lib/activity';
 
 export default function AdminAccountants() {
   const schoolId = useSchoolId();
@@ -126,6 +127,10 @@ export default function AdminAccountants() {
         ]);
         if (insertError) throw new Error(insertError.message);
         toast.success('Accountant created', `${form.full_name.trim()} (${regId}). They can now register.`);
+        logActivityForCurrentUser(`Created accountant ${form.full_name.trim()} (${regId})`, {
+          entityType: 'accountant',
+          entityDetails: form.full_name.trim(),
+        }).catch(() => {});
       }
       setOpen(false);
       load();
@@ -182,6 +187,10 @@ export default function AdminAccountants() {
         await supabase.from('accountants').delete().eq('id', deleting.id);
       }
       toast.success('Accountant deleted', deleting.full_name);
+      logActivityForCurrentUser(`Deleted accountant ${deleting.full_name}`, {
+        entityType: 'accountant',
+        entityDetails: deleting.id,
+      }).catch(() => {});
       setDeleting(null);
       load();
     } catch (err) {

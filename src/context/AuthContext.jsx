@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, useCallback, useMemo } 
 import { supabase } from '../lib/supabase';
 import { uploadFile, randomPath } from '../lib/storage';
 import { currentAcademicYear } from '../lib/constants';
-import { logStaffActivity, logStudentActivity } from '../lib/activity';
+import { logStaffActivity, logStudentActivity, logActivityForCurrentUser } from '../lib/activity';
 
 const AuthContext = createContext(null);
 
@@ -388,6 +388,11 @@ export function AuthProvider({ children }) {
       logStaffActivity('Logged in', { role, entityType: 'auth' }).catch(() => {});
     } else if (role === 'student') {
       logStudentActivity('Logged in', { entityType: 'auth' }).catch(() => {});
+    } else if (role === 'admin' || role === 'sub_admin') {
+      // School admins & sub admins: routed by logActivityForCurrentUser
+      // (admin -> staff_activities, sub admin -> sub_admin_activities) so the
+      // Super Admin Activity Log shows every school administrator's sign-ins.
+      logActivityForCurrentUser('Logged in', { entityType: 'auth' }).catch(() => {});
     }
     return { user: data.user, profile: child.profile, app: child.app };
   }, []);

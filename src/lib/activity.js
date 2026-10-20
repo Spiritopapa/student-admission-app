@@ -7,6 +7,7 @@ import { supabase } from './supabase';
  *   - teachers & accountants  -> `staff_activities`
  *   - students                -> `student_activities`
  *   - sub admins              -> `sub_admin_activities`
+ *   - school admins           -> `staff_activities` (staff_type='admin')
  *
  * Loggers resolve the signed-in user's record (teachers/accountants are linked
  * by user_id; students link via applications.user_id) and write one row per
@@ -108,7 +109,7 @@ export async function logSubAdminActivity(action, { entityType = 'general', enti
   try {
     const { data: sub } = await supabase
       .from('sub_admins')
-      .select('id, full_name, registration_id')
+      .select('id, full_name, registration_id, school_id')
       .eq('user_id', user.id)
       .maybeSingle();
     if (!sub?.id) return;
@@ -117,6 +118,7 @@ export async function logSubAdminActivity(action, { entityType = 'general', enti
         sub_admin_id: sub.id,
         sub_admin_name: sub.full_name,
         registration_id: sub.registration_id,
+        school_id: sub.school_id || null,
         action,
         entity_type: entityType,
         entity_details: entityDetails || null,
@@ -128,8 +130,48 @@ export async function logSubAdminActivity(action, { entityType = 'general', enti
 }
 
 /**
+ * Log an activity performed by a logged-in SCHOOL admin (profile role
+ * 'admin'). Stored in `staff_activities` with staff_type='admin' — the table
+ * already carries school_id / actor name / registration id, its RLS already
+ * lets super admins read every row (the Super Admin Activity Log) and school
+ * admins read their own school's rows, and no schema change is required.
+ */
+export async function logAdminActivity(action, { entityType = 'general', entityDetails = null } = {}) {
+  const user = await currentUser();
+  if (!user) return;
+  try {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('full_name, role')
+      .eq('id', user.id)
+      .maybeSingle();
+    if (profile?.role !== 'admin') return;
+    const { data: school } = await supabase
+      .from('schools')
+      .select('id, registration_id')
+      .eq('user_id', user.id)
+      .maybeSingle();
+    await supabase.from('staff_activities').insert([
+      {
+        school_id: school?.id || null,
+        staff_id: null,
+        staff_type: 'admin',
+        staff_name: profile.full_name,
+        staff_registration_id: school?.registration_id || null,
+        action,
+        entity_type: entityType,
+        entity_details: entityDetails || null,
+        performed_by_user_id: user.id,
+      },
+    ]);
+  } catch (err) {
+    console.warn('Failed to log school admin activity:', err.message);
+  }
+}
+
+/**
  * Route an activity to the correct table based on the signed-in profile role.
- * Safe from any page: admins/super admins are silently ignored (no log table).
+ * Safe from any page: parents / super admins are silently ignored.
  */
 export async function logActivityForCurrentUser(action, opts = {}) {
   const user = await currentUser();
@@ -144,6 +186,7 @@ export async function logActivityForCurrentUser(action, opts = {}) {
     if (role === 'teacher' || role === 'accountant') return logStaffActivity(action, { ...opts, role });
     if (role === 'student') return logStudentActivity(action, opts);
     if (role === 'sub_admin') return logSubAdminActivity(action, opts);
+    if (role === 'admin') return logAdminActivity(action, opts);
   } catch (err) {
     // fail-safe
   }

@@ -83,6 +83,7 @@ export const NAV_BY_ROLE = {
     { path: '/superadmin/schools', label: 'Schools', icon: School },
     { path: '/superadmin/applications', label: 'Applications', icon: FileCheck2 },
     { path: '/superadmin/support-reports', label: 'Support Reports', icon: LifeBuoy },
+    { path: '/superadmin/activity-log', label: 'Activity Log', icon: Activity },
     { path: '/superadmin/profile', label: 'My Profile', icon: User },
   ],
 };

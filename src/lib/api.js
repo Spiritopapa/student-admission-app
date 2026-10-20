@@ -2,7 +2,7 @@ import { supabase } from './supabase';
 
 // Activity loggers (staff / students / sub admins) live in ./activity; this
 // hub re-exports them so pages can import every API helper from one place.
-export { logStaffActivity, logStudentActivity, logSubAdminActivity, logActivityForCurrentUser } from './activity';
+export { logStaffActivity, logStudentActivity, logSubAdminActivity, logAdminActivity, logActivityForCurrentUser } from './activity';
 
 /**
  * Fetch a school's public contact details (display name + phone) for SMS

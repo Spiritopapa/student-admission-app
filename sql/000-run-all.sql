@@ -672,6 +672,15 @@
 -- ============================================================
 \i 087-receipt-processed-by.sql
 -- ============================================================
+--  Super Admin activity log for every school admin:
+--  sub_admin_activities.school_id (backfilled) so sub-admin rows can be
+--  filtered by school; school-admin rows are stored in staff_activities
+--  with staff_type = 'admin' (RLS already lets super admins read them).
+--  Used by: src/lib/activity.js (logAdminActivity) and
+--           src/pages/superadmin/SuperAdminActivityLog.jsx
+-- ============================================================
+\i 088-school-admin-activity-log.sql
+-- ============================================================
 --  SCHEMA DEPLOYMENT COMPLETE
 -- ============================================================
 --  Next steps:

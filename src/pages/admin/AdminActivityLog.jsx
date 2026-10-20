@@ -16,6 +16,8 @@ const ROLE_BADGES = {
   teacher: { label: 'Teacher', tone: 'teal' },
   accountant: { label: 'Accountant', tone: 'amber' },
   student: { label: 'Student', tone: 'blue' },
+  admin: { label: 'School Admin', tone: 'green' },
+  sub_admin: { label: 'Sub Admin', tone: 'slate' },
 };
 
 /**

@@ -10,6 +10,7 @@ import { Modal, ConfirmDialog, Alert } from '../../components/ui-extras';
 import { PhotoUpload } from '../../components/PhotoUpload';
 import ActivityLogModal from '../../components/ActivityLogModal';
 import { supabase } from '../../lib/supabase';
+import { logActivityForCurrentUser } from '../../lib/activity';
 import { uploadFile, randomPath, photoUrl, deleteStoredFiles } from '../../lib/storage';
 import { GENDERS, RELIGIONS, TERMS, CLASS_LEVELS, currentAcademicYear } from '../../lib/constants';
 import { buildStudentName, formatDate, formatDateTime, termLabel, formatCurrency } from '../../lib/format';
@@ -402,6 +403,10 @@ const admitStudent = async () => {
         );
 
       toast.success('Student admitted', `Student ID ${studentId} created.`);
+      logActivityForCurrentUser(`Admitted student ${studentId}`, {
+        entityType: 'student',
+        entityDetails: studentId,
+      }).catch(() => {});
 
       // Auto-open the printable Student Admission Form with ALL student
       // information, the class fee, the additional items and the total term fee.
@@ -586,6 +591,10 @@ const openEdit = (s) => {
         'Student removed',
         `${buildStudentName(deleting.first_name, deleting.middle_name, deleting.last_name)} was deleted together with all related records, portal account and stored photo.`
       );
+      logActivityForCurrentUser(`Deleted student ${deleting.student_id}`, {
+        entityType: 'student',
+        entityDetails: buildStudentName(deleting.first_name, deleting.middle_name, deleting.last_name),
+      }).catch(() => {});
       setDeleting(null);
       load();
     } catch (err) {
