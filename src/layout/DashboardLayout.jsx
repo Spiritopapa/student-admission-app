@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useTheme } from '../context/ThemeContext';
 import { useSchoolSettings } from '../hooks/useSchool';
+import { useAccountant } from '../hooks/useAccountant';
 import { NAV_BY_ROLE, roleBasePath } from '../lib/nav';
 import { supabase } from '../lib/supabase';
 import { ROLE_LABELS } from '../lib/constants';
@@ -84,6 +85,18 @@ export function DashboardLayout() {
   const roleKey = compactRoleKey(profile?.role);
   const [lockedModuleNames, setLockedModuleNames] = useState([]);
 
+  // Accountants display the name stored on their own `accountants` record:
+  // it is the authoritative value (locked against self-service edits by
+  // sql/027-accountant-name-lock.sql) and falls back to the profile name.
+  const { fullName: accountantName, firstName: accountantFirstName, photo: accountantPhoto } = useAccountant();
+  // Role values are stored lower-case, but compare case-insensitively so an
+  // unexpected "Accountant" value still resolves the accountant identity.
+  const isAccountantRole = String(roleKey || '').toLowerCase() === 'accountant';
+  const displayName = isAccountantRole ? accountantName || profile?.full_name || '' : profile?.full_name || '';
+  const displayFirstName = isAccountantRole
+    ? accountantFirstName || profile?.full_name?.split(' ')[0] || ''
+    : profile?.full_name?.split(' ')[0] || '';
+
   // Fetch the modules locked for this school so the sidebar can hide them
   // (used by the /dashboard layout for school admins and sub-admins).
   useEffect(() => {
@@ -139,6 +152,10 @@ export function DashboardLayout() {
       ? photoUrl(profile.avatar_url)
       : null;
 
+  // For accountants the staff record's photo is the one the school admin
+  // uploaded, so prefer it over the generic profile photo.
+  const effectiveAvatarUrl = isAccountantRole && accountantPhoto ? accountantPhoto : avatarUrl;
+
   // Large school identity block in the sidebar (all dashboards share this
   // layout): the school's uploaded logo when available, otherwise an initials
   // avatar on the signature blend, plus the school name.
@@ -169,6 +186,54 @@ export function DashboardLayout() {
           </div>
         ) : null}
       </div>
+
+      {/* Accountant identity: the signed-in accountant's name, read from the
+          authoritative `accountants` record (admin-locked) with the profile
+          name as a fallback. Shown in the sidebar so it stays visible on
+          every accountant page. When the sidebar is collapsed only the
+          avatar is shown (the name lives in the header instead). */}
+      {isAccountantRole ? (
+        collapsed ? (
+          <div className="mx-3 mb-3 flex justify-center">
+            <span
+              className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-blend ring-2 ring-white"
+              title={displayName || 'Accountant'}
+            >
+              {effectiveAvatarUrl ? (
+                <img
+                  src={effectiveAvatarUrl}
+                  alt={displayName || 'Accountant'}
+                  className="img-zoom h-full w-full object-cover"
+                />
+              ) : (
+                <span className="text-sm font-extrabold text-white">
+                  {(displayName || 'A').charAt(0).toUpperCase()}
+                </span>
+              )}
+            </span>
+          </div>
+        ) : (
+          <div className="mx-3 mb-3 flex items-center gap-3 rounded-2xl bg-brand-50 px-3 py-3 ring-1 ring-brand-100">
+            {effectiveAvatarUrl ? (
+              <img
+                src={effectiveAvatarUrl}
+                alt={displayName || 'Accountant'}
+                className="img-zoom h-10 w-10 shrink-0 rounded-full object-cover ring-2 ring-white"
+              />
+            ) : (
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blend text-sm font-extrabold text-white">
+                {(displayName || 'A').charAt(0).toUpperCase()}
+              </span>
+            )}
+            <div className="min-w-0 leading-tight">
+              <p className="truncate text-sm font-bold text-slate-800">{displayName || 'Accountant'}</p>
+              <p className="truncate text-[11px] font-semibold uppercase tracking-wide text-brand-600">
+                Accountant
+              </p>
+            </div>
+          </div>
+        )
+      ) : null}
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-2">
         {navItems.map((item) => (
           <NavLink
@@ -281,7 +346,7 @@ export function DashboardLayout() {
               </button>
               <div className="leading-tight">
                 <p className="hidden text-sm font-semibold text-slate-800 sm:block">
-                  Welcome back, {profile?.full_name?.split(' ')[0] || 'there'}
+                  Welcome back, {displayFirstName || 'there'}
                 </p>
                 <p className="text-xs font-medium text-slate-400">
                   {ROLE_LABELS[profile?.role] || 'Member'}
@@ -310,19 +375,19 @@ export function DashboardLayout() {
                 onClick={() => setMenuOpen((m) => !m)}
                 className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white py-1.5 pl-1.5 pr-3 shadow-sm transition-colors hover:border-brand-300"
               >
-                {avatarUrl ? (
+                {effectiveAvatarUrl ? (
                   <img
-                    src={avatarUrl}
+                    src={effectiveAvatarUrl}
                     alt="Profile"
                     className="img-zoom h-8 w-8 rounded-full object-cover ring-2 ring-brand-100"
                   />
                 ) : (
                   <span className="flex h-8 w-8 items-center justify-center rounded-full bg-blend text-xs font-bold text-white">
-                    {(profile?.full_name || 'U').charAt(0).toUpperCase()}
+                    {(displayName || 'U').charAt(0).toUpperCase()}
                   </span>
                 )}
                 <span className="hidden max-w-[120px] truncate text-sm font-semibold text-slate-700 sm:block">
-                  {profile?.full_name || 'User'}
+                  {displayName || 'User'}
                 </span>
                 <ChevronDown
                   className={`h-4 w-4 text-slate-400 transition-transform ${menuOpen ? 'rotate-180' : ''}`}
@@ -339,6 +404,9 @@ export function DashboardLayout() {
                     className="absolute right-0 top-full mt-2 w-52 overflow-hidden rounded-xl border border-slate-200 bg-white py-1.5 shadow-card"
                   >
                     <div className="border-b border-slate-100 px-4 py-2">
+                      {isAccountantRole && displayName ? (
+                        <p className="truncate text-sm font-bold text-slate-800">{displayName}</p>
+                      ) : null}
                       <p className="truncate text-sm font-semibold text-slate-800">{user?.email}</p>
                     </div>
                     <button

@@ -70,6 +70,9 @@ export const STORAGE_BUCKETS = {
   applications: 'applications',
   logos: 'school-logos',
   documents: 'documents',
+  // Framed admin/accountant pictures live in the public `staff-photos` bucket
+  // (see sql/057-admin-accountant-photos.sql).
+  staffPhotos: 'staff-photos',
 };
 
 export function currentAcademicYear() {

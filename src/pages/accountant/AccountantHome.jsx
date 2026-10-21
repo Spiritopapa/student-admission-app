@@ -1,16 +1,16 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { LayoutDashboard, Wallet, ReceiptText, Building2, ArrowRight, RefreshCw, AlertTriangle } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
+import { LayoutDashboard, Wallet, ReceiptText, Building2, ArrowRight, RefreshCw, AlertTriangle, UserCircle } from 'lucide-react';
 import { useSchoolId } from '../../hooks/useSchool';
+import { useAccountant } from '../../hooks/useAccountant';
 import { PageHeader, Card, Spinner, StatCard, Button, EmptyState } from '../../components/ui';
 import { supabase } from '../../lib/supabase';
 import { cedi } from '../../lib/format';
-import { currentAcademicYear } from '../../lib/constants';
+import { currentAcademicYear, ROLE_LABELS } from '../../lib/constants';
 
 export default function AccountantHome() {
-  const { profile } = useAuth();
   const schoolId = useSchoolId();
+  const { fullName, firstName, registrationId, photo, loading: nameLoading } = useAccountant();
   const [stats, setStats] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
@@ -115,7 +115,7 @@ export default function AccountantHome() {
   return (
     <div>
       <PageHeader
-        title={`Welcome, ${profile?.full_name?.split(' ')[0] || 'Accountant'}`}
+        title={`Welcome, ${firstName || 'Accountant'}`}
         subtitle={`Fee collections summary for ${currentAcademicYear()}`}
         icon={LayoutDashboard}
         actions={
@@ -125,6 +125,46 @@ export default function AccountantHome() {
           </Link>
         }
       />
+
+      {/* Accountant identity: the name shown here comes from the accountant's
+          own `accountants` record (the authoritative, admin-locked value) and
+          falls back to the signed-in profile name when no record is linked. */}
+      <Card className="mb-6 flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-center gap-4">
+          {photo ? (
+            <img
+              src={photo}
+              alt={fullName || 'Accountant'}
+              className="img-zoom h-16 w-16 shrink-0 rounded-2xl object-cover ring-2 ring-brand-100"
+            />
+          ) : (
+            <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-blend text-xl font-extrabold text-white shadow-card">
+              {(fullName || 'A').charAt(0).toUpperCase()}
+            </span>
+          )}
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+              Signed in as accountant
+            </p>
+            <h2 className="mt-0.5 truncate text-lg font-bold tracking-tight text-slate-900">
+              {nameLoading && !fullName ? (
+                <span className="text-slate-400">Loading name...</span>
+              ) : (
+                fullName || 'Accountant'
+              )}
+            </h2>
+            {registrationId ? (
+              <p className="mt-1 text-sm font-medium text-slate-500">
+                Accountant ID: <span className="font-semibold text-slate-700">{registrationId}</span>
+              </p>
+            ) : null}
+          </div>
+        </div>
+        <div className="flex items-center gap-2 text-sm font-semibold text-slate-500">
+          <UserCircle className="h-5 w-5 text-brand-600" aria-hidden="true" />
+          {ROLE_LABELS.accountant}
+        </div>
+      </Card>
 
       <div className="grid gap-4 sm:grid-cols-3">
         <StatCard icon={Wallet} tone="teal" label="Collected today" value={cedi(stats.todayTotal)} sub={`${stats.todayCount} receipts issued`} index={0} />
