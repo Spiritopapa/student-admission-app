@@ -21,24 +21,23 @@ function fmtMoney(amount) {
 }
 
 /**
- * Computes an exact percentage (numerator ÷ denominator × 100) and stringifies
- * it without losing precision to `Math.round`, e.g. 100% stays 100%, 2/3 of a
- * collection shows 66.7% instead of 67%. A zero/negative denominator yields 0%.
+ * Computes an EXACT percentage (numerator ÷ denominator × 100) and stringifies
+ * it to 2 decimal places — the precision of the GHC amounts behind it — so the
+ * value is never approximated by `Math.round`: 100% shows 100.00%, 2/3 of a
+ * collection shows 66.67% (never the rounded 67% or 1-decimal 66.7%).
+ * A zero/negative denominator yields 0.00%.
  *
  * @param {number} numerator
  * @param {number} denominator
- * @returns {string} formatted percentage, e.g. "66.7%" or "100%"
+ * @returns {string} exact percentage, e.g. "66.67%" or "100.00%"
  */
 export function formatPct(numerator, denominator) {
   const denom = Number(denominator);
-  if (!(denom > 0)) return '0%';
+  if (!(denom > 0)) return '0.00%';
   // Numerator is never negative in practice (amounts are clamped upstream),
-  // but guard anyway so a stray negative can never render "-5%".
+  // but guard anyway so a stray negative can never render "-5.00%".
   const num = Math.max(Number(numerator) || 0, 0);
-  const pct = (num / denom) * 100;
-  // Round only for display (1 decimal) — the underlying ratio stays exact.
-  const display = Math.round(pct * 10) / 10;
-  return `${Number.isInteger(display) ? display : display.toFixed(1)}%`;
+  return `${((num / denom) * 100).toFixed(2)}%`;
 }
 
 /**

@@ -903,7 +903,7 @@ function animateCounter(element, targetValue, isFee = false, isPct = false, puls
   if (!isPct) {
     element.textContent = isFee ? 'GHC 0.00' : '0';
   } else {
-    element.textContent = '0%';
+    element.textContent = '0.00%';
   }
 
   function update(currentTime) {
@@ -913,7 +913,7 @@ function animateCounter(element, targetValue, isFee = false, isPct = false, puls
     const current = targetValue * eased;
 
     if (isPct) {
-      element.textContent = current.toFixed(1) + '%';
+      element.textContent = current.toFixed(2) + '%';
     } else if (isFee) {
       element.textContent = 'GHC ' + current.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
     } else {
@@ -923,9 +923,9 @@ function animateCounter(element, targetValue, isFee = false, isPct = false, puls
     if (progress < 1) {
       requestAnimationFrame(update);
     } else {
-      // Final value
+      // Final value — exact to 2dp (raw target, only stringified for display)
       if (isPct) {
-        element.textContent = targetValue.toFixed(1) + '%';
+        element.textContent = targetValue.toFixed(2) + '%';
       } else if (isFee) {
         element.textContent = 'GHC ' + targetValue.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
       } else {
@@ -944,15 +944,19 @@ function animateFeeProgressBar() {
   const fill = document.getElementById('feeProgressFill');
   if (!fill) return;
 
-  let totalAmount = 0, totalPaid = 0;
+  let totalAmount = 0, totalPaid = 0, totalOutstanding = 0;
   allFees.forEach(f => {
-    totalAmount += Number(f.total_amount) || 0;
-    totalPaid += Number(f.amount_paid) || 0;
+    // Expected = total_amount + debt (migration 086: `debt` is a real charge).
+    const amt = (Number(f.total_amount) || 0) + (Number(f.debt) || 0);
+    const paid = Number(f.amount_paid) || 0;
+    totalAmount += amt;
+    totalPaid += paid;
+    totalOutstanding += Math.max(amt - paid, 0);
   });
 
-  // Collection rate = paid ÷ total expected (all fee billings). Carried debt
-  // is NOT added to expected — it is already inside the older term records'
-  // total_amount that were rolled forward, so adding it would double-count.
+  // Collection rate = paid ÷ total expected (all fee billings incl. debt).
+  // Carried-forward arrears are NOT added — they already live in the older
+  // term records' total_amount, so adding them would double-count.
   const totalExpected = totalAmount;
   const pct = totalExpected > 0 ? (totalPaid / totalExpected) * 100 : 0;
 
@@ -1251,19 +1255,26 @@ function animateDashboardCounters() {
 
   // Fee counters (only if fees module is not locked)
   if (!lockedModules.has('fees')) {
-    let totalAmount = 0, totalPaid = 0;
+    let totalAmount = 0, totalPaid = 0, totalOutstanding = 0;
     allFees.forEach(f => {
-      const amt = Number(f.total_amount) || 0;
+      // Expected = total_amount + debt. Migration 086 made `debt` a REAL
+      // charge (the generated `balance` column is total_amount + debt -
+      // amount_paid), so it must be part of what is expected. The "Fees by
+      // Class" chart below already uses this same basis.
+      const amt = (Number(f.total_amount) || 0) + (Number(f.debt) || 0);
       const paid = Number(f.amount_paid) || 0;
       totalAmount += amt;
       totalPaid += paid;
+      // Outstanding is summed per record so one student's overpayment can
+      // never hide another student's arrears.
+      totalOutstanding += Math.max(amt - paid, 0);
     });
-    // Total Expected = all fee billings. Carried debt is NOT added again —
-    // it is already represented inside the older term records' total_amount
-    // that were rolled forward, so adding it here would double-count.
+    // Total Expected = all fee billings (incl. debt). Carried-forward arrears
+    // are NOT added again — they already live in the older term records'
+    // total_amount that were rolled forward, so adding them would double-count.
     const totalExpected = totalAmount;
     // Outstanding Balance = what's still owed after all payments (never negative)
-    const outstandingBalance = Math.max(totalExpected - totalPaid, 0);
+    const outstandingBalance = totalOutstanding;
 
     const feeConfigs = [
       { id: 'feeTotalAmount', target: totalExpected },
@@ -1393,26 +1404,30 @@ function animateChartBars() {
 // ================================================================
 
 function renderFeeOverview() {
-  let totalAmount = 0, totalPaid = 0;
+  let totalAmount = 0, totalPaid = 0, totalOutstanding = 0;
   let paidCount = 0, unpaidCount = 0, partialCount = 0;
 
   // allFees now contains ALL fee records across all terms and years
   allFees.forEach(f => {
-    const amt = Number(f.total_amount) || 0;
+    // Expected = total_amount + debt (migration 086: `debt` is a real charge).
+    const amt = (Number(f.total_amount) || 0) + (Number(f.debt) || 0);
     const paid = Number(f.amount_paid) || 0;
     totalAmount += amt;
     totalPaid += paid;
+    // Outstanding summed per record so one student's overpayment can never
+    // hide another student's arrears.
+    totalOutstanding += Math.max(amt - paid, 0);
     if (f.payment_status === 'paid') paidCount++;
     else if (f.payment_status === 'partial') partialCount++;
     else unpaidCount++;
   });
 
-  // Total Expected = all fee billings. Carried debt is NOT added again — it is
-  // already inside the older term records' total_amount that were rolled
-  // forward, so adding it here would double-count it.
+  // Total Expected = all fee billings (incl. debt). Carried-forward arrears
+  // are NOT added again — they already live in the older term records'
+  // total_amount that were rolled forward, so adding them would double-count.
   const totalExpected = totalAmount;
   // Outstanding Balance = what's still owed after all payments
-  const outstandingBalance = Math.max(totalExpected - totalPaid, 0);
+  const outstandingBalance = totalOutstanding;
 
   // School fees collected today — highlighted full-width banner that uses a
   // distinct pulse animation when its counter lands.
@@ -1465,7 +1480,7 @@ function renderFeeProgress() {
     <div class="dash-fee-progress">
       <div class="dash-fee-progress-header">
         <span>Collection Rate</span>
-        <span class="dash-fee-pct" id="feePct">0%</span>
+        <span class="dash-fee-pct" id="feePct">0.00%</span>
       </div>
       <div class="dash-fee-progress-track">
         <div class="dash-fee-progress-fill" id="feeProgressFill" style="width:0%;"></div>

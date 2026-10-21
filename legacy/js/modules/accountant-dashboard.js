@@ -1734,20 +1734,27 @@ async function loadAccFeeOverview() {
     if (schoolId) query = query.eq('school_id', schoolId);
     const { data: fees } = await query;
 
-    let totalAmount = 0, totalPaid = 0;
+    let totalAmount = 0, totalPaid = 0, totalOutstanding = 0;
     if (fees) {
       fees.forEach(f => {
-        totalAmount += Number(f.total_amount) || 0;
-        totalPaid += Number(f.amount_paid) || 0;
+        // Expected = total_amount + debt (migration 086: `debt` is a real
+        // charge, and the generated `balance` column counts it).
+        const amt = (Number(f.total_amount) || 0) + (Number(f.debt) || 0);
+        const paid = Number(f.amount_paid) || 0;
+        totalAmount += amt;
+        totalPaid += paid;
+        // Outstanding summed per record so one student's overpayment can never
+        // hide another student's arrears.
+        totalOutstanding += Math.max(amt - paid, 0);
       });
     }
 
-    // Total Expected = all fee billings. Carried debt is NOT added again — it
-    // is already inside the older term records' total_amount that were rolled
-    // forward, so adding it here would double-count it.
+    // Total Expected = all fee billings (incl. debt). Carried-forward arrears
+    // are NOT added again — they already live in the older term records'
+    // total_amount that were rolled forward, so adding them would double-count.
     const totalExpected = totalAmount;
     // Outstanding Balance = what's still owed after all payments
-    const outstandingBalance = Math.max(totalExpected - totalPaid, 0);
+    const outstandingBalance = totalOutstanding;
 
     const totalEl = getEl('accFeeTotalAmount');
     if (totalEl) totalEl.textContent = `GHC ${formatCurrency(totalExpected)}`;
@@ -1804,11 +1811,14 @@ async function loadAccFeeOverview() {
     const pctEl = getEl('accFeePct');
     const fillEl = getEl('accFeeProgressFill');
     if (totalExpected > 0) {
-      const pct = Math.round((totalPaid / totalExpected) * 100);
-      if (pctEl) pctEl.textContent = `${pct}%`;
-      if (fillEl) fillEl.style.width = `${Math.min(pct, 100)}%`;
+      // EXACT collection rate: raw (unrounded) ratio × 100 to 2 decimal
+      // places — 97.83% stays 97.83%, never Math.round's approximation "98%".
+      // The bar keeps the raw value (clamped) so text and fill always agree.
+      const rawPct = (totalPaid / totalExpected) * 100;
+      if (pctEl) pctEl.textContent = `${rawPct.toFixed(2)}%`;
+      if (fillEl) fillEl.style.width = `${Math.min(rawPct, 100)}%`;
     } else {
-      if (pctEl) pctEl.textContent = '0%';
+      if (pctEl) pctEl.textContent = '0.00%';
       if (fillEl) fillEl.style.width = '0%';
     }
   } catch (err) {

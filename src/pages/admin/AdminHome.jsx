@@ -22,10 +22,12 @@ function fmtMoney(n) {
 
 function pct(numerator, denominator) {
   const denom = Number(denominator);
-  if (!(denom > 0)) return '0%';
+  if (!(denom > 0)) return '0.00%';
   const num = Math.max(Number(numerator) || 0, 0);
-  const display = Math.round((num / denom) * 1000) / 10;
-  return `${Number.isInteger(display) ? display : display.toFixed(1)}%`;
+  // EXACT collection rate: raw (unrounded) ratio × 100 shown to 2 decimal
+  // places — the precision of the GHC amounts behind it. 2/3 shows 66.67%,
+  // never the approximated "67%" or "66.7%" from earlier rounding.
+  return `${((num / denom) * 100).toFixed(2)}%`;
 }
 
 function sumAmount(rows, key) {
@@ -340,6 +342,7 @@ export default function AdminHome() {
       });
       let totalAmount = 0;
       let totalPaid = 0;
+      let totalOutstanding = 0;
       feesArr.forEach((f) => {
         // Liability per record = total_amount + debt − amount_paid. `debt` is
         // a real admin-added charge; migration 086 guarantees it never
@@ -348,6 +351,9 @@ export default function AdminHome() {
         const paid = Number(f.amount_paid) || 0;
         totalAmount += total;
         totalPaid += paid;
+        // Outstanding is summed per record so one student's overpayment can
+        // never hide another student's arrears.
+        totalOutstanding += Math.max(total - paid, 0);
         const cls = studentClassMap[f.student_id] || 'Unassigned';
         const row = ensure(feeClassMap, cls);
         row.totalFees += total;
@@ -413,7 +419,7 @@ export default function AdminHome() {
         feeStats: {
           totalAmount,
           totalPaid,
-          totalBalance: Math.max(totalAmount - totalPaid, 0),
+          totalBalance: totalOutstanding,
           paidCount: feeStatusLists.paid.length,
           partialCount: feeStatusLists.partial.length,
           unpaidCount: feeStatusLists.unpaid.length,
