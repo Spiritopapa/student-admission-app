@@ -33,6 +33,7 @@ import AdminClasses from './pages/admin/AdminClasses';
 import AdminSubjects from './pages/admin/AdminSubjects';
 import AdminTeachers from './pages/admin/AdminTeachers';
 import AdminAccountants from './pages/admin/AdminAccountants';
+import AdminPayslips from './pages/admin/AdminPayslips';
 import AdminParents from './pages/admin/AdminParents';
 import AdminAnnouncements from './pages/admin/AdminAnnouncements';
 import AdminAttendance from './pages/admin/AdminAttendance';
@@ -123,6 +124,7 @@ export default function App() {
           <Route path="/admin/subjects" element={<RoleRoute roles={['admin', 'sub_admin']}><AdminSubjects /></RoleRoute>} />
           <Route path="/admin/teachers" element={<RoleRoute roles={['admin', 'sub_admin']}><AdminTeachers /></RoleRoute>} />
           <Route path="/admin/accountants" element={<RoleRoute roles={['admin', 'sub_admin']}><AdminAccountants /></RoleRoute>} />
+          <Route path="/admin/payslips" element={<RoleRoute roles={['admin', 'sub_admin']}><AdminPayslips /></RoleRoute>} />
           <Route path="/admin/announcements" element={<RoleRoute roles={['admin', 'sub_admin']}><AdminAnnouncements /></RoleRoute>} />
           <Route path="/admin/attendance" element={<RoleRoute roles={['admin', 'sub_admin']}><AdminAttendance /></RoleRoute>} />
           <Route path="/admin/exams" element={<RoleRoute roles={['admin', 'sub_admin']}><AdminExams /></RoleRoute>} />

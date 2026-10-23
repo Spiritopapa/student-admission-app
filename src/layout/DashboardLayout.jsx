@@ -30,6 +30,7 @@ const MODULE_PATH_MAP = {
   subjects: ['/admin/subjects'],
   teachers: ['/admin/teachers'],
   accountants: ['/admin/accountants'],
+  payslips: ['/admin/payslips'],
   parents: ['/admin/parents'],
   attendance: ['/admin/attendance'],
   exams: ['/admin/exams'],

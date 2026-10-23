@@ -22,6 +22,7 @@ import {
   LifeBuoy,
   Activity,
   AlertTriangle,
+  CreditCard,
 } from 'lucide-react';
 
 export const NAV_BY_ROLE = {
@@ -49,6 +50,7 @@ export const NAV_BY_ROLE = {
     { path: '/admin/subjects', label: 'Subjects', icon: FileText },
     { path: '/admin/teachers', label: 'Teachers', icon: User },
     { path: '/admin/accountants', label: 'Accountants', icon: Wallet },
+    { path: '/admin/payslips', label: 'Payslips', icon: CreditCard },
     { path: '/admin/announcements', label: 'Announcements', icon: Megaphone },
     { path: '/admin/attendance', label: 'Attendance', icon: CalendarCheck },
     { path: '/admin/exams', label: 'Examinations', icon: Award },
