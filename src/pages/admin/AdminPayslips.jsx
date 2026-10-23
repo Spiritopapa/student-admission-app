@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   CreditCard, UserRound, Users, Plus, Pencil, Printer, Download,
-  RefreshCw, Trash2, FileText, Calendar, Wallet, Eye,
+  RefreshCw, Trash2, FileText, Calendar, Wallet, Eye, Settings,
 } from 'lucide-react';
-import { useSchoolId } from '../../hooks/useSchool';
+import { useSchoolId, useSchoolSettings } from '../../hooks/useSchool';
 import { useToast } from '../../context/ToastContext';
 import {
   PageHeader, Card, Button, Input, Select, Spinner, EmptyState,
-  Badge, SearchInput,
+  Badge, SearchInput, Switch,
 } from '../../components/ui';
 import { Modal, ConfirmDialog, Alert } from '../../components/ui-extras';
 import { supabase } from '../../lib/supabase';
@@ -15,6 +15,7 @@ import { logActivityForCurrentUser } from '../../lib/activity';
 import { buildCSV, downloadCSV } from '../../lib/csv';
 import { cedi, formatDate } from '../../lib/format';
 import { openPrintWindow, escapeHtml } from '../../lib/print';
+import { photoUrl } from '../../lib/storage';
 import {
   currentAcademicYear, academicYearList, TERMS, TERM_LABELS,
 } from '../../lib/constants';
@@ -28,6 +29,17 @@ const MONTHS = [
   { value: 7, label: 'July' }, { value: 8, label: 'August' },
   { value: 9, label: 'September' }, { value: 10, label: 'October' },
   { value: 11, label: 'November' }, { value: 12, label: 'December' },
+];
+
+const SALARY_KEYS = [
+  { key: 'basic_salary', label: 'Basic Salary' },
+  { key: 'allowance_housing', label: 'Housing Allowance' },
+  { key: 'allowance_transport', label: 'Transport Allowance' },
+  { key: 'allowance_other', label: 'Other Allowance' },
+  { key: 'deduction_tax', label: 'Tax Deduction' },
+  { key: 'deduction_ssnit', label: 'SSNIT Deduction' },
+  { key: 'deduction_loan', label: 'Loan Deduction' },
+  { key: 'deduction_other', label: 'Other Deduction' },
 ];
 
 function emptyPayslipForm() {
@@ -68,7 +80,11 @@ function fmtMoney(n) {
 export default function AdminPayslips() {
   const schoolId = useSchoolId();
   const toast = useToast();
+  const { settings: schoolSettings, loading: settingsLoading } = useSchoolSettings();
+  const schoolName = schoolSettings?.school_name || 'School';
+  const schoolLogoUrl = schoolSettings?.logo_url ? photoUrl(schoolSettings.logo_url) : '';
   const [staff, setStaff] = useState([]);
+  const [salarySetups, setSalarySetups] = useState([]);
   const [payslips, setPayslips] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -88,12 +104,23 @@ export default function AdminPayslips() {
   const [viewing, setViewing] = useState(null);
   const [printingAll, setPrintingAll] = useState(false);
 
+  const [salaryOpen, setSalaryOpen] = useState(false);
+  const [salaryEditing, setSalaryEditing] = useState(null);
+  const [salaryForm, setSalaryForm] = useState({});
+  const [salaryBusy, setSalaryBusy] = useState(false);
+
   const nowYear = new Date().getFullYear();
   const yearOptions = useMemo(() => {
     const years = [];
     for (let y = nowYear - 5; y <= nowYear + 5; y += 1) years.push(String(y));
     return years;
   }, [nowYear]);
+
+  const salarySetupOf = useMemo(() => {
+    const m = {};
+    salarySetups.forEach((s) => { m[s.staff_id] = s; });
+    return m;
+  }, [salarySetups]);
 
   const load = useCallback(() => {
     if (!schoolId) return;
@@ -102,10 +129,12 @@ export default function AdminPayslips() {
       supabase.from('teachers').select('id, full_name, registration_id, photo_url, email, phone, staff_type').eq('school_id', schoolId),
       supabase.from('accountants').select('id, full_name, registration_id, photo_url, email, phone').eq('school_id', schoolId),
       supabase.from('staff_payslips').select('*').eq('school_id', schoolId).order('pay_year', { ascending: false }).order('pay_month', { ascending: false }),
-    ]).then(([tRes, aRes, pRes]) => {
+      supabase.from('staff_salary_setup').select('*').eq('school_id', schoolId).eq('is_active', true),
+    ]).then(([tRes, aRes, pRes, sRes]) => {
       if (tRes.error) toast.error('Could not load teachers', tRes.error.message);
       else if (aRes.error) toast.error('Could not load accountants', aRes.error.message);
       else if (pRes.error) toast.error('Could not load payslips', pRes.error.message);
+      else if (sRes.error) toast.error('Could not load salary setups', sRes.error.message);
       else {
         const teachers = (tRes.data || []).map((t) => ({
           id: t.id, staff_type: 'teacher', full_name: t.full_name,
@@ -119,6 +148,7 @@ export default function AdminPayslips() {
         }));
         setStaff([...teachers, ...accountants]);
         setPayslips(pRes.data || []);
+        setSalarySetups(sRes.data || []);
       }
       setLoading(false);
     });
@@ -273,6 +303,67 @@ export default function AdminPayslips() {
     }
   };
 
+  const openSalarySetup = (s) => {
+    const setup = salarySetupOf[s.id];
+    setSalaryEditing(s);
+    setSalaryForm({
+      staff_id: s.id,
+      staff_type: s.staff_type,
+      basic_salary: setup ? String(setup.basic_salary) : '',
+      allowance_housing: setup ? String(setup.allowance_housing) : '',
+      allowance_transport: setup ? String(setup.allowance_transport) : '',
+      allowance_other: setup ? String(setup.allowance_other) : '',
+      deduction_tax: setup ? String(setup.deduction_tax) : '',
+      deduction_ssnit: setup ? String(setup.deduction_ssnit) : '',
+      deduction_loan: setup ? String(setup.deduction_loan) : '',
+      deduction_other: setup ? String(setup.deduction_other) : '',
+      notes: setup?.notes || '',
+    });
+    setSalaryOpen(true);
+  };
+
+  const closeSalarySetup = () => {
+    setSalaryOpen(false);
+    setSalaryEditing(null);
+    setSalaryForm({});
+  };
+
+  const saveSalarySetup = async () => {
+    if (!salaryEditing) return;
+    setSalaryBusy(true);
+    try {
+      const payload = {
+        school_id: schoolId,
+        staff_id: salaryEditing.id,
+        staff_type: salaryEditing.staff_type,
+        basic_salary: money(salaryForm.basic_salary),
+        allowance_housing: money(salaryForm.allowance_housing),
+        allowance_transport: money(salaryForm.allowance_transport),
+        allowance_other: money(salaryForm.allowance_other),
+        deduction_tax: money(salaryForm.deduction_tax),
+        deduction_ssnit: money(salaryForm.deduction_ssnit),
+        deduction_loan: money(salaryForm.deduction_loan),
+        deduction_other: money(salaryForm.deduction_other),
+        notes: salaryForm.notes.trim() || null,
+      };
+      const { error: uErr } = await supabase
+        .from('staff_salary_setup')
+        .upsert(payload, { onConflict: 'school_id, staff_id, staff_type' });
+      if (uErr) throw new Error(uErr.message);
+      await logActivityForCurrentUser(`Set salary structure for ${salaryEditing.full_name}`, {
+        entityType: 'salary_setup',
+        entityDetails: `Basic ${cedi(money(salaryForm.basic_salary))}`,
+      });
+      toast.success('Salary structure saved');
+      closeSalarySetup();
+      load();
+    } catch (err) {
+      toast.error('Could not save salary structure', err.message);
+    } finally {
+      setSalaryBusy(false);
+    }
+  };
+
   const confirmDelete = async () => {
     setDeleteBusy(true);
     try {
@@ -308,8 +399,8 @@ export default function AdminPayslips() {
     const gross = b + h + t + o;
     const deductions = tx + ss + ln + od;
     const net = money(p.net_pay);
-    const schoolName = (window.__schoolName || 'School');
     const monthLabel = MONTHS.find((m) => m.value === p.pay_month)?.label || String(p.pay_month);
+    const logoImg = schoolLogoUrl ? `<img src="${esc(schoolLogoUrl)}" alt="School logo" style="height:44px;width:44px;object-fit:contain;border-radius:8px;border:1px solid #ddd;" />` : `<div style="display:inline-flex;align-items:center;justify-content:center;height:44px;width:44px;background:#eef2ff;color:#2563eb;border:1px solid #c7d2fe;border-radius:8px;font-weight:800;font-size:16px;">${esc((schoolName || 'S').charAt(0).toUpperCase())}</div>`;
     const html = `<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8" /><title>Payslip - ${esc(p.staff_name)}</title>
@@ -331,7 +422,11 @@ export default function AdminPayslips() {
   @media print { body { padding: 0; } }
 </style></head>
 <body>
-  <div class="header"><div class="school">${esc(schoolName)}</div><div class="doc-title">Staff Payslip</div></div>
+  <div class="header">
+    <div style="display:inline-flex;align-items:center;justify-content:center;gap:10px;margin-bottom:6px;">${logoImg}</div>
+    <div class="school">${esc(schoolName)}</div>
+    <div class="doc-title">Staff Payslip</div>
+  </div>
   <div class="meta">
     <div><b>Staff:</b> ${esc(p.staff_name)}</div>
     <div><b>ID / Reg:</b> ${esc(p.staff_registration_id || s?.registration_id || '—')}</div>
@@ -390,8 +485,8 @@ export default function AdminPayslips() {
         </tr>`;
       }).join('');
       const totalNet = periodPayslips.reduce((acc, p) => acc + money(p.net_pay), 0);
-      const schoolName = (window.__schoolName || 'School');
       const label = `${monthFilter ? MONTHS.find((m) => m.value === Number(monthFilter))?.label : 'All'} ${yearFilter || nowYear}`;
+      const logoImg = schoolLogoUrl ? `<img src="${esc(schoolLogoUrl)}" alt="School logo" style="height:40px;width:40px;object-fit:contain;border-radius:8px;border:1px solid #ddd;" />` : `<div style="display:inline-flex;align-items:center;justify-content:center;height:40px;width:40px;background:#eef2ff;color:#2563eb;border:1px solid #c7d2fe;border-radius:8px;font-weight:800;font-size:14px;">${esc((schoolName || 'S').charAt(0).toUpperCase())}</div>`;
       const html = `<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8" /><title>Payslips - ${esc(label)}</title>
@@ -408,7 +503,11 @@ export default function AdminPayslips() {
   @media print { body { padding: 0; } }
 </style></head>
 <body>
-  <div class="header"><div class="school">${esc(schoolName)}</div><div class="doc-title">Payslips — ${esc(label)}</div></div>
+  <div class="header">
+    <div style="display:inline-flex;align-items:center;justify-content:center;gap:8px;margin-bottom:4px;">${logoImg}</div>
+    <div class="school">${esc(schoolName)}</div>
+    <div class="doc-title">Payslips — ${esc(label)}</div>
+  </div>
   <p style="font-size:11px;color:#444;margin-bottom:10px;">${esc(schoolName)} · ${periodPayslips.length} staff member(s) · ${new Date().toLocaleDateString('en-GB')}</p>
   <table>
     <thead><tr>
@@ -538,6 +637,7 @@ export default function AdminPayslips() {
                     <th className="pb-3 pr-2 font-semibold">Staff</th>
                     <th className="pb-3 text-right font-semibold">Reg. ID</th>
                     <th className="pb-3 text-right font-semibold w-20">Type</th>
+                    <th className="pb-3 text-right font-semibold w-24">Salary Setup</th>
                     <th className="pb-3 text-right font-semibold w-24">Latest Net Pay</th>
                     <th className="pb-3 text-right font-semibold w-28">Period</th>
                     <th className="pb-3 text-right font-semibold w-32">Actions</th>
@@ -547,6 +647,7 @@ export default function AdminPayslips() {
                   {filteredStaff.length ? (
                     filteredStaff.map((s) => {
                       const latest = latestPayslipFor(s);
+                      const setup = salarySetupOf[s.id];
                       return (
                         <tr key={s.id} className="hover:bg-slate-50 group">
                           <td className="py-3 pr-2">
@@ -563,6 +664,13 @@ export default function AdminPayslips() {
                             <Badge tone={s.staff_type === 'teacher' ? 'blue' : 'teal'} className="text-xs">
                               {s.staff_type === 'teacher' ? 'Teacher' : 'Accountant'}
                             </Badge>
+                          </td>
+                          <td className="py-3 text-right">
+                            {setup ? (
+                              <span className="font-semibold text-slate-800">{cedi(setup.basic_salary)}</span>
+                            ) : (
+                              <span className="text-xs text-slate-400">—</span>
+                            )}
                           </td>
                           <td className="py-3 text-right">
                             {latest ? (
@@ -584,14 +692,22 @@ export default function AdminPayslips() {
                                   <Button size="sm" variant="ghost" onClick={() => openEdit(latest)} title="Edit payslip">
                                     <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
                                   </Button>
+                                  <Button size="sm" variant="ghost" onClick={() => openSalarySetup(s)} title="Set salary structure">
+                                    <Settings className="h-3.5 w-3.5" aria-hidden="true" />
+                                  </Button>
                                   <Button size="sm" variant="ghost" onClick={() => { setDeleting(latest); }} title="Delete payslip">
                                     <Trash2 className="h-3.5 w-3.5 text-rose-500" aria-hidden="true" />
                                   </Button>
                                 </>
                               ) : (
-                                <Button size="sm" onClick={() => openEdit(null)} title="Generate payslip">
-                                  <Plus className="h-3.5 w-3.5" aria-hidden="true" />
-                                </Button>
+                                <>
+                                  <Button size="sm" onClick={() => openEdit(null)} title="Generate payslip">
+                                    <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+                                  </Button>
+                                  <Button size="sm" variant="ghost" onClick={() => openSalarySetup(s)} title="Set salary structure">
+                                    <Settings className="h-3.5 w-3.5" aria-hidden="true" />
+                                  </Button>
+                                </>
                               )}
                             </div>
                           </td>
@@ -682,6 +798,7 @@ export default function AdminPayslips() {
               onChange={(e) => {
                 const id = e.target.value;
                 const s = staff.find((x) => x.id === id);
+                const setup = id ? salarySetupOf[id] : null;
                 if (s) {
                   setForm((f) => ({
                     ...f,
@@ -689,6 +806,14 @@ export default function AdminPayslips() {
                     staff_type: s.staff_type,
                     staff_name: s.full_name,
                     staff_registration_id: s.registration_id || '',
+                    basic_salary: setup ? String(setup.basic_salary) : '',
+                    allowance_housing: setup ? String(setup.allowance_housing) : '',
+                    allowance_transport: setup ? String(setup.allowance_transport) : '',
+                    allowance_other: setup ? String(setup.allowance_other) : '',
+                    deduction_tax: setup ? String(setup.deduction_tax) : '',
+                    deduction_ssnit: setup ? String(setup.deduction_ssnit) : '',
+                    deduction_loan: setup ? String(setup.deduction_loan) : '',
+                    deduction_other: setup ? String(setup.deduction_other) : '',
                   }));
                 } else {
                   setForm((f) => ({ ...f, staff_id: id }));
@@ -757,6 +882,38 @@ export default function AdminPayslips() {
           </div>
           <div className="sm:col-span-2">
             <Input label="Notes" value={form.notes} onChange={set('notes')} placeholder="Optional notes…" />
+          </div>
+        </div>
+      </Modal>
+      <Modal
+        open={salaryOpen}
+        onClose={closeSalarySetup}
+        title={`Salary Structure — ${salaryEditing?.full_name}`}
+        size="md"
+        footer={
+          <div className="flex w-full gap-2">
+            <Button variant="secondary" onClick={closeSalarySetup} className="flex-1">
+              Cancel
+            </Button>
+            <Button onClick={saveSalarySetup} loading={salaryBusy} className="flex-1">
+              Save salary structure
+            </Button>
+          </div>
+        }
+      >
+        <div className="grid gap-4 sm:grid-cols-2">
+          {SALARY_KEYS.map((field) => (
+            <div key={field.key} className="sm:col-span-2">
+              <Input
+                type="number"
+                label={field.label}
+                value={salaryForm[field.key]}
+                onChange={(e) => setSalaryForm((f) => ({ ...f, [field.key]: e.target.value }))}
+              />
+            </div>
+          ))}
+          <div className="sm:col-span-2">
+            <Input label="Notes" value={salaryForm.notes} onChange={(e) => setSalaryForm((f) => ({ ...f, notes: e.target.value }))} placeholder="Optional notes…" />
           </div>
         </div>
       </Modal>
