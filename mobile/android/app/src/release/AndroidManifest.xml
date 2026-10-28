@@ -1,0 +1,6 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- The release app loads the hosted SchoolRunner web app in an
+         embedded WebView and talks to Supabase over HTTPS, so it needs
+         the INTERNET permission exactly like the debug flavour. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+</manifest>
