@@ -12,6 +12,11 @@ dist/
 .DS_Store
 Thumbs.db
 
+# Mobile / build artifacts (do not commit APKs or AABs to Git)
+*.apk
+*.aab
+mobile-rn/
+
 # IDE / editor
 .vscode/
 .idea/
