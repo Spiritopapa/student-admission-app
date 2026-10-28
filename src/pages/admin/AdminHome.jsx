@@ -4,12 +4,15 @@ import { motion } from 'framer-motion';
 import {
   Users, BookOpen, UserRound, Wallet, LayoutDashboard, ArrowRight,
   RefreshCw, Clock, CheckCircle2, CalendarCheck, Bus, TrendingUp,
+  ReceiptText, Printer, Eye,
 } from 'lucide-react';
 import { useSchoolId, useSchoolSettings } from '../../hooks/useSchool';
 import { PageHeader, Card, Spinner, Badge, StatCard, Button } from '../../components/ui';
 import { Modal } from '../../components/ui-extras';
+import ReceiptModal from '../../components/ReceiptModal';
 import { supabase } from '../../lib/supabase';
-import { buildStudentName, cedi, formatDate } from '../../lib/format';
+import { openPrintWindow, escapeHtml } from '../../lib/print';
+import { buildStudentName, cedi, formatDate, formatDateTime } from '../../lib/format';
 import { photoUrl } from '../../lib/storage';
 import { currentAcademicYear } from '../../lib/constants';
 
@@ -32,6 +35,61 @@ function pct(numerator, denominator) {
 
 function sumAmount(rows, key) {
   return (rows || []).reduce((s, r) => s + (Number(r[key]) || 0), 0);
+}
+
+// Builds and opens a printable receipt document for a single fee receipt,
+// mirroring the official receipt layout used in ReceiptModal.
+function printReceipt(receipt, schoolName) {
+  const data = receipt.receipt_data || {};
+  const receiptDate = formatDateTime(receipt.receipt_date);
+  const studentName = data.student_name || '';
+  const studentClass = data.class || '-';
+  const paymentMethod = data.payment_method || receipt.payment_method || 'Cash';
+  const html = `
+<div style="font-family:Arial, Helvetica, sans-serif; max-width:720px; margin:0 auto; padding:24px; color:#111;">
+  <div style="text-align:center; border-bottom:2px solid #1e3a5f; padding-bottom:14px; margin-bottom:18px;">
+    <div style="font-size:12px; color:#666; letter-spacing:2px; text-transform:uppercase">${escapeHtml(
+      schoolName || 'School'
+    )}</div>
+    <div style="font-size:18px; font-weight:800; letter-spacing:1px">Fee Receipt</div>
+    <div style="font-size:11px; color:#666; margin-top:4px">System-generated &middot; proof of payment</div>
+  </div>
+  <table style="width:100%; border-collapse:collapse; font-size:13px; line-height:1.5;">
+    <tr>
+      <td style="padding:6px 0; width:42%; font-weight:700; color:#444; vertical-align:top">Receipt Number</td>
+      <td style="padding:6px 0; font-family:monospace">${escapeHtml(receipt.receipt_number)}</td>
+    </tr>
+    <tr>
+      <td style="padding:6px 0; font-weight:700; color:#444; vertical-align:top">Date</td>
+      <td style="padding:6px 0">${escapeHtml(receiptDate)}</td>
+    </tr>
+    <tr>
+      <td style="padding:6px 0; font-weight:700; color:#444; vertical-align:top">Student</td>
+      <td style="padding:6px 0">${escapeHtml(studentName || receipt.student_id)}</td>
+    </tr>
+    <tr>
+      <td style="padding:6px 0; font-weight:700; color:#444; vertical-align:top">Student ID</td>
+      <td style="padding:6px 0; font-family:monospace">${escapeHtml(receipt.student_id)}</td>
+    </tr>
+    <tr>
+      <td style="padding:6px 0; font-weight:700; color:#444; vertical-align:top">Class &middot; Term</td>
+      <td style="padding:6px 0">${escapeHtml(studentClass)} &middot; ${escapeHtml(
+        receipt.term
+      )} ${escapeHtml(receipt.academic_year)}</td>
+    </tr>
+    <tr>
+      <td style="padding:6px 0; font-weight:700; color:#444; vertical-align:top">Amount Paid</td>
+      <td style="padding:6px 0; font-weight:700">${cedi(receipt.amount)}</td>
+    </tr>
+    <tr>
+      <td style="padding:6px 0; font-weight:700; color:#444; vertical-align:top">Payment Method</td>
+      <td style="padding:6px 0">${escapeHtml(paymentMethod)}</td>
+    </tr>
+  </table>
+  <p style="margin-top:24px; font-size:11px; color:#666; text-align:center">This receipt was generated from the school's fee records. Keep it as proof of payment.</p>
+</div>
+  `;
+  openPrintWindow(`Fee Receipt - ${escapeHtml(receipt.receipt_number)}`, html);
 }
 
 // Total / Collected / Outstanding horizontal bar row used inside the
@@ -250,6 +308,8 @@ export default function AdminHome() {
   const [refreshing, setRefreshing] = useState(false);
   // Fee overview card: the status whose student list is currently open in the modal.
   const [statusModal, setStatusModal] = useState(null);
+  // Fee overview card: the receipt currently opened for view/print in the modal.
+  const [viewReceipt, setViewReceipt] = useState(null);
 
   const load = useCallback(async () => {
     if (!schoolId) return;
@@ -269,6 +329,7 @@ export default function AdminHome() {
         { data: attendance },
         { data: paymentsToday },
         { data: transportToday },
+        { data: recentReceipts },
         { data: lockedRows },
         { data: schoolRow },
       ] = await Promise.all([
@@ -295,6 +356,12 @@ export default function AdminHome() {
           .eq('collection_date', todayISO)
           .eq('school_id', schoolId),
         supabase
+          .from('receipts')
+          .select('receipt_number, student_id, amount, payment_method, receipt_date, academic_year, term, receipt_data')
+          .eq('school_id', schoolId)
+          .order('receipt_date', { ascending: false })
+          .limit(8),
+        supabase
           .from('school_modules')
           .select('module_name')
           .eq('school_id', schoolId)
@@ -304,6 +371,11 @@ export default function AdminHome() {
 
       const studentsArr = students || [];
       const feesArr = fees || [];
+      // Index students by id so recent receipts can show the payer's name.
+      const studentMap = {};
+      studentsArr.forEach((s) => {
+        if (s.student_id) studentMap[s.student_id] = s;
+      });
       const classOrder = (classes || []).map((c) => c.name);
       const orderClasses = (names) => {
         const seen = new Set();
@@ -570,6 +642,80 @@ return (
                 <span className="font-bold text-cyan-600">{cedi(Math.round(data.transportToday))}</span>
               </div>
             </div>
+
+            {recentReceipts.length ? (
+              <div className="mt-5">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                    Recent fee receipts
+                  </h3>
+                  <Link
+                    to="/admin/fees"
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-brand-600 hover:text-brand-700"
+                  >
+                    View all
+                    <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+                  </Link>
+                </div>
+                <div className="divide-y divide-slate-50">
+                  {recentReceipts.map((r) => {
+                    const app = studentMap[r.student_id];
+                    const name = app
+                      ? buildStudentName(app.first_name, app.middle_name, app.last_name)
+                      : r.student_id;
+                    return (
+                      <div
+                        key={r.id}
+                        className="flex items-center justify-between gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 transition-colors"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-mono font-bold text-slate-800 truncate">
+                            {r.receipt_number}
+                          </p>
+                          <p className="text-[10px] text-slate-500 truncate">
+                            {name} · {r.student_id}
+                          </p>
+                          <p className="text-[10px] text-slate-400">
+                            {r.term} {r.academic_year} · {formatDateTime(r.receipt_date)}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge tone="amber" className="text-[10px]">
+                            {cedi(r.amount)}
+                          </Badge>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setViewReceipt(r);
+                            }}
+                            aria-label={`View receipt ${r.receipt_number}`}
+                          >
+                            <Eye className="h-3 w-3" aria-hidden="true" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              printReceipt(r, settings?.school_name || 'School');
+                            }}
+                            aria-label={`Print receipt ${r.receipt_number}`}
+                          >
+                            <Printer className="h-3 w-3" aria-hidden="true" />
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              <p className="mt-4 text-xs text-slate-400 text-center">
+                No fee receipts issued yet.
+              </p>
+            )}
           </Card>
         ) : (
           <Card className="p-5">
@@ -766,6 +912,7 @@ return (
           )
         ) : null}
       </Modal>
+      <ReceiptModal receipt={viewReceipt} onClose={() => setViewReceipt(null)} />
     </div>
   );
 }
