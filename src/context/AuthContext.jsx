@@ -305,21 +305,29 @@ export function AuthProvider({ children }) {
   const [schoolBranding, setSchoolBranding] = useState(null);
 
   const refreshSession = useCallback(async () => {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    if (!session?.user) {
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session?.user) {
+        setUser(null);
+        setProfile(null);
+        setLoading(false);
+        return null;
+      }
+      const child = await applyGuards(session.user);
+      setUser(session.user);
+      setProfile(child.profile);
+      setSchoolBranding(await fetchSchoolBranding(child.profile?.school_id || child.app?.school_id || null));
+      setLoading(false);
+      return { user: session.user, ...child };
+    } catch (err) {
+      console.error('Failed to refresh session:', err);
       setUser(null);
       setProfile(null);
       setLoading(false);
       return null;
     }
-    const child = await applyGuards(session.user);
-    setUser(session.user);
-    setProfile(child.profile);
-    setSchoolBranding(await fetchSchoolBranding(child.profile?.school_id || child.app?.school_id || null));
-    setLoading(false);
-    return { user: session.user, ...child };
   }, []);
 
   useEffect(() => {
@@ -347,25 +355,36 @@ export function AuthProvider({ children }) {
             setProfile((prev) => child.profile || prev);
             setSchoolBranding(await fetchSchoolBranding(child.profile?.school_id || child.app?.school_id || null));
           })
-          .catch(() => {})
+          .catch((err) => {
+            console.error('Failed to restore session after auth state change:', err);
+            setUser(null);
+            setProfile(null);
+          })
           .finally(() => setLoading(false));
       }
     });
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session?.user) {
-        try {
-          const child = await applyGuards(session.user);
-          setUser(session.user);
-          setProfile(child.profile);
-          setSchoolBranding(await fetchSchoolBranding(child.profile?.school_id || child.app?.school_id || null));
-        } catch (err) {
-          setUser(null);
-          setProfile(null);
+    supabase.auth
+      .getSession()
+      .then(async ({ data: { session } }) => {
+        if (session?.user) {
+          try {
+            const child = await applyGuards(session.user);
+            setUser(session.user);
+            setProfile(child.profile);
+            setSchoolBranding(await fetchSchoolBranding(child.profile?.school_id || child.app?.school_id || null));
+          } catch (err) {
+            console.error('Failed to restore session during initial load:', err);
+            setUser(null);
+            setProfile(null);
+          }
         }
-      }
-      setLoading(false);
-    });
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error('Failed to get session during initial load:', err);
+        setLoading(false);
+      });
 
     return () => sub?.subscription?.unsubscribe();
   }, []);
