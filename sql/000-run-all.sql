@@ -688,6 +688,8 @@
 \i 092-timetable-lock-enforcement.sql
 -- School-wide account activation/suspension for all linked users.
 \i 093-school-account-activation.sql
+-- Secure student/parent visibility for published exam results.
+\i 094-exam-publication-visibility.sql
 -- ============================================================
 --  SCHEMA DEPLOYMENT COMPLETE
 -- ============================================================

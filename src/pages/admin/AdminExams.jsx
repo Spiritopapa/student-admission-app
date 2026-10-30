@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
 import {
   Award, Plus, Pencil, Trash2, ClipboardEdit, ArrowLeft, Save, Download, Upload,
-  Trophy, FileText, GraduationCap, Printer, CheckCircle2, Users, RefreshCw,
+  Trophy, FileText, GraduationCap, Printer, CheckCircle2, Users, RefreshCw, Eye, EyeOff,
 } from 'lucide-react';
 import { useSchoolId, useSchoolSettings } from '../../hooks/useSchool';
 import { useToast } from '../../context/ToastContext';
@@ -43,6 +43,7 @@ export default function AdminExams() {
   const [editing, setEditing] = useState(null);
   const [examForm, setExamForm] = useState({ name: '', academic_year: currentAcademicYear(), term: 'First', start_date: '', end_date: '', closing_date: '', reopening_date: '' });
   const [examBusy, setExamBusy] = useState(false);
+  const [visibilityBusy, setVisibilityBusy] = useState(null);
   const [examError, setExamError] = useState('');
   const [deleting, setDeleting] = useState(null);
   const [workspace, setWorkspace] = useState(null);
@@ -250,6 +251,21 @@ export default function AdminExams() {
     else toast.success('Exam deleted', deleting.name);
     setDeleting(null);
     load();
+  };
+
+  const toggleVisibility = async (exam) => {
+    const publish = exam.is_active === false;
+    setVisibilityBusy(exam.id);
+    try {
+      const { error } = await supabase.from('exams').update({ is_active: publish }).eq('id', exam.id);
+      if (error) throw new Error(error.message);
+      setExams((current) => current.map((item) => (item.id === exam.id ? { ...item, is_active: publish } : item)));
+      toast.success(publish ? 'Exam published' : 'Exam hidden', publish ? `${exam.name} is now visible to students and parents.` : `${exam.name} is now hidden from students and parents.`);
+    } catch (err) {
+      toast.error('Could not update exam visibility', err.message);
+    } finally {
+      setVisibilityBusy(null);
+    }
   };
 
   const openWorkspace = async (exam) => {
@@ -1125,6 +1141,7 @@ export default function AdminExams() {
                       <div className="flex flex-wrap items-center gap-2">
                         <h3 className="truncate text-base font-bold text-slate-900">{exam.name}</h3>
                         <Badge tone={status.tone}>{status.label}</Badge>
+                        <Badge tone={exam.is_active === false ? 'slate' : 'green'}>{exam.is_active === false ? 'Hidden from portals' : 'Published'}</Badge>
                       </div>
                       <p className="mt-0.5 text-xs text-slate-400">
                         {exam.academic_year} · {termLabel(exam.term)}
@@ -1152,6 +1169,10 @@ export default function AdminExams() {
                     <Button size="sm" onClick={() => openWorkspace(exam)}>
                       <ClipboardEdit className="h-3.5 w-3.5" aria-hidden="true" />
                       Enter marks
+                    </Button>
+                    <Button size="sm" variant={exam.is_active === false ? 'primary' : 'secondary'} loading={visibilityBusy === exam.id} onClick={() => toggleVisibility(exam)}>
+                      {exam.is_active === false ? <Eye className="h-3.5 w-3.5" aria-hidden="true" /> : <EyeOff className="h-3.5 w-3.5" aria-hidden="true" />}
+                      {exam.is_active === false ? 'Publish' : 'Hide'}
                     </Button>
                     <Button size="sm" variant="secondary" onClick={() => openRankings(exam)}>
                       <Trophy className="h-3.5 w-3.5" aria-hidden="true" />
