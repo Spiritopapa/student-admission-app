@@ -152,3 +152,19 @@ CREATE POLICY "School admins manage sub admin modules"
       (SELECT school_id FROM public.sub_admins WHERE id = sub_admin_modules.sub_admin_id)
     )
   );
+
+-- ============================================================
+-- Data API Grants (Supabase PostgREST / supabase-js access)
+-- Added per Supabase change effective 30 Oct 2026.
+-- ============================================================
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.settings TO authenticated;
+GRANT ALL ON public.settings TO service_role;
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.sub_admin_activities TO authenticated;
+GRANT ALL ON public.sub_admin_activities TO service_role;
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.modules TO authenticated;
+GRANT ALL ON public.modules TO service_role;
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.sub_admin_modules TO authenticated;
+GRANT ALL ON public.sub_admin_modules TO service_role;

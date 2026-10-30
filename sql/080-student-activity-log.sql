@@ -68,3 +68,10 @@ CREATE POLICY "Super admins delete student activities"
 CREATE INDEX IF NOT EXISTS idx_student_activities_student ON public.student_activities(student_id);
 CREATE INDEX IF NOT EXISTS idx_student_activities_school ON public.student_activities(school_id);
 CREATE INDEX IF NOT EXISTS idx_student_activities_created ON public.student_activities(created_at);
+
+-- ============================================================
+-- Data API Grants (Supabase PostgREST / supabase-js access)
+-- Added per Supabase change effective 30 Oct 2026.
+-- ============================================================
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.student_activities TO authenticated;
+GRANT ALL ON public.student_activities TO service_role;

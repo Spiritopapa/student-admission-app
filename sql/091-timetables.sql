@@ -88,3 +88,10 @@ DROP TRIGGER IF EXISTS set_timetable_entries_updated_at ON public.timetable_entr
 CREATE TRIGGER set_timetable_entries_updated_at
   BEFORE UPDATE ON public.timetable_entries
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+-- ============================================================
+-- Data API Grants (Supabase PostgREST / supabase-js access)
+-- Added per Supabase change effective 30 Oct 2026.
+-- ============================================================
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.timetable_entries TO authenticated;
+GRANT ALL ON public.timetable_entries TO service_role;

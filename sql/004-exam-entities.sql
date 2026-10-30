@@ -259,3 +259,19 @@ CREATE POLICY "Parents view ward exam details"
 
 CREATE INDEX IF NOT EXISTS idx_exam_student_details_exam ON public.exam_student_details(exam_id);
 CREATE INDEX IF NOT EXISTS idx_exam_student_details_student ON public.exam_student_details(student_id);
+
+-- ============================================================
+-- Data API Grants (Supabase PostgREST / supabase-js access)
+-- Added per Supabase change effective 30 Oct 2026.
+-- ============================================================
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.exams TO authenticated;
+GRANT ALL ON public.exams TO service_role;
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.exam_results TO authenticated;
+GRANT ALL ON public.exam_results TO service_role;
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.exam_subjects TO authenticated;
+GRANT ALL ON public.exam_subjects TO service_role;
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.exam_student_details TO authenticated;
+GRANT ALL ON public.exam_student_details TO service_role;

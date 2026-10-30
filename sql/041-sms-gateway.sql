@@ -70,3 +70,10 @@ CREATE INDEX IF NOT EXISTS idx_sms_logs_receipt
 
 CREATE INDEX IF NOT EXISTS idx_sms_logs_success
   ON public.sms_logs (success);
+
+-- ============================================================
+-- Data API Grants (Supabase PostgREST / supabase-js access)
+-- Added per Supabase change effective 30 Oct 2026.
+-- ============================================================
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.sms_logs TO authenticated;
+GRANT ALL ON public.sms_logs TO service_role;

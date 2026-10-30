@@ -1488,3 +1488,10 @@ $$;
 --  19. apply_overpaid_credit school-scoped
 --  20. teachers can only see own school class students
 -- ============================================================
+
+-- ============================================================
+-- Data API Grants (Supabase PostgREST / supabase-js access)
+-- Added per Supabase change effective 30 Oct 2026.
+-- ============================================================
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.school_settings TO authenticated;
+GRANT ALL ON public.school_settings TO service_role;

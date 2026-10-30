@@ -679,3 +679,22 @@ DROP TRIGGER IF EXISTS set_fees_updated_at ON public.fees;
 CREATE TRIGGER set_fees_updated_at
   BEFORE UPDATE ON public.fees
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+-- ============================================================
+-- Data API Grants (Supabase PostgREST / supabase-js access)
+-- Added per Supabase change effective 30 Oct 2026.
+-- ============================================================
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.fee_categories TO authenticated;
+GRANT ALL ON public.fee_categories TO service_role;
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.class_fees TO authenticated;
+GRANT ALL ON public.class_fees TO service_role;
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.fees TO authenticated;
+GRANT ALL ON public.fees TO service_role;
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.payment_transactions TO authenticated;
+GRANT ALL ON public.payment_transactions TO service_role;
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.receipts TO authenticated;
+GRANT ALL ON public.receipts TO service_role;

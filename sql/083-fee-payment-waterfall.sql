@@ -435,3 +435,10 @@ GRANT EXECUTE ON FUNCTION public.delete_receipt(UUID) TO authenticated;
 --  delete_receipt                     reverses FIFO allocations precisely
 --  All balances use total_amount - amount_paid; `debt` is display-only.
 -- ============================================================
+
+-- ============================================================
+-- Data API Grants (Supabase PostgREST / supabase-js access)
+-- Added per Supabase change effective 30 Oct 2026.
+-- ============================================================
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.fee_payment_allocations TO authenticated;
+GRANT ALL ON public.fee_payment_allocations TO service_role;

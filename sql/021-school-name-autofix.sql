@@ -131,3 +131,10 @@ CREATE POLICY "School staff manage own school settings"
 --  Existing schools backfilled
 --  School name changes propagate to school_settings
 -- ============================================================
+
+-- ============================================================
+-- Data API Grants (Supabase PostgREST / supabase-js access)
+-- Added per Supabase change effective 30 Oct 2026.
+-- ============================================================
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.school_settings TO authenticated;
+GRANT ALL ON public.school_settings TO service_role;

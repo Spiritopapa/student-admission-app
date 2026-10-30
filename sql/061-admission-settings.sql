@@ -72,3 +72,10 @@ WHERE fee_breakdown IS NULL;
 INSERT INTO public.modules (name, label, icon, is_core, sort_order)
 VALUES ('settings', 'Settings', '', true, 12)
 ON CONFLICT (name) DO NOTHING;
+
+-- ============================================================
+-- Data API Grants (Supabase PostgREST / supabase-js access)
+-- Added per Supabase change effective 30 Oct 2026.
+-- ============================================================
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.admission_items TO authenticated;
+GRANT ALL ON public.admission_items TO service_role;

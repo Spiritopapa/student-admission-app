@@ -67,3 +67,10 @@ CREATE INDEX IF NOT EXISTS idx_staff_payslips_period ON public.staff_payslips(pa
 CREATE TRIGGER set_staff_payslips_updated_at
   BEFORE UPDATE ON public.staff_payslips
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+-- ============================================================
+-- Data API Grants (Supabase PostgREST / supabase-js access)
+-- Added per Supabase change effective 30 Oct 2026.
+-- ============================================================
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.staff_payslips TO authenticated;
+GRANT ALL ON public.staff_payslips TO service_role;

@@ -691,6 +691,15 @@
 -- Secure student/parent visibility for published exam results.
 \i 094-exam-publication-visibility.sql
 -- ============================================================
+--  Explicit Data API grants for all public schema tables
+--  Required after Supabase stops auto-granting new tables
+--  (effective 30 Oct 2026). Keeps PostgREST / supabase-js
+--  working on fresh schema deployments (preview branches,
+--  `supabase db reset`, new projects).
+-- ============================================================
+\i 095-data-api-grants.sql
+-- ============================================================
+-- ============================================================
 --  SCHEMA DEPLOYMENT COMPLETE
 -- ============================================================
 --  Next steps:

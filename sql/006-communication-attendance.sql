@@ -103,3 +103,13 @@ CREATE INDEX IF NOT EXISTS idx_attendance_student ON public.attendance(student_i
 CREATE INDEX IF NOT EXISTS idx_attendance_date ON public.attendance(date);
 CREATE INDEX IF NOT EXISTS idx_attendance_class ON public.attendance(class_name);
 CREATE INDEX IF NOT EXISTS idx_attendance_school_id ON public.attendance(school_id);
+
+-- ============================================================
+-- Data API Grants (Supabase PostgREST / supabase-js access)
+-- Added per Supabase change effective 30 Oct 2026.
+-- ============================================================
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.announcements TO authenticated;
+GRANT ALL ON public.announcements TO service_role;
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.attendance TO authenticated;
+GRANT ALL ON public.attendance TO service_role;

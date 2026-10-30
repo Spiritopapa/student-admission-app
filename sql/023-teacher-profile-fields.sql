@@ -201,3 +201,10 @@ BEGIN
   WHERE t.staff_id = p_staff_id;
 END;
 $$;
+
+-- ============================================================
+-- Data API Grants (Supabase PostgREST / supabase-js access)
+-- Added per Supabase change effective 30 Oct 2026.
+-- ============================================================
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.teacher_documents TO authenticated;
+GRANT ALL ON public.teacher_documents TO service_role;

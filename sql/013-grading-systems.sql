@@ -163,3 +163,10 @@ $$;
 --  get_school_grades() function
 --  get_grade_for_score() function
 -- ============================================================
+
+-- ============================================================
+-- Data API Grants (Supabase PostgREST / supabase-js access)
+-- Added per Supabase change effective 30 Oct 2026.
+-- ============================================================
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.grading_systems TO authenticated;
+GRANT ALL ON public.grading_systems TO service_role;

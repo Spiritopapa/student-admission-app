@@ -228,3 +228,13 @@ BEGIN
   END LOOP;
 END;
 $$;
+
+-- ============================================================
+-- Data API Grants (Supabase PostgREST / supabase-js access)
+-- Added per Supabase change effective 30 Oct 2026.
+-- ============================================================
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.income_expense_categories TO authenticated;
+GRANT ALL ON public.income_expense_categories TO service_role;
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.income_expenses TO authenticated;
+GRANT ALL ON public.income_expenses TO service_role;

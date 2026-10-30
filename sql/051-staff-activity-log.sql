@@ -64,3 +64,10 @@ CREATE POLICY "Insert staff activities"
 CREATE INDEX IF NOT EXISTS idx_staff_activities_staff  ON public.staff_activities(staff_type, staff_id);
 CREATE INDEX IF NOT EXISTS idx_staff_activities_school ON public.staff_activities(school_id);
 CREATE INDEX IF NOT EXISTS idx_staff_activities_created ON public.staff_activities(created_at);
+
+-- ============================================================
+-- Data API Grants (Supabase PostgREST / supabase-js access)
+-- Added per Supabase change effective 30 Oct 2026.
+-- ============================================================
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.staff_activities TO authenticated;
+GRANT ALL ON public.staff_activities TO service_role;

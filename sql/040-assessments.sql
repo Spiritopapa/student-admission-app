@@ -520,3 +520,16 @@ $$;
 INSERT INTO public.modules (name, label, icon, is_core, sort_order)
 VALUES ('assessments', 'Assessments', '', false, 30)
 ON CONFLICT (name) DO NOTHING;
+
+-- ============================================================
+-- Data API Grants (Supabase PostgREST / supabase-js access)
+-- Added per Supabase change effective 30 Oct 2026.
+-- ============================================================
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.assessment_questions TO authenticated;
+GRANT ALL ON public.assessment_questions TO service_role;
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.assessments TO authenticated;
+GRANT ALL ON public.assessments TO service_role;
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.assessment_attempts TO authenticated;
+GRANT ALL ON public.assessment_attempts TO service_role;

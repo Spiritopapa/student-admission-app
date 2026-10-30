@@ -107,3 +107,10 @@ BEGIN
   ORDER BY m.sort_order;
 END;
 $$;
+
+-- ============================================================
+-- Data API Grants (Supabase PostgREST / supabase-js access)
+-- Added per Supabase change effective 30 Oct 2026.
+-- ============================================================
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.school_modules TO authenticated;
+GRANT ALL ON public.school_modules TO service_role;

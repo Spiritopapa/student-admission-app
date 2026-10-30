@@ -72,3 +72,10 @@ WHERE es.class_name IS NOT NULL
   AND es.subject IS NOT NULL
   AND e.school_id IS NOT NULL
 ON CONFLICT DO NOTHING;
+
+-- ============================================================
+-- Data API Grants (Supabase PostgREST / supabase-js access)
+-- Added per Supabase change effective 30 Oct 2026.
+-- ============================================================
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.class_subjects TO authenticated;
+GRANT ALL ON public.class_subjects TO service_role;

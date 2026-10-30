@@ -134,3 +134,10 @@ CREATE POLICY "Super admins manage school applications"
 -- ---------------------------------------------------
 CREATE INDEX IF NOT EXISTS idx_school_applications_status ON public.school_applications(status);
 CREATE INDEX IF NOT EXISTS idx_school_applications_name  ON public.school_applications(lower(school_name));
+
+-- ============================================================
+-- Data API Grants (Supabase PostgREST / supabase-js access)
+-- Added per Supabase change effective 30 Oct 2026.
+-- ============================================================
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.school_applications TO authenticated;
+GRANT ALL ON public.school_applications TO service_role;

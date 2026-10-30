@@ -140,3 +140,10 @@ CREATE INDEX IF NOT EXISTS idx_support_reports_school_id ON public.support_repor
 CREATE INDEX IF NOT EXISTS idx_support_reports_status    ON public.support_reports(status);
 CREATE INDEX IF NOT EXISTS idx_support_reports_type      ON public.support_reports(report_type);
 CREATE INDEX IF NOT EXISTS idx_support_reports_created   ON public.support_reports(created_at);
+
+-- ============================================================
+-- Data API Grants (Supabase PostgREST / supabase-js access)
+-- Added per Supabase change effective 30 Oct 2026.
+-- ============================================================
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.support_reports TO authenticated;
+GRANT ALL ON public.support_reports TO service_role;

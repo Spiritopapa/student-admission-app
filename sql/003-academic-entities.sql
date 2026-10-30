@@ -269,3 +269,22 @@ CREATE POLICY "Users view own school subjects"
 CREATE UNIQUE INDEX IF NOT EXISTS idx_subjects_school_name_unique
   ON public.subjects (school_id, name);
 CREATE INDEX IF NOT EXISTS idx_subjects_school_id ON public.subjects(school_id);
+
+-- ============================================================
+-- Data API Grants (Supabase PostgREST / supabase-js access)
+-- Added per Supabase change effective 30 Oct 2026.
+-- ============================================================
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.applications TO authenticated;
+GRANT ALL ON public.applications TO service_role;
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.teachers TO authenticated;
+GRANT ALL ON public.teachers TO service_role;
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.accountants TO authenticated;
+GRANT ALL ON public.accountants TO service_role;
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.classes TO authenticated;
+GRANT ALL ON public.classes TO service_role;
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.subjects TO authenticated;
+GRANT ALL ON public.subjects TO service_role;

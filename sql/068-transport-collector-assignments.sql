@@ -48,3 +48,10 @@ CREATE INDEX IF NOT EXISTS idx_transport_collector_routes_route
 -- ============================================================
 --  Done
 -- ============================================================
+
+-- ============================================================
+-- Data API Grants (Supabase PostgREST / supabase-js access)
+-- Added per Supabase change effective 30 Oct 2026.
+-- ============================================================
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.transport_collector_routes TO authenticated;
+GRANT ALL ON public.transport_collector_routes TO service_role;

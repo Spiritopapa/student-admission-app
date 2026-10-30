@@ -61,3 +61,10 @@ CREATE INDEX IF NOT EXISTS idx_staff_salary_setup_staff ON public.staff_salary_s
 CREATE TRIGGER set_staff_salary_setup_updated_at
   BEFORE UPDATE ON public.staff_salary_setup
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+-- ============================================================
+-- Data API Grants (Supabase PostgREST / supabase-js access)
+-- Added per Supabase change effective 30 Oct 2026.
+-- ============================================================
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.staff_salary_setup TO authenticated;
+GRANT ALL ON public.staff_salary_setup TO service_role;

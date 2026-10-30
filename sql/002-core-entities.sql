@@ -197,3 +197,22 @@ CREATE POLICY "Admins manage parent links"
   USING (
     public.can_access_school_data(parent_links.school_id)
   );
+
+-- ============================================================
+-- Data API Grants (Supabase PostgREST / supabase-js access)
+-- Added per Supabase change effective 30 Oct 2026: new tables
+-- in the public schema need explicit GRANTs before the Data API
+-- can reach them. RLS policies still control row-level access.
+-- ============================================================
+GRANT SELECT ON public.schools TO anon;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.schools TO authenticated;
+GRANT ALL ON public.schools TO service_role;
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.profiles TO authenticated;
+GRANT ALL ON public.profiles TO service_role;
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.sub_admins TO authenticated;
+GRANT ALL ON public.sub_admins TO service_role;
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.parent_links TO authenticated;
+GRANT ALL ON public.parent_links TO service_role;

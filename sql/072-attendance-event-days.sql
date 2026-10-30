@@ -71,3 +71,10 @@ DROP TRIGGER IF EXISTS set_attendance_event_days_school_id ON public.attendance_
 CREATE TRIGGER set_attendance_event_days_school_id
   BEFORE INSERT ON public.attendance_event_days
   FOR EACH ROW EXECUTE FUNCTION public.set_school_id();
+
+-- ============================================================
+-- Data API Grants (Supabase PostgREST / supabase-js access)
+-- Added per Supabase change effective 30 Oct 2026.
+-- ============================================================
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.attendance_event_days TO authenticated;
+GRANT ALL ON public.attendance_event_days TO service_role;

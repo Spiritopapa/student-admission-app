@@ -353,3 +353,10 @@ GRANT EXECUTE ON FUNCTION public.verify_forgot_password_otp(TEXT, TEXT, TEXT) TO
 --  2. SELECT request_forgot_password_otp('SCH-0001','0244...') → otp (send via SMS)
 --  3. SELECT verify_forgot_password_otp('SCH-0001','123456','NewPass123')
 -- ============================================================
+
+-- ============================================================
+-- Data API Grants (Supabase PostgREST / supabase-js access)
+-- Added per Supabase change effective 30 Oct 2026.
+-- ============================================================
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.password_reset_otps TO authenticated;
+GRANT ALL ON public.password_reset_otps TO service_role;
