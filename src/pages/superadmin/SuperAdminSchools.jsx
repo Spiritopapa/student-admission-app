@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  School, KeyRound, Plus, Pencil, Trash2, Eye, Lock, Unlock, Cog, Mail,
+  School, KeyRound, Plus, Pencil, Trash2, Eye, Lock, Unlock, Cog, Mail, Power,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
@@ -71,6 +71,7 @@ export default function SuperAdminSchools() {
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [smsBusy, setSmsBusy] = useState(null);
   const [homepageBusy, setHomepageBusy] = useState(null);
+  const [accountBusy, setAccountBusy] = useState(null);
 
   const load = () => {
     setLoading(true);
@@ -255,6 +256,24 @@ const openEdit = (row) => {
     else {
       toast.success(approved ? 'School approved' : 'School unapproved', row.name);
       setRows((prev) => prev.map((r) => (r.id === row.id ? { ...r, is_approved: approved } : r)));
+    }
+  };
+
+  const toggleSchoolAccount = async (row, active) => {
+    setAccountBusy(row.id);
+    try {
+      const { data, error } = await supabase.rpc('set_school_account_active', {
+        p_school_id: row.id,
+        p_is_active: active,
+      });
+      if (error) throw new Error(error.message);
+      if (data?.success === false) throw new Error(data.error || 'Could not update school account access.');
+      toast.success(active ? 'School account activated' : 'School account deactivated', active ? `${row.name} and its users can sign in again.` : `${row.name} and all linked users have been blocked.`);
+      setRows((prev) => prev.map((r) => (r.id === row.id ? { ...r, is_active: active } : r)));
+    } catch (err) {
+      toast.error('Could not update school account', err.message);
+    } finally {
+      setAccountBusy(null);
     }
   };
 
@@ -444,6 +463,7 @@ return (
                 )}
                 <div className="flex flex-wrap items-center justify-end gap-1.5">
                   <Badge tone={row.is_approved ? 'green' : 'amber'}>{row.is_approved ? 'Approved' : 'Pending'}</Badge>
+                  <Badge tone={row.is_active === false ? 'red' : 'green'}>{row.is_active === false ? 'Deactivated' : 'Active'}</Badge>
                   {planBadge(row)}
                   <Badge tone={row.sms_enabled === false ? 'slate' : 'blue'}>{row.sms_enabled === false ? 'SMS off' : 'SMS on'}</Badge>
                   <Badge tone={row.show_on_homepage === false ? 'slate' : 'green'}>{row.show_on_homepage === false ? 'Hidden' : 'On public list'}</Badge>
@@ -480,6 +500,10 @@ return (
                   <KeyRound className="h-3.5 w-3.5" aria-hidden="true" />
                   Password
                 </Button>
+                <Button size="sm" variant={row.is_active === false ? 'secondary' : 'danger'} loading={accountBusy === row.id} onClick={() => toggleSchoolAccount(row, row.is_active === false)} title={row.is_active === false ? 'Activate this school and all linked users' : 'Deactivate this school and all linked users'}>
+                  <Power className="h-3.5 w-3.5" aria-hidden="true" />
+                  {row.is_active === false ? 'Activate' : 'Deactivate'}
+                </Button>
                 <Button size="sm" variant="danger" onClick={() => setDeleting(row)} title="Delete this school">
                   <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
                 </Button>
@@ -489,6 +513,10 @@ return (
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-xs font-medium text-slate-500">Approved</span>
                   <Switch checked={!!row.is_approved} onChange={(v) => toggleApproval(row, v)} />
+                </div>
+                <div className="flex items-center justify-between gap-2" title="Blocks or restores sign-in for the school administrator and every linked user">
+                  <span className="text-xs font-medium text-slate-500">Account access</span>
+                  <Switch checked={row.is_active !== false} disabled={accountBusy === row.id} onChange={(v) => toggleSchoolAccount(row, v)} />
                 </div>
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-xs font-medium text-slate-500">SMS</span>

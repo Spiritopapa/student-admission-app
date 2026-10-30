@@ -97,13 +97,13 @@ async function applyGuards(user) {
     const regId = user.user_metadata?.registration_id || null;
     let { data: school } = await supabase
       .from('schools')
-      .select('id, plan_version, trial_ends_at, name')
+      .select('id, plan_version, trial_ends_at, name, is_active')
       .eq('user_id', user.id)
       .maybeSingle();
     if (!school && regId) {
       const { data: byReg } = await supabase
         .from('schools')
-        .select('id, plan_version, trial_ends_at, name')
+        .select('id, plan_version, trial_ends_at, name, is_active')
         .eq('registration_id', regId)
         .maybeSingle();
       if (byReg) {
@@ -116,7 +116,7 @@ async function applyGuards(user) {
         }
         const { data: relinked } = await supabase
           .from('schools')
-          .select('id, plan_version, trial_ends_at, name')
+          .select('id, plan_version, trial_ends_at, name, is_active')
           .eq('user_id', user.id)
           .maybeSingle();
         school = relinked || byReg;
@@ -125,6 +125,10 @@ async function applyGuards(user) {
     if (!school) {
       await supabase.auth.signOut();
       throw new Error('School account not linked. Please contact the Super Administrator.');
+    }
+    if (school.is_active === false) {
+      await supabase.auth.signOut();
+      throw new Error('This school account has been deactivated by the Super Administrator.');
     }
     if (isTrialExpired(school)) {
       await supabase.auth.signOut();
@@ -201,16 +205,19 @@ async function applyGuards(user) {
       }
     }
     await healProfileSchool(record);
+    await ensureSchoolAccountActive(record.school_id);
   }
 
   if (role === 'teacher') {
     const record = await approvalFlow('teachers', 'auto_approve_teacher_on_login', 'Sub Administrator');
     await healProfileSchool(record);
+    await ensureSchoolAccountActive(record.school_id);
   }
 
   if (role === 'accountant') {
     const record = await approvalFlow('accountants', 'auto_approve_accountant_on_login', 'Sub Administrator');
     await healProfileSchool(record);
+    await ensureSchoolAccountActive(record.school_id);
   }
 
   if (role === 'student') {
@@ -237,6 +244,7 @@ async function applyGuards(user) {
         .maybeSingle();
       app = healed || null;
     }
+    await ensureSchoolAccountActive(app?.school_id || profile?.school_id);
     return { profile, app };
   }
 
@@ -278,6 +286,7 @@ async function applyGuards(user) {
       }
       profile = { ...profile, school_id: schoolId };
     }
+    await ensureSchoolAccountActive(schoolId);
     return { profile, app: null };
   }
 
@@ -954,4 +963,13 @@ export function AuthProvider({ children }) {
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+async function ensureSchoolAccountActive(schoolId) {
+  if (!schoolId) return;
+  const { data: school } = await supabase.from('schools').select('is_active').eq('id', schoolId).maybeSingle();
+  if (school?.is_active === false) {
+    await supabase.auth.signOut();
+    throw new Error('This school account has been deactivated by the Super Administrator. Please contact the school administrator.');
+  }
 }

@@ -138,6 +138,7 @@ Your existing data and tables are untouched. Run the migrations in the Supabase 
 4. `sql/076-school-public-listing.sql` - adds a `show_on_homepage` flag so a **Super Admin can allow or disallow a school's name from appearing on the public "apply for admission" list**. `get_public_schools()` and `submit_admission_application()` only return/accept schools that are approved **and** flagged as visible. Existing schools stay visible by default.
 5. `sql/077-sms-school-branding.sql` - every SMS (fee-payment receipt, debtor reminder, password-reset OTP) is branded with the **school name and contact number**. Fee receipt and debtor messages are composed client-side; this migration makes the OTP RPC (`request_forgot_password_otp`) also return `school_name` via the new `_fp_get_school_name()` helper.
 6. `sql/091-timetables.sql` and `sql/092-timetable-lock-enforcement.sql` - add secure weekly timetable entries and enforce timetable locks for every role. Run both before using the new Admin, Teacher, or Student Timetable pages.
+7. `sql/093-school-account-activation.sql` - adds Super Admin suspension/activation of a school account and all of its users.
 
 ### Deployment (Vercel)
 

@@ -163,6 +163,20 @@ export function DashboardLayout() {
     };
   }, [roleKey, lockSchoolId, lockSchoolResolved]);
 
+  // A currently-open portal must be closed promptly if the Super Admin
+  // deactivates its school; do not wait for the user's next sign-in.
+  useEffect(() => {
+    if (roleKey === 'super_admin' || !lockSchoolId) return undefined;
+    let cancelled = false;
+    supabase.from('schools').select('is_active').eq('id', lockSchoolId).maybeSingle().then(async ({ data }) => {
+      if (cancelled || data?.is_active !== false) return;
+      await signOut();
+      toast.error('School account deactivated', 'This school has been deactivated by the Super Administrator.');
+      navigate('/login', { replace: true });
+    });
+    return () => { cancelled = true; };
+  }, [roleKey, lockSchoolId, signOut, toast, navigate]);
+
   const lockedPaths = useMemo(
     () => new Set(lockedModuleNames.flatMap((name) => MODULE_PATH_MAP[name] || [])),
     [lockedModuleNames]

@@ -686,6 +686,8 @@
 \i 091-timetables.sql
 -- Hard-enforces timetable locks for every role at the database layer.
 \i 092-timetable-lock-enforcement.sql
+-- School-wide account activation/suspension for all linked users.
+\i 093-school-account-activation.sql
 -- ============================================================
 --  SCHEMA DEPLOYMENT COMPLETE
 -- ============================================================
