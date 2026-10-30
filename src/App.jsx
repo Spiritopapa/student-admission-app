@@ -47,12 +47,15 @@ import AdminSmsMonitor from './pages/admin/AdminSmsMonitor';
 import AdminActivityLog from './pages/admin/AdminActivityLog';
 import AdminBackupRestore from './pages/admin/AdminBackupRestore';
 import AdminSettings from './pages/admin/AdminSettings';
+import AdminTimetable from './pages/admin/AdminTimetable';
 
 import TeacherHome from './pages/teacher/TeacherHome';
 import TeacherStudents from './pages/teacher/TeacherStudents';
 import TeacherAttendance from './pages/teacher/TeacherAttendance';
 import TeacherAssessments from './pages/teacher/TeacherAssessments';
 import TeacherExams from './pages/teacher/TeacherExams';
+import TeacherTimetable from './pages/teacher/TeacherTimetable';
+import StudentTimetable from './pages/student/StudentTimetable';
 
 import AccountantHome from './pages/accountant/AccountantHome';
 import AccountantCollect from './pages/accountant/AccountantCollect';
@@ -107,6 +110,7 @@ export default function App() {
           <Route path="/dashboard/fees" element={<RoleRoute roles={['student']}><StudentFees /></RoleRoute>} />
           <Route path="/dashboard/results" element={<RoleRoute roles={['student']}><StudentResults /></RoleRoute>} />
           <Route path="/dashboard/attendance" element={<RoleRoute roles={['student']}><StudentAttendance /></RoleRoute>} />
+          <Route path="/dashboard/timetable" element={<RoleRoute roles={['student']}><StudentTimetable /></RoleRoute>} />
           <Route path="/dashboard/assessments" element={<RoleRoute roles={['student']}><StudentAssessments /></RoleRoute>} />
           <Route path="/dashboard/announcements" element={<RoleRoute roles={['student']}><StudentAnnouncements /></RoleRoute>} />
           <Route path="/dashboard/profile" element={<RoleRoute roles={['student']}><StudentProfile /></RoleRoute>} />
@@ -127,6 +131,7 @@ export default function App() {
           <Route path="/admin/payslips" element={<RoleRoute roles={['admin', 'sub_admin']}><AdminPayslips /></RoleRoute>} />
           <Route path="/admin/announcements" element={<RoleRoute roles={['admin', 'sub_admin']}><AdminAnnouncements /></RoleRoute>} />
           <Route path="/admin/attendance" element={<RoleRoute roles={['admin', 'sub_admin']}><AdminAttendance /></RoleRoute>} />
+          <Route path="/admin/timetable" element={<RoleRoute roles={['admin', 'sub_admin']}><AdminTimetable /></RoleRoute>} />
           <Route path="/admin/exams" element={<RoleRoute roles={['admin', 'sub_admin']}><AdminExams /></RoleRoute>} />
           <Route path="/admin/assessments" element={<RoleRoute roles={['admin', 'sub_admin']}><AdminAssessments /></RoleRoute>} />
           <Route path="/admin/grading" element={<RoleRoute roles={['admin', 'sub_admin']}><AdminGrading /></RoleRoute>} />
@@ -142,6 +147,7 @@ export default function App() {
           <Route path="/teacher" element={<RoleRoute roles={['teacher']}><TeacherHome /></RoleRoute>} />
           <Route path="/teacher/students" element={<RoleRoute roles={['teacher']}><TeacherStudents /></RoleRoute>} />
           <Route path="/teacher/attendance" element={<RoleRoute roles={['teacher']}><TeacherAttendance /></RoleRoute>} />
+          <Route path="/teacher/timetable" element={<RoleRoute roles={['teacher']}><TeacherTimetable /></RoleRoute>} />
           <Route path="/teacher/exams" element={<RoleRoute roles={['teacher']}><TeacherExams /></RoleRoute>} />
           <Route path="/teacher/assessments" element={<RoleRoute roles={['teacher']}><TeacherAssessments /></RoleRoute>} />
           <Route path="/teacher/profile" element={<RoleRoute roles={['teacher']}><ProfilePage /></RoleRoute>} />
