@@ -147,6 +147,16 @@ ON
   public.schools
 TO anon;
 
+-- -----------------------------------------------------------
+-- 4. RPC / Function EXECUTE grants (authenticated + service_role)
+--    Stored procedures called by the app (auto-approve on login,
+--    school linking, ward linking, etc.) need EXECUTE permission
+--    or supabase-js returns "permission denied" for users who
+--    trigger those code paths.
+-- -----------------------------------------------------------
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO authenticated;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO service_role;
+
 -- ============================================================
 --  DEPLOYMENT COMPLETE
 -- ============================================================
