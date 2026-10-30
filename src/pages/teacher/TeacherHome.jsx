@@ -5,9 +5,11 @@ import { useAuth } from '../../context/AuthContext';
 import { PageHeader, Card, Spinner, StatCard, EmptyState } from '../../components/ui';
 import { supabase } from '../../lib/supabase';
 import { fetchTeacherClassSet } from '../../lib/queries';
+import { useModuleLock } from '../../context/ModuleLockContext';
 
 export default function TeacherHome() {
   const { user, profile } = useAuth();
+  const { isModuleLocked } = useModuleLock();
   const [teacher, setTeacher] = useState(null);
   const [classCount, setClassCount] = useState(null);
   const [todayAtt, setTodayAtt] = useState(null);
@@ -39,7 +41,7 @@ export default function TeacherHome() {
 
   // Today's attendance summary across all of the teacher's assigned classes.
   useEffect(() => {
-    if (!teacher?.school_id) return;
+    if (!teacher?.school_id || isModuleLocked('attendance')) return;
     let cancelled = false;
     (async () => {
       try {
@@ -88,7 +90,7 @@ export default function TeacherHome() {
     return () => {
       cancelled = true;
     };
-  }, [teacher]);
+  }, [teacher, isModuleLocked]);
 
   if (!user || !teacher) return <Spinner label="Loading your dashboard..." />;
 
@@ -106,7 +108,7 @@ export default function TeacherHome() {
         <StatCard icon={BookOpen} tone="amber" label="Class" value={teacher.class_taught || '-'} sub={teacher.qualification || '—'} index={2} />
       </div>
 
-      {todayAtt ? (
+      {!isModuleLocked('attendance') && todayAtt ? (
         <Card className="mt-6 overflow-hidden">
           <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3">
             <h3 className="flex items-center gap-2 text-sm font-bold text-slate-800">
@@ -147,7 +149,7 @@ export default function TeacherHome() {
           </p>
         </Link>
 
-        <Link to="/teacher/attendance" className="card block p-5 transition-shadow hover:shadow-card">
+        {!isModuleLocked('attendance') ? <Link to="/teacher/attendance" className="card block p-5 transition-shadow hover:shadow-card">
           <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-teal-50 text-teal-600">
             <BookOpen className="h-5 w-5" aria-hidden="true" />
           </span>
@@ -157,7 +159,7 @@ export default function TeacherHome() {
             Mark attendance
             <ArrowRight className="h-4 w-4" aria-hidden="true" />
           </p>
-        </Link>
+        </Link> : null}
 
         <EmptyState
           icon={BookOpen}

@@ -14,6 +14,7 @@ import { photoUrl } from '../lib/storage';
 import { submitSupportReport } from '../lib/api';
 import { Modal, Alert } from '../components/ui-extras';
 import { Input, Select, Button } from '../components/ui';
+import { ModuleLockProvider } from '../context/ModuleLockContext';
 
 function compactRoleKey(role) {
   if (role === 'admin' || role === 'sub_admin') return 'admin';
@@ -86,6 +87,8 @@ export function DashboardLayout() {
   const roleKey = compactRoleKey(profile?.role);
   const [lockedModuleNames, setLockedModuleNames] = useState([]);
   const [moduleLocksLoading, setModuleLocksLoading] = useState(true);
+  const [lockSchoolId, setLockSchoolId] = useState(null);
+  const [lockSchoolResolved, setLockSchoolResolved] = useState(false);
 
   // Accountants display the name stored on their own `accountants` record:
   // it is the authoritative value (locked against self-service edits by
@@ -99,11 +102,46 @@ export function DashboardLayout() {
     ? accountantFirstName || profile?.full_name?.split(' ')[0] || ''
     : profile?.full_name?.split(' ')[0] || '';
 
+  // Resolve the school from the role record when an older profile has no
+  // school_id. This is especially important for student and parent accounts:
+  // their module locks must not silently disappear because of legacy profile
+  // data.
+  useEffect(() => {
+    let cancelled = false;
+    if (!user || roleKey === 'super_admin') {
+      setLockSchoolId(null);
+      setLockSchoolResolved(true);
+      return undefined;
+    }
+    if (profile?.school_id) {
+      setLockSchoolId(profile.school_id);
+      setLockSchoolResolved(true);
+      return undefined;
+    }
+    setModuleLocksLoading(true);
+    setLockSchoolResolved(false);
+    const source = roleKey === 'student' ? 'applications' : roleKey === 'teacher' ? 'teachers' : roleKey === 'accountant' ? 'accountants' : roleKey === 'parent' ? 'parent_links' : null;
+    if (!source) {
+      setLockSchoolId(null);
+      setLockSchoolResolved(true);
+      return undefined;
+    }
+    const ownerColumn = roleKey === 'parent' ? 'parent_user_id' : 'user_id';
+    supabase.from(source).select('school_id').eq(ownerColumn, user.id).limit(1).maybeSingle().then(({ data }) => {
+      if (!cancelled) {
+        setLockSchoolId(data?.school_id || null);
+        setLockSchoolResolved(true);
+      }
+    });
+    return () => { cancelled = true; };
+  }, [user, profile?.school_id, roleKey]);
+
   // Every portal role with a school identity receives the same locked module
   // set. This prevents an unlocked-looking student, parent, teacher or
   // accountant route from bypassing a school-level Super Admin decision.
   useEffect(() => {
-    if (roleKey === 'super_admin' || !profile?.school_id) {
+    if (!lockSchoolResolved) return undefined;
+    if (roleKey === 'super_admin' || !lockSchoolId) {
       setLockedModuleNames([]);
       setModuleLocksLoading(false);
       return;
@@ -113,7 +151,7 @@ export function DashboardLayout() {
     supabase
       .from('school_modules')
       .select('module_name')
-      .eq('school_id', profile.school_id)
+      .eq('school_id', lockSchoolId)
       .eq('is_locked', true)
       .then(({ data, error }) => {
         if (cancelled) return;
@@ -123,7 +161,7 @@ export function DashboardLayout() {
     return () => {
       cancelled = true;
     };
-  }, [roleKey, profile?.school_id]);
+  }, [roleKey, lockSchoolId, lockSchoolResolved]);
 
   const lockedPaths = useMemo(
     () => new Set(lockedModuleNames.flatMap((name) => MODULE_PATH_MAP[name] || [])),
@@ -290,6 +328,7 @@ export function DashboardLayout() {
   );
 
   return (
+    <ModuleLockProvider lockedModuleNames={lockedModuleNames}>
     <div className="min-h-screen bg-slate-50">
       <aside
         className={`fixed inset-y-0 left-0 z-40 hidden border-r border-slate-200/70 bg-white transition-all duration-300 lg:block ${
@@ -485,5 +524,6 @@ export function DashboardLayout() {
         </div>
       </Modal>
     </div>
+    </ModuleLockProvider>
   );
 }

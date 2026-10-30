@@ -7,9 +7,11 @@ import ConnectWardModal from '../../components/ConnectWardModal';
 import { fetchParentLinks, fetchWardApplication, fetchStudentFees, fetchStudentReceipts, fetchActiveAnnouncements } from '../../lib/queries';
 import { buildStudentName, formatDate } from '../../lib/format';
 import { photoUrl } from '../../lib/storage';
+import { useModuleLock } from '../../context/ModuleLockContext';
 
 export default function ParentHome() {
   const { user, profile } = useAuth();
+  const { isModuleLocked } = useModuleLock();
   const [wards, setWards] = useState([]);
   const [loading, setLoading] = useState(true);
   const [totals, setTotals] = useState({ fees: 0, receipts: 0, announcements: 0 });
@@ -51,6 +53,7 @@ export default function ParentHome() {
   }, [user, refresh]);
 
   if (loading) return <Spinner label="Loading parent dashboard..." />;
+  const feesLocked = isModuleLocked('fees');
 
   return (
     <div>
@@ -68,10 +71,10 @@ export default function ParentHome() {
 
       {wards.length ? (
         <>
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className={`grid gap-4 ${feesLocked ? 'sm:grid-cols-1' : 'sm:grid-cols-3'}`}>
             <StatCard icon={Users} tone="blue" label="Wards" value={wards.length} sub="Linked students" index={0} />
-            <StatCard icon={Wallet} tone="amber" label="Total balance" value={totals.fees.toFixed(2)} sub="Across all wards" index={1} />
-            <StatCard icon={Megaphone} tone="green" label="Receipts" value={totals.receipts} sub="Verified payments" index={2} />
+            {!feesLocked ? <StatCard icon={Wallet} tone="amber" label="Total balance" value={totals.fees.toFixed(2)} sub="Across all wards" index={1} /> : null}
+            {!feesLocked ? <StatCard icon={Megaphone} tone="green" label="Receipts" value={totals.receipts} sub="Verified payments" index={2} /> : null}
           </div>
 
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
@@ -102,10 +105,10 @@ export default function ParentHome() {
                   </div>
                   <div className="mt-4 flex items-center justify-between border-t border-slate-50 pt-3">
                     <p className="text-xs text-slate-400">Admitted {formatDate(app.admission_date)}</p>
-                    <Link to="/parent/fees" className="inline-flex items-center gap-1 text-xs font-semibold text-brand-600 hover:text-brand-700">
+                    {!feesLocked ? <Link to="/parent/fees" className="inline-flex items-center gap-1 text-xs font-semibold text-brand-600 hover:text-brand-700">
                       View fees
                       <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
-                    </Link>
+                    </Link> : null}
                   </div>
                 </Card>
               );

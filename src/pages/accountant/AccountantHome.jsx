@@ -7,9 +7,11 @@ import { PageHeader, Card, Spinner, StatCard, Button, EmptyState } from '../../c
 import { supabase } from '../../lib/supabase';
 import { cedi } from '../../lib/format';
 import { currentAcademicYear, ROLE_LABELS } from '../../lib/constants';
+import { useModuleLock } from '../../context/ModuleLockContext';
 
 export default function AccountantHome() {
   const schoolId = useSchoolId();
+  const { isModuleLocked } = useModuleLock();
   const { fullName, firstName, registrationId, photo, loading: nameLoading } = useAccountant();
   const [stats, setStats] = useState(null);
   const [error, setError] = useState('');
@@ -90,6 +92,10 @@ export default function AccountantHome() {
         message="This accountant account is not linked to a school yet. Ask the school administrator to link your account, then sign out and back in."
       />
     );
+  }
+
+  if (isModuleLocked('fees')) {
+    return <EmptyState icon={Wallet} title="Fees Management is locked" message="The Super Administrator has disabled fee collection features for this school." />;
   }
 
   if (loading && !stats) return <Spinner label="Loading dashboard..." />;

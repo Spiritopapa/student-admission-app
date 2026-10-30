@@ -18,6 +18,7 @@ import { photoUrl } from '../../lib/storage';
 import { cedi, buildStudentName, formatDate, getPerformanceLevel, termLabel } from '../../lib/format';
 import { currentAcademicYear } from '../../lib/constants';
 import { totalOutstanding } from '../../lib/feeMath';
+import { useModuleLock } from '../../context/ModuleLockContext';
 
 const fade = {
   hidden: { opacity: 0, y: 18 },
@@ -27,6 +28,7 @@ const fade = {
 export default function StudentHome() {
   const { user } = useAuth();
   const { application, loading: appLoading } = useStudentApplication();
+  const { isModuleLocked } = useModuleLock();
   const [summary, setSummary] = useState(null);
 
   useEffect(() => {
@@ -94,6 +96,9 @@ export default function StudentHome() {
   const photo = application.student_photo_url ? photoUrl(application.student_photo_url) : null;
   const name = buildStudentName(application.first_name, application.middle_name, application.last_name);
   const latest = summary.announcements[0];
+  const feesLocked = isModuleLocked('fees');
+  const attendanceLocked = isModuleLocked('attendance');
+  const examsLocked = isModuleLocked('exams');
 
   return (
     <motion.div initial="hidden" animate="show" variants={fade}>
@@ -136,14 +141,14 @@ export default function StudentHome() {
       </motion.div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard icon={Wallet} tone="blue" label="Fee balance" value={cedi(summary.balance)} sub={`All terms · ${summary.txs.length} payments`} index={0} />
-        <StatCard icon={CalendarCheck} tone="teal" label="Attendance" value={summary.attTotal ? `${summary.attPct}%` : '-'} sub={`${summary.att.present} present / ${summary.att.absent} absent`} index={1} />
-        <StatCard icon={Award} tone="amber" label="Latest average" value={summary.performance ? `${summary.performance.average}%` : '-'} sub={summary.performance?.level?.text || 'No results yet'} index={2} />
+        {!feesLocked ? <StatCard icon={Wallet} tone="blue" label="Fee balance" value={cedi(summary.balance)} sub={`All terms · ${summary.txs.length} payments`} index={0} /> : null}
+        {!attendanceLocked ? <StatCard icon={CalendarCheck} tone="teal" label="Attendance" value={summary.attTotal ? `${summary.attPct}%` : '-'} sub={`${summary.att.present} present / ${summary.att.absent} absent`} index={1} /> : null}
+        {!examsLocked ? <StatCard icon={Award} tone="amber" label="Latest average" value={summary.performance ? `${summary.performance.average}%` : '-'} sub={summary.performance?.level?.text || 'No results yet'} index={2} /> : null}
         <StatCard icon={Megaphone} tone="green" label="Announcements" value={summary.announcements.length} sub="Live updates from your school" index={3} />
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
-        <motion.div variants={fade} custom={2} className="lg:col-span-2">
+        {!feesLocked ? <motion.div variants={fade} custom={2} className="lg:col-span-2">
           <Card className="p-5">
             <h3 className="flex items-center gap-2 text-sm font-bold text-slate-800">
               <Wallet className="h-4 w-4 text-brand-600" aria-hidden="true" />
@@ -183,7 +188,7 @@ export default function StudentHome() {
               <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </Link>
           </Card>
-        </motion.div>
+        </motion.div> : null}
 
         <motion.div variants={fade} custom={3}>
           <Card className="p-5">
