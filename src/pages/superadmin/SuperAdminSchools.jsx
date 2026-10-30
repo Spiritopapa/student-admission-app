@@ -696,7 +696,7 @@ return (
         }
       >
         <Alert tone="info" className="mb-4">
-          Lock a module to hide it from this school's dashboard. Core modules cannot be locked.
+          Locking a module disables its related pages for every user at this school, including administrators, staff, students, parents and accountants. Core modules cannot be locked.
         </Alert>
         {modulesBusy ? (
           <Spinner label="Loading modules..." />

@@ -20,10 +20,9 @@ function compactRoleKey(role) {
   return role || 'student';
 }
 
-// Maps the module names stored in `modules` / `school_modules` to the React
-// admin dashboard routes they gate. When the Super Admin locks a module for a
-// school, those routes are hidden from that school's sidebar (and users are
-// redirected away from an already-open locked page).
+// Maps a lockable module to *every* route that exposes that capability.  This
+// is intentionally role-agnostic: a school-level lock applies to staff,
+// students and parents alike, rather than merely hiding an admin nav item.
 const MODULE_PATH_MAP = {
   students: ['/admin/students'],
   classes: ['/admin/classes'],
@@ -32,16 +31,17 @@ const MODULE_PATH_MAP = {
   accountants: ['/admin/accountants'],
   payslips: ['/admin/payslips'],
   parents: ['/admin/parents'],
-  attendance: ['/admin/attendance'],
-  exams: ['/admin/exams'],
+  attendance: ['/admin/attendance', '/teacher/attendance', '/dashboard/attendance'],
+  exams: ['/admin/exams', '/teacher/exams', '/dashboard/results'],
   grading: ['/admin/grading'],
-  fees: ['/admin/fees'],
-  assessments: ['/admin/assessments'],
+  fees: ['/admin/fees', '/accountant/collect', '/accountant/receipts', '/accountant/debtors', '/dashboard/fees', '/parent/fees'],
+  assessments: ['/admin/assessments', '/teacher/assessments', '/dashboard/assessments'],
   'income-expenses': ['/admin/income-expenses'],
   'sms-monitoring': ['/admin/sms-monitoring'],
   settings: ['/admin/settings'],
   transport: ['/admin/transport'],
   backup: ['/admin/backup'],
+  timetable: ['/admin/timetable', '/teacher/timetable', '/dashboard/timetable'],
 };
 
 export function DashboardLayout() {
@@ -85,6 +85,7 @@ export function DashboardLayout() {
 
   const roleKey = compactRoleKey(profile?.role);
   const [lockedModuleNames, setLockedModuleNames] = useState([]);
+  const [moduleLocksLoading, setModuleLocksLoading] = useState(true);
 
   // Accountants display the name stored on their own `accountants` record:
   // it is the authoritative value (locked against self-service edits by
@@ -98,14 +99,17 @@ export function DashboardLayout() {
     ? accountantFirstName || profile?.full_name?.split(' ')[0] || ''
     : profile?.full_name?.split(' ')[0] || '';
 
-  // Fetch the modules locked for this school so the sidebar can hide them
-  // (used by the /dashboard layout for school admins and sub-admins).
+  // Every portal role with a school identity receives the same locked module
+  // set. This prevents an unlocked-looking student, parent, teacher or
+  // accountant route from bypassing a school-level Super Admin decision.
   useEffect(() => {
-    if (roleKey !== 'admin' || !profile?.school_id) {
+    if (roleKey === 'super_admin' || !profile?.school_id) {
       setLockedModuleNames([]);
+      setModuleLocksLoading(false);
       return;
     }
     let cancelled = false;
+    setModuleLocksLoading(true);
     supabase
       .from('school_modules')
       .select('module_name')
@@ -114,6 +118,7 @@ export function DashboardLayout() {
       .then(({ data, error }) => {
         if (cancelled) return;
         if (!error) setLockedModuleNames((data || []).map((r) => r.module_name));
+        setModuleLocksLoading(false);
       });
     return () => {
       cancelled = true;
@@ -124,18 +129,20 @@ export function DashboardLayout() {
     () => new Set(lockedModuleNames.flatMap((name) => MODULE_PATH_MAP[name] || [])),
     [lockedModuleNames]
   );
+  const routeIsLocked = lockedPaths.has(location.pathname);
 
   const navItems = (NAV_BY_ROLE[roleKey] || NAV_BY_ROLE.student).filter(
     (item) => !lockedPaths.has(item.path)
   );
 
-  // If this user is already on a page that has just been locked, send them back
-  // to their role overview instead of leaving the page rendered.
+  // If this user is already on a page that has just been locked, send them
+  // back to their role overview instead of leaving the feature rendered. This
+  // also covers copied/deep links, not just sidebar navigation.
   useEffect(() => {
-    if (lockedPaths.has(location.pathname)) {
+    if (routeIsLocked) {
       navigate(roleBasePath(roleKey), { replace: true });
     }
-  }, [lockedPaths, location.pathname, roleKey, navigate]);
+  }, [routeIsLocked, roleKey, navigate]);
 
   useEffect(() => {
     setDrawerOpen(false);
@@ -428,7 +435,13 @@ export function DashboardLayout() {
 
         <main className="px-4 py-6 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-7xl">
-            <Outlet />
+            {moduleLocksLoading ? (
+              <div className="py-12 text-center text-sm font-medium text-slate-400">Checking school access…</div>
+            ) : routeIsLocked ? (
+              <div className="py-12 text-center text-sm font-medium text-slate-500">This module is currently locked by the Super Administrator.</div>
+            ) : (
+              <Outlet />
+            )}
           </div>
         </main>
       </div>

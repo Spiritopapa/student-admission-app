@@ -684,6 +684,8 @@
 -- Weekly class timetables for administrators, teachers and students.
 -- ============================================================
 \i 091-timetables.sql
+-- Hard-enforces timetable locks for every role at the database layer.
+\i 092-timetable-lock-enforcement.sql
 -- ============================================================
 --  SCHEMA DEPLOYMENT COMPLETE
 -- ============================================================
