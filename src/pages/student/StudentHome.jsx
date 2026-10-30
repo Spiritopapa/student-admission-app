@@ -17,6 +17,7 @@ import {
 import { photoUrl } from '../../lib/storage';
 import { cedi, buildStudentName, formatDate, getPerformanceLevel, termLabel } from '../../lib/format';
 import { currentAcademicYear } from '../../lib/constants';
+import { totalOutstanding } from '../../lib/feeMath';
 
 const fade = {
   hidden: { opacity: 0, y: 18 },
@@ -56,12 +57,9 @@ export default function StudentHome() {
       const year = currentAcademicYear();
       const currentFee = fees.find((f) => f.academic_year === year) || fees[0];
       const totalPaid = txs.reduce((s, t) => s + Number(t.amount_paid || 0), 0);
-      const balance = currentFee
-        ? Math.max(
-            (Number(currentFee.total_amount) || 0) + (Number(currentFee.debt) || 0) - (Number(currentFee.amount_paid) || 0),
-            0
-          )
-        : 0;
+      // The dashboard must show the student's full liability, including any
+      // unpaid balance from earlier terms and academic years.
+      const balance = totalOutstanding(fees);
 
       const att = { present: 0, absent: 0 };
       attendance.forEach((r) => {
@@ -138,7 +136,7 @@ export default function StudentHome() {
       </motion.div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard icon={Wallet} tone="blue" label="Fee balance" value={cedi(summary.balance)} sub={`${summary.txs.length} payments recorded`} index={0} />
+        <StatCard icon={Wallet} tone="blue" label="Fee balance" value={cedi(summary.balance)} sub={`All terms · ${summary.txs.length} payments`} index={0} />
         <StatCard icon={CalendarCheck} tone="teal" label="Attendance" value={summary.attTotal ? `${summary.attPct}%` : '-'} sub={`${summary.att.present} present / ${summary.att.absent} absent`} index={1} />
         <StatCard icon={Award} tone="amber" label="Latest average" value={summary.performance ? `${summary.performance.average}%` : '-'} sub={summary.performance?.level?.text || 'No results yet'} index={2} />
         <StatCard icon={Megaphone} tone="green" label="Announcements" value={summary.announcements.length} sub="Live updates from your school" index={3} />
