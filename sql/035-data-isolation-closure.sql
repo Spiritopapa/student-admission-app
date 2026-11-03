@@ -372,6 +372,103 @@ GRANT EXECUTE ON FUNCTION public.get_teacher_info_by_staff_id(TEXT) TO authentic
 
 
 -- ************************************************************
+-- SECTION 4.5: SCHOOL SELF-CLAIM UPDATE POLICY (fixes inconsistent admin login)
+-- ************************************************************
+-- Allows a school admin (role='admin') to claim their own unlinked school
+-- by setting user_id = auth.uid() when user_id is NULL and the registration_id
+-- matches their auth user_metadata or profile email. This covers the fallback
+-- path in auth.js / AuthContext.jsx when link_school_to_user() / auto_approve_school_on_login()
+-- cannot self-claim (e.g. missing registration_id in metadata).
+-- Mirrors the self-claim authorization logic in link_school_to_user().
+CREATE POLICY "School admin claims own unlinked school"
+  ON public.schools FOR UPDATE
+  USING (
+    public.user_has_role('admin')
+    AND user_id IS NULL
+    AND (
+      COALESCE(auth.jwt()->'user_metadata'->>'registration_id', '') = registration_id
+      OR EXISTS (
+        SELECT 1 FROM public.profiles p
+        WHERE p.id = auth.uid()
+          AND p.email = lower(registration_id) || '@school.local'
+      )
+    )
+  )
+  WITH CHECK (
+    public.user_has_role('admin')
+    AND user_id = auth.uid()
+  );
+
+
+-- ************************************************************
+-- SECTION 4.6: STAFF SELF-CLAIM UPDATE POLICIES (fixes inconsistent staff login)
+-- ************************************************************
+-- Allows sub_admins, teachers, and accountants to claim their own unlinked
+-- record by setting user_id = auth.uid() when user_id is NULL and the
+-- registration_id matches their auth user_metadata or profile email.
+-- Covers the fallback path when auto_approve_*_on_login() RPCs cannot
+-- self-claim (e.g. missing registration_id in metadata).
+-- Mirrors the self-claim authorization logic in link_*_to_user().
+
+CREATE POLICY "Sub admin claims own unlinked record"
+  ON public.sub_admins FOR UPDATE
+  USING (
+    public.user_has_role('sub_admin')
+    AND user_id IS NULL
+    AND (
+      COALESCE(auth.jwt()->'user_metadata'->>'registration_id', '') = registration_id
+      OR EXISTS (
+        SELECT 1 FROM public.profiles p
+        WHERE p.id = auth.uid()
+          AND p.email = lower(registration_id) || '@subadmin.local'
+      )
+    )
+  )
+  WITH CHECK (
+    public.user_has_role('sub_admin')
+    AND user_id = auth.uid()
+  );
+
+CREATE POLICY "Teacher claims own unlinked record"
+  ON public.teachers FOR UPDATE
+  USING (
+    public.user_has_role('teacher')
+    AND user_id IS NULL
+    AND (
+      COALESCE(auth.jwt()->'user_metadata'->>'registration_id', '') = registration_id
+      OR EXISTS (
+        SELECT 1 FROM public.profiles p
+        WHERE p.id = auth.uid()
+          AND p.email = lower(registration_id) || '@teacher.local'
+      )
+    )
+  )
+  WITH CHECK (
+    public.user_has_role('teacher')
+    AND user_id = auth.uid()
+  );
+
+CREATE POLICY "Accountant claims own unlinked record"
+  ON public.accountants FOR UPDATE
+  USING (
+    public.user_has_role('accountant')
+    AND user_id IS NULL
+    AND (
+      COALESCE(auth.jwt()->'user_metadata'->>'registration_id', '') = registration_id
+      OR EXISTS (
+        SELECT 1 FROM public.profiles p
+        WHERE p.id = auth.uid()
+          AND p.email = lower(registration_id) || '@accountant.local'
+      )
+    )
+  )
+  WITH CHECK (
+    public.user_has_role('accountant')
+    AND user_id = auth.uid()
+  );
+
+
+-- ************************************************************
 -- SECTION 5: NEUTER delete_auth_user (was executable by anon)
 -- ************************************************************
 -- Only the user's own school admin/sub_admin (or super_admin) may delete
