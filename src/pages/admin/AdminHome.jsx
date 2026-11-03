@@ -330,6 +330,7 @@ export default function AdminHome() {
         { data: paymentsToday },
         { data: transportToday },
         { data: recentReceipts },
+        { count: receiptsTodayCount },
         { data: lockedRows },
         { data: schoolRow },
       ] = await Promise.all([
@@ -361,6 +362,12 @@ export default function AdminHome() {
           .eq('school_id', schoolId)
           .order('receipt_date', { ascending: false })
           .limit(8),
+        supabase
+          .from('receipts')
+          .select('id', { count: 'exact', head: true })
+          .eq('school_id', schoolId)
+          .gte('receipt_date', dayStart.toISOString())
+          .lte('receipt_date', dayEnd.toISOString()),
         supabase
           .from('school_modules')
           .select('module_name')
@@ -500,6 +507,7 @@ export default function AdminHome() {
         feesByClass,
         schoolFeesToday: sumAmount(paymentsToday, 'amount_paid'),
         transportToday: sumAmount(transportToday, 'fee_amount'),
+        receiptsToday: receiptsTodayCount || 0,
         attendanceToday,
         lockedModules: locked,
         planVersion: schoolRow?.plan_version || 'full',
@@ -628,7 +636,7 @@ return (
 
             <div className="mt-4 space-y-2 border-t border-slate-50 pt-3 text-sm">
               <div className="flex items-center justify-between">
-                <span className="flex items-center gap-1.5 text-xs text-slate-500">
+                <span className="flex items-center gap-1.5 text-xs text-slate-500" title={`${data.receiptsToday} fee receipt${data.receiptsToday !== 1 ? 's' : ''} issued today`}>
                   <TrendingUp className="h-3.5 w-3.5 text-emerald-500" aria-hidden="true" />
                   School fees collected today
                 </span>
