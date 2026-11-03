@@ -367,6 +367,9 @@ BEGIN
 END;
 $$;
 
+GRANT EXECUTE ON FUNCTION public.get_teacher_info_by_staff_id(TEXT) TO anon;
+GRANT EXECUTE ON FUNCTION public.get_teacher_info_by_staff_id(TEXT) TO authenticated;
+
 
 -- ************************************************************
 -- SECTION 5: NEUTER delete_auth_user (was executable by anon)

@@ -157,6 +157,19 @@ TO anon;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO authenticated;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO service_role;
 
+-- ------------------------------------------------------------
+-- 5. Anon (unauthenticated): EXECUTE on specific functions that
+--    are called BEFORE sign-in / sign-up (registration & login
+--    lookup flows). These are security-reviewed: they only return
+--    non-sensitive identifiers (no PII) and are safe for public use.
+-- ------------------------------------------------------------
+GRANT EXECUTE ON FUNCTION public.get_teacher_info_by_staff_id(TEXT) TO anon;
+GRANT EXECUTE ON FUNCTION public.check_student_id_exists(TEXT) TO anon;
+GRANT EXECUTE ON FUNCTION public.check_teacher_id_exists(TEXT) TO anon;
+GRANT EXECUTE ON FUNCTION public.check_accountant_id_exists(TEXT) TO anon;
+GRANT EXECUTE ON FUNCTION public.check_school_id_exists(TEXT) TO anon;
+GRANT EXECUTE ON FUNCTION public.check_sub_admin_id_exists(TEXT) TO anon;
+
 -- ============================================================
 --  DEPLOYMENT COMPLETE
 -- ============================================================
