@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  School, KeyRound, Plus, Pencil, Trash2, Eye, Lock, Unlock, Cog, Mail, Power,
+  School, KeyRound, Plus, Pencil, Trash2, Eye, Lock, Unlock, Cog, Mail, Power, Users,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
@@ -24,6 +24,8 @@ const emptySchoolForm = {
   trial_days: '14',
   show_on_homepage: true,
 };
+
+const emptyAdminForm = { name: '', email: '', password: '', phone: '' };
 
 function trialEndsAtFor(version, days) {
   if (version !== 'trial') return null;
@@ -72,6 +74,19 @@ export default function SuperAdminSchools() {
   const [smsBusy, setSmsBusy] = useState(null);
   const [homepageBusy, setHomepageBusy] = useState(null);
   const [accountBusy, setAccountBusy] = useState(null);
+
+
+// --- Multiple school administrators (super admin can add admins per school) ---
+  const [adminsSchool, setAdminsSchool] = useState(null);
+  const [adminsList, setAdminsList] = useState([]);
+  const [adminsBusy, setAdminsBusy] = useState(false);
+  const [adminsError, setAdminsError] = useState('');
+
+  const [addAdminOpen, setAddAdminOpen] = useState(false);
+  const [adminForm, setAdminForm] = useState(emptyAdminForm);
+  const [adminError, setAdminError] = useState('');
+  const [addAdminBusy, setAddAdminBusy] = useState(false);
+  const [removingAdmin, setRemovingAdmin] = useState(null);
 
   const load = () => {
     setLoading(true);
@@ -311,6 +326,115 @@ const openEdit = (row) => {
     }
   };
 
+  // --- Administrator management for a single school ---
+
+  const openAdmins = (row) => {
+    setAdminsSchool(row);
+    setAdminsList([]);
+    setAdminsError('');
+    setAddAdminOpen(false);
+    setAdminForm(emptyAdminForm);
+    setAdminError('');
+    loadAdmins();
+  };
+
+  const loadAdmins = async () => {
+    if (!adminsSchool) return;
+    setAdminsBusy(true);
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, email, phone, created_at')
+        .eq('school_id', adminsSchool.id)
+        .eq('role', 'admin')
+        .order('created_at', { ascending: false });
+      if (error) throw new Error(error.message);
+      setAdminsList(data || []);
+    } catch (err) {
+      setAdminsError(err.message || 'Could not load administrators.');
+    } finally {
+      setAdminsBusy(false);
+    }
+  };
+
+  const addAdmin = async () => {
+    setAdminError('');
+    const { name, email, password, phone } = adminForm;
+    if (!name || !email || !password) {
+      setAdminError('Name, email and password are required.');
+      return;
+    }
+    if (password.length < 6) {
+      setAdminError('Password must be at least 6 characters.');
+      return;
+    }
+    setAddAdminBusy(true);
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim(),
+        password,
+        options: {
+          data: {
+            full_name: name.trim(),
+            role: 'admin',
+            school_id: adminsSchool.id,
+            phone: phone.trim() || null,
+          },
+        },
+      });
+      if (error) throw new Error(error.message);
+      if (data?.user) {
+        // Link this account as the school's primary administrator when none is
+        // linked yet. Subsequent admins are additional access accounts.
+        try {
+          await supabase.rpc('link_school_to_user', {
+            p_registration_id: adminsSchool.registration_id,
+            p_user_id: data.user.id,
+          });
+        } catch (linkErr) {
+          console.warn('Could not link school to administrator:', linkErr.message);
+        }
+        toast.success(
+          'Administrator added',
+          `${name.trim()} now has administrator access to ${adminsSchool.name}.`,
+        );
+        setAddAdminOpen(false);
+        setAdminForm(emptyAdminForm);
+        loadAdmins();
+      }
+    } catch (err) {
+      setAdminError(err.message || 'Could not add administrator.');
+    } finally {
+      setAddAdminBusy(false);
+    }
+  };
+
+  const removeAdmin = async (admin) => {
+    if (
+      !window.confirm(
+        `Remove administrator access for ${admin.full_name || admin.email}?\n\nTheir account will be deleted and they will no longer be able to sign in to ${adminsSchool.name}.`,
+      )
+    ) {
+      return;
+    }
+    setRemovingAdmin(admin.id);
+    try {
+      const { error } = await supabase.rpc('delete_auth_user', {
+        p_user_id: admin.id,
+      });
+      if (error) throw new Error(error.message);
+      toast.success(
+        'Administrator removed',
+        `${admin.full_name || admin.email} no longer has access to ${adminsSchool.name}.`,
+      );
+      loadAdmins();
+    } catch (err) {
+      toast.error('Could not remove administrator', err.message);
+    } finally {
+      setRemovingAdmin(null);
+    }
+  };
+
   const openView = async (row) => {
     setViewing(row);
     setViewStats(null);
@@ -495,6 +619,10 @@ return (
                 <Button size="sm" variant="secondary" onClick={() => openModules(row)} title="Lock / unlock modules">
                   <Cog className="h-3.5 w-3.5" aria-hidden="true" />
                   Modules
+                </Button>
+                <Button size="sm" variant="secondary" onClick={() => openAdmins(row)} title="Manage school administrators">
+                  <Users className="h-3.5 w-3.5" aria-hidden="true" />
+                  Admins
                 </Button>
                 <Button size="sm" variant="secondary" onClick={() => setResetSchool(row)} title="Reset school admin password">
                   <KeyRound className="h-3.5 w-3.5" aria-hidden="true" />
@@ -787,6 +915,135 @@ return (
           The administrator of this school will be signed out and must use the new password.
         </Alert>
         <Input label="New password" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Minimum 6 characters" />
+      </Modal>
+
+      <Modal
+        open={!!adminsSchool}
+        onClose={() => setAdminsSchool(null)}
+        title={`Administrators — ${adminsSchool?.name}`}
+        size="lg"
+      >
+        {adminsBusy ? (
+          <Spinner label="Loading administrators..." />
+        ) : adminsError ? (
+          <Alert tone="error">{adminsError}</Alert>
+        ) : (
+          <>
+            <div className="mb-6 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+              <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                <Users className="h-4 w-4" aria-hidden="true" />
+                School administrators
+              </div>
+              <Button
+                onClick={() => setAddAdminOpen(true)}
+                size="sm"
+              >
+                <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+                Add administrator
+              </Button>
+            </div>
+
+            {adminsList.length === 0 ? (
+              <EmptyState
+                icon={Users}
+                title="No administrators"
+                message="Add the first administrator for this school."
+              />
+            ) : (
+              <div className="space-y-2">
+                {adminsList.map((admin) => (
+                  <div
+                    key={admin.id}
+                    className="flex items-center gap-3 rounded-xl border border-slate-100 bg-white px-4 py-3"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-slate-800">
+                        {admin.full_name || '-'}
+                      </p>
+                      <p className="font-mono text-xs text-slate-500">{admin.email}</p>
+                      {admin.phone ? (
+                        <p className="text-xs text-slate-400">{admin.phone}</p>
+                      ) : null}
+                    </div>
+                    <Badge tone="slate">Admin</Badge>
+                    <Button
+                      size="sm"
+                      variant="danger"
+                      disabled={removingAdmin === admin.id}
+                      loading={removingAdmin === admin.id}
+                      onClick={() => removeAdmin(admin)}
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {addAdminOpen ? (
+              <div className="mt-6 border-t border-slate-100 pt-6">
+                <h3 className="text-sm font-semibold text-slate-700 mb-3">
+                  Add new administrator
+                </h3>
+                {adminError ? (
+                  <Alert tone="error" className="mb-3">
+                    {adminError}
+                  </Alert>
+                ) : null}
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Input
+                    label="Full name *"
+                    value={adminForm.name}
+                    onChange={(e) =>
+                      setAdminForm((f) => ({ ...f, name: e.target.value }))
+                    }
+                    placeholder="e.g. Jane Doe"
+                  />
+                  <Input
+                    label="Email *"
+                    type="email"
+                    value={adminForm.email}
+                    onChange={(e) =>
+                      setAdminForm((f) => ({ ...f, email: e.target.value }))
+                    }
+                    placeholder="jane@school.edu"
+                  />
+                  <Input
+                    label="Password *"
+                    type="password"
+                    value={adminForm.password}
+                    onChange={(e) =>
+                      setAdminForm((f) => ({ ...f, password: e.target.value }))
+                    }
+                    placeholder="Min 6 characters"
+                  />
+                  <Input
+                    label="Phone"
+                    type="tel"
+                    value={adminForm.phone}
+                    onChange={(e) =>
+                      setAdminForm((f) => ({ ...f, phone: e.target.value }))
+                    }
+                    placeholder="e.g. 0244 000 000"
+                  />
+                </div>
+                <div className="mt-4 flex w-full justify-end gap-2">
+                  <Button variant="secondary" onClick={() => setAddAdminOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={addAdmin}
+                    loading={addAdminBusy}
+                    className="flex-1"
+                  >
+                    <Plus className="h-4 w-4" aria-hidden="true" />
+                    Create account
+                  </Button>
+                </div>
+              </div>
+            ) : null}
+          </>
+        )}
       </Modal>
 
       <ConfirmDialog
