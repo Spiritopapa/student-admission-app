@@ -37,7 +37,7 @@ function friendlyLoginError(error) {
 
 function resolveLoginEmail(identifier) {
   const isStudentID = /^STU-[A-Z0-9]{5}$/i.test(identifier);
-  const isSubAdminID = /^SA-\d{4}$/i.test(identifier);
+  const isSubAdminID = /^SA-([A-Z0-9]{1,3}-)?\d{4}$/i.test(identifier);
   const isTeacherID = /^TCH-([A-Z0-9]{1,3}-)?\d{4}$/i.test(identifier);
   const isAccountantID = /^ACC-([A-Z0-9]{1,3}-)?\d{4}$/i.test(identifier);
   const isSchoolID = /^SCH-(TRIAL-)?([A-Z0-9]{1,3}-)?\d{4}$/i.test(identifier);
@@ -203,6 +203,11 @@ async function applyGuards(user) {
   };
 
   if (role === 'sub_admin') {
+    const regId = user.user_metadata?.registration_id || null;
+    if (!regId) {
+      await supabase.auth.signOut();
+      throw new Error('Your account is missing a registration ID. Please contact the Super Administrator.');
+    }
     const record = await approvalFlow('sub_admins', 'auto_approve_sub_admin_on_login', 'School Administrator');
     if (record.school_id) {
       const { data: school } = await supabase
@@ -222,12 +227,22 @@ async function applyGuards(user) {
   }
 
   if (role === 'teacher') {
+    const regId = user.user_metadata?.registration_id || null;
+    if (!regId) {
+      await supabase.auth.signOut();
+      throw new Error('Your account is missing a registration ID. Please contact the Super Administrator.');
+    }
     const record = await approvalFlow('teachers', 'auto_approve_teacher_on_login', 'Sub Administrator');
     await healProfileSchool(record);
     await ensureSchoolAccountActive(record.school_id);
   }
 
   if (role === 'accountant') {
+    const regId = user.user_metadata?.registration_id || null;
+    if (!regId) {
+      await supabase.auth.signOut();
+      throw new Error('Your account is missing a registration ID. Please contact the Super Administrator.');
+    }
     const record = await approvalFlow('accountants', 'auto_approve_accountant_on_login', 'Sub Administrator');
     await healProfileSchool(record);
     await ensureSchoolAccountActive(record.school_id);
