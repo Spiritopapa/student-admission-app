@@ -95,15 +95,19 @@ async function applyGuards(user) {
 
   if (role === 'admin') {
     const regId = user.user_metadata?.registration_id || null;
+    if (!regId) {
+      await supabase.auth.signOut();
+      throw new Error('Your account is missing a registration ID. Please contact the Super Administrator.');
+    }
     let { data: school } = await supabase
       .from('schools')
-      .select('id, plan_version, trial_ends_at, name, is_active')
+      .select('id, plan_version, trial_ends_at, name, is_active, user_id')
       .eq('user_id', user.id)
       .maybeSingle();
-    if (!school && regId) {
+    if (!school) {
       const { data: byReg } = await supabase
         .from('schools')
-        .select('id, plan_version, trial_ends_at, name, is_active')
+        .select('id, plan_version, trial_ends_at, name, is_active, user_id')
         .eq('registration_id', regId)
         .maybeSingle();
       if (byReg) {
@@ -112,11 +116,16 @@ async function applyGuards(user) {
           p_user_id: user.id,
         });
         if (linkErr) {
-          await supabase.from('schools').update({ user_id: user.id }).eq('registration_id', regId);
+          try {
+            await supabase.from('schools').update({ user_id: user.id }).eq('registration_id', regId);
+          } catch (updateErr) {
+            await supabase.auth.signOut();
+            throw new Error('Failed to link your school account. Please contact the Super Administrator.');
+          }
         }
         const { data: relinked } = await supabase
           .from('schools')
-          .select('id, plan_version, trial_ends_at, name, is_active')
+          .select('id, plan_version, trial_ends_at, name, is_active, user_id')
           .eq('user_id', user.id)
           .maybeSingle();
         school = relinked || byReg;
@@ -125,6 +134,10 @@ async function applyGuards(user) {
     if (!school) {
       await supabase.auth.signOut();
       throw new Error('School account not linked. Please contact the Super Administrator.');
+    }
+    if (school.user_id !== user.id) {
+      await supabase.auth.signOut();
+      throw new Error('School account ownership mismatch. Please contact the Super Administrator.');
     }
     if (school.is_active === false) {
       await supabase.auth.signOut();
@@ -480,10 +493,10 @@ export function AuthProvider({ children }) {
           }
         }
       } catch (mirrorErr) {
-        // The profiles row already saved; only the display mirror failed. Keep
-        // the primary save intact but make sure the failure is visible so the
-        // user is never left believing the sync fully happened when it did not.
-        console.warn('Could not mirror profile update into staff record:', mirrorErr.message);
+        // The profiles row already saved; only the display mirror failed.
+        // Surface the failure so the user is not left believing the sync
+        // fully happened when it did not.
+        throw new Error(`Profile saved but could not sync to staff record: ${mirrorErr.message}`);
       }
 
       // Update the in-memory profile so headers / greetings reflect instantly.

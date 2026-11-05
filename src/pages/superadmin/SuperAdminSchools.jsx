@@ -95,6 +95,11 @@ export default function SuperAdminSchools() {
       supabase.from('school_modules').select('school_id').eq('is_locked', true),
     ])
       .then(([{ data, error }, { data: locked }]) => {
+        if (error) {
+          toast.error('Failed to load schools. Please try again.');
+          setLoading(false);
+          return;
+        }
         if (!error) {
           const counts = {};
           (locked || []).forEach((l) => {
@@ -104,7 +109,10 @@ export default function SuperAdminSchools() {
         }
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch(() => {
+        toast.error('Failed to load schools. Please try again.');
+        setLoading(false);
+      });
   };
 
   useEffect(() => {

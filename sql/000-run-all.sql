@@ -699,6 +699,12 @@
 -- ============================================================
 \i 095-data-api-grants.sql
 -- ============================================================
+-- Login grants and self-claim RLS policies (fixes inconsistent
+-- admin / staff login where the direct UPDATE fallback was blocked
+-- by RLS). Required on fresh deployments too.
+-- ============================================================
+\i 096-fix-login-grants-and-self-claim-rls.sql
+-- ============================================================
 -- ============================================================
 --  SCHEMA DEPLOYMENT COMPLETE
 -- ============================================================
