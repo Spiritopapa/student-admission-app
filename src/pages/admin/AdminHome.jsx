@@ -329,7 +329,7 @@ export default function AdminHome() {
         { data: attendance },
         { data: paymentsToday },
         { data: transportToday },
-        { data: recentReceipts },
+        { data: receiptRows },
         { count: receiptsTodayCount },
         { data: lockedRows },
         { data: schoolRow },
@@ -358,7 +358,7 @@ export default function AdminHome() {
           .eq('school_id', schoolId),
         supabase
           .from('receipts')
-          .select('receipt_number, student_id, amount, payment_method, receipt_date, academic_year, term, receipt_data')
+          .select('id, receipt_number, student_id, amount, payment_method, receipt_date, academic_year, term, receipt_data')
           .eq('school_id', schoolId)
           .order('receipt_date', { ascending: false })
           .limit(8),
@@ -484,6 +484,15 @@ export default function AdminHome() {
       const attendanceToday = Object.values(attMap).sort((a, b) => a.class_name.localeCompare(b.class_name));
 
       const locked = new Set((lockedRows || []).map((r) => r.module_name));
+      const recentReceipts = (receiptRows || []).map((r) => {
+        const app = r.student_id ? studentMap[r.student_id] : null;
+        return {
+          ...r,
+          studentName: app
+            ? buildStudentName(app.first_name, app.middle_name, app.last_name)
+            : r.student_id || '',
+        };
+      });
 
       setData({
         studentCount: studentsArr.length,
@@ -508,6 +517,7 @@ export default function AdminHome() {
         schoolFeesToday: sumAmount(paymentsToday, 'amount_paid'),
         transportToday: sumAmount(transportToday, 'fee_amount'),
         receiptsToday: receiptsTodayCount || 0,
+        recentReceipts,
         attendanceToday,
         lockedModules: locked,
         planVersion: schoolRow?.plan_version || 'full',
@@ -651,7 +661,7 @@ return (
               </div>
             </div>
 
-            {recentReceipts.length ? (
+            {(data.recentReceipts || []).length ? (
               <div className="mt-5">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
@@ -666,14 +676,11 @@ return (
                   </Link>
                 </div>
                 <div className="divide-y divide-slate-50">
-                  {recentReceipts.map((r) => {
-                    const app = studentMap[r.student_id];
-                    const name = app
-                      ? buildStudentName(app.first_name, app.middle_name, app.last_name)
-                      : r.student_id;
+                  {(data.recentReceipts || []).map((r) => {
+                    const name = r.studentName || r.student_id;
                     return (
                       <div
-                        key={r.id}
+                        key={r.id || r.receipt_number}
                         className="flex items-center justify-between gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 transition-colors"
                       >
                         <div className="min-w-0 flex-1">
