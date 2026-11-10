@@ -343,17 +343,17 @@ export function DashboardLayout() {
 
   return (
     <ModuleLockProvider lockedModuleNames={lockedModuleNames}>
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen">
       <aside
-        className={`fixed inset-y-0 left-0 z-40 hidden border-r border-slate-200/70 bg-white transition-all duration-300 lg:block ${
-          collapsed ? 'w-[72px]' : 'w-64'
+        className={`glass-panel fixed bottom-3 left-3 top-3 z-40 hidden overflow-hidden rounded-[1.6rem] transition-all duration-300 lg:block ${
+          collapsed ? 'w-[76px]' : 'w-64'
         }`}
       >
         {sidebarContent}
         <button
           type="button"
           onClick={() => setCollapsed((c) => !c)}
-          className="absolute -right-3 top-20 hidden h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 shadow-sm transition-colors hover:text-brand-600 lg:flex"
+          className="glass-chip absolute -right-3 top-20 hidden h-7 w-7 items-center justify-center rounded-full text-slate-400 transition-colors hover:text-brand-600 lg:flex"
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           {collapsed ? (
@@ -378,7 +378,7 @@ export function DashboardLayout() {
             animate={{ x: 0 }}
             exit={{ x: -280 }}
             transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-            className="absolute inset-y-0 left-0 w-72 bg-white shadow-2xl"
+            className="glass-panel absolute inset-y-0 left-0 w-72 shadow-2xl"
           >
             {sidebarContent}
             <button
@@ -393,8 +393,8 @@ export function DashboardLayout() {
         </div>
       ) : null}
 
-      <div className={`transition-all duration-300 ${collapsed ? 'lg:pl-[72px]' : 'lg:pl-64'}`}>
-        <header className="sticky top-0 z-30 border-b border-slate-200/70 bg-white/80 backdrop-blur-md">
+      <div className={`transition-all duration-300 ${collapsed ? 'lg:pl-[6.25rem]' : 'lg:pl-[17.5rem]'}`}>
+        <header className="glass-panel sticky top-3 z-30 mx-3 rounded-[1.4rem] sm:mx-4">
           <div className="flex h-16 items-center justify-between gap-3 px-4 sm:px-6">
             <div className="flex items-center gap-3">
               <button
@@ -421,7 +421,7 @@ export function DashboardLayout() {
                 onClick={toggleTheme}
                 aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
                 title={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
-                className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 shadow-sm transition-colors hover:border-brand-300 hover:text-brand-600"
+                className="glass-chip flex h-9 w-9 items-center justify-center rounded-xl text-slate-500 transition-colors hover:text-brand-600"
               >
                 {theme === 'dark' ? (
                   <Sun className="h-4 w-4" aria-hidden="true" />
@@ -434,7 +434,7 @@ export function DashboardLayout() {
               <button
                 type="button"
                 onClick={() => setMenuOpen((m) => !m)}
-                className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white py-1.5 pl-1.5 pr-3 shadow-sm transition-colors hover:border-brand-300"
+                className="glass-chip flex items-center gap-2 rounded-xl py-1.5 pl-1.5 pr-3 transition-colors hover:text-brand-700"
               >
                 {effectiveAvatarUrl ? (
                   <img
@@ -462,7 +462,7 @@ export function DashboardLayout() {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 6 }}
                     transition={{ duration: 0.18 }}
-                    className="absolute right-0 top-full mt-2 w-52 overflow-hidden rounded-xl border border-slate-200 bg-white py-1.5 shadow-card"
+                    className="glass-panel absolute right-0 top-full mt-2 w-52 overflow-hidden rounded-xl py-1.5"
                   >
                     <div className="border-b border-slate-100 px-4 py-2">
                       {isAccountantRole && displayName ? (
@@ -486,7 +486,7 @@ export function DashboardLayout() {
           </div>
         </header>
 
-        <main className="px-4 py-6 sm:px-6 lg:px-8">
+        <main className="glass-stage px-3 py-6 sm:px-5 lg:px-6">
           <div className="mx-auto max-w-7xl">
             {moduleLocksLoading ? (
               <div className="py-12 text-center text-sm font-medium text-slate-400">Checking school access…</div>

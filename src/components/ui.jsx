@@ -264,9 +264,10 @@ export function StatCard({ icon: Icon, tone = 'blue', label, value, sub, onClick
       whileInView={{ opacity: 1, y: 0, scale: 1, transition: { duration: 0.5, delay, ease: 'easeOut' } }}
       viewport={{ once: true, margin: '0px 0px -40px 0px' }}
       onViewportEnter={() => setEntered(true)}
-      whileHover={{ y: -3, transition: { duration: 0.18, ease: 'easeOut' } }}
+      whileHover={{ y: -8, rotateX: 6, rotateY: -4, transition: { duration: 0.2, ease: 'easeOut' } }}
       onClick={onClick}
-      className={`relative overflow-hidden rounded-2xl border bg-white shadow-soft hover:shadow-card ${
+      style={{ transformStyle: 'preserve-3d' }}
+      className={`glass-tilt relative overflow-hidden rounded-2xl border bg-white shadow-soft hover:shadow-card ${
         t.card
       } ${onClick ? 'cursor-pointer' : ''}`}
     >

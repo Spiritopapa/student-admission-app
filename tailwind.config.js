@@ -29,9 +29,10 @@ export default {
         },
       },
       boxShadow: {
-        soft: '0 2px 12px -2px rgba(15, 23, 42, 0.08)',
-        card: '0 1px 3px rgba(15, 23, 42, 0.06), 0 8px 24px -8px rgba(79, 70, 229, 0.12)',
-        glow: '0 0 0 4px rgba(99, 102, 241, 0.15)',
+        soft: 'inset 0 1px 0 rgba(255,255,255,0.75), 0 16px 36px -22px rgba(49, 46, 129, 0.45)',
+        card: 'inset 0 1px 0 rgba(255,255,255,0.85), 0 22px 44px -24px rgba(49, 46, 129, 0.5), 0 8px 16px -12px rgba(15, 23, 42, 0.18)',
+        glow: '0 0 0 4px rgba(129, 140, 248, 0.28)',
+        glass: 'inset 0 1px 0 rgba(255,255,255,0.8), 0 24px 50px -28px rgba(49, 46, 129, 0.55)',
       },
       backgroundImage: {
         blend: 'linear-gradient(120deg, #4f46e5 0%, #0d9488 55%, #d97706 110%)',

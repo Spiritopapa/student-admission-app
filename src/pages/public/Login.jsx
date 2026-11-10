@@ -49,7 +49,7 @@ export default function Login() {
         transition={{ duration: 0.5 }}
         className="w-full max-w-md"
       >
-        <div className="rounded-3xl border border-slate-200/70 bg-white p-6 shadow-card sm:p-8">
+        <div className="glass-tilt rounded-3xl border border-white/70 bg-white p-6 shadow-card sm:p-8">
           <div className="flex flex-col items-center text-center">
             <Logo size="md" />
             <h1 className="mt-5 text-2xl font-bold tracking-tight text-slate-900">Welcome back</h1>

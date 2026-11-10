@@ -90,8 +90,8 @@ export default function Landing() {
   const { user, profile } = useAuth();
 
   return (
-    <div className="overflow-x-hidden">
-      <section className="relative bg-blend-radial pb-20 pt-14 sm:pt-20">
+    <div className="glass-stage overflow-x-hidden">
+      <section className="relative pb-20 pt-10 sm:pt-16">
         <div className="mx-auto grid max-w-7xl items-center gap-12 px-4 sm:px-6 lg:grid-cols-2 lg:px-8">
           <motion.div initial="hidden" animate="show">
             <motion.div variants={fadeUp} custom={0}>
@@ -156,7 +156,7 @@ export default function Landing() {
             transition={{ duration: 0.7, delay: 0.15 }}
             className="relative hidden lg:block"
           >
-            <div className="relative mx-auto max-w-md rounded-3xl border border-white/60 bg-white/70 p-6 shadow-card backdrop-blur-md">
+            <div className="glass-tilt relative mx-auto max-w-md rounded-3xl border border-white/60 bg-white/70 p-6 shadow-card backdrop-blur-md">
               <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
                 <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blend text-white">
                   <FileCheck2 className="h-6 w-6" aria-hidden="true" />
@@ -230,8 +230,9 @@ export default function Landing() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-60px' }}
               transition={{ duration: 0.5, delay: (i % 3) * 0.1 }}
-              whileHover={{ y: -4 }}
-              className="rounded-2xl border border-slate-200/70 bg-white p-6 shadow-soft transition-shadow hover:shadow-card"
+              whileHover={{ y: -8, rotateX: 5, rotateY: -3 }}
+              style={{ transformStyle: 'preserve-3d' }}
+              className="glass-tilt rounded-2xl border border-slate-200/70 bg-white p-6 shadow-soft"
             >
               <span className={`inline-flex h-12 w-12 items-center justify-center rounded-xl ${feature.tone}`}>
                 <feature.icon className="h-6 w-6" aria-hidden="true" />
@@ -243,7 +244,7 @@ export default function Landing() {
         </div>
       </section>
 
-      <section id="roles" className="border-y border-slate-200/60 bg-white">
+      <section id="roles" className="mx-3 sm:mx-4 lg:mx-6">
         <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -265,7 +266,7 @@ export default function Landing() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: '-60px' }}
                 transition={{ duration: 0.5, delay: i * 0.1 }}
-                className="rounded-2xl border border-slate-200/70 bg-slate-50/50 p-6"
+                className="glass-tilt rounded-2xl border border-white/70 bg-white/60 p-6"
               >
                 <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-blend-soft text-white shadow-card">
                   <role.icon className="h-6 w-6" aria-hidden="true" />
@@ -278,8 +279,8 @@ export default function Landing() {
         </div>
       </section>
 
-      <section className="relative overflow-hidden bg-blend py-16">
-        <div className="absolute inset-0 bg-blend-radial" />
+      <section className="glass-cta relative mx-3 overflow-hidden rounded-[1.8rem] py-16 sm:mx-4 lg:mx-6">
+        <div className="pointer-events-none absolute inset-0 bg-blend-radial opacity-60" />
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -319,7 +320,7 @@ export default function Landing() {
             { icon: ShieldCheck, title: 'Private by design', text: 'Every user only sees data for their own school.' },
             { icon: MessageSquareText, title: 'SMS updates', text: 'Parents stay informed with instant text notifications.' },
           ].map((item) => (
-            <div key={item.title} className="flex items-start gap-3 rounded-2xl border border-slate-200/70 bg-white p-5">
+            <div key={item.title} className="glass-tilt flex items-start gap-3 rounded-2xl border border-white/70 bg-white p-5">
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-600">
                 <item.icon className="h-5 w-5" aria-hidden="true" />
               </span>
@@ -332,8 +333,8 @@ export default function Landing() {
         </div>
       </section>
 
-      <section className="bg-slate-900">
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-6 px-4 py-12 sm:px-6 md:flex-row lg:px-8">
+      <section className="mx-3 mb-2 sm:mx-4 lg:mx-6">
+        <div className="glass-ink mx-auto flex max-w-7xl flex-col items-center justify-between gap-6 rounded-[1.6rem] px-4 py-12 sm:px-6 md:flex-row lg:px-8">
           <div>
             <p className="text-xl font-bold text-white">Take the next step</p>
             <p className="mt-1 text-sm text-slate-400">

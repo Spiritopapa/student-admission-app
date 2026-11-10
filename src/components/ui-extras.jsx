@@ -24,10 +24,10 @@ export function Modal({ open, onClose, title, children, footer, size = 'md' }) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 24, scale: 0.98 }}
             transition={{ type: 'spring', damping: 26, stiffness: 300 }}
-            className={`relative max-h-[92vh] w-full ${sizes[size]} overflow-y-auto rounded-t-2xl bg-white shadow-2xl sm:rounded-2xl`}
+            className={`glass-panel relative max-h-[92vh] w-full ${sizes[size]} overflow-y-auto rounded-t-2xl shadow-2xl sm:rounded-2xl`}
           >
             {title ? (
-              <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-100 bg-white px-5 py-4">
+              <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/40 bg-white/30 px-5 py-4 backdrop-blur-md">
                 <h3 className="text-base font-semibold text-slate-800">{title}</h3>
                 <button
                   type="button"
@@ -41,7 +41,7 @@ export function Modal({ open, onClose, title, children, footer, size = 'md' }) {
             ) : null}
             <div className="px-5 py-5">{children}</div>
             {footer ? (
-              <div className="sticky bottom-0 z-10 flex flex-wrap items-center justify-end gap-2 border-t border-slate-100 bg-white px-5 py-3">
+              <div className="sticky bottom-0 z-10 flex flex-wrap items-center justify-end gap-2 border-t border-white/40 bg-white/30 px-5 py-3 backdrop-blur-md">
                 {footer}
               </div>
             ) : null}
@@ -54,7 +54,7 @@ export function Modal({ open, onClose, title, children, footer, size = 'md' }) {
 
 export function Tabs({ tabs, active, onChange, className = '' }) {
   return (
-    <div className={`flex gap-1 overflow-x-auto rounded-xl bg-slate-100 p-1 ${className}`} role="tablist">
+    <div className={`glass-chip flex gap-1 overflow-x-auto rounded-xl p-1 ${className}`} role="tablist">
       {tabs.map((tab) => {
         const isActive = active === tab.value;
         return (

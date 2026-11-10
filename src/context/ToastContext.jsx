@@ -60,7 +60,7 @@ export function ToastProvider({ children }) {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -12 }}
                 transition={{ duration: 0.28 }}
-                className={`flex w-full max-w-sm items-start gap-3 rounded-xl border border-slate-200 bg-white p-3.5 shadow-card ${TONES[t.type].ring} ring-2`}
+                className={`glass-panel flex w-full max-w-sm items-start gap-3 rounded-2xl border border-white/70 bg-white p-3.5 shadow-card ${TONES[t.type].ring} ring-2`}
               >
                 <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${TONES[t.type].badge}`}>
                   <Icon className="h-5 w-5" aria-hidden="true" />
