@@ -110,7 +110,7 @@ export default function TeacherHome() {
       </div>
 
       {!isModuleLocked('attendance') && todayAtt ? (
-        <Card className="mt-6 overflow-hidden">
+        <GlassCard className="mt-6 overflow-hidden">
           <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3">
             <h3 className="flex items-center gap-2 text-sm font-bold text-slate-800">
               <CalendarCheck className="h-4 w-4 text-teal-600" aria-hidden="true" />

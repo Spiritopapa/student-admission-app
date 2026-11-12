@@ -171,7 +171,7 @@ export default function AccountantHome() {
           <UserCircle className="h-5 w-5 text-brand-600" aria-hidden="true" />
           {ROLE_LABELS.accountant}
         </div>
-      </Card>
+      </GlassCard>
 
       <div className="grid gap-4 sm:grid-cols-3">
         <GlassStatCard icon={Wallet} tone="teal" label="Collected today" value={cedi(stats.todayTotal)} sub={`${stats.todayCount} receipts issued`} index={0} />
