@@ -305,6 +305,7 @@
     padding: 1px;
     background: linear-gradient(135deg, rgba(99, 102, 241, 0.4), rgba(13, 148, 136, 0.3), rgba(245, 158, 11, 0.3));
     -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor;
     mask-composite: exclude;
     pointer-events: none;
