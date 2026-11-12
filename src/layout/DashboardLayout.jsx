@@ -488,13 +488,13 @@ export function DashboardLayout() {
 
         <main className="glass-stage px-3 py-6 sm:px-5 lg:px-6">
           <div className="mx-auto max-w-7xl">
-            {moduleLocksLoading ? (
-              <div className="py-12 text-center text-sm font-medium text-slate-400">Checking school access…</div>
-            ) : routeIsLocked ? (
-              <div className="py-12 text-center text-sm font-medium text-slate-500">This module is currently locked by the Super Administrator.</div>
-            ) : (
-              <Outlet />
-            )}
+              {moduleLocksLoading ? (
+                <div className="py-12 text-center text-sm font-medium text-slate-400">Checking school access…</div>
+              ) : routeIsLocked ? (
+                <div className="py-12 text-center text-sm font-medium text-slate-500">This module is currently locked by the Super Administrator.</div>
+              ) : (
+                <Outlet />
+              )}
           </div>
         </main>
       </div>

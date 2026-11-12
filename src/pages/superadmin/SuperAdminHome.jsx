@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { School, FileCheck2, Users, Building2, ArrowRight, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { PageHeader, Card, Spinner, StatCard, Badge, Button } from '../../components/ui';
+import { PageHeader, Spinner, Badge, Button } from '../../components/ui';
+import { GlassCard, GlassStatCard } from '../../components/glass-ui';
 import { supabase } from '../../lib/supabase';
 import { formatDate } from '../../lib/format';
 
@@ -65,7 +66,7 @@ export default function SuperAdminHome() {
       />
 
       {(expired.length > 0 || expiring.length > 0) && (
-        <Card className="mb-6 p-5">
+        <GlassCard className="mb-6 p-5">
           <div className="flex items-center gap-2">
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent-500/10 text-accent-600">
               <AlertTriangle className="h-5 w-5" aria-hidden="true" />
@@ -112,7 +113,7 @@ export default function SuperAdminHome() {
               </div>
             ))}
           </div>
-        </Card>
+        </GlassCard>
       )}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -123,7 +124,7 @@ export default function SuperAdminHome() {
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
-        <Link to="/superadmin/schools" className="card block p-5 transition-shadow hover:shadow-card">
+        <Link to="/superadmin/schools" className="glass-card block p-5 transition-shadow hover:shadow-card">
           <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
             <School className="h-5 w-5" aria-hidden="true" />
           </span>
@@ -137,7 +138,7 @@ export default function SuperAdminHome() {
           </p>
         </Link>
 
-        <Link to="/superadmin/applications" className="card block p-5 transition-shadow hover:shadow-card">
+        <Link to="/superadmin/applications" className="glass-card block p-5 transition-shadow hover:shadow-card">
           <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-accent-500/10 text-accent-600">
             <FileCheck2 className="h-5 w-5" aria-hidden="true" />
           </span>

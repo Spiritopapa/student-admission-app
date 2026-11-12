@@ -8,6 +8,7 @@ import { roleBasePath } from '../../lib/nav';
 import { Logo } from '../../components/Logo';
 import { Button, Input } from '../../components/ui';
 import { Alert } from '../../components/ui-extras';
+import { GlassCard, GlassInput, GlassButton } from '../../components/glass-ui';
 
 export default function Login() {
   const { signIn } = useAuth();
@@ -49,7 +50,7 @@ export default function Login() {
         transition={{ duration: 0.5 }}
         className="w-full max-w-md"
       >
-        <div className="glass-tilt rounded-3xl border border-white/70 bg-white p-6 shadow-card sm:p-8">
+        <GlassCard elevation="lg" className="rounded-3xl border border-white/70 p-6 shadow-card sm:p-8">
           <div className="flex flex-col items-center text-center">
             <Logo size="md" />
             <h1 className="mt-5 text-2xl font-bold tracking-tight text-slate-900">Welcome back</h1>
@@ -65,7 +66,7 @@ export default function Login() {
           ) : null}
 
           <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-            <Input
+            <GlassInput
               label="Email or Registration ID"
               type="text"
               autoComplete="username"
@@ -82,7 +83,7 @@ export default function Login() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
-                  className="input pr-11"
+                  className="glass-input pr-11"
                 />
                 <button
                   type="button"
@@ -105,10 +106,10 @@ export default function Login() {
               </Link>
             </div>
 
-            <Button type="submit" loading={busy} className="w-full" size="lg">
+            <GlassButton type="submit" loading={busy} className="w-full" size="lg">
               {!busy ? <LogIn className="h-4 w-4" aria-hidden="true" /> : null}
               Sign in
-            </Button>
+            </GlassButton>
           </form>
 
           <p className="mt-6 text-center text-sm text-slate-500">
@@ -117,7 +118,7 @@ export default function Login() {
               Register an account
             </Link>
           </p>
-        </div>
+        </GlassCard>
 
         <motion.p
           initial={{ opacity: 0 }}

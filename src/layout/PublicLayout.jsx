@@ -118,7 +118,7 @@ export function PublicLayout() {
       </header>
 
       <main className="flex-1">
-        <Outlet />
+          <Outlet />
       </main>
 
       <footer id="footer" className="glass-panel mx-3 mb-3 mt-8 rounded-[1.6rem] sm:mx-4 lg:mx-6">

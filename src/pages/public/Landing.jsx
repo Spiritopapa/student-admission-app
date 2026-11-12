@@ -19,6 +19,7 @@ import {
 import { BrandTagline } from '../../components/Logo';
 import { useAuth } from '../../context/AuthContext';
 import { roleBasePath } from '../../lib/nav';
+import { GlassCard, GlassBadge } from '../../components/glass-ui';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 24 },
@@ -232,13 +233,14 @@ export default function Landing() {
               transition={{ duration: 0.5, delay: (i % 3) * 0.1 }}
               whileHover={{ y: -8, rotateX: 5, rotateY: -3 }}
               style={{ transformStyle: 'preserve-3d' }}
-              className="glass-tilt rounded-2xl border border-slate-200/70 bg-white p-6 shadow-soft"
             >
-              <span className={`inline-flex h-12 w-12 items-center justify-center rounded-xl ${feature.tone}`}>
-                <feature.icon className="h-6 w-6" aria-hidden="true" />
-              </span>
-              <h3 className="mt-4 text-base font-bold text-slate-800">{feature.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-slate-500">{feature.text}</p>
+              <GlassCard className="p-6">
+                <span className={`inline-flex h-12 w-12 items-center justify-center rounded-xl ${feature.tone}`}>
+                  <feature.icon className="h-6 w-6" aria-hidden="true" />
+                </span>
+                <h3 className="mt-4 text-base font-bold text-slate-800">{feature.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-slate-500">{feature.text}</p>
+              </GlassCard>
             </motion.div>
           ))}
         </div>
@@ -266,13 +268,14 @@ export default function Landing() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: '-60px' }}
                 transition={{ duration: 0.5, delay: i * 0.1 }}
-                className="glass-tilt rounded-2xl border border-white/70 bg-white/60 p-6"
               >
-                <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-blend-soft text-white shadow-card">
-                  <role.icon className="h-6 w-6" aria-hidden="true" />
-                </span>
-                <h3 className="mt-4 text-base font-bold text-slate-800">{role.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-slate-500">{role.text}</p>
+                <GlassCard className="p-6">
+                  <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-blend-soft text-white shadow-card">
+                    <role.icon className="h-6 w-6" aria-hidden="true" />
+                  </span>
+                  <h3 className="mt-4 text-base font-bold text-slate-800">{role.title}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-slate-500">{role.text}</p>
+                </GlassCard>
               </motion.div>
             ))}
           </div>
@@ -320,7 +323,7 @@ export default function Landing() {
             { icon: ShieldCheck, title: 'Private by design', text: 'Every user only sees data for their own school.' },
             { icon: MessageSquareText, title: 'SMS updates', text: 'Parents stay informed with instant text notifications.' },
           ].map((item) => (
-            <div key={item.title} className="glass-tilt flex items-start gap-3 rounded-2xl border border-white/70 bg-white p-5">
+            <GlassCard key={item.title} className="flex items-start gap-3 p-5">
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-600">
                 <item.icon className="h-5 w-5" aria-hidden="true" />
               </span>
@@ -328,7 +331,7 @@ export default function Landing() {
                 <p className="text-sm font-bold text-slate-800">{item.title}</p>
                 <p className="mt-1 text-sm text-slate-500">{item.text}</p>
               </div>
-            </div>
+            </GlassCard>
           ))}
         </div>
       </section>

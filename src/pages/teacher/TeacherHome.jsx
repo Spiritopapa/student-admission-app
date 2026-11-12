@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Users, BookOpen, LayoutDashboard, ArrowRight, CalendarCheck } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { PageHeader, Card, Spinner, StatCard, EmptyState } from '../../components/ui';
+import { PageHeader, Spinner, EmptyState } from '../../components/ui';
+import { GlassCard, GlassStatCard } from '../../components/glass-ui';
 import { supabase } from '../../lib/supabase';
 import { fetchTeacherClassSet } from '../../lib/queries';
 import { useModuleLock } from '../../context/ModuleLockContext';
@@ -133,11 +134,11 @@ export default function TeacherHome() {
           ) : (
             <p className="px-5 py-4 text-sm text-slate-400">No attendance marked yet today for your classes.</p>
           )}
-        </Card>
+        </GlassCard>
       ) : null}
 
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
-        <Link to="/teacher/students" className="card block p-5 transition-shadow hover:shadow-card">
+        <Link to="/teacher/students" className="glass-card block p-5 transition-shadow hover:shadow-card">
           <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
             <Users className="h-5 w-5" aria-hidden="true" />
           </span>
@@ -149,7 +150,7 @@ export default function TeacherHome() {
           </p>
         </Link>
 
-        {!isModuleLocked('attendance') ? <Link to="/teacher/attendance" className="card block p-5 transition-shadow hover:shadow-card">
+        {!isModuleLocked('attendance') ? <Link to="/teacher/attendance" className="glass-card block p-5 transition-shadow hover:shadow-card">
           <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-teal-50 text-teal-600">
             <BookOpen className="h-5 w-5" aria-hidden="true" />
           </span>

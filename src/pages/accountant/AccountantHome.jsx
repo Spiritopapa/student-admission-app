@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom';
 import { LayoutDashboard, Wallet, ReceiptText, Building2, ArrowRight, RefreshCw, AlertTriangle, UserCircle } from 'lucide-react';
 import { useSchoolId } from '../../hooks/useSchool';
 import { useAccountant } from '../../hooks/useAccountant';
-import { PageHeader, Card, Spinner, StatCard, Button, EmptyState } from '../../components/ui';
+import { PageHeader, Spinner, Button, EmptyState } from '../../components/ui';
+import { GlassCard, GlassStatCard } from '../../components/glass-ui';
 import { supabase } from '../../lib/supabase';
 import { cedi } from '../../lib/format';
 import { currentAcademicYear, ROLE_LABELS } from '../../lib/constants';
@@ -135,7 +136,7 @@ export default function AccountantHome() {
       {/* Accountant identity: the name shown here comes from the accountant's
           own `accountants` record (the authoritative, admin-locked value) and
           falls back to the signed-in profile name when no record is linked. */}
-      <Card className="mb-6 flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
+      <GlassCard className="mb-6 flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex min-w-0 items-center gap-4">
           {photo ? (
             <img
@@ -173,9 +174,9 @@ export default function AccountantHome() {
       </Card>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <StatCard icon={Wallet} tone="teal" label="Collected today" value={cedi(stats.todayTotal)} sub={`${stats.todayCount} receipts issued`} index={0} />
-        <StatCard icon={ReceiptText} tone="blue" label="Total receipts" value={stats.count} sub="All-time for this school" index={1} />
-        <StatCard icon={Wallet} tone="amber" label="Total collected" value={cedi(stats.total)} sub="Cumulative receipts amount" index={2} />
+        <GlassStatCard icon={Wallet} tone="teal" label="Collected today" value={cedi(stats.todayTotal)} sub={`${stats.todayCount} receipts issued`} index={0} />
+        <GlassStatCard icon={ReceiptText} tone="blue" label="Total receipts" value={stats.count} sub="All-time for this school" index={1} />
+        <GlassStatCard icon={Wallet} tone="amber" label="Total collected" value={cedi(stats.total)} sub="Cumulative receipts amount" index={2} />
       </div>
 
       <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">

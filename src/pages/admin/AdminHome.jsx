@@ -7,8 +7,9 @@ import {
   ReceiptText, Printer, Eye,
 } from 'lucide-react';
 import { useSchoolId, useSchoolSettings } from '../../hooks/useSchool';
-import { PageHeader, Card, Spinner, Badge, StatCard, Button } from '../../components/ui';
+import { PageHeader, Spinner, Badge, Button } from '../../components/ui';
 import { Modal } from '../../components/ui-extras';
+import { GlassCard, GlassStatCard, GlassBadge, GlassDivider } from '../../components/glass-ui';
 import ReceiptModal from '../../components/ReceiptModal';
 import { supabase } from '../../lib/supabase';
 import { openPrintWindow, escapeHtml } from '../../lib/print';
@@ -566,16 +567,16 @@ return (
       <TrialBanner planVersion={data.planVersion} trialEndsAt={data.trialEndsAt} />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        <StatCard icon={Users} tone="blue" label="Students" value={data.studentCount} sub={`${data.admittedCount} admitted`} index={0} />
-        <StatCard icon={CheckCircle2} tone="green" label="Admitted" value={data.admittedCount} sub="Currently enrolled" index={1} />
-        <StatCard icon={Clock} tone="amber" label="Awaiting portal" value={data.portalPendingCount} sub="Not yet confirmed" index={2} />
-        <StatCard icon={Users} tone="red" label="Female" value={data.femaleCount} sub="Students" index={3} />
-        <StatCard icon={UserRound} tone="teal" label="Male" value={data.maleCount} sub="Students" index={4} />
-        <StatCard icon={BookOpen} tone="slate" label="Teachers" value={data.teacherCount} sub="Teaching staff" index={5} />
+        <GlassStatCard icon={Users} tone="blue" label="Students" value={data.studentCount} sub={`${data.admittedCount} admitted`} />
+        <GlassStatCard icon={CheckCircle2} tone="green" label="Admitted" value={data.admittedCount} sub="Currently enrolled" />
+        <GlassStatCard icon={Clock} tone="amber" label="Awaiting portal" value={data.portalPendingCount} sub="Not yet confirmed" />
+        <GlassStatCard icon={Users} tone="red" label="Female" value={data.femaleCount} sub="Students" />
+        <GlassStatCard icon={UserRound} tone="teal" label="Male" value={data.maleCount} sub="Students" />
+        <GlassStatCard icon={BookOpen} tone="slate" label="Teachers" value={data.teacherCount} sub="Teaching staff" />
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
-        <Card className="p-5">
+        <GlassCard className="p-5">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-slate-800">Student population by class</h3>
             <Link to="/admin/classes" className="inline-flex items-center gap-1 text-xs font-semibold text-brand-600 hover:text-brand-700">
@@ -587,10 +588,10 @@ return (
           <div className="mt-4">
             <StudentPopulationChart population={data.population} />
           </div>
-        </Card>
+        </GlassCard>
 
         {showFees ? (
-          <Card className="p-5">
+          <GlassCard className="p-5">
             <div className="flex items-center justify-between">
               <h3 className="flex items-center gap-1.5 text-sm font-bold text-slate-800">
                 <Wallet className="h-4 w-4 text-accent-500" aria-hidden="true" />
@@ -602,10 +603,10 @@ return (
               </Link>
             </div>
             <div className="mt-4 grid grid-cols-2 gap-3">
-              <MiniStat label="Total expected" value={cedi(Math.round(feeStats.totalAmount))} />
-              <MiniStat label="Collected" value={cedi(Math.round(feeStats.totalPaid))} tone="green" />
-              <MiniStat label="Outstanding" value={cedi(Math.round(feeStats.totalBalance))} tone="amber" />
-              <MiniStat label="Collection rate" value={collectionRate} tone="blue" />
+              <GlassBadge label="Total expected" value={cedi(Math.round(feeStats.totalAmount))} />
+              <GlassBadge label="Collected" value={cedi(Math.round(feeStats.totalPaid))} tone="green" />
+              <GlassBadge label="Outstanding" value={cedi(Math.round(feeStats.totalBalance))} tone="amber" />
+              <GlassBadge label="Collection rate" value={collectionRate} tone="blue" />
             </div>
 
             <div className="mt-4">
@@ -731,17 +732,17 @@ return (
                 No fee receipts issued yet.
               </p>
             )}
-          </Card>
+          </GlassCard>
         ) : (
-          <Card className="p-5">
+          <GlassCard className="p-5">
             <h3 className="text-sm font-bold text-slate-800">Fee overview</h3>
             <p className="mt-2 text-sm text-slate-400">The fees module is currently locked for this school.</p>
-          </Card>
+          </GlassCard>
         )}
       </div>
 <div className="mt-6 grid gap-6 lg:grid-cols-2">
         {showFees ? (
-          <Card className="p-5">
+          <GlassCard className="p-5">
             <div className="flex items-center justify-between">
               <h3 className="flex items-center gap-1.5 text-sm font-bold text-slate-800">
                 <TrendingUp className="h-4 w-4 text-brand-500" aria-hidden="true" />
@@ -756,11 +757,11 @@ return (
             <div className="mt-4">
               <FeesByClassChart rows={data.feesByClass} />
             </div>
-          </Card>
+          </GlassCard>
         ) : null}
 
         {showAttendance ? (
-          <Card className="p-5">
+          <GlassCard className="p-5">
             <div className="flex items-center justify-between">
               <h3 className="flex items-center gap-1.5 text-sm font-bold text-slate-800">
                 <CalendarCheck className="h-4 w-4 text-teal-500" aria-hidden="true" />
@@ -802,16 +803,16 @@ return (
                 <p className="text-sm text-slate-400">No attendance marked yet for today.</p>
               )}
             </div>
-          </Card>
+          </GlassCard>
         ) : null}
 
         {!showFees && !showAttendance ? (
-          <Card className="p-5">
+          <GlassCard className="p-5">
             <h3 className="text-sm font-bold text-slate-800">Analytics</h3>
             <p className="mt-2 text-sm text-slate-400">
               Fee and attendance charts are hidden because those modules are locked for this school.
             </p>
-          </Card>
+          </GlassCard>
         ) : null}
       </div>
 <div className="mt-6 grid gap-6 lg:grid-cols-3">

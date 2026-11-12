@@ -5,6 +5,7 @@ import { Wallet, Award, CalendarCheck, Megaphone, GraduationCap, ArrowRight } fr
 import { useAuth } from '../../context/AuthContext';
 import { useStudentApplication } from '../../hooks/useSchool';
 import { StatCard, Card, Spinner, EmptyState, Badge, PageHeader } from '../../components/ui';
+import { GlassCard, GlassStatCard, GlassSection } from '../../components/glass-ui';
 import {
   fetchStudentFees,
   fetchStudentTransactions,
@@ -141,15 +142,15 @@ export default function StudentHome() {
       </motion.div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {!feesLocked ? <StatCard icon={Wallet} tone="blue" label="Fee balance" value={cedi(summary.balance)} sub={`All terms · ${summary.txs.length} payments`} index={0} /> : null}
-        {!attendanceLocked ? <StatCard icon={CalendarCheck} tone="teal" label="Attendance" value={summary.attTotal ? `${summary.attPct}%` : '-'} sub={`${summary.att.present} present / ${summary.att.absent} absent`} index={1} /> : null}
-        {!examsLocked ? <StatCard icon={Award} tone="amber" label="Latest average" value={summary.performance ? `${summary.performance.average}%` : '-'} sub={summary.performance?.level?.text || 'No results yet'} index={2} /> : null}
-        <StatCard icon={Megaphone} tone="green" label="Announcements" value={summary.announcements.length} sub="Live updates from your school" index={3} />
+        {!feesLocked ? <GlassStatCard icon={Wallet} tone="brand" label="Fee balance" value={cedi(summary.balance)} sub={`All terms · ${summary.txs.length} payments`} delay={0.1} /> : null}
+        {!attendanceLocked ? <GlassStatCard icon={CalendarCheck} tone="teal" label="Attendance" value={summary.attTotal ? `${summary.attPct}%` : '-'} sub={`${summary.att.present} present / ${summary.att.absent} absent`} delay={0.15} /> : null}
+        {!examsLocked ? <GlassStatCard icon={Award} tone="accent" label="Latest average" value={summary.performance ? `${summary.performance.average}%` : '-'} sub={summary.performance?.level?.text || 'No results yet'} delay={0.2} /> : null}
+        <GlassStatCard icon={Megaphone} tone="emerald" label="Announcements" value={summary.announcements.length} sub="Live updates from your school" delay={0.25} />
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
         {!feesLocked ? <motion.div variants={fade} custom={2} className="lg:col-span-2">
-          <Card className="p-5">
+          <GlassSection>
             <h3 className="flex items-center gap-2 text-sm font-bold text-slate-800">
               <Wallet className="h-4 w-4 text-brand-600" aria-hidden="true" />
               Fee details
@@ -187,11 +188,11 @@ export default function StudentHome() {
               View full fee details
               <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </Link>
-          </Card>
+          </GlassSection>
         </motion.div> : null}
 
         <motion.div variants={fade} custom={3}>
-          <Card className="p-5">
+          <GlassSection>
             <h3 className="flex items-center gap-2 text-sm font-bold text-slate-800">
               <Megaphone className="h-4 w-4 text-teal-600" aria-hidden="true" />
               Latest announcement
@@ -220,7 +221,7 @@ export default function StudentHome() {
               View all
               <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </Link>
-          </Card>
+          </GlassSection>
         </motion.div>
       </div>
     </motion.div>

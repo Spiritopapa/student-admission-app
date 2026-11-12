@@ -584,7 +584,7 @@ return (
       ) : filtered.length ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((row) => (
-            <Card key={row.id} className="p-5">
+            <GlassCard key={row.id} className="p-5">
               <div className="flex items-start justify-between gap-2">
                 {row.logo_url ? (
                   <img src={photoUrl(row.logo_url)} alt={`${row.name} logo`} className="h-12 w-12 rounded-2xl object-cover ring-2 ring-brand-100" />
@@ -674,7 +674,7 @@ return (
                   />
                 </div>
               </div>
-            </Card>
+            </GlassCard>
           ))}
         </div>
       ) : (

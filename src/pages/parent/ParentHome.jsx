@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Users, Wallet, Megaphone, ArrowRight, UserRound, UserPlus } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { PageHeader, Card, Spinner, EmptyState, StatCard, Button } from '../../components/ui';
+import { PageHeader, Spinner, EmptyState, Button } from '../../components/ui';
+import { GlassCard, GlassStatCard } from '../../components/glass-ui';
 import ConnectWardModal from '../../components/ConnectWardModal';
 import { fetchParentLinks, fetchWardApplication, fetchStudentFees, fetchStudentReceipts, fetchActiveAnnouncements } from '../../lib/queries';
 import { buildStudentName, formatDate } from '../../lib/format';
@@ -83,7 +84,7 @@ export default function ParentHome() {
               const name = buildStudentName(app.first_name, app.middle_name, app.last_name);
               const photo = app.student_photo_url ? photoUrl(app.student_photo_url) : null;
               return (
-                <Card key={ward.id} className="p-4">
+                <GlassCard key={ward.id} className="p-4">
                   <div className="flex items-center gap-4">
                     {photo ? (
                       <img src={photo} alt={name} className="img-zoom h-16 w-14 rounded-xl object-cover ring-2 ring-brand-100" />
@@ -110,7 +111,7 @@ export default function ParentHome() {
                       <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
                     </Link> : null}
                   </div>
-                </Card>
+                </GlassCard>
               );
             })}
           </div>
