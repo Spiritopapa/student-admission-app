@@ -121,10 +121,16 @@ export function GlassSection({
 }
 
 /* ------------------------------------------------------------------
-   GlassBadge — frosted glass badge
+   GlassBadge — frosted glass badge with optional label/value
    ------------------------------------------------------------------ */
 
-export function GlassBadge({ children, className = '', tone = 'brand' }) {
+export function GlassBadge({ 
+  label, 
+  value, 
+  children, 
+  className = '', 
+  tone = 'brand' 
+}) {
   const tones = {
     brand: 'bg-brand-500/10 text-brand-700 border-brand-200/40',
     teal: 'bg-teal-500/10 text-teal-700 border-teal-200/40',
@@ -134,12 +140,23 @@ export function GlassBadge({ children, className = '', tone = 'brand' }) {
     slate: 'bg-slate-500/10 text-slate-600 border-slate-200/40',
   };
 
+  const toneStyle = tones[tone] ?? tones.brand;
+
+  if (label && value !== undefined) {
+    return (
+      <div className={`inline-flex flex-col items-center gap-0.5 rounded-full border px-3 py-2 backdrop-blur-sm ${toneStyle} ${className}`}>
+        <span className="text-[10px] font-medium uppercase tracking-wider opacity-70">{label}</span>
+        <span className="text-xs font-bold tabular-nums">{value}</span>
+      </div>
+    );
+  }
+
   return (
     <span
       className={`
         inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold
         backdrop-blur-sm
-        ${tones[tone] ?? tones.slate}
+        ${toneStyle}
         ${className}
       `}
     >
