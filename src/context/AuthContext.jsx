@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { uploadFile, randomPath } from '../lib/storage';
 import { currentAcademicYear } from '../lib/constants';
@@ -24,7 +24,7 @@ function friendlyLoginError(error) {
     return 'Invalid login credentials. Check that you entered the correct ID/email and password.';
   }
   if (code === 'email_not_confirmed' || msg.includes('email not confirmed')) {
-    return 'Your account has not been verified yet. Ask your administrator to confirm your account, then sign in again.';
+    return 'Your email has not been confirmed. Use the confirmation link sent to your inbox, or contact support if it has expired.';
   }
   if (code === 'user_banned' || msg.includes('user is banned')) {
     return 'This account has been disabled. Please contact your administrator.';
@@ -69,25 +69,32 @@ async function resolveStaffId(identifier) {
 
   if (rpcError || directError) {
     console.error('Failed to resolve staff ID for sign-in:', rpcError || directError);
-    throw new Error('Unable to verify this staff ID. Please try signing in with your email or contact your administrator.');
+    throw new Error('Unable to verify this ID. Please try signing in with your email or contact your administrator.');
   }
 
-  throw new Error('No account was found for this staff ID. Check the ID or sign in with your email.');
+  throw new Error('No account was found for this ID. Check the ID or sign in with your email. Super Admins must use their email address.');
 }
 
 async function loadChildProfile(user) {
   if (!user) return null;
-  const { data: profile } = await supabase
+  const { data: profile, error } = await supabase
     .from('profiles')
     .select('*')
     .eq('id', user.id)
-    .single();
-  return profile || null;
+    .maybeSingle();
+  if (error) {
+    console.error('Failed to load the signed-in user profile:', error);
+    throw new Error('Unable to load your account profile. Please try again or contact support.');
+  }
+  if (!profile) {
+    throw new Error('This login is not linked to an account profile. Please contact your administrator.');
+  }
+  return profile;
 }
 
 async function applyGuards(user) {
   let profile = await loadChildProfile(user);
-  const role = profile?.role || 'student';
+  const role = profile.role;
 
   if (role === 'admin') {
     const regId = user.user_metadata?.registration_id || null;
@@ -147,34 +154,59 @@ async function applyGuards(user) {
     }
   }
 
-  const approvalFlow = async (table, linkRpc, actorLabel) => {
-    const regId = user.user_metadata?.registration_id || null;
-    let { data: record } = await supabase
+  const approvalFlow = async (table, linkRpc, actorLabel, emailDomain) => {
+    const profileEmail = String(profile.email || '').trim().toLowerCase();
+    const registrationIdFromEmail = emailDomain && profileEmail.endsWith(emailDomain)
+      ? profileEmail.slice(0, -emailDomain.length).toUpperCase()
+      : null;
+    const regId = String(user.user_metadata?.registration_id || registrationIdFromEmail || '')
+      .trim()
+      .toUpperCase() || null;
+    const { data: linkedRecord, error: linkedError } = await supabase
       .from(table)
       .select('is_approved, school_id')
       .eq('user_id', user.id)
       .maybeSingle();
-    if (!record && regId) {
-      const { data: byReg } = await supabase
+    if (linkedError) {
+      console.error(`Failed to verify ${actorLabel} approval:`, linkedError);
+      throw new Error('Unable to verify your account approval. Please try again or contact your administrator.');
+    }
+
+    let record = linkedRecord;
+    if (!record) {
+      if (!regId) {
+        await supabase.auth.signOut();
+        throw new Error('Your account is missing registration details. Please contact your administrator.');
+      }
+
+      const { data: claimed, error: claimError } = await supabase.rpc(linkRpc, {
+        p_user_id: user.id,
+        p_registration_id: regId,
+      });
+      if (claimError || claimed !== true) {
+        if (claimError) console.error(`Failed to link ${actorLabel} account:`, claimError);
+        const { error: updateError } = await supabase
+          .from(table)
+          .update({ user_id: user.id })
+          .eq('registration_id', regId)
+          .eq('is_approved', true)
+          .is('user_id', null);
+        if (updateError) {
+          console.error(`Failed to claim approved ${actorLabel} record:`, updateError);
+          throw new Error('Your approved account could not be linked. Please contact your administrator.');
+        }
+      }
+
+      const { data: claimedRecord, error: claimedRecordError } = await supabase
         .from(table)
         .select('is_approved, school_id')
-        .eq('registration_id', regId)
+        .eq('user_id', user.id)
         .maybeSingle();
-      if (byReg && byReg.is_approved) {
-        try {
-          await supabase.rpc(linkRpc, { p_user_id: user.id, p_registration_id: regId });
-        } catch (err) {
-          try {
-            await supabase
-              .from(table)
-              .update({ user_id: user.id, is_approved: true })
-              .eq('registration_id', regId);
-          } catch (innerErr) {
-            // keep original
-          }
-        }
-        record = { is_approved: true, school_id: byReg.school_id };
+      if (claimedRecordError) {
+        console.error(`Failed to load linked ${actorLabel} record:`, claimedRecordError);
+        throw new Error('Unable to verify your account approval. Please try again or contact your administrator.');
       }
+      record = claimedRecord;
     }
     if (!record || !record.is_approved) {
       await supabase.auth.signOut();
@@ -199,12 +231,7 @@ async function applyGuards(user) {
   };
 
   if (role === 'sub_admin') {
-    const regId = user.user_metadata?.registration_id || null;
-    if (!regId) {
-      await supabase.auth.signOut();
-      throw new Error('Your account is missing a registration ID. Please contact the Super Administrator.');
-    }
-    const record = await approvalFlow('sub_admins', 'auto_approve_sub_admin_on_login', 'School Administrator');
+    const record = await approvalFlow('sub_admins', 'auto_approve_sub_admin_on_login', 'School Administrator', '@subadmin.local');
     if (record.school_id) {
       const { data: school } = await supabase
         .from('schools')
@@ -223,23 +250,13 @@ async function applyGuards(user) {
   }
 
   if (role === 'teacher') {
-    const regId = user.user_metadata?.registration_id || null;
-    if (!regId) {
-      await supabase.auth.signOut();
-      throw new Error('Your account is missing a registration ID. Please contact the Super Administrator.');
-    }
-    const record = await approvalFlow('teachers', 'auto_approve_teacher_on_login', 'Sub Administrator');
+    const record = await approvalFlow('teachers', 'auto_approve_teacher_on_login', 'Sub Administrator', '@teacher.local');
     await healProfileSchool(record);
     await ensureSchoolAccountActive(record.school_id);
   }
 
   if (role === 'accountant') {
-    const regId = user.user_metadata?.registration_id || null;
-    if (!regId) {
-      await supabase.auth.signOut();
-      throw new Error('Your account is missing a registration ID. Please contact the Super Administrator.');
-    }
-    const record = await approvalFlow('accountants', 'auto_approve_accountant_on_login', 'Sub Administrator');
+    const record = await approvalFlow('accountants', 'auto_approve_accountant_on_login', 'Sub Administrator', '@accountant.local');
     await healProfileSchool(record);
     await ensureSchoolAccountActive(record.school_id);
   }
@@ -336,6 +353,7 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [schoolBranding, setSchoolBranding] = useState(null);
+  const signInInProgressRef = useRef(false);
 
   const refreshSession = useCallback(async () => {
     try {
@@ -369,31 +387,43 @@ export function AuthProvider({ children }) {
     // would unsubscribe the listener on the simulated unmount and it would never
     // be re-subscribed, leaving the provider without auth events in dev. Letting
     // each mount subscribe and unsubscribe keeps exactly one active listener.
-    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
+    let active = true;
+    const deferredAuthTimers = new Set();
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_OUT') {
         setUser(null);
         setProfile(null);
         setLoading(false);
       }
+      if (event === 'SIGNED_IN' && signInInProgressRef.current) return;
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         setLoading(true);
-        supabase.auth
-          .getUser()
-          .then(async ({ data: { user: u } }) => {
-            if (!u) return;
-            const child = await applyGuards(u);
-            setUser(u);
-            // Keep an existing profile if the just-fetched one is missing; never
-            // clobber a valid profile with null.
-            setProfile((prev) => child.profile || prev);
-            setSchoolBranding(await fetchSchoolBranding(child.profile?.school_id || child.app?.school_id || null));
-          })
-          .catch((err) => {
-            console.error('Failed to restore session after auth state change:', err);
-            setUser(null);
-            setProfile(null);
-          })
-          .finally(() => setLoading(false));
+        const timer = setTimeout(() => {
+          deferredAuthTimers.delete(timer);
+          if (!active) return;
+          if (!session?.user) {
+            setLoading(false);
+            return;
+          }
+          applyGuards(session.user)
+            .then(async (child) => {
+              const branding = await fetchSchoolBranding(child.profile?.school_id || child.app?.school_id || null);
+              if (!active) return;
+              setUser(session.user);
+              setProfile((prev) => child.profile || prev);
+              setSchoolBranding(branding);
+            })
+            .catch((err) => {
+              console.error('Failed to restore session after auth state change:', err);
+              if (!active) return;
+              setUser(null);
+              setProfile(null);
+            })
+            .finally(() => {
+              if (active) setLoading(false);
+            });
+        }, 0);
+        deferredAuthTimers.add(timer);
       }
     });
 
@@ -419,7 +449,11 @@ export function AuthProvider({ children }) {
         setLoading(false);
       });
 
-    return () => sub?.subscription?.unsubscribe();
+    return () => {
+      active = false;
+      deferredAuthTimers.forEach((timer) => clearTimeout(timer));
+      sub?.subscription?.unsubscribe();
+    };
   }, []);
 
   const signIn = useCallback(async (identifier, password) => {
@@ -427,7 +461,14 @@ export function AuthProvider({ children }) {
     if (email === null) {
       email = await resolveStaffId(identifier.trim());
     }
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    let signInResult;
+    signInInProgressRef.current = true;
+    try {
+      signInResult = await supabase.auth.signInWithPassword({ email, password });
+    } finally {
+      signInInProgressRef.current = false;
+    }
+    const { data, error } = signInResult;
     if (error) throw new Error(friendlyLoginError(error));
     const child = await applyGuards(data.user);
     setUser(data.user);

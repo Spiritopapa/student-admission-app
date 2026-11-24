@@ -129,6 +129,8 @@ export default function Login() {
           Students sign in with their Student ID (e.g. STU-XXXXX).
           <br />
           Staff sign in with their Teacher or Accountant registration ID.
+          <br />
+          Super Admins sign in with their email address.
         </motion.p>
       </motion.div>
     </div>
