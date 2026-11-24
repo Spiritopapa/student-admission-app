@@ -562,11 +562,83 @@ html[data-theme='dark'] .glass-icon {
     0 4px 8px -4px rgba(0, 0, 0, 0.3);
 }
 
-/* Accessibility: respect reduced-motion preferences */
-@media (prefers-reduced-motion: reduce) {
-  body::before {
+/* Keep touch interactions responsive and reduce expensive effects on phones. */
+@media (max-width: 768px) {
+  body::after,
+  .glass-stage::after {
+    display: none;
     animation: none;
   }
+
+  .glass-panel,
+  .glass-panel-heavy,
+  .glass-chip,
+  .glass-card,
+  .glass-sidebar,
+  .glass-input,
+  .glass-btn,
+  .glass-tilt,
+  .glass-ink,
+  .glass-icon {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .glass-card,
+  .glass-sidebar,
+  .glass-panel,
+  .glass-panel-heavy,
+  .glass-tilt {
+    box-shadow: 0 8px 24px -18px rgba(49, 46, 129, 0.4);
+  }
+
+  button,
+  .btn,
+  input:not([type='checkbox']):not([type='radio']):not([type='file']),
+  select,
+  textarea {
+    min-height: 44px;
+  }
+
+  input:not([type='checkbox']):not([type='radio']):not([type='file']),
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .glass-card:hover,
+  .glass-btn:hover,
+  .glass-tilt:hover {
+    transform: none;
+  }
+
+  .glass-card,
+  .glass-btn,
+  .glass-tilt {
+    transition-duration: 150ms;
+  }
+}
+
+/* Accessibility: respect reduced-motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  body::before,
+  body::after,
+  .glass-stage::after,
+  .glass-shimmer {
+    animation: none;
+  }
+
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+
   .glass-tilt,
   .glass-tilt:hover {
     transform: none;
