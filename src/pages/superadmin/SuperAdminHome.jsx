@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { School, FileCheck2, Users, Building2, ArrowRight, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { PageHeader, Spinner, Badge, Button } from '../../components/ui';
-import { GlassCard, GlassStatCard } from '../../components/glass-ui';
+import { PageHeader, Spinner, Badge, Button, StatCard } from '../../components/ui';
+import { GlassCard } from '../../components/glass-ui';
 import { supabase } from '../../lib/supabase';
 import { formatDate } from '../../lib/format';
 
