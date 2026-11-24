@@ -15,6 +15,7 @@ import { buildReportCardHTML, buildTranscriptHTML, computeExamRankings, esc, ord
 import { GRADE_CLASSES, resolveScale, gradeForScale } from '../../lib/gradingScale';
 import { openPrintFullDocument } from '../../lib/print';
 import { isMobileShell } from '../../lib/mobileHost';
+import { photoUrl } from '../../lib/storage';
 
 const EMPTY_META = { subjectCount: 0, classCoverage: 0, classNames: [], results: 0, recordedSlots: 0, expectedSlots: 0, students: 0 };
 
@@ -341,7 +342,7 @@ export default function AdminExams() {
     try {
       const { data: students, error: studentsError } = await supabase
         .from('applications')
-        .select('id, student_id, first_name, middle_name, last_name')
+        .select('id, student_id, first_name, middle_name, last_name, student_photo_url')
         .eq('school_id', schoolId)
         .eq('class_applying', workspaceClass)
         .eq('status', 'admitted')
@@ -632,14 +633,30 @@ export default function AdminExams() {
     }
     win.document.write(fullHtml);
     win.document.close();
-    win.focus();
-    setTimeout(() => {
-      try {
-        win.print();
-      } catch (err) {
-        // ignore
-      }
-    }, 600);
+    const imageLoads = Array.from(win.document.images).map((image) => {
+      if (image.complete) return Promise.resolve();
+      return new Promise((resolve) => {
+        image.addEventListener('load', resolve, { once: true });
+        image.addEventListener('error', resolve, { once: true });
+      });
+    });
+    let imageTimeout;
+    Promise.race([
+      Promise.all(imageLoads),
+      new Promise((resolve) => {
+        imageTimeout = setTimeout(resolve, 5000);
+      }),
+    ]).then(() => {
+      clearTimeout(imageTimeout);
+      setTimeout(() => {
+        win.focus();
+        try {
+          win.print();
+        } catch (err) {
+          // ignore
+        }
+      }, 100);
+    });
   };
 
   const printGeneralScoreSheet = () => {
@@ -691,6 +708,10 @@ export default function AdminExams() {
       .map((entry) => {
         const student = entry.row.student;
         const name = buildStudentName(student.first_name, student.middle_name, student.last_name);
+        const studentPhoto = photoUrl(student.student_photo_url);
+        const photoCell = studentPhoto
+          ? `<img class="student-photo" src="${esc(studentPhoto)}" alt="${esc(name)} photo" />`
+          : '<span class="photo-placeholder">—</span>';
         const scores = entry.subjectScores
           .map(
             (score) =>
@@ -704,6 +725,7 @@ export default function AdminExams() {
         const rank = rankByStudentId.get(student.student_id);
         return `<tr>
           <td class="left">${esc(student.student_id)}</td>
+          <td class="photo-cell">${photoCell}</td>
           <td class="left">${esc(name)}</td>
           ${scores}
           <td>${average == null ? '-' : `${average.toFixed(1)}%`}</td>
@@ -725,6 +747,9 @@ export default function AdminExams() {
         th,td{border:1px solid #cbd5e1;padding:4px 5px;text-align:center;font-size:9px}
         th{background:#eef2ff;color:#312e81;font-weight:700}
         .left{text-align:left}
+        .photo-cell{padding:2px}
+        .student-photo{display:block;width:38px;height:46px;margin:auto;border-radius:4px;object-fit:cover}
+        .photo-placeholder{color:#94a3b8}
         thead{display:table-header-group}
         tr{page-break-inside:avoid}
         @media print{body{margin:0}}
@@ -733,7 +758,7 @@ export default function AdminExams() {
       <p class="meta">${esc(workspace.name)} · ${esc(workspace.academic_year || '')} · ${esc(termLabel(workspace.term))}</p>
       <p class="meta">Class: ${esc(workspaceClass)} · Students: ${reportRows.length}${dirty ? ' · Includes unsaved score changes' : ''}</p>
       <table><thead>
-        <tr><th rowspan="2">Student ID</th><th rowspan="2">Student Name</th>
+        <tr><th rowspan="2">Student ID</th><th rowspan="2">Photo</th><th rowspan="2">Student Name</th>
           ${subjectHeaders}
           <th rowspan="2">Average</th><th rowspan="2">Grade</th><th rowspan="2">Rank</th>
         </tr>
