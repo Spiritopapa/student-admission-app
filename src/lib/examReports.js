@@ -102,6 +102,9 @@ const REPORT_CSS = `body{font-family:Arial,Helvetica,sans-serif;color:#0f172a;ma
 .rc-school h1{font-size:19px;margin:0;color:#1e1b4b;}
 .rc-school p{margin:2px 0;font-size:10.5px;color:#64748b;}
 .rc-title{margin-left:auto;text-align:right;font-weight:800;color:#4f46e5;letter-spacing:1px;font-size:12px;}
+.rc-exam-name{font-weight:800;color:#312e81;}
+.rc-dates{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:6px 18px 0;padding:7px 10px;background:#eef2ff;border:1px solid #c7d2fe;border-radius:6px;font-size:10.5px;color:#312e81;page-break-inside:avoid;}
+.rc-dates b{font-weight:800;}
 .rc-student{display:flex;gap:12px;padding:10px 18px;align-items:flex-start;page-break-inside:avoid;}
 .rc-photo{width:64px;height:80px;object-fit:cover;border-radius:8px;border:1px solid #c7d2fe;}
 .rc-photo-ph{width:64px;height:80px;border-radius:8px;background:#f1f5f9;border:1px dashed #cbd5e1;}
@@ -129,7 +132,7 @@ table.rc-scores{width:calc(100% - 36px);margin:6px 18px;border-collapse:collapse
 .rc-sig{display:flex;justify-content:space-between;margin:20px 18px 8px;font-size:10.5px;color:#334155;page-break-inside:avoid;}
 .rc-sig div{text-align:center;width:30%;}
 .rc-sig .line{border-bottom:1px solid #94a3b8;height:16px;margin-bottom:2px;}
-.rc-foot{display:flex;justify-content:space-between;margin:0 18px;font-size:9px;color:#94a3b8;page-break-inside:avoid;}
+.rc-foot{display:flex;justify-content:center;margin:0 18px;font-size:9px;color:#94a3b8;page-break-inside:avoid;}
 `;
 
 function reportHeaderHtml(school, exam, app, name, positionDisplay) {
@@ -148,6 +151,10 @@ function reportHeaderHtml(school, exam, app, name, positionDisplay) {
     </div>
     <div class="rc-title">ACADEMIC REPORT CARD</div>
   </div>
+  <div class="rc-dates">
+    <span><b>Closing Date:</b> ${esc(formatDate(exam.closing_date))}</span>
+    <span><b>Reopening Date:</b> ${esc(formatDate(exam.reopening_date))}</span>
+  </div>
   <div class="rc-student">
     <div class="rc-info">
       <table>
@@ -156,7 +163,7 @@ function reportHeaderHtml(school, exam, app, name, positionDisplay) {
         <tr><td class="lbl">Class / Grade</td><td>${esc(app.class_applying || '-')}</td></tr>
         <tr><td class="lbl">Academic Year</td><td>${esc(exam.academic_year || '')}</td></tr>
         <tr><td class="lbl">Term</td><td>${esc(exam.term || '')} Term</td></tr>
-        <tr><td class="lbl">Exam</td><td>${esc(exam.name || '')}</td></tr>
+        <tr><td class="lbl">Examination Type</td><td><span class="rc-exam-name">${esc(exam.name || '')}</span></td></tr>
       </table>
     </div>
     <div class="rc-info">
@@ -314,9 +321,7 @@ ${reportHeaderHtml(
     <div><div class="line"></div>Parent / Guardian</div>
   </div>
   <div class="rc-foot">
-    <span>Closing Date: ${esc(formatDate(exam.closing_date))}</span>
     <span>Generated: ${esc(formatDate(new Date().toISOString()))}</span>
-    <span>Reopening Date: ${esc(formatDate(exam.reopening_date))}</span>
   </div>
 </div>
 </body></html>`;

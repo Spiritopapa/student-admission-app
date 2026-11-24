@@ -11,7 +11,7 @@ import { supabase } from '../../lib/supabase';
 import { buildStudentName, formatDate, termLabel } from '../../lib/format';
 import { TERMS, TERM_LABELS, currentAcademicYear, academicYearList } from '../../lib/constants';
 import { buildCSV, parseCSV } from '../../lib/csv';
-import { buildReportCardHTML, buildTranscriptHTML, computeExamRankings } from '../../lib/examReports';
+import { buildReportCardHTML, buildTranscriptHTML, computeExamRankings, ordinal } from '../../lib/examReports';
 import { GRADE_CLASSES, resolveScale, gradeForScale } from '../../lib/gradingScale';
 import { openPrintFullDocument } from '../../lib/print';
 import { isMobileShell } from '../../lib/mobileHost';
@@ -62,6 +62,7 @@ export default function AdminExams() {
   const sheetRef = useRef(null);
   const namesRef = useRef(null);
   const headerRef = useRef(null);
+  const marksLoadIdRef = useRef(0);
   // Width of the sheet's vertical scrollbar (0 when no scrollbar is rendered).
   // The frozen header mirrors this gutter so headings align with the body columns.
   const [sheetGutter, setSheetGutter] = useState(0);
@@ -101,11 +102,11 @@ export default function AdminExams() {
   // subject name so duplicate rows (legacy "all classes" subjects, repeated
   // class subjects) can never create duplicate score columns or duplicate
   // upsert keys when results are saved.
-  const visibleSubjectsForWorkspace = () => {
+  const visibleSubjectsForWorkspace = (subjects = examSubjects) => {
     const source =
       !workspace || !workspaceClass
-        ? examSubjects
-        : examSubjects.filter((s) => !s.class_name || s.class_name === workspaceClass);
+        ? subjects
+        : subjects.filter((s) => !s.class_name || s.class_name === workspaceClass);
     const seen = new Set();
     const unique = [];
     source.forEach((s) => {
@@ -277,105 +278,148 @@ export default function AdminExams() {
     setDirty(false);
     setLastSavedAt(null);
     setMarksQuery('');
-    const { data: rows } = await supabase.from('exam_subjects').select('*').eq('exam_id', exam.id).order('subject');
+    const [{ data: rows }, { data: gradeRows }] = await Promise.all([
+      supabase.from('exam_subjects').select('*').eq('exam_id', exam.id).order('subject'),
+      supabase.from('grading_systems').select('*').eq('school_id', schoolId),
+    ]);
     setExamSubjects(rows || []);
-    const { data: gradeRows } = await supabase.from('grading_systems').select('*').eq('school_id', schoolId);
     setGrades(gradeRows || []);
   };
 
   const syncClassSubjects = async (cls) => {
-    if (!workspace || !cls) return;
-    try {
-      // Pull subjects straight from the Subjects module (class_subjects) so the
-      // exam workspace mirrors class assignments without manual re-adding.
-      const [{ data: classSubs }, { data: current }] = await Promise.all([
-        supabase.from('class_subjects').select('subject_name').eq('school_id', schoolId).eq('class_name', cls),
-        supabase.from('exam_subjects').select('subject, class_name').eq('exam_id', workspace.id),
-      ]);
-      const existing = new Set((current || []).map((r) => `${r.class_name ?? '*'}|${r.subject}`.toLowerCase()));
-      const missing = (classSubs || [])
-        .map((r) => r.subject_name)
-        .filter((s) => s && !existing.has(`${cls}|${s}`.toLowerCase()))
-        // If an "all classes" (class_name IS NULL) subject with the same name
-        // already exists, it already applies to this class — don't create a
-        // class-specific copy that would collide in the score sheet / upserts.
-        .filter((s) => s && !existing.has(`*|${s}`.toLowerCase()));
-      if (missing.length) {
-        const { error } = await supabase.from('exam_subjects').insert(
-          missing.map((subject) => ({ exam_id: workspace.id, class_name: cls, subject }))
-        );
-        if (error) throw new Error(error.message);
-      }
-    } catch (err) {
-      toast.error('Could not sync subjects', err.message);
+    if (!workspace || !cls) return examSubjects;
+    // Load the subject assignments and existing exam subjects together.
+    const [{ data: classSubs, error: classSubsError }, { data: current, error: currentError }] = await Promise.all([
+      supabase.from('class_subjects').select('subject_name').eq('school_id', schoolId).eq('class_name', cls),
+      supabase.from('exam_subjects').select('*').eq('exam_id', workspace.id).order('subject'),
+    ]);
+    if (classSubsError) throw new Error(classSubsError.message);
+    if (currentError) throw new Error(currentError.message);
+
+    const existing = new Set((current || []).map((r) => `${r.class_name ?? '*'}|${r.subject}`.toLowerCase()));
+    const missing = (classSubs || [])
+      .map((r) => r.subject_name)
+      .filter((s) => s && !existing.has(`${cls}|${s}`.toLowerCase()))
+      // If an "all classes" (class_name IS NULL) subject with the same name
+      // already exists, it already applies to this class — don't create a
+      // class-specific copy that would collide in the score sheet / upserts.
+      .filter((s) => s && !existing.has(`*|${s}`.toLowerCase()));
+    let rows = current || [];
+    if (missing.length) {
+      const { data: inserted, error } = await supabase
+        .from('exam_subjects')
+        .insert(missing.map((subject) => ({ exam_id: workspace.id, class_name: cls, subject })))
+        .select('*');
+      if (error) throw new Error(error.message);
+      rows = [...rows, ...(inserted || [])].sort((a, b) => a.subject.localeCompare(b.subject));
     }
-    const { data: rows } = await supabase.from('exam_subjects').select('*').eq('exam_id', workspace.id).order('subject');
-    setExamSubjects(rows || []);
+    setExamSubjects(rows);
+    return rows;
   };
 
   const syncForClass = async () => {
     if (!workspaceClass) return;
     setSyncing(true);
+    setResultsLoaded(false);
+    setMarksData([]);
     try {
-      await syncClassSubjects(workspaceClass);
-      loadMarks();
+      const subjects = await syncClassSubjects(workspaceClass);
+      await loadMarks(subjects);
     } catch (err) {
       toast.error('Could not sync subjects', err.message);
+      loadMarks();
     } finally {
       setSyncing(false);
     }
   };
 
-  const loadMarks = async () => {
+  const loadMarks = async (subjectRows = examSubjects) => {
     if (!workspace || !workspaceClass) return;
+    const requestId = ++marksLoadIdRef.current;
     setResultsLoaded(false);
-    const [{ data: students }, { data: results }] = await Promise.all([
-      supabase
+    setMarksData([]);
+    try {
+      const { data: students, error: studentsError } = await supabase
         .from('applications')
         .select('id, student_id, first_name, middle_name, last_name')
         .eq('school_id', schoolId)
         .eq('class_applying', workspaceClass)
-        .order('last_name'),
-      supabase.from('exam_results').select('*').eq('exam_id', workspace.id),
-    ]);
-    const resultMap = new Map((results || []).map((r) => [`${r.student_id}|${r.subject}`, r]));
-    // A student can appear more than once if the applications table holds
-    // duplicate rows; keep one score-sheet row per student_id so the same
-    // (exam, student, subject) key is never upserted twice.
-    const seenStudents = new Set();
-    const uniqueStudents = (students || []).filter((st) => {
-      if (seenStudents.has(st.student_id)) return false;
-      seenStudents.add(st.student_id);
-      return true;
-    });
-    const data = uniqueStudents.map((student) => ({
-      student,
-      scores: Object.fromEntries(
-        examSubjects.map((sbj) => {
-          const existing = resultMap.get(`${student.student_id}|${sbj.subject}`);
-          return [
-            sbj.subject,
-            {
-              classScore: existing?.class_score != null ? String(existing.class_score) : '',
-              examScoreInput: existing?.exam_score_input != null ? String(existing.exam_score_input) : existing?.exam_score != null ? String(existing.exam_score * 2) : '',
-            },
-          ];
-        })
-      ),
-    }));
-    setMarksData(data);
-    setResultsLoaded(true);
+        .eq('status', 'admitted')
+        .order('last_name');
+      if (studentsError) throw new Error(studentsError.message);
+
+      // A student can appear more than once if the applications table holds
+      // duplicate rows; keep one score-sheet row per student_id so the same
+      // (exam, student, subject) key is never upserted twice.
+      const seenStudents = new Set();
+      const uniqueStudents = (students || []).filter((st) => {
+        if (seenStudents.has(st.student_id)) return false;
+        seenStudents.add(st.student_id);
+        return true;
+      });
+      const classSubjects = visibleSubjectsForWorkspace(subjectRows);
+      const studentIds = uniqueStudents.map((student) => student.student_id).filter(Boolean);
+      let results = [];
+      if (studentIds.length && classSubjects.length) {
+        const { data, error } = await supabase
+          .from('exam_results')
+          .select('student_id, subject, class_score, exam_score_input, exam_score')
+          .eq('exam_id', workspace.id)
+          .in('student_id', studentIds)
+          .in('subject', classSubjects.map((sbj) => sbj.subject));
+        if (error) throw new Error(error.message);
+        results = data || [];
+      }
+
+      if (requestId !== marksLoadIdRef.current) return;
+      const resultMap = new Map(results.map((r) => [`${r.student_id}|${r.subject}`, r]));
+      const data = uniqueStudents.map((student) => ({
+        student,
+        scores: Object.fromEntries(
+          classSubjects.map((sbj) => {
+            const existing = resultMap.get(`${student.student_id}|${sbj.subject}`);
+            return [
+              sbj.subject,
+              {
+                classScore: existing?.class_score != null ? String(existing.class_score) : '',
+                examScoreInput: existing?.exam_score_input != null ? String(existing.exam_score_input) : existing?.exam_score != null ? String(existing.exam_score * 2) : '',
+              },
+            ];
+          })
+        ),
+      }));
+      setMarksData(data);
+    } catch (err) {
+      if (requestId === marksLoadIdRef.current) {
+        toast.error('Could not load scoresheet', err.message);
+      }
+    } finally {
+      if (requestId === marksLoadIdRef.current) setResultsLoaded(true);
+    }
   };
 
   useEffect(() => {
     if (workspace && workspaceClass) {
       setSyncing(true);
-      Promise.resolve(syncClassSubjects(workspaceClass))
-        .then(() => {
+      setResultsLoaded(false);
+      setMarksData([]);
+      let cancelled = false;
+      syncClassSubjects(workspaceClass)
+        .then((subjects) => {
+          if (cancelled) return;
           setSyncing(false);
-          loadMarks();
+          loadMarks(subjects);
         })
-        .catch(() => setSyncing(false));
+        .catch((err) => {
+          if (cancelled) return;
+          setSyncing(false);
+          toast.error('Could not sync subjects', err.message);
+          loadMarks();
+        });
+      return () => {
+        cancelled = true;
+        marksLoadIdRef.current += 1;
+      };
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workspaceClass, workspace]);
@@ -736,10 +780,27 @@ export default function AdminExams() {
           return name.includes(q) || row.student.student_id.toLowerCase().includes(q);
         })
       : marksData;
+    const rowIndexByStudentId = new Map(marksData.map((row, index) => [row.student.student_id, index]));
     const colSubjects = visibleSubjectsForWorkspace();
     const displayValid = !displaySubject || colSubjects.some((s) => s.subject === displaySubject);
     const columnSubjects = displayValid && displaySubject ? colSubjects.filter((s) => s.subject === displaySubject) : colSubjects;
     const singleSubject = displayValid && !!displaySubject && columnSubjects.length === 1;
+    const overallScores = marksData
+      .map((row) => {
+        let total = 0;
+        let count = 0;
+        colSubjects.forEach((sbj) => {
+          const result = scoreTotals(row.scores[sbj.subject] || { classScore: '', examScoreInput: '' }, sbj.subject);
+          if (result.tot != null) {
+            total += result.tot;
+            count += 1;
+          }
+        });
+        return { studentId: row.student.student_id, average: count ? total / count : null };
+      })
+      .filter((row) => row.average != null)
+      .sort((a, b) => b.average - a.average || a.studentId.localeCompare(b.studentId));
+    const overallRankByStudentId = new Map(overallScores.map((row, index) => [row.studentId, index + 1]));
     const filledCells = marksData.reduce((sum, row) => {
       let n = 0;
       colSubjects.forEach((sbj) => {
@@ -923,6 +984,7 @@ export default function AdminExams() {
                       ])}
                       {singleSubject ? null : <col className="w-24" />}
                       {singleSubject ? null : <col className="w-20" />}
+                      {singleSubject ? null : <col className="w-16" />}
                     </colgroup>
                     <thead>
                       <tr>
@@ -933,6 +995,7 @@ export default function AdminExams() {
                         ))}
                         {singleSubject ? null : <th className="border-l border-slate-100 px-1 py-1.5 text-center text-xs font-bold uppercase tracking-wide text-slate-600">Average</th>}
                         {singleSubject ? null : <th className="px-1 py-1.5 text-center text-xs font-bold uppercase tracking-wide text-slate-600">Grade</th>}
+                        {singleSubject ? null : <th title="Rank within the selected class across all applicable subjects" className="px-1 py-1.5 text-center text-xs font-bold uppercase tracking-wide text-slate-600">Rank</th>}
                       </tr>
                       <tr>
                         {columnSubjects.map((s) => (
@@ -942,7 +1005,7 @@ export default function AdminExams() {
                             <th className="px-1 py-1 text-center font-normal text-slate-400">Total</th>
                           </Fragment>
                         ))}
-                        {singleSubject ? null : <th colSpan={2} />}
+                        {singleSubject ? null : <th colSpan={3} />}
                       </tr>
                     </thead>
                   </table>
@@ -996,9 +1059,10 @@ export default function AdminExams() {
                       ])}
                       {singleSubject ? null : <col className="w-24" />}
                       {singleSubject ? null : <col className="w-20" />}
+                      {singleSubject ? null : <col className="w-16" />}
                     </colgroup>
                     <tbody className="divide-y divide-slate-100">{visibleRows.map((row) => {
-                    const rowIndex = marksData.indexOf(row);
+                    const rowIndex = rowIndexByStudentId.get(row.student.student_id);
                     let sum = 0;
                     let count = 0;
                     columnSubjects.forEach((sbj) => {
@@ -1071,6 +1135,11 @@ export default function AdminExams() {
                             ) : (
                               <span className="text-slate-300">—</span>
                             )}
+                          </td>
+                        )}
+                        {singleSubject ? null : (
+                          <td className="px-1 py-2 text-center text-sm font-semibold text-slate-600">
+                            {ordinal(overallRankByStudentId.get(row.student.student_id))}
                           </td>
                         )}
                       </tr>
