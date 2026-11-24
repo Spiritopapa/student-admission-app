@@ -11,7 +11,7 @@ import { supabase } from '../../lib/supabase';
 import { buildStudentName, formatDate, termLabel } from '../../lib/format';
 import { TERMS, TERM_LABELS, currentAcademicYear, academicYearList } from '../../lib/constants';
 import { buildCSV, parseCSV } from '../../lib/csv';
-import { buildReportCardHTML, buildTranscriptHTML, computeExamRankings, ordinal } from '../../lib/examReports';
+import { buildReportCardHTML, buildTranscriptHTML, computeExamRankings, esc, ordinal } from '../../lib/examReports';
 import { GRADE_CLASSES, resolveScale, gradeForScale } from '../../lib/gradingScale';
 import { openPrintFullDocument } from '../../lib/print';
 import { isMobileShell } from '../../lib/mobileHost';
@@ -642,6 +642,108 @@ export default function AdminExams() {
     }, 600);
   };
 
+  const printGeneralScoreSheet = () => {
+    if (!workspace || !workspaceClass) return;
+    const classSubjects = visibleSubjectsForWorkspace();
+    if (!classSubjects.length || !marksData.length) {
+      toast.error('Score sheet unavailable', 'This class has no students or assigned subjects.');
+      return;
+    }
+
+    const reportRows = marksData.map((row) => {
+      let total = 0;
+      let count = 0;
+      const subjectScores = classSubjects.map((subject) => {
+        const score = scoreTotals(
+          row.scores[subject.subject] || { classScore: '', examScoreInput: '' },
+          subject.subject
+        );
+        if (score.tot != null) {
+          total += score.tot;
+          count += 1;
+        }
+        return { subject: subject.subject, ...score };
+      });
+      return {
+        row,
+        subjectScores,
+        average: count ? total / count : null,
+      };
+    });
+
+    const rankedRows = reportRows
+      .filter((entry) => entry.average != null)
+      .sort(
+        (a, b) =>
+          b.average - a.average ||
+          a.row.student.student_id.localeCompare(b.row.student.student_id)
+      );
+    const rankByStudentId = new Map(
+      rankedRows.map((entry, index) => [entry.row.student.student_id, index + 1])
+    );
+    const subjectHeaders = classSubjects
+      .map((subject) => `<th colspan="3">${esc(subject.subject)}</th>`)
+      .join('');
+    const scoreHeaders = classSubjects
+      .map(() => '<th>Class (50)</th><th>Exam (100)</th><th>Total</th>')
+      .join('');
+    const bodyRows = reportRows
+      .map((entry) => {
+        const student = entry.row.student;
+        const name = buildStudentName(student.first_name, student.middle_name, student.last_name);
+        const scores = entry.subjectScores
+          .map(
+            (score) =>
+              `<td>${score.cls == null ? '-' : score.cls.toFixed(1)}</td>` +
+              `<td>${score.esi == null ? '-' : score.esi.toFixed(1)}</td>` +
+              `<td>${score.tot == null ? '-' : score.tot.toFixed(1)}</td>`
+          )
+          .join('');
+        const average = entry.average;
+        const grade = average == null ? '-' : gradeForScale(scale, average, '').grade;
+        const rank = rankByStudentId.get(student.student_id);
+        return `<tr>
+          <td class="left">${esc(student.student_id)}</td>
+          <td class="left">${esc(name)}</td>
+          ${scores}
+          <td>${average == null ? '-' : `${average.toFixed(1)}%`}</td>
+          <td>${esc(grade)}</td>
+          <td>${rank ? ordinal(rank) : '-'}</td>
+        </tr>`;
+      })
+      .join('');
+    const title = `General Score Sheet - ${workspaceClass}`;
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1" />
+      <title>${esc(title)}</title>
+      <style>
+        @page{size:landscape A4;margin:12mm}
+        body{font-family:Arial,Helvetica,sans-serif;color:#0f172a;margin:24px}
+        h1{font-size:20px;margin:0 0 4px;color:#1e1b4b}
+        .meta{font-size:11px;color:#475569;margin:3px 0}
+        table{width:100%;border-collapse:collapse;margin-top:12px}
+        th,td{border:1px solid #cbd5e1;padding:4px 5px;text-align:center;font-size:9px}
+        th{background:#eef2ff;color:#312e81;font-weight:700}
+        .left{text-align:left}
+        thead{display:table-header-group}
+        tr{page-break-inside:avoid}
+        @media print{body{margin:0}}
+      </style></head><body>
+      <h1>GENERAL SCORE SHEET</h1>
+      <p class="meta">${esc(workspace.name)} · ${esc(workspace.academic_year || '')} · ${esc(termLabel(workspace.term))}</p>
+      <p class="meta">Class: ${esc(workspaceClass)} · Students: ${reportRows.length}${dirty ? ' · Includes unsaved score changes' : ''}</p>
+      <table><thead>
+        <tr><th rowspan="2">Student ID</th><th rowspan="2">Student Name</th>
+          ${subjectHeaders}
+          <th rowspan="2">Average</th><th rowspan="2">Grade</th><th rowspan="2">Rank</th>
+        </tr>
+        <tr>${scoreHeaders}</tr>
+      </thead><tbody>${bodyRows}</tbody></table>
+      </body></html>`;
+
+    printHtmlDoc(title, html);
+  };
+
   const fetchAdmittedStudents = async () => {
     const { data } = await supabase
       .from('applications')
@@ -933,6 +1035,14 @@ export default function AdminExams() {
             <div className="w-full sm:w-72">
               <SearchInput value={marksQuery} onChange={setMarksQuery} placeholder="Search students..." />
             </div>
+            <Button
+              variant="secondary"
+              onClick={printGeneralScoreSheet}
+              disabled={!marksData.length || !colSubjects.length}
+            >
+              <Printer className="h-4 w-4" aria-hidden="true" />
+              General score sheet
+            </Button>
             {marksQuery ? <Badge tone="blue">Showing {visibleRows.length} of {marksData.length}</Badge> : null}
             <p className="text-xs text-slate-400">
               <span className="font-mono">Enter</span> moves to the next score field · totals and grades update live
