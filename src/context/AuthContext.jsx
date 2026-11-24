@@ -51,32 +51,28 @@ function resolveLoginEmail(identifier) {
 }
 
 async function resolveStaffId(identifier) {
-  try {
-    const { data: staffTeacher } = await supabase.rpc('get_teacher_info_by_staff_id', {
-      p_staff_id: identifier,
-    });
-    if (staffTeacher && staffTeacher.length > 0 && staffTeacher[0].registration_id) {
-      return staffTeacher[0].registration_id.toLowerCase() + '@teacher.local';
-    }
-    const { data: directTeacher } = await supabase
-      .from('teachers')
-      .select('registration_id')
-      .eq('staff_id', identifier)
-      .maybeSingle();
-    if (directTeacher?.registration_id) {
-      return directTeacher.registration_id.toLowerCase() + '@teacher.local';
-    }
-  } catch (err) {
-    const { data: directTeacher } = await supabase
-      .from('teachers')
-      .select('registration_id')
-      .eq('staff_id', identifier)
-      .maybeSingle();
-    if (directTeacher?.registration_id) {
-      return directTeacher.registration_id.toLowerCase() + '@teacher.local';
-    }
+  const { data: staffTeacher, error: rpcError } = await supabase.rpc('get_teacher_info_by_staff_id', {
+    p_staff_id: identifier,
+  });
+  if (staffTeacher?.[0]?.registration_id) {
+    return staffTeacher[0].registration_id.toLowerCase() + '@teacher.local';
   }
-  return identifier;
+
+  const { data: directTeacher, error: directError } = await supabase
+    .from('teachers')
+    .select('registration_id')
+    .eq('staff_id', identifier)
+    .maybeSingle();
+  if (directTeacher?.registration_id) {
+    return directTeacher.registration_id.toLowerCase() + '@teacher.local';
+  }
+
+  if (rpcError || directError) {
+    console.error('Failed to resolve staff ID for sign-in:', rpcError || directError);
+    throw new Error('Unable to verify this staff ID. Please try signing in with your email or contact your administrator.');
+  }
+
+  throw new Error('No account was found for this staff ID. Check the ID or sign in with your email.');
 }
 
 async function loadChildProfile(user) {

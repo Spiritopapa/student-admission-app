@@ -140,6 +140,8 @@ Your existing data and tables are untouched. Run the migrations in the Supabase 
 6. `sql/091-timetables.sql` and `sql/092-timetable-lock-enforcement.sql` - add secure weekly timetable entries and enforce timetable locks for every role. Run both before using the new Admin, Teacher, or Student Timetable pages.
 7. `sql/093-school-account-activation.sql` - adds Super Admin suspension/activation of a school account and all of its users.
 8. `sql/094-exam-publication-visibility.sql` - enforces that hidden exam results and report details cannot be accessed by students or parents.
+9. `sql/095-data-api-grants.sql` - adds explicit Supabase Data API grants while keeping row access controlled by RLS. Required for fresh deployments and schema resets.
+10. `sql/096-fix-login-grants-and-self-claim-rls.sql` - grants pre-auth lookup RPCs and permits eligible admins and staff to claim their own unlinked records. Apply this to existing Supabase projects to fix affected sign-in failures.
 
 ### Deployment (Vercel)
 
