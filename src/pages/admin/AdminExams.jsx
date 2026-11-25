@@ -581,15 +581,12 @@ export default function AdminExams() {
         classSubjects.map((subject) => [subject.subject.toLowerCase(), subject])
       );
       const upserts = [];
-      const detailUpserts = [];
       const blankStudentIdsBySubject = new Map();
-      const affectedStudentIds = new Set();
       for (const change of changedCells) {
         const row = rowsByStudent.get(change.studentId);
         const subject = subjectsByName.get(change.subject.toLowerCase());
         if (!row || !subject) continue;
         const sc = row.scores[subject.subject];
-        affectedStudentIds.add(change.studentId);
         if (!sc || (sc.classScore === '' && sc.examScoreInput === '')) {
           const studentIds = blankStudentIdsBySubject.get(subject.subject) || [];
           studentIds.push(change.studentId);
@@ -613,29 +610,6 @@ export default function AdminExams() {
         });
       }
 
-      for (const studentId of affectedStudentIds) {
-        const row = rowsByStudent.get(studentId);
-        let totalMarks = 0;
-        let count = 0;
-        for (const sbj of classSubjects) {
-          const sc = row.scores[sbj.subject];
-          if (sc && (sc.classScore !== '' || sc.examScoreInput !== '')) {
-            const cls = sc.classScore === '' ? null : Math.min(parseFloat(sc.classScore) || 0, 50);
-            const esi = sc.examScoreInput === '' ? null : Math.min(parseFloat(sc.examScoreInput) || 0, 100);
-            const es = esi !== null ? esi / 2 : null;
-            const total = Math.min((cls || 0) + (es || 0), 100);
-            totalMarks += total;
-            count += 1;
-          }
-        }
-        if (count > 0) {
-          const average = totalMarks / count;
-          const remarks =
-            average >= 80 ? 'Excellent performance! Keep up the great work.' : average >= 70 ? 'Very good performance.' : average >= 60 ? 'Good performance.' : average >= 40 ? 'Satisfactory but needs improvement.' : 'Requires urgent attention.';
-          detailUpserts.push({ exam_id: exam.id, student_id: studentId, interest: 'mathematics', attitude: 'active', class_teacher_remarks: remarks });
-        }
-      }
-
       const batchSize = 100;
       for (let index = 0; index < upserts.length; index += batchSize) {
         const { error } = await supabase
@@ -655,12 +629,6 @@ export default function AdminExams() {
           if (error) throw new Error(error.message);
         }
       }
-      for (let index = 0; index < detailUpserts.length; index += batchSize) {
-        const { error } = await supabase
-          .from('exam_student_details')
-          .upsert(detailUpserts.slice(index, index + batchSize), { onConflict: 'exam_id,student_id' });
-        if (error) throw new Error(error.message);
-      }
       changedCells.forEach((change) => {
         const key = `${change.examId}|${change.studentId}|${change.subject.toLowerCase()}`;
         if (scoreChangesRef.current.get(key)?.version === change.version) {
@@ -678,7 +646,11 @@ export default function AdminExams() {
     } catch (err) {
       dirtyRef.current = true;
       setDirty(true);
-      toast.error('Could not save results', err.message);
+      console.error('Could not save examination scores.', err);
+      const message = err.message?.toLowerCase().includes('statement timeout')
+        ? 'The database took too long to save these scores. Your changes remain pending; try saving again shortly.'
+        : err.message;
+      toast.error('Could not save results', message);
     } finally {
       savingMarksRef.current = false;
       setSavingMarks(false);
@@ -1429,7 +1401,7 @@ export default function AdminExams() {
                         const studentPhoto = photoUrl(row.student.student_photo_url);
                         const initials = `${row.student.first_name?.[0] || ''}${row.student.last_name?.[0] || ''}`.toUpperCase();
                         return (
-                          <tr key={row.student.id}>
+                          <tr key={row.student.id} className="h-11">
                             <td className="h-11 border-b border-slate-100 bg-white px-2 align-middle">
                               <div className="flex items-center gap-2">
                                 {studentPhoto ? (
@@ -1495,13 +1467,13 @@ export default function AdminExams() {
                     const avg = count ? sum / count : null;
                     const avgPerf = avg != null ? gradeForScale(scale, avg, '') : null;
                     return (
-                      <tr key={row.student.id} className="hover:bg-slate-50/60">
+                      <tr key={row.student.id} className="h-11 hover:bg-slate-50/60">
                         {columnSubjects.map((sbj) => {
                           const sc = row.scores[sbj.subject] || { classScore: '', examScoreInput: '' };
                           const t = scoreTotals(sc, sbj.subject);
                           return (
                             <Fragment key={sbj.subject}>
-                              <td className="border-l border-slate-100 px-1 py-1.5">
+                              <td className="border-l border-slate-100 px-1 py-1">
                                 <input
                                   type="number" min="0" max="50" data-score="1"
                                   value={sc.classScore}
@@ -1510,7 +1482,7 @@ export default function AdminExams() {
                                   placeholder="0-50"
                                 />
                               </td>
-                              <td className="px-1 py-1.5">
+                              <td className="px-1 py-1">
                                 <input
                                   type="number" min="0" max="100" data-score="1"
                                   value={sc.examScoreInput}
