@@ -11,7 +11,7 @@ import { openPrintWindow, escapeHtml } from '../../lib/print';
 
 const esc = escapeHtml;
 const SCORE_AUTOSAVE_DELAY_MS = 900;
-const SCORE_REFRESH_INTERVAL_MS = 10_000;
+const SCORE_REFRESH_INTERVAL_MS = 5_000;
 
 export default function TeacherExams() {
   const { user } = useAuth();
@@ -473,7 +473,7 @@ return (
                   {enteredCount} of {rows.length} student(s) have scores · total = class score (max 50) + exam score ÷ 2 (max 50)
                 </span>
                 <span className="text-xs text-slate-500">
-                  {saving ? 'Saving scores...' : dirty ? 'Changes will save automatically' : lastSavedAt ? 'Saved · background refresh every 10 seconds' : 'Auto-save enabled · refresh every 10 seconds'}
+                  {saving ? 'Saving scores...' : dirty ? 'Changes will save automatically' : lastSavedAt ? 'Saved · background refresh every 5 seconds' : 'Auto-save enabled · refresh every 5 seconds'}
                 </span>
               </div>
               <table className="w-full">

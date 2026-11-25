@@ -19,7 +19,7 @@ import { photoUrl } from '../../lib/storage';
 import { useDashboardRealtimeRefresh } from '../../hooks/useDashboardRealtimeRefresh';
 
 const EMPTY_META = { subjectCount: 0, classCoverage: 0, classNames: [], results: 0, recordedSlots: 0, expectedSlots: 0, students: 0 };
-const SCORE_REFRESH_INTERVAL_MS = 10_000;
+const SCORE_REFRESH_INTERVAL_MS = 5_000;
 
 function examStatus(exam, meta) {
   const today = new Date().toISOString().slice(0, 10);
@@ -1268,7 +1268,7 @@ export default function AdminExams() {
             </Button>
             {marksQuery ? <Badge tone="blue">Showing {visibleRows.length} of {marksData.length}</Badge> : null}
             <p className="text-xs text-slate-400">
-              <span className="font-mono">Enter</span> moves to the next score field · totals and grades update live · scores auto-save after a pause · saved scores refresh every 10 seconds
+              <span className="font-mono">Enter</span> moves to the next score field · totals and grades update live · scores auto-save after a pause · saved scores refresh every 5 seconds
             </p>
           </div>
 

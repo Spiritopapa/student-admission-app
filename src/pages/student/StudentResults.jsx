@@ -24,6 +24,8 @@ import { photoUrl } from '../../lib/storage';
 import { openPrintWindow, escapeHtml } from '../../lib/print';
 import { isMobileShell } from '../../lib/mobileHost';
 
+const SCORE_REFRESH_INTERVAL_MS = 5_000;
+
 export default function StudentResults() {
   const { application, loading } = useStudentApplication();
   const { settings } = useSchoolSettings();
@@ -50,24 +52,53 @@ export default function StudentResults() {
   }, [application]);
 
   useEffect(() => {
-    if (!selected || !application) return;
+    if (!selected || !application) {
+      setBusy(false);
+      return undefined;
+    }
+
     let cancelled = false;
-    setBusy(true);
-    Promise.all([
-      fetchResultsForExam(application.student_id, selected),
-      fetchStudentDetailsForExam(application.student_id, selected),
-      fetchStudentAttendance(application.student_id),
-    ])
-      .then(([r, d, a]) => {
-        if (cancelled) return;
-        setResults(r);
-        setDetails(d);
-        setAttendance(a);
-      })
-      .catch(() => {})
-      .finally(() => setBusy(false));
+    let refreshing = false;
+    const refreshReport = async (initialLoad = false) => {
+      if (refreshing) return;
+      refreshing = true;
+      if (initialLoad) setBusy(true);
+      try {
+        if (initialLoad) {
+          const [nextResults, nextDetails, nextAttendance] = await Promise.all([
+            fetchResultsForExam(application.student_id, selected),
+            fetchStudentDetailsForExam(application.student_id, selected),
+            fetchStudentAttendance(application.student_id),
+          ]);
+          if (cancelled) return;
+          setResults(nextResults);
+          setDetails(nextDetails);
+          setAttendance(nextAttendance);
+        } else {
+          const nextResults = await fetchResultsForExam(application.student_id, selected);
+          if (!cancelled) setResults(nextResults);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          console.error(
+            initialLoad ? 'Could not load the student report card.' : 'Could not refresh the student report card.',
+            err
+          );
+        }
+      } finally {
+        refreshing = false;
+        if (initialLoad && !cancelled) setBusy(false);
+      }
+    };
+
+    refreshReport(true);
+    const intervalId = setInterval(
+      () => refreshReport(false),
+      SCORE_REFRESH_INTERVAL_MS
+    );
     return () => {
       cancelled = true;
+      clearInterval(intervalId);
     };
   }, [selected, application]);
 
@@ -169,13 +200,16 @@ export default function StudentResults() {
         />
 
         {exams.length ? (
-          <Select label="Select an examination" value={selected} onChange={(e) => setSelected(e.target.value)} className="max-w-sm">
-            {exams.map((e) => (
-              <option key={e.id} value={e.id}>
-                {e.name} - {e.academic_year} ({termLabel(e.term)})
-              </option>
-            ))}
-          </Select>
+          <>
+            <Select label="Select an examination" value={selected} onChange={(e) => setSelected(e.target.value)} className="max-w-sm">
+              {exams.map((e) => (
+                <option key={e.id} value={e.id}>
+                  {e.name} - {e.academic_year} ({termLabel(e.term)})
+                </option>
+              ))}
+            </Select>
+            <p className="mt-2 text-xs text-slate-400">Report card scores refresh automatically every 5 seconds.</p>
+          </>
         ) : null}
       </div>
 
