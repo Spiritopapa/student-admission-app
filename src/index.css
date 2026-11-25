@@ -60,22 +60,22 @@
     @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-300 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 active:translate-y-px;
   }
   .btn-primary {
-    @apply btn text-white shadow-card;
+    @apply btn bg-brand-700 text-white shadow-card hover:bg-brand-800;
   }
   .btn-secondary {
-    @apply btn border text-slate-700 shadow-soft hover:text-brand-700;
+    @apply btn border border-slate-300 bg-white text-slate-800 shadow-soft hover:bg-brand-50 hover:text-brand-800;
   }
   .btn-teal {
-    @apply btn text-white shadow-card;
+    @apply btn bg-teal-700 text-white shadow-card hover:bg-teal-800;
   }
   .btn-amber {
-    @apply btn text-white shadow-card;
+    @apply btn bg-accent-500 text-amber-950 shadow-card hover:bg-accent-400;
   }
   .btn-danger {
-    @apply btn text-rose-700;
+    @apply btn bg-rose-700 text-white shadow-card hover:bg-rose-800;
   }
   .btn-ghost {
-    @apply btn text-slate-600 hover:text-slate-900;
+    @apply btn text-slate-700 hover:bg-slate-100 hover:text-slate-900;
   }
   .input {
     @apply w-full rounded-xl border px-3.5 py-2.5 text-sm text-slate-800 transition-colors placeholder:text-slate-400 focus:border-brand-300 focus:outline-none focus:ring-2 focus:ring-brand-200/70;
@@ -431,11 +431,41 @@ html[data-theme='dark'] .btn-secondary {
   color: #cbd5e1;
 }
 
+html[data-theme='dark'] .btn-primary {
+  background-color: #4f46e5;
+}
+
+html[data-theme='dark'] .btn-primary:hover {
+  background-color: #4338ca;
+}
+
+html[data-theme='dark'] .btn-teal {
+  background-color: #0f766e;
+}
+
+html[data-theme='dark'] .btn-teal:hover {
+  background-color: #115e59;
+}
+
+html[data-theme='dark'] .btn-amber {
+  background-color: #f59e0b;
+  color: #422006;
+}
+
+html[data-theme='dark'] .btn-amber:hover {
+  background-color: #fbbf24;
+}
+
+html[data-theme='dark'] .btn-danger {
+  color: #fecdd3;
+}
+
 html[data-theme='dark'] .btn-ghost {
   color: #cbd5e1;
 }
 
 html[data-theme='dark'] .btn-ghost:hover {
+  background-color: rgba(255, 255, 255, 0.08);
   color: #f1f5f9;
 }
 
