@@ -177,53 +177,30 @@ function reportHeaderHtml(school, exam, app, name, positionDisplay) {
     </div>
   </div>`;
 }
-export async function buildReportCardHTML({ examId, studentId, schoolId }) {
-  const { data: app } = await supabase.from('applications').select('*').eq('student_id', studentId).maybeSingle();
+function renderReportCardHTML({
+  app,
+  exam,
+  subjects,
+  school,
+  gradingScale,
+  results,
+  allResults,
+  details,
+  classIds,
+  attendanceRows,
+}) {
   if (!app) return '<p>Student not found.</p>';
-  const { data: exam } = await supabase.from('exams').select('*').eq('id', examId).maybeSingle();
   if (!exam) return '<p>Exam not found.</p>';
-
-  let subsQuery = supabase.from('exam_subjects').select('subject').eq('exam_id', examId);
-  if (app.class_applying) subsQuery = subsQuery.eq('class_name', app.class_applying);
-  const { data: examSubs } = await subsQuery;
-  const subjects = (examSubs || []).map((s) => s.subject) || [];
   if (!subjects.length) return '<p>No subjects configured for this exam.</p>';
 
-  const school = await getSchoolIdentity(schoolId);
-  const gradingScale = await getGradingScale(schoolId, app.class_applying);
-
-  const [{ data: results }, { data: allResults }, { data: details }] = await Promise.all([
-    supabase.from('exam_results').select('*').eq('exam_id', examId).eq('student_id', studentId),
-    supabase.from('exam_results').select('student_id, subject, marks_obtained').eq('exam_id', examId),
-    supabase.from('exam_student_details').select('*').eq('exam_id', examId).eq('student_id', studentId).maybeSingle(),
-  ]);
-  const { data: classApps } = await supabase
-    .from('applications')
-    .select('student_id')
-    .eq('class_applying', app.class_applying || '');
-  const classIds = new Set((classApps || []).map((a) => a.student_id));
-
   const resultMap = new Map((results || []).map((r) => [String(r.subject).toLowerCase(), r]));
-
-  // Attendance for the matching academic year + term.
-  const yearForAtt = school.academicYear || exam.academic_year || '';
-  const termForAtt = school.currentTerm || exam.term || 'First';
   let present = 0;
   let absent = 0;
-  if (yearForAtt) {
-    const { data: attRecords } = await supabase
-      .from('attendance')
-      .select('status')
-      .eq('student_id', studentId)
-      .eq('academic_year', yearForAtt)
-      .eq('term', termForAtt);
-    (attRecords || []).forEach((r) => {
-      if (r.status === 'present') present += 1;
-      else if (r.status === 'absent') absent += 1;
-    });
-  }
+  (attendanceRows || []).forEach((r) => {
+    if (r.status === 'present') present += 1;
+    else if (r.status === 'absent') absent += 1;
+  });
   const attTotal = present + absent;
-
   // Subject marks map for per-subject rank positions.
   const subjectStats = {};
   (allResults || []).forEach((r) => {
@@ -248,7 +225,7 @@ export async function buildReportCardHTML({ examId, studentId, schoolId }) {
       const sorted = Object.entries(stats).sort((a, b) => b[1] - a[1]);
       let pos = null;
       sorted.forEach(([sid], idx) => {
-        if (sid === studentId) pos = idx + 1;
+        if (sid === app.student_id) pos = idx + 1;
       });
       const g = gradeForScale(gradingScale || [], marks ?? 0, sub);
       const perf = getPerformanceLevel(marks ?? 0);
@@ -266,7 +243,7 @@ export async function buildReportCardHTML({ examId, studentId, schoolId }) {
 
   const average = entered ? total / entered : 0;
   const avgGrade = gradeForScale(gradingScale || [], average, '');
-  const overallPosition = details?.overall_position || computeClassPosition(allResults, classIds, studentId);
+  const overallPosition = details?.overall_position || computeClassPosition(allResults, classIds, app.student_id);
   const positionDisplay = overallPosition ? ordinal(overallPosition) : '-';
   const name = buildStudentName(app.first_name, app.middle_name, app.last_name);
   const remarks = details?.class_teacher_remarks || getTeacherRemarks(average);
@@ -326,6 +303,163 @@ ${reportHeaderHtml(
 </div>
 </body></html>`;
 }
+
+export async function buildReportCardHTML({ examId, studentId, schoolId }) {
+  const { data: app } = await supabase.from('applications').select('*').eq('student_id', studentId).maybeSingle();
+  if (!app) return '<p>Student not found.</p>';
+  const { data: exam } = await supabase.from('exams').select('*').eq('id', examId).maybeSingle();
+  if (!exam) return '<p>Exam not found.</p>';
+
+  let subsQuery = supabase.from('exam_subjects').select('subject').eq('exam_id', examId);
+  if (app.class_applying) subsQuery = subsQuery.eq('class_name', app.class_applying);
+  const { data: examSubs } = await subsQuery;
+  const subjects = (examSubs || []).map((s) => s.subject);
+  if (!subjects.length) return '<p>No subjects configured for this exam.</p>';
+
+  const school = await getSchoolIdentity(schoolId);
+  const gradingScale = await getGradingScale(schoolId, app.class_applying);
+  const [{ data: results }, { data: allResults }, { data: details }] = await Promise.all([
+    supabase.from('exam_results').select('*').eq('exam_id', examId).eq('student_id', studentId),
+    supabase.from('exam_results').select('student_id, subject, marks_obtained').eq('exam_id', examId),
+    supabase.from('exam_student_details').select('*').eq('exam_id', examId).eq('student_id', studentId).maybeSingle(),
+  ]);
+  const { data: classApps } = await supabase
+    .from('applications')
+    .select('student_id')
+    .eq('class_applying', app.class_applying || '');
+  const classIds = new Set((classApps || []).map((a) => a.student_id));
+
+  const yearForAtt = school.academicYear || exam.academic_year || '';
+  const termForAtt = school.currentTerm || exam.term || 'First';
+  let attendanceRows = [];
+  if (yearForAtt) {
+    const { data } = await supabase
+      .from('attendance')
+      .select('status')
+      .eq('student_id', studentId)
+      .eq('academic_year', yearForAtt)
+      .eq('term', termForAtt);
+    attendanceRows = data || [];
+  }
+
+  return renderReportCardHTML({
+    app,
+    exam,
+    subjects,
+    school,
+    gradingScale,
+    results,
+    allResults,
+    details,
+    classIds,
+    attendanceRows,
+  });
+}
+
+export async function buildReportCardsHTML({ exam, schoolId, students, className = '' }) {
+  if (!schoolId) throw new Error('School is not available.');
+  if (!students.length) return [];
+
+  const classNames = [...new Set(students.map((student) => student.class_applying || ''))];
+  const [
+    subjectsResult,
+    resultsResult,
+    detailsResult,
+    classAppsResult,
+    gradingResult,
+    school,
+  ] = await Promise.all([
+    supabase.from('exam_subjects').select('subject, class_name').eq('exam_id', exam.id),
+    supabase.from('exam_results').select('student_id, subject, marks_obtained, class_score, exam_score').eq('exam_id', exam.id),
+    supabase
+      .from('exam_student_details')
+      .select('student_id, overall_position, class_teacher_remarks, head_teacher_remarks, interest, attitude')
+      .eq('exam_id', exam.id),
+    supabase
+      .from('applications')
+      .select('student_id, class_applying')
+      .eq('school_id', schoolId)
+      .in('class_applying', classNames),
+    supabase.from('grading_systems').select('*').eq('school_id', schoolId),
+    getSchoolIdentity(schoolId),
+  ]);
+  const queryError = subjectsResult.error
+    || resultsResult.error
+    || detailsResult.error
+    || classAppsResult.error
+    || gradingResult.error;
+  if (queryError) throw new Error(queryError.message);
+
+  const reportStudents = className
+    ? students.filter((student) => student.class_applying === className)
+    : students;
+  const studentIds = reportStudents.map((student) => student.student_id);
+  const yearForAtt = school.academicYear || exam.academic_year || '';
+  const termForAtt = school.currentTerm || exam.term || 'First';
+  const attendanceRows = [];
+  if (yearForAtt && studentIds.length) {
+    const pageSize = 1000;
+    const studentIdChunks = [];
+    for (let index = 0; index < studentIds.length; index += 100) {
+      studentIdChunks.push(studentIds.slice(index, index + 100));
+    }
+    await Promise.all(studentIdChunks.map(async (studentIdChunk) => {
+      for (let offset = 0; ; offset += pageSize) {
+        const { data, error } = await supabase
+          .from('attendance')
+          .select('student_id, status')
+          .eq('school_id', schoolId)
+          .in('student_id', studentIdChunk)
+          .eq('academic_year', yearForAtt)
+          .eq('term', termForAtt)
+          .order('id')
+          .range(offset, offset + pageSize - 1);
+        if (error) throw new Error(error.message);
+        attendanceRows.push(...(data || []));
+        if ((data || []).length < pageSize) break;
+      }
+    }));
+  }
+
+  const resultsByStudent = new Map();
+  (resultsResult.data || []).forEach((result) => {
+    if (!resultsByStudent.has(result.student_id)) resultsByStudent.set(result.student_id, []);
+    resultsByStudent.get(result.student_id).push(result);
+  });
+  const classIdsByName = new Map();
+  (classAppsResult.data || []).forEach((app) => {
+    const classKey = app.class_applying || '';
+    if (!classIdsByName.has(classKey)) classIdsByName.set(classKey, new Set());
+    classIdsByName.get(classKey).add(app.student_id);
+  });
+  const detailsByStudent = new Map((detailsResult.data || []).map((detail) => [detail.student_id, detail]));
+  const attendanceByStudent = new Map();
+  attendanceRows.forEach((row) => {
+    if (!attendanceByStudent.has(row.student_id)) attendanceByStudent.set(row.student_id, []);
+    attendanceByStudent.get(row.student_id).push(row);
+  });
+
+  const docs = reportStudents.map((app) => {
+    const subjects = (subjectsResult.data || [])
+      .filter((subject) => !app.class_applying || subject.class_name === app.class_applying)
+      .map((subject) => subject.subject);
+    const gradingScale = resolveScale(gradingResult.data || [], app.class_applying).rows || null;
+    return renderReportCardHTML({
+      app,
+      exam,
+      subjects,
+      school,
+      gradingScale,
+      results: resultsByStudent.get(app.student_id) || [],
+      allResults: resultsResult.data || [],
+      details: detailsByStudent.get(app.student_id),
+      classIds: classIdsByName.get(app.class_applying || '') || new Set(),
+      attendanceRows: attendanceByStudent.get(app.student_id) || [],
+    });
+  });
+  return docs.filter((html) => html.includes('class="rc"'));
+}
+
 const TERM_ORDER = { First: 1, Second: 2, Third: 3 };
 
 export async function buildTranscriptHTML({ studentId, schoolId }) {

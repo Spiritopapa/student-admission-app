@@ -11,7 +11,7 @@ import { supabase } from '../../lib/supabase';
 import { buildStudentName, formatDate, termLabel } from '../../lib/format';
 import { TERMS, TERM_LABELS, currentAcademicYear, academicYearList } from '../../lib/constants';
 import { buildCSV, parseCSV } from '../../lib/csv';
-import { buildReportCardHTML, buildTranscriptHTML, computeExamRankings, esc, ordinal } from '../../lib/examReports';
+import { buildReportCardHTML, buildReportCardsHTML, buildTranscriptHTML, computeExamRankings, esc, ordinal } from '../../lib/examReports';
 import { GRADE_CLASSES, resolveScale, gradeForScale } from '../../lib/gradingScale';
 import { openPrintFullDocument } from '../../lib/print';
 import { isMobileShell } from '../../lib/mobileHost';
@@ -125,18 +125,33 @@ export default function AdminExams() {
     setLoading(true);
     try {
       const [
-        { data: examRows },
-        { data: classRows },
-        { data: resultRows },
-        { data: examSubjectRows },
-        { data: appRows },
+        examsResult,
+        classesResult,
+        resultsResult,
+        examSubjectsResult,
+        applicationsResult,
       ] = await Promise.all([
         supabase.from('exams').select('*').eq('school_id', schoolId).order('created_at', { ascending: false }),
         supabase.from('classes').select('id, name').eq('school_id', schoolId).order('name'),
-        supabase.from('exam_results').select('exam_id, student_id, subject').eq('school_id', schoolId),
-        supabase.from('exam_subjects').select('exam_id, class_name, subject'),
+        supabase.from('exam_results').select('exam_id').eq('school_id', schoolId),
+        supabase
+          .from('exam_subjects')
+          .select('exam_id, class_name, subject, exams!inner(school_id)')
+          .eq('exams.school_id', schoolId),
         supabase.from('applications').select('class_applying').eq('school_id', schoolId).eq('status', 'admitted'),
       ]);
+      const queryError = examsResult.error
+        || classesResult.error
+        || resultsResult.error
+        || examSubjectsResult.error
+        || applicationsResult.error;
+      if (queryError) throw new Error(queryError.message);
+
+      const examRows = examsResult.data;
+      const classRows = classesResult.data;
+      const resultRows = resultsResult.data;
+      const examSubjectRows = examSubjectsResult.data;
+      const appRows = applicationsResult.data;
       setExams(examRows || []);
       setClasses(classRows || []);
 
@@ -147,7 +162,7 @@ export default function AdminExams() {
       });
       const byExam = {};
       (examRows || []).forEach((ex) => {
-        byExam[ex.id] = { subjects: new Set(), classes: new Set(), coversAll: false, results: 0, recorded: new Set() };
+        byExam[ex.id] = { subjects: new Set(), classes: new Set(), coversAll: false, results: 0 };
       });
       (examSubjectRows || []).forEach((es) => {
         const m = byExam[es.exam_id];
@@ -160,7 +175,6 @@ export default function AdminExams() {
         const m = byExam[r.exam_id];
         if (!m) return;
         m.results += 1;
-        m.recorded.add(`${r.student_id}|${r.subject}`);
       });
       const meta = {};
       (examRows || []).forEach((ex) => {
@@ -176,7 +190,7 @@ export default function AdminExams() {
           classCoverage: covered.size,
           classNames: [...covered],
           results: m.results,
-          recordedSlots: subjectCount ? m.recorded.size : 0,
+          recordedSlots: subjectCount ? m.results : 0,
           expectedSlots: subjectCount * students,
           students,
         };
@@ -772,7 +786,7 @@ export default function AdminExams() {
   const fetchAdmittedStudents = async () => {
     const { data } = await supabase
       .from('applications')
-      .select('student_id, first_name, middle_name, last_name, class_applying')
+      .select('student_id, first_name, middle_name, last_name, class_applying, gender, date_of_birth, interest, attitude, student_photo_url')
       .eq('school_id', schoolId)
       .eq('status', 'admitted')
       .order('first_name');
@@ -828,15 +842,12 @@ export default function AdminExams() {
     if (!list.length) return;
     setReportBatchBusy(true);
     try {
-      const docs = [];
-      for (const s of list) {
-        try {
-          const html = await buildReportCardHTML({ examId: reportExam.id, studentId: s.student_id, schoolId });
-          if (html.includes('class="rc"')) docs.push(html);
-        } catch (err) {
-          // skip students without data
-        }
-      }
+      const docs = await buildReportCardsHTML({
+        exam: reportExam,
+        schoolId,
+        students: list,
+        className: reportClassFilter,
+      });
       if (!docs.length) throw new Error('No report cards could be generated.');
       printHtmlDoc('Report Cards - All Students', docs.join('<div style="page-break-after:always;"></div>'));
     } catch (err) {
