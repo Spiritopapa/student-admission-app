@@ -64,6 +64,9 @@ export default function AdminExams() {
   const namesRef = useRef(null);
   const headerRef = useRef(null);
   const marksLoadIdRef = useRef(0);
+  const autosaveTimerRef = useRef(null);
+  const savingMarksRef = useRef(false);
+  const scoreEditVersionRef = useRef(0);
   // Width of the sheet's vertical scrollbar (0 when no scrollbar is rendered).
   // The frozen header mirrors this gutter so headings align with the body columns.
   const [sheetGutter, setSheetGutter] = useState(0);
@@ -480,13 +483,27 @@ export default function AdminExams() {
   };
 
   const setScore = (studentIndex, subject, field, value) => {
-    setMarksData((prev) => {
-      const next = [...prev];
-      const score = { ...next[studentIndex].scores[subject], [field]: value };
-      next[studentIndex] = { ...next[studentIndex], scores: { ...next[studentIndex].scores, [subject]: score } };
-      return next;
-    });
+    const row = marksData[studentIndex];
+    if (!row) return;
+    const score = { ...row.scores[subject], [field]: value };
+    const next = [...marksData];
+    next[studentIndex] = { ...row, scores: { ...row.scores, [subject]: score } };
+    const version = ++scoreEditVersionRef.current;
+    setMarksData(next);
     setDirty(true);
+    if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
+    const snapshot = {
+      rows: next,
+      workspace,
+      classSubjects: visibleSubjectsForWorkspace(),
+      schoolId,
+      gradeFor,
+      version,
+    };
+    autosaveTimerRef.current = setTimeout(() => {
+      autosaveTimerRef.current = null;
+      saveAllResults(snapshot, { automatic: true });
+    }, 900);
   };
 
   const handleScoreKeyDown = (e) => {
@@ -499,17 +516,36 @@ export default function AdminExams() {
     if (idx >= 0 && idx + 1 < inputs.length) inputs[idx + 1].focus();
   };
 
-  const saveAllResults = async () => {
-    if (!workspace) return;
+  const saveAllResults = async (snapshot = null, { automatic = false } = {}) => {
+    const exam = snapshot?.workspace || workspace;
+    if (!exam) return;
+    if (savingMarksRef.current) {
+      if (automatic && snapshot?.version === scoreEditVersionRef.current) {
+        autosaveTimerRef.current = setTimeout(
+          () => saveAllResults(snapshot, { automatic: true }),
+          250
+        );
+      }
+      return;
+    }
+    if (autosaveTimerRef.current) {
+      clearTimeout(autosaveTimerRef.current);
+      autosaveTimerRef.current = null;
+    }
+    const rowsToSave = snapshot?.rows || marksData;
+    const classSubjects = snapshot?.classSubjects || visibleSubjectsForWorkspace();
+    const scoreSchoolId = snapshot?.schoolId || schoolId;
+    const getGrade = snapshot?.gradeFor || gradeFor;
+    const saveVersion = snapshot?.version ?? scoreEditVersionRef.current;
+    savingMarksRef.current = true;
     setSavingMarks(true);
     try {
       // Save only the subjects that apply to the selected class, de-duplicated
       // (see visibleSubjectsForWorkspace) so one (exam, student, subject) key
       // can never be emitted twice for the same batch.
-      const classSubjects = visibleSubjectsForWorkspace();
       const upserts = [];
       const detailUpserts = [];
-      for (const row of marksData) {
+      for (const row of rowsToSave) {
         let totalMarks = 0;
         let count = 0;
         for (const sbj of classSubjects) {
@@ -522,15 +558,15 @@ export default function AdminExams() {
             totalMarks += total;
             count += 1;
             upserts.push({
-              exam_id: workspace.id,
+              exam_id: exam.id,
               student_id: row.student.student_id,
               subject: sbj.subject,
               class_score: cls,
               exam_score_input: esi,
               exam_score: es,
               marks_obtained: total,
-              grade: gradeFor(sbj.subject, total),
-              school_id: schoolId,
+              grade: getGrade(sbj.subject, total),
+              school_id: scoreSchoolId,
             });
           }
         }
@@ -538,7 +574,7 @@ export default function AdminExams() {
           const average = totalMarks / count;
           const remarks =
             average >= 80 ? 'Excellent performance! Keep up the great work.' : average >= 70 ? 'Very good performance.' : average >= 60 ? 'Good performance.' : average >= 40 ? 'Satisfactory but needs improvement.' : 'Requires urgent attention.';
-          detailUpserts.push({ exam_id: workspace.id, student_id: row.student.student_id, interest: 'mathematics', attitude: 'active', class_teacher_remarks: remarks });
+          detailUpserts.push({ exam_id: exam.id, student_id: row.student.student_id, interest: 'mathematics', attitude: 'active', class_teacher_remarks: remarks });
         }
       }
       // Last line of defence: never send a batch containing the same conflict
@@ -567,12 +603,13 @@ export default function AdminExams() {
       const saveResults = await Promise.all(saveRequests);
       const saveError = saveResults.find((result) => result.error)?.error;
       if (saveError) throw new Error(saveError.message);
-      setDirty(false);
+      setDirty(scoreEditVersionRef.current !== saveVersion);
       setLastSavedAt(new Date());
-      toast.success('Results saved', `${uniqueUpserts.length} subject scores recorded.`);
+      if (!automatic) toast.success('Results saved', `${uniqueUpserts.length} subject scores recorded.`);
     } catch (err) {
       toast.error('Could not save results', err.message);
     } finally {
+      savingMarksRef.current = false;
       setSavingMarks(false);
     }
   };
@@ -641,6 +678,7 @@ export default function AdminExams() {
           return { ...row, scores };
         })
       );
+      scoreEditVersionRef.current += 1;
       setDirty(true);
       toast.success('CSV imported', `Updated scores for ${updated} student(s). Click "Save results" to persist.`);
     } catch (err) {
@@ -1014,11 +1052,17 @@ export default function AdminExams() {
                 <Trophy className="h-4 w-4" aria-hidden="true" />
                 Rankings
               </Button>
-              <Button onClick={saveAllResults} loading={savingMarks}>
+              <Button onClick={() => saveAllResults()} loading={savingMarks}>
                 <Save className="h-4 w-4" aria-hidden="true" />
                 Save results
               </Button>
-              <Button variant="ghost" onClick={() => setWorkspace(null)}>
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  if (dirty) saveAllResults(null, { automatic: true });
+                  setWorkspace(null);
+                }}
+              >
                 <ArrowLeft className="h-4 w-4" aria-hidden="true" />
                 Back to exams
               </Button>
@@ -1047,11 +1091,11 @@ export default function AdminExams() {
           <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-soft">
             <div className="flex items-center justify-between gap-2">
               <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Save status</p>
-              {dirty ? <Badge tone="amber">Unsaved</Badge> : lastSavedAt ? <Badge tone="green">Saved</Badge> : <Badge tone="slate">Idle</Badge>}
+              {savingMarks ? <Badge tone="blue">Saving</Badge> : dirty ? <Badge tone="amber">Unsaved</Badge> : lastSavedAt ? <Badge tone="green">Saved</Badge> : <Badge tone="slate">Idle</Badge>}
             </div>
-            <p className="mt-1 text-2xl font-bold text-slate-900">{dirty ? '•' : lastSavedAt ? 'OK' : '—'}</p>
+            <p className="mt-1 text-2xl font-bold text-slate-900">{savingMarks ? '…' : dirty ? '•' : lastSavedAt ? 'OK' : '—'}</p>
             <p className="mt-0.5 text-xs text-slate-400">
-              {dirty ? 'Changes not persisted yet' : lastSavedAt ? `Saved ${formatDate(lastSavedAt.toISOString())}` : 'No changes made yet'}
+              {savingMarks ? 'Saving score changes...' : dirty ? 'Changes will save automatically' : lastSavedAt ? `Saved ${formatDate(lastSavedAt.toISOString())}` : 'No changes made yet'}
             </p>
           </div>
         </div>
@@ -1066,7 +1110,12 @@ export default function AdminExams() {
                   <button
                     key={c.id}
                     type="button"
-                    onClick={() => { setWorkspaceClass(active ? '' : c.name); setDisplaySubject(''); setMarksQuery(''); }}
+                    onClick={() => {
+                      if (dirty) saveAllResults(null, { automatic: true });
+                      setWorkspaceClass(active ? '' : c.name);
+                      setDisplaySubject('');
+                      setMarksQuery('');
+                    }}
                     className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${active ? 'bg-brand-600 text-white shadow-sm' : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-brand-50 hover:text-brand-700'}`}
                   >
                     {c.name}
@@ -1121,7 +1170,7 @@ export default function AdminExams() {
             </Button>
             {marksQuery ? <Badge tone="blue">Showing {visibleRows.length} of {marksData.length}</Badge> : null}
             <p className="text-xs text-slate-400">
-              <span className="font-mono">Enter</span> moves to the next score field · totals and grades update live
+              <span className="font-mono">Enter</span> moves to the next score field · totals and grades update live · scores auto-save after a pause
             </p>
           </div>
 
