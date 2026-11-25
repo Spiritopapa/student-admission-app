@@ -430,6 +430,7 @@ export default function AdminExams() {
           })
         ),
       }));
+      marksDataRef.current = data;
       setMarksData(data);
     } catch (err) {
       if (requestId === marksLoadIdRef.current) {
@@ -486,18 +487,15 @@ export default function AdminExams() {
     return { cls, esi, tot, perf: tot != null ? gradeForScale(scale, tot, forSubject) : null };
   };
 
-  const setScore = (studentIndex, subject, field, value) => {
-    const row = marksData[studentIndex];
-    if (!row) return;
-    const score = { ...row.scores[subject], [field]: value };
-    const next = [...marksData];
-    next[studentIndex] = { ...row, scores: { ...row.scores, [subject]: score } };
+  const scheduleScoreSave = (rows) => {
     const version = ++scoreEditVersionRef.current;
-    setMarksData(next);
+    marksDataRef.current = rows;
+    dirtyRef.current = true;
+    setMarksData(rows);
     setDirty(true);
     if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
     const snapshot = {
-      rows: next,
+      rows,
       workspace,
       classSubjects: visibleSubjectsForWorkspace(),
       schoolId,
@@ -508,6 +506,15 @@ export default function AdminExams() {
       autosaveTimerRef.current = null;
       saveAllResults(snapshot, { automatic: true });
     }, 900);
+  };
+
+  const setScore = (studentIndex, subject, field, value) => {
+    const row = marksDataRef.current[studentIndex];
+    if (!row) return;
+    const score = { ...row.scores[subject], [field]: value };
+    const next = [...marksDataRef.current];
+    next[studentIndex] = { ...row, scores: { ...row.scores, [subject]: score } };
+    scheduleScoreSave(next);
   };
 
   const handleScoreKeyDown = (e) => {
@@ -549,6 +556,9 @@ export default function AdminExams() {
       // can never be emitted twice for the same batch.
       const upserts = [];
       const detailUpserts = [];
+      const blankStudentIdsBySubject = new Map(
+        classSubjects.map((subject) => [subject.subject, []])
+      );
       for (const row of rowsToSave) {
         let totalMarks = 0;
         let count = 0;
@@ -580,6 +590,12 @@ export default function AdminExams() {
             average >= 80 ? 'Excellent performance! Keep up the great work.' : average >= 70 ? 'Very good performance.' : average >= 60 ? 'Good performance.' : average >= 40 ? 'Satisfactory but needs improvement.' : 'Requires urgent attention.';
           detailUpserts.push({ exam_id: exam.id, student_id: row.student.student_id, interest: 'mathematics', attitude: 'active', class_teacher_remarks: remarks });
         }
+        for (const sbj of classSubjects) {
+          const sc = row.scores[sbj.subject];
+          if (!sc || (sc.classScore === '' && sc.examScoreInput === '')) {
+          blankStudentIdsBySubject.get(sbj.subject).push(row.student.student_id);
+          }
+        }
       }
       // Last line of defence: never send a batch containing the same conflict
       // key twice — Postgres rejects that with "ON CONFLICT DO UPDATE command
@@ -599,6 +615,18 @@ export default function AdminExams() {
           supabase.from('exam_results').upsert(uniqueUpserts, { onConflict: 'exam_id,student_id,subject' })
         );
       }
+      blankStudentIdsBySubject.forEach((studentIds, subject) => {
+        if (!studentIds.length) return;
+        saveRequests.push(
+          supabase
+            .from('exam_results')
+            .delete()
+            .eq('exam_id', exam.id)
+            .eq('school_id', scoreSchoolId)
+            .eq('subject', subject)
+            .in('student_id', studentIds)
+        );
+      });
       if (detailUpserts.length) {
         saveRequests.push(
           supabase.from('exam_student_details').upsert(detailUpserts, { onConflict: 'exam_id,student_id' })
@@ -607,10 +635,14 @@ export default function AdminExams() {
       const saveResults = await Promise.all(saveRequests);
       const saveError = saveResults.find((result) => result.error)?.error;
       if (saveError) throw new Error(saveError.message);
-      setDirty(scoreEditVersionRef.current !== saveVersion);
+      const hasNewerEdits = scoreEditVersionRef.current !== saveVersion;
+      dirtyRef.current = hasNewerEdits;
+      setDirty(hasNewerEdits);
       setLastSavedAt(new Date());
       if (!automatic) toast.success('Results saved', `${uniqueUpserts.length} subject scores recorded.`);
     } catch (err) {
+      dirtyRef.current = true;
+      setDirty(true);
       toast.error('Could not save results', err.message);
     } finally {
       savingMarksRef.current = false;
@@ -642,6 +674,7 @@ export default function AdminExams() {
           .from('exam_results')
           .select('student_id, subject, class_score, exam_score_input, exam_score')
           .eq('exam_id', workspace.id)
+          .eq('school_id', schoolId)
           .in('student_id', studentIds)
           .in('subject', classSubjects.map((subject) => subject.subject));
         if (error) throw new Error(error.message);
@@ -655,38 +688,31 @@ export default function AdminExams() {
         }
 
         const resultMap = new Map((data || []).map((row) => [`${row.student_id}|${row.subject}`, row]));
-        setMarksData((current) => {
-          if (
-            requestVersion !== scoreEditVersionRef.current ||
-            dirtyRef.current ||
-            savingMarksRef.current
-          ) {
-            return current;
-          }
-          return current.map((row) => ({
-            ...row,
-            scores: {
-              ...row.scores,
-              ...Object.fromEntries(
-                classSubjects.map((subject) => {
-                  const result = resultMap.get(`${row.student.student_id}|${subject.subject}`);
-                  return [
-                    subject.subject,
-                    {
-                      classScore: result?.class_score != null ? String(result.class_score) : '',
-                      examScoreInput:
-                        result?.exam_score_input != null
-                          ? String(result.exam_score_input)
-                          : result?.exam_score != null
-                            ? String(result.exam_score * 2)
-                            : '',
-                    },
-                  ];
-                })
-              ),
-            },
-          }));
-        });
+        const refreshed = marksDataRef.current.map((row) => ({
+          ...row,
+          scores: {
+            ...row.scores,
+            ...Object.fromEntries(
+              classSubjects.map((subject) => {
+                const result = resultMap.get(`${row.student.student_id}|${subject.subject}`);
+                return [
+                  subject.subject,
+                  {
+                    classScore: result?.class_score != null ? String(result.class_score) : '',
+                    examScoreInput:
+                      result?.exam_score_input != null
+                        ? String(result.exam_score_input)
+                        : result?.exam_score != null
+                          ? String(result.exam_score * 2)
+                          : '',
+                  },
+                ];
+              })
+            ),
+          },
+        }));
+        marksDataRef.current = refreshed;
+        setMarksData(refreshed);
       } catch (err) {
         if (active) console.error('Could not refresh examination scores in the background.', err);
       } finally {
@@ -746,28 +772,25 @@ export default function AdminExams() {
         }
       });
       let updated = 0;
-      setMarksData((prev) =>
-        prev.map((row) => {
-          const match = parsed.find((cells) => String(cells[idIdx] ?? '').trim() === row.student.student_id);
-          if (!match) return row;
-          const scores = { ...row.scores };
-          subjectCols.forEach((entry) => {
-            const dbSub = visibleSubjectsForWorkspace().map((s) => s.subject).find((s) => s.toLowerCase() === entry.subject.toLowerCase());
-            if (!dbSub) return;
-            const clsVal = entry.classIdx >= 0 ? String(match[entry.classIdx] ?? '').trim() : '';
-            const esiVal = entry.examIdx >= 0 ? String(match[entry.examIdx] ?? '').trim() : '';
-            const cur = scores[dbSub] || { classScore: '', examScoreInput: '' };
-            if (clsVal !== '') cur.classScore = clsVal.replace(/['"]/g, '');
-            if (esiVal !== '') cur.examScoreInput = esiVal.replace(/['"]/g, '');
-            scores[dbSub] = cur;
-          });
-          updated += 1;
-          return { ...row, scores };
-        })
-      );
-      scoreEditVersionRef.current += 1;
-      setDirty(true);
-      toast.success('CSV imported', `Updated scores for ${updated} student(s). Click "Save results" to persist.`);
+      const next = marksDataRef.current.map((row) => {
+        const match = parsed.find((cells) => String(cells[idIdx] ?? '').trim() === row.student.student_id);
+        if (!match) return row;
+        const scores = { ...row.scores };
+        subjectCols.forEach((entry) => {
+          const dbSub = visibleSubjectsForWorkspace().map((s) => s.subject).find((s) => s.toLowerCase() === entry.subject.toLowerCase());
+          if (!dbSub) return;
+          const clsVal = entry.classIdx >= 0 ? String(match[entry.classIdx] ?? '').trim() : '';
+          const esiVal = entry.examIdx >= 0 ? String(match[entry.examIdx] ?? '').trim() : '';
+          const cur = { ...(scores[dbSub] || { classScore: '', examScoreInput: '' }) };
+          if (clsVal !== '') cur.classScore = clsVal.replace(/['"]/g, '');
+          if (esiVal !== '') cur.examScoreInput = esiVal.replace(/['"]/g, '');
+          scores[dbSub] = cur;
+        });
+        updated += 1;
+        return { ...row, scores };
+      });
+      if (updated) scheduleScoreSave(next);
+      toast.success('CSV imported', `Updated scores for ${updated} student(s). Changes will save automatically.`);
     } catch (err) {
       toast.error('Could not import CSV', err.message);
     }
