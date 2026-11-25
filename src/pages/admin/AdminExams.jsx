@@ -68,6 +68,7 @@ export default function AdminExams() {
   const marksLoadIdRef = useRef(0);
   const autosaveTimerRef = useRef(null);
   const savingMarksRef = useRef(false);
+  const queuedSaveRef = useRef(null);
   const refreshingScoresRef = useRef(false);
   const scoreEditVersionRef = useRef(0);
   const scoreChangesRef = useRef(new Map());
@@ -523,6 +524,13 @@ export default function AdminExams() {
       version,
       changedCells: getPendingScoreChanges(rows, workspace.id),
     };
+    if (savingMarksRef.current) {
+      const previousQueuedSave = queuedSaveRef.current;
+      queuedSaveRef.current = {
+        snapshot,
+        automatic: previousQueuedSave?.automatic ?? true,
+      };
+    }
     autosaveTimerRef.current = setTimeout(() => {
       autosaveTimerRef.current = null;
       saveAllResults(snapshot, { automatic: true });
@@ -551,12 +559,26 @@ export default function AdminExams() {
   const saveAllResults = async (snapshot = null, { automatic = false } = {}) => {
     const exam = snapshot?.workspace || workspace;
     if (!exam) return;
+    const rowsToSave = snapshot?.rows || marksDataRef.current;
+    const classSubjects = snapshot?.classSubjects || visibleSubjectsForWorkspace();
+    const scoreSchoolId = snapshot?.schoolId || schoolId;
+    const getGrade = snapshot?.gradeFor || gradeFor;
+    const saveSnapshot = {
+      rows: rowsToSave,
+      workspace: exam,
+      classSubjects,
+      schoolId: scoreSchoolId,
+      gradeFor: getGrade,
+      version: snapshot?.version ?? scoreEditVersionRef.current,
+      changedCells: snapshot?.changedCells || getPendingScoreChanges(rowsToSave, exam.id),
+    };
     if (savingMarksRef.current) {
-      if (automatic && snapshot?.version === scoreEditVersionRef.current) {
-        autosaveTimerRef.current = setTimeout(
-          () => saveAllResults(snapshot, { automatic: true }),
-          250
-        );
+      if (saveSnapshot.changedCells.length) {
+        const previousQueuedSave = queuedSaveRef.current;
+        queuedSaveRef.current = {
+          snapshot: saveSnapshot,
+          automatic: automatic && (previousQueuedSave?.automatic ?? true),
+        };
       }
       return;
     }
@@ -564,11 +586,10 @@ export default function AdminExams() {
       clearTimeout(autosaveTimerRef.current);
       autosaveTimerRef.current = null;
     }
-    const rowsToSave = snapshot?.rows || marksData;
-    const classSubjects = snapshot?.classSubjects || visibleSubjectsForWorkspace();
-    const scoreSchoolId = snapshot?.schoolId || schoolId;
-    const getGrade = snapshot?.gradeFor || gradeFor;
-    const changedCells = snapshot?.changedCells || getPendingScoreChanges(rowsToSave, exam.id);
+    const changedCells = saveSnapshot.changedCells.filter((change) => {
+      const key = `${change.examId}|${change.studentId}|${change.subject.toLowerCase()}`;
+      return scoreChangesRef.current.get(key)?.version === change.version;
+    });
     if (!changedCells.length) {
       if (!automatic) toast.success('Results saved', 'There are no pending score changes.');
       return;
@@ -654,6 +675,11 @@ export default function AdminExams() {
     } finally {
       savingMarksRef.current = false;
       setSavingMarks(false);
+      const queuedSave = queuedSaveRef.current;
+      queuedSaveRef.current = null;
+      if (queuedSave) {
+        saveAllResults(queuedSave.snapshot, { automatic: queuedSave.automatic });
+      }
     }
   };
 
