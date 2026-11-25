@@ -123,37 +123,58 @@ export default function AdminExams() {
   const load = async () => {
     if (!schoolId) return;
     setLoading(true);
+    let examRows;
     try {
-      const [
-        examsResult,
-        classesResult,
-        resultsResult,
-        examSubjectsResult,
-        applicationsResult,
-      ] = await Promise.all([
-        supabase.from('exams').select('*').eq('school_id', schoolId).order('created_at', { ascending: false }),
-        supabase.from('classes').select('id, name').eq('school_id', schoolId).order('name'),
-        supabase.from('exam_results').select('exam_id').eq('school_id', schoolId),
-        supabase
-          .from('exam_subjects')
-          .select('exam_id, class_name, subject, exams!inner(school_id)')
-          .eq('exams.school_id', schoolId),
-        supabase.from('applications').select('class_applying').eq('school_id', schoolId).eq('status', 'admitted'),
-      ]);
-      const queryError = examsResult.error
-        || classesResult.error
-        || resultsResult.error
-        || examSubjectsResult.error
-        || applicationsResult.error;
-      if (queryError) throw new Error(queryError.message);
+      const { data, error } = await supabase
+        .from('exams')
+        .select('*')
+        .eq('school_id', schoolId)
+        .order('created_at', { ascending: false });
+      if (error) throw new Error(error.message);
+      examRows = data || [];
+      setExams(examRows);
+      setExamMeta({});
+    } catch (err) {
+      toast.error('Could not load exams', err.message);
+      setLoading(false);
+      return;
+    }
+    setLoading(false);
 
-      const examRows = examsResult.data;
-      const classRows = classesResult.data;
-      const resultRows = resultsResult.data;
-      const examSubjectRows = examSubjectsResult.data;
-      const appRows = applicationsResult.data;
-      setExams(examRows || []);
+    try {
+      const examIds = examRows.map((exam) => exam.id);
+      const [
+        { data: classRows, error: classesError },
+        { data: examSubjectRows, error: examSubjectsError },
+        { data: appRows, error: applicationsError },
+        resultCountResults,
+      ] = await Promise.all([
+        supabase.from('classes').select('id, name').eq('school_id', schoolId).order('name'),
+        examIds.length
+          ? supabase.from('exam_subjects').select('exam_id, class_name, subject').in('exam_id', examIds)
+          : Promise.resolve({ data: [], error: null }),
+        examIds.length
+          ? supabase.from('applications').select('class_applying').eq('school_id', schoolId).eq('status', 'admitted')
+          : Promise.resolve({ data: [], error: null }),
+        Promise.all(
+          examRows.map((exam) =>
+            supabase
+              .from('exam_results')
+              .select('exam_id', { count: 'exact', head: true })
+              .eq('exam_id', exam.id)
+              .eq('school_id', schoolId)
+          )
+        ),
+      ]);
+      const resultCountError = resultCountResults.find((result) => result.error)?.error;
+      const queryError = classesError || examSubjectsError || applicationsError || resultCountError;
+      if (queryError) throw new Error(queryError.message);
       setClasses(classRows || []);
+
+      const resultCounts = {};
+      examRows.forEach((exam, index) => {
+        resultCounts[exam.id] = resultCountResults[index].count || 0;
+      });
 
       // Completion / coverage metrics per exam (read-only workload analysis).
       const studentsByClass = {};
@@ -162,7 +183,12 @@ export default function AdminExams() {
       });
       const byExam = {};
       (examRows || []).forEach((ex) => {
-        byExam[ex.id] = { subjects: new Set(), classes: new Set(), coversAll: false, results: 0 };
+        byExam[ex.id] = {
+          subjects: new Set(),
+          classes: new Set(),
+          coversAll: false,
+          results: resultCounts[ex.id],
+        };
       });
       (examSubjectRows || []).forEach((es) => {
         const m = byExam[es.exam_id];
@@ -170,11 +196,6 @@ export default function AdminExams() {
         m.subjects.add(es.subject);
         if (es.class_name) m.classes.add(es.class_name);
         else m.coversAll = true;
-      });
-      (resultRows || []).forEach((r) => {
-        const m = byExam[r.exam_id];
-        if (!m) return;
-        m.results += 1;
       });
       const meta = {};
       (examRows || []).forEach((ex) => {
@@ -197,9 +218,7 @@ export default function AdminExams() {
       });
       setExamMeta(meta);
     } catch (err) {
-      toast.error('Could not load exams', err.message);
-    } finally {
-      setLoading(false);
+      toast.error('Could not load exam summary', err.message);
     }
   };
 
