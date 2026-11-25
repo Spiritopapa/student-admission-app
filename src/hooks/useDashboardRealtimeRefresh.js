@@ -28,6 +28,7 @@ const DASHBOARD_TABLES = {
   parent: ['parent_links', 'applications', 'fees', 'receipts', 'announcements'],
   accountant: ['receipts', 'payment_transactions'],
   superadmin: ['schools', 'school_applications', 'applications', 'teachers'],
+  adminExams: ['exam_results', 'exams', 'exam_subjects'],
 };
 
 export function useDashboardRealtimeRefresh(dashboard, onChange, enabled = true) {

@@ -16,6 +16,7 @@ import { GRADE_CLASSES, resolveScale, gradeForScale } from '../../lib/gradingSca
 import { openPrintFullDocument } from '../../lib/print';
 import { isMobileShell } from '../../lib/mobileHost';
 import { photoUrl } from '../../lib/storage';
+import { useDashboardRealtimeRefresh } from '../../hooks/useDashboardRealtimeRefresh';
 
 const EMPTY_META = { subjectCount: 0, classCoverage: 0, classNames: [], results: 0, recordedSlots: 0, expectedSlots: 0, students: 0 };
 const SCORE_REFRESH_INTERVAL_MS = 10_000;
@@ -232,6 +233,7 @@ export default function AdminExams() {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [schoolId]);
+  useDashboardRealtimeRefresh('adminExams', load, Boolean(schoolId));
 
   const set = (key) => (e) => setExamForm((f) => ({ ...f, [key]: e.target.value }));
 

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Award, Save, RefreshCw, Printer } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { PageHeader, Card, Button, Select, Spinner, EmptyState, Badge } from '../../components/ui';
@@ -10,6 +10,8 @@ import { fetchGradingScale, gradeForScale, gradeTone } from '../../lib/gradingSc
 import { openPrintWindow, escapeHtml } from '../../lib/print';
 
 const esc = escapeHtml;
+const SCORE_AUTOSAVE_DELAY_MS = 900;
+const SCORE_REFRESH_INTERVAL_MS = 10_000;
 
 export default function TeacherExams() {
   const { user } = useAuth();
@@ -29,6 +31,16 @@ export default function TeacherExams() {
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState('');
   const [scale, setScale] = useState(null); // effective grading scale for the chosen class
+  const [dirty, setDirty] = useState(false);
+  const [lastSavedAt, setLastSavedAt] = useState(null);
+  const autosaveTimerRef = useRef(null);
+  const pendingAutosaveRef = useRef(null);
+  const savingRef = useRef(false);
+  const scoreVersionRef = useRef(0);
+  const rowsRef = useRef(rows);
+  const dirtyRef = useRef(dirty);
+  rowsRef.current = rows;
+  dirtyRef.current = dirty;
 
   // Class-aware grading scale: class override -> school-wide -> system defaults.
   useEffect(() => {
@@ -110,7 +122,11 @@ export default function TeacherExams() {
   }, [examId, className, subjectByClass]);
 useEffect(() => {
     if (!examId || !className || !subject || !teacher) {
+      rowsRef.current = [];
       setRows([]);
+      dirtyRef.current = false;
+      setDirty(false);
+      setLastSavedAt(null);
       return;
     }
     setLoading(true);
@@ -138,16 +154,18 @@ useEffect(() => {
           return true;
         });
         const resMap = new Map((results || []).map((r) => [r.student_id, r]));
-        setRows(
-          uniqueStudents.map((st) => {
-            const r = resMap.get(st.student_id);
-            return {
-              student: st,
-              classScore: r?.class_score != null ? String(r.class_score) : '',
-              examScoreInput: r?.exam_score_input != null ? String(r.exam_score_input) : r?.exam_score != null ? String(r.exam_score * 2) : '',
-            };
-          })
-        );
+        const loadedRows = uniqueStudents.map((st) => {
+          const r = resMap.get(st.student_id);
+          return {
+            student: st,
+            classScore: r?.class_score != null ? String(r.class_score) : '',
+            examScoreInput: r?.exam_score_input != null ? String(r.exam_score_input) : r?.exam_score != null ? String(r.exam_score * 2) : '',
+          };
+        });
+        rowsRef.current = loadedRows;
+        dirtyRef.current = false;
+        setRows(loadedRows);
+        setDirty(false);
       } catch (err) {
         setNotice('Could not load students: ' + err.message);
       } finally {
@@ -157,44 +175,88 @@ useEffect(() => {
   }, [examId, className, subject, teacher]);
 
   const setRow = (index, field, value) => {
-    setRows((prev) => prev.map((r, i) => (i === index ? { ...r, [field]: value } : r)));
+    const nextRows = rowsRef.current.map((row, i) =>
+      i === index ? { ...row, [field]: value } : row
+    );
+    rowsRef.current = nextRows;
+    setRows(nextRows);
+    const version = ++scoreVersionRef.current;
+    dirtyRef.current = true;
+    setDirty(true);
+    const snapshot = { rows: nextRows, examId, subject, teacher, scale, version };
+    pendingAutosaveRef.current = snapshot;
+    if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
+    autosaveTimerRef.current = setTimeout(() => {
+      autosaveTimerRef.current = null;
+      if (pendingAutosaveRef.current?.version === version) {
+        pendingAutosaveRef.current = null;
+      }
+      save(snapshot, { automatic: true });
+    }, SCORE_AUTOSAVE_DELAY_MS);
   };
 
-  const totalsOf = (r) => {
+  const totalsOf = (r, selectedSubject = subject, selectedScale = scale) => {
     const cls = r.classScore === '' ? null : Math.min(parseFloat(r.classScore) || 0, 50);
     const esi = r.examScoreInput === '' ? null : Math.min(parseFloat(r.examScoreInput) || 0, 100);
     const total = cls !== null || esi !== null ? Math.min((cls || 0) + (esi || 0) / 2, 100) : null;
-    const perf = total != null ? gradeForScale(scale?.rows || [], total, subject) : null;
+    const perf = total != null ? gradeForScale(selectedScale?.rows || [], total, selectedSubject) : null;
     return { cls, esi, total, perf };
   };
 
   const enteredCount = useMemo(() => rows.filter((r) => r.classScore !== '' || r.examScoreInput !== '').length, [rows]);
 
-  const save = async () => {
-    if (!rows.length || !teacher) return;
+  const save = async (snapshot = null, { automatic = false } = {}) => {
+    const saveSnapshot = snapshot || {
+      rows: rowsRef.current,
+      examId,
+      subject,
+      teacher,
+      scale,
+      version: scoreVersionRef.current,
+    };
+    if (!saveSnapshot.rows.length || !saveSnapshot.teacher) return;
+    if (savingRef.current) {
+      if (automatic && saveSnapshot.version === scoreVersionRef.current) {
+        pendingAutosaveRef.current = saveSnapshot;
+        autosaveTimerRef.current = setTimeout(() => {
+          autosaveTimerRef.current = null;
+          if (pendingAutosaveRef.current?.version === saveSnapshot.version) {
+            pendingAutosaveRef.current = null;
+          }
+          save(saveSnapshot, { automatic: true });
+        }, 250);
+      }
+      return;
+    }
+    if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
+    autosaveTimerRef.current = null;
+    if (pendingAutosaveRef.current?.version === saveSnapshot.version) {
+      pendingAutosaveRef.current = null;
+    }
+    savingRef.current = true;
     setSaving(true);
     setNotice('');
     try {
       const { data: { user: u } } = await supabase.auth.getUser();
       const upserts = [];
-      for (const row of rows) {
-        const t = totalsOf(row);
+      for (const row of saveSnapshot.rows) {
+        const t = totalsOf(row, saveSnapshot.subject, saveSnapshot.scale);
         if (t.cls === null && t.esi === null) continue;
         upserts.push({
-          exam_id: examId,
+          exam_id: saveSnapshot.examId,
           student_id: row.student.student_id,
-          subject,
+          subject: saveSnapshot.subject,
           class_score: t.cls,
           exam_score_input: t.esi,
           exam_score: t.esi !== null ? t.esi / 2 : null,
           marks_obtained: t.total,
           grade: t.perf?.grade || null,
-          school_id: teacher.school_id,
+          school_id: saveSnapshot.teacher.school_id,
           created_by: u?.id,
         });
       }
       if (!upserts.length) {
-        setNotice('Enter at least one score before saving.');
+        if (!automatic) setNotice('Enter at least one score before saving.');
         return;
       }
       const seenKeys = new Set();
@@ -206,13 +268,93 @@ useEffect(() => {
       });
       const { error } = await supabase.from('exam_results').upsert(unique, { onConflict: 'exam_id,student_id,subject' });
       if (error) throw new Error(error.message);
-      setNotice(`Saved ${unique.length} score record(s) for ${subject}.`);
+      setLastSavedAt(new Date());
+      if (scoreVersionRef.current === saveSnapshot.version) {
+        dirtyRef.current = false;
+        setDirty(false);
+        if (!automatic) setNotice(`Saved ${unique.length} score record(s) for ${saveSnapshot.subject}.`);
+      } else {
+        dirtyRef.current = true;
+        setDirty(true);
+      }
     } catch (err) {
       setNotice('Could not save results: ' + err.message);
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   };
+
+  useEffect(() => {
+    return () => {
+      const snapshot = pendingAutosaveRef.current;
+      if (!snapshot) return;
+      if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
+      autosaveTimerRef.current = null;
+      pendingAutosaveRef.current = null;
+      save(snapshot, { automatic: true });
+    };
+  }, [examId, className, subject]);
+
+  useEffect(() => {
+    if (!examId || !className || !subject || !teacher || loading) return undefined;
+    let active = true;
+    let requestInFlight = false;
+    const refreshScores = async () => {
+      if (dirtyRef.current || savingRef.current || requestInFlight) return;
+      const currentRows = rowsRef.current;
+      const studentIds = currentRows.map((row) => row.student.student_id).filter(Boolean);
+      if (!studentIds.length) return;
+
+      requestInFlight = true;
+      const requestVersion = scoreVersionRef.current;
+      try {
+        const { data, error } = await supabase
+          .from('exam_results')
+          .select('student_id, class_score, exam_score_input, exam_score')
+          .eq('exam_id', examId)
+          .eq('subject', subject)
+          .eq('school_id', teacher.school_id)
+          .in('student_id', studentIds);
+        if (error) throw new Error(error.message);
+        if (
+          !active ||
+          requestVersion !== scoreVersionRef.current ||
+          dirtyRef.current ||
+          savingRef.current
+        ) {
+          return;
+        }
+
+        const resultMap = new Map((data || []).map((row) => [row.student_id, row]));
+        const refreshedRows = rowsRef.current.map((row) => {
+          const result = resultMap.get(row.student.student_id);
+          return {
+            ...row,
+            classScore: result?.class_score != null ? String(result.class_score) : '',
+            examScoreInput:
+              result?.exam_score_input != null
+                ? String(result.exam_score_input)
+                : result?.exam_score != null
+                  ? String(result.exam_score * 2)
+                  : '',
+          };
+        });
+        rowsRef.current = refreshedRows;
+        setRows(refreshedRows);
+      } catch (err) {
+        if (active) console.error('Could not refresh teacher examination scores in the background.', err);
+      } finally {
+        requestInFlight = false;
+      }
+    };
+
+    const intervalId = setInterval(refreshScores, SCORE_REFRESH_INTERVAL_MS);
+    return () => {
+      active = false;
+      clearInterval(intervalId);
+    };
+  }, [examId, className, subject, teacher, loading]);
 
   const printSheet = () => {
     if (!rows.length) return;
@@ -251,7 +393,7 @@ return (
               <Printer className="h-4 w-4" aria-hidden="true" />
               Print sheet
             </Button>
-            <Button onClick={save} loading={saving} disabled={!rows.length}>
+            <Button onClick={() => save()} loading={saving} disabled={!rows.length}>
               <Save className="h-4 w-4" aria-hidden="true" />
               Save results
             </Button>
@@ -329,6 +471,9 @@ return (
                 <Badge tone="teal">{subject}</Badge>
                 <span className="text-xs text-slate-500">
                   {enteredCount} of {rows.length} student(s) have scores · total = class score (max 50) + exam score ÷ 2 (max 50)
+                </span>
+                <span className="text-xs text-slate-500">
+                  {saving ? 'Saving scores...' : dirty ? 'Changes will save automatically' : lastSavedAt ? 'Saved · background refresh every 10 seconds' : 'Auto-save enabled · refresh every 10 seconds'}
                 </span>
               </div>
               <table className="w-full">

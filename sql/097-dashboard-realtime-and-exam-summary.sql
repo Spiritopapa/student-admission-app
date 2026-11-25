@@ -51,6 +51,7 @@ BEGIN
     'teacher_classes_subjects',
     'announcements',
     'exams',
+    'exam_subjects',
     'exam_results',
     'parent_links',
     'school_applications'
