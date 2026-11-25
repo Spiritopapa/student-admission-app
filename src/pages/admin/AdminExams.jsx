@@ -18,6 +18,7 @@ import { isMobileShell } from '../../lib/mobileHost';
 import { photoUrl } from '../../lib/storage';
 
 const EMPTY_META = { subjectCount: 0, classCoverage: 0, classNames: [], results: 0, recordedSlots: 0, expectedSlots: 0, students: 0 };
+const SCORE_REFRESH_INTERVAL_MS = 10_000;
 
 function examStatus(exam, meta) {
   const today = new Date().toISOString().slice(0, 10);
@@ -66,7 +67,12 @@ export default function AdminExams() {
   const marksLoadIdRef = useRef(0);
   const autosaveTimerRef = useRef(null);
   const savingMarksRef = useRef(false);
+  const refreshingScoresRef = useRef(false);
   const scoreEditVersionRef = useRef(0);
+  const marksDataRef = useRef(marksData);
+  const dirtyRef = useRef(dirty);
+  marksDataRef.current = marksData;
+  dirtyRef.current = dirty;
   // Width of the sheet's vertical scrollbar (0 when no scrollbar is rendered).
   // The frozen header mirrors this gutter so headings align with the body columns.
   const [sheetGutter, setSheetGutter] = useState(0);
@@ -609,6 +615,89 @@ export default function AdminExams() {
       setSavingMarks(false);
     }
   };
+
+  useEffect(() => {
+    if (!workspace || !workspaceClass || !resultsLoaded) return undefined;
+    let active = true;
+    const refreshScores = async () => {
+      if (
+        dirtyRef.current ||
+        savingMarksRef.current ||
+        refreshingScoresRef.current
+      ) {
+        return;
+      }
+
+      const currentRows = marksDataRef.current;
+      const classSubjects = visibleSubjectsForWorkspace();
+      const studentIds = currentRows.map((row) => row.student.student_id).filter(Boolean);
+      if (!studentIds.length || !classSubjects.length) return;
+
+      const requestVersion = scoreEditVersionRef.current;
+      refreshingScoresRef.current = true;
+      try {
+        const { data, error } = await supabase
+          .from('exam_results')
+          .select('student_id, subject, class_score, exam_score_input, exam_score')
+          .eq('exam_id', workspace.id)
+          .in('student_id', studentIds)
+          .in('subject', classSubjects.map((subject) => subject.subject));
+        if (error) throw new Error(error.message);
+        if (
+          !active ||
+          requestVersion !== scoreEditVersionRef.current ||
+          dirtyRef.current ||
+          savingMarksRef.current
+        ) {
+          return;
+        }
+
+        const resultMap = new Map((data || []).map((row) => [`${row.student_id}|${row.subject}`, row]));
+        setMarksData((current) => {
+          if (
+            requestVersion !== scoreEditVersionRef.current ||
+            dirtyRef.current ||
+            savingMarksRef.current
+          ) {
+            return current;
+          }
+          return current.map((row) => ({
+            ...row,
+            scores: {
+              ...row.scores,
+              ...Object.fromEntries(
+                classSubjects.map((subject) => {
+                  const result = resultMap.get(`${row.student.student_id}|${subject.subject}`);
+                  return [
+                    subject.subject,
+                    {
+                      classScore: result?.class_score != null ? String(result.class_score) : '',
+                      examScoreInput:
+                        result?.exam_score_input != null
+                          ? String(result.exam_score_input)
+                          : result?.exam_score != null
+                            ? String(result.exam_score * 2)
+                            : '',
+                    },
+                  ];
+                })
+              ),
+            },
+          }));
+        });
+      } catch (err) {
+        if (active) console.error('Could not refresh examination scores in the background.', err);
+      } finally {
+        refreshingScoresRef.current = false;
+      }
+    };
+
+    const intervalId = setInterval(refreshScores, SCORE_REFRESH_INTERVAL_MS);
+    return () => {
+      active = false;
+      clearInterval(intervalId);
+    };
+  }, [workspace, workspaceClass, resultsLoaded, examSubjects]);
 
   const exportCsv = () => {
     if (!marksData.length) return;
@@ -1177,7 +1266,7 @@ export default function AdminExams() {
             </Button>
             {marksQuery ? <Badge tone="blue">Showing {visibleRows.length} of {marksData.length}</Badge> : null}
             <p className="text-xs text-slate-400">
-              <span className="font-mono">Enter</span> moves to the next score field · totals and grades update live · scores auto-save after a pause
+              <span className="font-mono">Enter</span> moves to the next score field · totals and grades update live · scores auto-save after a pause · saved scores refresh every 10 seconds
             </p>
           </div>
 
