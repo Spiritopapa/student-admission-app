@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Award, Printer, FileText } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
 import { useStudentApplication } from '../../hooks/useSchool';
 import { useSchoolSettings } from '../../hooks/useSchool';
 import { PageHeader, Card, Spinner, EmptyState, Select, Button, Badge } from '../../components/ui';
@@ -20,11 +21,28 @@ import {
   termLabel,
 } from '../../lib/format';
 import { fetchGradingScale, gradeForScale, GRADE_CLASSES } from '../../lib/gradingScale';
+import { ordinal } from '../../lib/examReports';
 import { photoUrl } from '../../lib/storage';
 import { openPrintWindow, escapeHtml } from '../../lib/print';
 import { isMobileShell } from '../../lib/mobileHost';
 
 const SCORE_REFRESH_INTERVAL_MS = 5_000;
+let reportPositionsWarningShown = false;
+
+async function fetchReportCardPositions(examId) {
+  const { data, error } = await supabase.rpc('get_student_exam_report_positions', {
+    p_exam_id: examId,
+  });
+  if (error) {
+    if (!reportPositionsWarningShown) {
+      console.error('Could not load student report-card positions.', error);
+      reportPositionsWarningShown = true;
+    }
+    return [];
+  }
+  reportPositionsWarningShown = false;
+  return data || [];
+}
 
 export default function StudentResults() {
   const { application, loading } = useStudentApplication();
@@ -32,6 +50,8 @@ export default function StudentResults() {
   const [exams, setExams] = useState([]);
   const [selected, setSelected] = useState('');
   const [results, setResults] = useState([]);
+  const [subjects, setSubjects] = useState([]);
+  const [positions, setPositions] = useState([]);
   const [details, setDetails] = useState(null);
   const [attendance, setAttendance] = useState([]);
   const [busy, setBusy] = useState(false);
@@ -65,18 +85,45 @@ export default function StudentResults() {
       if (initialLoad) setBusy(true);
       try {
         if (initialLoad) {
-          const [nextResults, nextDetails, nextAttendance] = await Promise.all([
+          const [
+            nextResults,
+            nextDetails,
+            nextAttendance,
+            { data: subjectRows, error: subjectsError },
+            nextPositions,
+          ] = await Promise.all([
             fetchResultsForExam(application.student_id, selected),
             fetchStudentDetailsForExam(application.student_id, selected),
             fetchStudentAttendance(application.student_id),
+            supabase
+              .from('exam_subjects')
+              .select('subject, class_name')
+              .eq('exam_id', selected),
+            fetchReportCardPositions(selected),
+          ]);
+          if (cancelled) return;
+          if (subjectsError) throw new Error(subjectsError.message);
+          setResults(nextResults);
+          setSubjects(
+            [...new Set(
+              (subjectRows || [])
+                .filter((row) => !row.class_name || row.class_name === application.class_applying)
+                .map((row) => row.subject)
+            )]
+          );
+          setPositions(nextPositions);
+          setDetails(nextDetails);
+          setAttendance(nextAttendance);
+        } else {
+          const [nextResults, nextDetails, nextPositions] = await Promise.all([
+            fetchResultsForExam(application.student_id, selected),
+            fetchStudentDetailsForExam(application.student_id, selected),
+            fetchReportCardPositions(selected),
           ]);
           if (cancelled) return;
           setResults(nextResults);
           setDetails(nextDetails);
-          setAttendance(nextAttendance);
-        } else {
-          const nextResults = await fetchResultsForExam(application.student_id, selected);
-          if (!cancelled) setResults(nextResults);
+          setPositions(nextPositions);
         }
       } catch (err) {
         if (!cancelled) {
@@ -105,24 +152,58 @@ export default function StudentResults() {
   const report = useMemo(() => {
     if (!results.length) return null;
     let total = 0;
-    const rows = results
-      .sort((a, b) => a.subject.localeCompare(b.subject))
-      .map((r) => {
-        const marks = Number(r.marks_obtained || 0);
-        total += marks;
-        return { ...r, marks, grade: gradeForScale(scale?.rows || [], marks, r.subject), level: getPerformanceLevel(marks) };
+    let entered = 0;
+    const resultMap = new Map(results.map((result) => [result.subject.toLowerCase(), result]));
+    const positionsBySubject = new Map(
+      positions.map((position) => [position.subject.toLowerCase(), position.subject_rank])
+    );
+    const reportSubjects = subjects.length
+      ? [...subjects]
+      : [...new Set(results.map((result) => result.subject))];
+    const rows = reportSubjects
+      .sort((a, b) => a.localeCompare(b))
+      .map((subject) => {
+        const result = resultMap.get(subject.toLowerCase());
+        const marks = result?.marks_obtained != null ? Number(result.marks_obtained) : null;
+        if (marks != null) {
+          total += marks;
+          entered += 1;
+        }
+        return {
+          id: result?.id || subject,
+          subject,
+          hasResult: Boolean(result),
+          class_score: result?.class_score != null ? Number(result.class_score) : null,
+          exam_score: result?.exam_score != null ? Number(result.exam_score) : null,
+          marks,
+          rank: positionsBySubject.get(subject.toLowerCase()) || null,
+          grade: gradeForScale(scale?.rows || [], marks ?? 0, subject),
+          level: getPerformanceLevel(marks ?? 0),
+        };
       });
-    const average = total / rows.length || 0;
+    const average = entered ? total / entered : 0;
+    const overallPosition = details?.overall_position || positions[0]?.overall_position || null;
+    const gradingKey = (scale?.rows || [])
+      .filter((row) => !row.subject_name)
+      .slice(0, 4)
+      .map((row) => `${row.grade_label} (${row.min_score}-${row.max_score ?? 100})`)
+      .join(' · ');
+    const interest = details?.interest || application.interest || 'mathematics';
+    const attitude = details?.attitude || application.attitude || 'active';
     return {
       rows,
       total,
-      max: rows.length * 100,
-      average: Math.round(average),
+      average,
+      averageGrade: gradeForScale(scale?.rows || [], average, ''),
+      position: overallPosition ? ordinal(overallPosition) : '-',
       level: getPerformanceLevel(average),
-      teacherRemarks: getTeacherRemarks(average),
-      headRemarks: getHeadTeacherRemarks(average),
+      gradingKey,
+      interest: interest ? interest.charAt(0).toUpperCase() + interest.slice(1) : '-',
+      attitude: attitude ? attitude.charAt(0).toUpperCase() + attitude.slice(1) : '-',
+      teacherRemarks: details?.class_teacher_remarks || getTeacherRemarks(average),
+      headRemarks: details?.head_teacher_remarks || getHeadTeacherRemarks(average),
     };
-  }, [results, scale]);
+  }, [results, subjects, positions, details, application, scale]);
 
   const exam = exams.find((e) => e.id === selected);
   const att = useMemo(() => {
@@ -148,9 +229,10 @@ export default function StudentResults() {
         .map(
           (row) => `<tr>
             <td>${escapeHtml(row.subject)}</td>
-            <td class="right">${Number(row.class_score || 0).toFixed(2)}</td>
-            <td class="right">${Number(row.exam_score || 0).toFixed(2)}</td>
-            <td class="right"><b>${row.marks.toFixed(2)}</b></td>
+            <td class="right">${row.hasResult ? Number(row.class_score || 0).toFixed(1) : '-'}</td>
+            <td class="right">${row.hasResult ? Number(row.exam_score || 0).toFixed(1) : '-'}</td>
+            <td class="right"><b>${row.marks == null ? '-' : row.marks.toFixed(1)}</b></td>
+            <td class="right">${row.rank ? ordinal(Number(row.rank)) : '-'}</td>
             <td class="right">${escapeHtml(row.grade.grade)}</td>
             <td>${escapeHtml(row.level.text)}</td>
           </tr>`
@@ -164,14 +246,17 @@ export default function StudentResults() {
           <p><b>${escapeHtml(name)}</b> (${escapeHtml(application.student_id)})</p>
           <p>Class: ${escapeHtml(application.class_applying || '-')} · ${escapeHtml(exam?.academic_year || '')} ${escapeHtml(termLabel(exam?.term))}</p>
         </div>
+        <p>Gender: ${escapeHtml(application.gender || '-')} · Date of Birth: ${escapeHtml(formatDate(application.date_of_birth))} · Interest: ${escapeHtml(report.interest)} · Attitude: ${escapeHtml(report.attitude)} · Position in Class: ${escapeHtml(report.position)}</p>
+        <p>Closing Date: ${escapeHtml(formatDate(exam?.closing_date))} · Reopening Date: ${escapeHtml(formatDate(exam?.reopening_date))}</p>
         <table>
           <thead>
-            <tr><th>Subject</th><th>Class Score</th><th>Exam Score</th><th>Total Marks</th><th>Grade</th><th>Level</th></tr>
+            <tr><th>Subject</th><th>Class (50)</th><th>Exam (50)</th><th>Total (100)</th><th>Rank</th><th>Grade</th><th>Remark</th></tr>
           </thead>
           <tbody>${rowsHtml}</tbody>
         </table>
         <h2>Summary</h2>
-        <p>Total: <b>${report.total.toFixed(2)} / ${report.max}</b> · Average: <b>${report.average}%</b> · Performance: <b>${escapeHtml(report.level.text)}</b></p>
+        <p>Total Score: <b>${report.total.toFixed(1)}</b> · Average: <b>${report.average.toFixed(1)}%</b> · Grade: <b>${escapeHtml(report.averageGrade.grade)}</b> · Position: <b>${escapeHtml(report.position)}</b></p>
+        ${report.gradingKey ? `<p><b>Grading Key:</b> ${escapeHtml(report.gradingKey)}</p>` : ''}
         ${att.total ? `<p>Attendance: ${att.present} present, ${att.absent} absent (${att.pct}%)</p>` : ''}
         <h2>Remarks</h2>
         <p><b>Class Teacher:</b> ${escapeHtml(report.teacherRemarks)}</p>
@@ -255,25 +340,37 @@ export default function StudentResults() {
                 </div>
               </div>
 
+              <div className="grid gap-x-6 gap-y-2 border-b border-slate-100 px-6 py-4 text-sm sm:grid-cols-2 lg:grid-cols-3">
+                <p><span className="font-semibold text-slate-500">Gender:</span> {application.gender || '-'}</p>
+                <p><span className="font-semibold text-slate-500">Date of Birth:</span> {formatDate(application.date_of_birth)}</p>
+                <p><span className="font-semibold text-slate-500">Interest:</span> {report.interest}</p>
+                <p><span className="font-semibold text-slate-500">Attitude:</span> {report.attitude}</p>
+                <p><span className="font-semibold text-slate-500">Position in Class:</span> {report.position}</p>
+                <p><span className="font-semibold text-slate-500">Closing Date:</span> {formatDate(exam?.closing_date)}</p>
+                <p><span className="font-semibold text-slate-500">Reopening Date:</span> {formatDate(exam?.reopening_date)}</p>
+              </div>
+
               <div className="overflow-x-auto px-6 py-4">
-                <table className="w-full min-w-[480px] text-sm">
+                <table className="w-full min-w-[760px] text-sm">
                   <thead>
                     <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-400">
                       <th className="pb-2 pr-3 font-semibold">Subject</th>
-                      <th className="pb-2 pr-3 font-semibold">Class Score</th>
-                      <th className="pb-2 pr-3 font-semibold">Exam Score</th>
-                      <th className="pb-2 pr-3 font-semibold">Total Marks</th>
+                      <th className="pb-2 pr-3 font-semibold">Class (50)</th>
+                      <th className="pb-2 pr-3 font-semibold">Exam (50)</th>
+                      <th className="pb-2 pr-3 font-semibold">Total (100)</th>
+                      <th className="pb-2 pr-3 font-semibold">Rank</th>
                       <th className="pb-2 pr-3 font-semibold">Grade</th>
-                      <th className="pb-2 font-semibold">Level</th>
+                      <th className="pb-2 font-semibold">Remark</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-50">
                     {report.rows.map((row) => (
                       <tr key={row.id}>
                         <td className="py-2.5 pr-3 font-semibold text-slate-800">{row.subject}</td>
-                        <td className="py-2.5 pr-3 text-slate-600">{Number(row.class_score || 0).toFixed(2)}</td>
-                        <td className="py-2.5 pr-3 text-slate-600">{Number(row.exam_score || 0).toFixed(2)}</td>
-                        <td className="py-2.5 pr-3 font-bold text-slate-800">{row.marks.toFixed(2)}</td>
+                        <td className="py-2.5 pr-3 text-slate-600">{row.hasResult ? Number(row.class_score || 0).toFixed(1) : '-'}</td>
+                        <td className="py-2.5 pr-3 text-slate-600">{row.hasResult ? Number(row.exam_score || 0).toFixed(1) : '-'}</td>
+                        <td className="py-2.5 pr-3 font-bold text-slate-800">{row.marks == null ? '-' : row.marks.toFixed(1)}</td>
+                        <td className="py-2.5 pr-3 text-slate-600">{row.rank ? ordinal(Number(row.rank)) : '-'}</td>
                         <td className="py-2.5 pr-3">
                           <span className={`badge ${GRADE_CLASSES[row.grade.cls] || 'bg-slate-100 text-slate-600 ring-1 ring-slate-200'}`}>
                             {row.grade.grade}
@@ -286,22 +383,28 @@ export default function StudentResults() {
                 </table>
               </div>
 
-              <div className="grid gap-4 px-6 py-5 sm:grid-cols-3">
+              <div className="grid gap-4 px-6 py-5 sm:grid-cols-2 lg:grid-cols-4">
                 <div className="rounded-xl bg-brand-50 p-4 text-center">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-brand-600">Total</p>
-                  <p className="mt-1 text-lg font-extrabold text-brand-800">
-                    {report.total.toFixed(2)} / {report.max}
-                  </p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-brand-600">Total Score</p>
+                  <p className="mt-1 text-lg font-extrabold text-brand-800">{report.total.toFixed(1)}</p>
                 </div>
                 <div className="rounded-xl bg-teal-50 p-4 text-center">
                   <p className="text-xs font-semibold uppercase tracking-wide text-teal-600">Average</p>
-                  <p className="mt-1 text-lg font-extrabold text-teal-800">{report.average}%</p>
+                  <p className="mt-1 text-lg font-extrabold text-teal-800">{report.average.toFixed(1)}%</p>
                 </div>
                 <div className="rounded-xl bg-accent-500/10 p-4 text-center">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-accent-600">Performance</p>
-                  <p className="mt-1 text-lg font-extrabold text-accent-700">{report.level.text}</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-accent-600">Grade</p>
+                  <p className="mt-1 text-lg font-extrabold text-accent-700">{report.averageGrade.grade}</p>
+                </div>
+                <div className="rounded-xl bg-slate-50 p-4 text-center">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">Position</p>
+                  <p className="mt-1 text-lg font-extrabold text-slate-800">{report.position}</p>
                 </div>
               </div>
+
+              {report.gradingKey ? (
+                <p className="px-6 pb-3 text-xs text-slate-500"><strong>Grading Key:</strong> {report.gradingKey}</p>
+              ) : null}
 
               {att.total ? (
                 <div className="flex flex-wrap items-center gap-3 px-6 pb-2">

@@ -143,6 +143,7 @@ Your existing data and tables are untouched. Run the migrations in the Supabase 
 9. `sql/095-data-api-grants.sql` - adds explicit Supabase Data API grants while keeping row access controlled by RLS. Required for fresh deployments and schema resets.
 10. `sql/096-fix-login-grants-and-self-claim-rls.sql` - grants pre-auth lookup RPCs and permits eligible admins and staff to claim their own unlinked records. Apply this to existing Supabase projects to fix affected sign-in failures.
 11. `sql/097-dashboard-realtime-and-exam-summary.sql` - adds an RLS-respecting grouped exam-result count RPC and enables Supabase Realtime for tables used by role dashboards. Apply this migration to the existing Supabase project to enable the changes.
+12. `sql/098-student-exam-report-rankings.sql` - securely computes a student's own subject and class positions for report cards without exposing classmates' scores.
 
 ### Deployment (Vercel)
 

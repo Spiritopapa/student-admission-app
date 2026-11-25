@@ -89,7 +89,7 @@ function computeClassPosition(allResults, classStudentIds, studentId) {
   });
   const sorted = Object.entries(avgs)
     .map(([sid, d]) => ({ sid, avg: d.count ? d.total / d.count : 0 }))
-    .sort((a, b) => b.avg - a.avg);
+    .sort((a, b) => b.avg - a.avg || a.sid.localeCompare(b.sid));
   const idx = sorted.findIndex((s) => s.sid === studentId);
   return idx >= 0 ? idx + 1 : null;
 }
@@ -222,7 +222,7 @@ function renderReportCardHTML({
         entered += 1;
       }
       const stats = subjectStats[sub] || {};
-      const sorted = Object.entries(stats).sort((a, b) => b[1] - a[1]);
+      const sorted = Object.entries(stats).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
       let pos = null;
       sorted.forEach(([sid], idx) => {
         if (sid === app.student_id) pos = idx + 1;
@@ -310,10 +310,15 @@ export async function buildReportCardHTML({ examId, studentId, schoolId }) {
   const { data: exam } = await supabase.from('exams').select('*').eq('id', examId).maybeSingle();
   if (!exam) return '<p>Exam not found.</p>';
 
-  let subsQuery = supabase.from('exam_subjects').select('subject').eq('exam_id', examId);
-  if (app.class_applying) subsQuery = subsQuery.eq('class_name', app.class_applying);
-  const { data: examSubs } = await subsQuery;
-  const subjects = (examSubs || []).map((s) => s.subject);
+  const { data: examSubs } = await supabase
+    .from('exam_subjects')
+    .select('subject, class_name')
+    .eq('exam_id', examId);
+  const subjects = [...new Set(
+    (examSubs || [])
+      .filter((subject) => !subject.class_name || subject.class_name === app.class_applying)
+      .map((subject) => subject.subject)
+  )];
   if (!subjects.length) return '<p>No subjects configured for this exam.</p>';
 
   const school = await getSchoolIdentity(schoolId);
@@ -440,9 +445,11 @@ export async function buildReportCardsHTML({ exam, schoolId, students, className
   });
 
   const docs = reportStudents.map((app) => {
-    const subjects = (subjectsResult.data || [])
-      .filter((subject) => !app.class_applying || subject.class_name === app.class_applying)
-      .map((subject) => subject.subject);
+    const subjects = [...new Set(
+      (subjectsResult.data || [])
+        .filter((subject) => !subject.class_name || subject.class_name === app.class_applying)
+        .map((subject) => subject.subject)
+    )];
     const gradingScale = resolveScale(gradingResult.data || [], app.class_applying).rows || null;
     return renderReportCardHTML({
       app,
