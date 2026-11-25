@@ -800,9 +800,9 @@ export default function AdminExams() {
         const scores = entry.subjectScores
           .map(
             (score) =>
-              `<td>${score.cls == null ? '-' : score.cls.toFixed(1)}</td>` +
-              `<td>${score.esi == null ? '-' : score.esi.toFixed(1)}</td>` +
-              `<td>${score.tot == null ? '-' : score.tot.toFixed(1)}</td>`
+              `<td>${score.cls == null ? '' : score.cls.toFixed(1)}</td>` +
+              `<td>${score.esi == null ? '' : score.esi.toFixed(1)}</td>` +
+              `<td>${score.tot == null ? '' : score.tot.toFixed(1)}</td>`
           )
           .join('');
         const average = entry.average;
@@ -821,10 +821,9 @@ export default function AdminExams() {
         </tr>`;
       })
       .join('');
-    const title = `General Score Sheet - ${workspaceClass}`;
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1" />
-      <title>${esc(title)}</title>
+      <title>${esc(sheetTitle)}</title>
       <style>
         @page{size:landscape A4;margin:12mm}
         body{font-family:Arial,Helvetica,sans-serif;color:#0f172a;margin:24px}
