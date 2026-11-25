@@ -85,6 +85,7 @@ export default function AdminExams() {
   const [rankClass, setRankClass] = useState('');
   const [reportExam, setReportExam] = useState(null);
   const [reportStudents, setReportStudents] = useState([]);
+  const [reportStudentsLoading, setReportStudentsLoading] = useState(false);
   const [reportStudentId, setReportStudentId] = useState('');
   const [reportHtml, setReportHtml] = useState('');
   const [reportBusy, setReportBusy] = useState(false);
@@ -552,13 +553,20 @@ export default function AdminExams() {
           uniqueUpserts.push(u);
         }
       });
+      const saveRequests = [];
       if (uniqueUpserts.length) {
-        const { error } = await supabase.from('exam_results').upsert(uniqueUpserts, { onConflict: 'exam_id,student_id,subject' });
-        if (error) throw new Error(error.message);
+        saveRequests.push(
+          supabase.from('exam_results').upsert(uniqueUpserts, { onConflict: 'exam_id,student_id,subject' })
+        );
       }
-      for (const d of detailUpserts) {
-        await supabase.from('exam_student_details').upsert(d, { onConflict: 'exam_id,student_id' });
+      if (detailUpserts.length) {
+        saveRequests.push(
+          supabase.from('exam_student_details').upsert(detailUpserts, { onConflict: 'exam_id,student_id' })
+        );
       }
+      const saveResults = await Promise.all(saveRequests);
+      const saveError = saveResults.find((result) => result.error)?.error;
+      if (saveError) throw new Error(saveError.message);
       setDirty(false);
       setLastSavedAt(new Date());
       toast.success('Results saved', `${uniqueUpserts.length} subject scores recorded.`);
@@ -803,12 +811,13 @@ export default function AdminExams() {
   };
 
   const fetchAdmittedStudents = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('applications')
-      .select('student_id, first_name, middle_name, last_name, class_applying, gender, date_of_birth, interest, attitude, student_photo_url')
+      .select('student_id, first_name, middle_name, last_name, class_applying, gender, date_of_birth, student_photo_url')
       .eq('school_id', schoolId)
       .eq('status', 'admitted')
       .order('first_name');
+    if (error) throw new Error(error.message);
     return data || [];
   };
 
@@ -831,7 +840,15 @@ export default function AdminExams() {
     setReportExam(exam);
     setReportStudentId('');
     setReportHtml('');
-    setReportStudents(await fetchAdmittedStudents());
+    setReportStudents([]);
+    setReportStudentsLoading(true);
+    try {
+      setReportStudents(await fetchAdmittedStudents());
+    } catch (err) {
+      toast.error('Could not load students', err.message);
+    } finally {
+      setReportStudentsLoading(false);
+    }
   };
 
   const previewReport = async () => {
@@ -880,7 +897,11 @@ export default function AdminExams() {
     setTranscriptOpen(true);
     setTranscriptStudentId('');
     setTranscriptHtml('');
-    setTranscriptStudents(await fetchAdmittedStudents());
+    try {
+      setTranscriptStudents(await fetchAdmittedStudents());
+    } catch (err) {
+      toast.error('Could not load students', err.message);
+    }
   };
 
   const previewTranscript = async () => {
@@ -1636,7 +1657,7 @@ export default function AdminExams() {
         size="xl"
         footer={
           <div className="flex flex-wrap gap-2">
-            <Button variant="secondary" loading={reportBatchBusy} onClick={batchPrintReports} disabled={!reportStudentList.length}>
+            <Button variant="secondary" loading={reportBatchBusy} onClick={batchPrintReports} disabled={reportStudentsLoading || !reportStudentList.length}>
               <Printer className="h-4 w-4" aria-hidden="true" />
               Print {reportClassFilter ? reportClassFilter : 'all'}
             </Button>
@@ -1650,6 +1671,7 @@ export default function AdminExams() {
           </div>
         }
       >
+        {reportStudentsLoading ? <Spinner label="Loading admitted students..." /> : null}
         <div className="grid gap-4 sm:grid-cols-3">
           <Select
             label="Class filter (bulk print)"
@@ -1668,12 +1690,19 @@ export default function AdminExams() {
           <Select
             label="Student"
             value={reportStudentId}
+            disabled={reportStudentsLoading}
             onChange={(e) => {
               setReportStudentId(e.target.value);
               setReportHtml('');
             }}
           >
-            <option value="">Select student...</option>
+            <option value="">
+              {reportStudentsLoading
+                ? 'Loading students...'
+                : reportStudentList.length
+                  ? 'Select student...'
+                  : 'No admitted students found'}
+            </option>
             {reportStudentList.map((s) => (
               <option key={s.student_id} value={s.student_id}>
                 {buildStudentName(s.first_name, s.middle_name, s.last_name)} · {s.class_applying}
@@ -1681,7 +1710,7 @@ export default function AdminExams() {
             ))}
           </Select>
           <div className="flex items-end">
-            <Button onClick={previewReport} loading={reportBusy} className="w-full">
+            <Button onClick={previewReport} loading={reportBusy} disabled={reportStudentsLoading || !reportStudentId} className="w-full">
               Preview report card
             </Button>
           </div>
