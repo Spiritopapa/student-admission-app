@@ -4,9 +4,11 @@ node_modules/
 # Build output
 dist/
 
-# Environment files
+# Environment files and local credentials
 .env
-.env.example
+.env.*
+*.env
+*.env.*
 
 # OS files
 .DS_Store
