@@ -9,6 +9,7 @@ import { supabase } from '../../lib/supabase';
 import { cedi } from '../../lib/format';
 import { currentAcademicYear, ROLE_LABELS } from '../../lib/constants';
 import { useModuleLock } from '../../context/ModuleLockContext';
+import { useDashboardRealtimeRefresh } from '../../hooks/useDashboardRealtimeRefresh';
 
 export default function AccountantHome() {
   const schoolId = useSchoolId();
@@ -18,6 +19,8 @@ export default function AccountantHome() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [attempt, setAttempt] = useState(0);
+
+  useDashboardRealtimeRefresh('accountant', () => setAttempt((current) => current + 1), Boolean(schoolId));
 
   useEffect(() => {
     if (!schoolId) {

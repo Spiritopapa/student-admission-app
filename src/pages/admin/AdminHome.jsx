@@ -16,6 +16,7 @@ import { openPrintWindow, escapeHtml } from '../../lib/print';
 import { buildStudentName, cedi, formatDate, formatDateTime } from '../../lib/format';
 import { photoUrl } from '../../lib/storage';
 import { currentAcademicYear } from '../../lib/constants';
+import { useDashboardRealtimeRefresh } from '../../hooks/useDashboardRealtimeRefresh';
 
 function fmtMoney(n) {
   return Number(n || 0).toLocaleString('en-US', {
@@ -534,6 +535,7 @@ export default function AdminHome() {
   useEffect(() => {
     if (schoolId) load();
   }, [schoolId, load]);
+  useDashboardRealtimeRefresh('admin', load, Boolean(schoolId));
 
   if (!schoolId) return <Spinner label="Loading school..." />;
   if (!data) return <Spinner label="Loading your dashboard..." />;

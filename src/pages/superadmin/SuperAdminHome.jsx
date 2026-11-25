@@ -6,6 +6,7 @@ import { PageHeader, Spinner, Badge, Button, StatCard } from '../../components/u
 import { GlassCard } from '../../components/glass-ui';
 import { supabase } from '../../lib/supabase';
 import { formatDate } from '../../lib/format';
+import { useDashboardRealtimeRefresh } from '../../hooks/useDashboardRealtimeRefresh';
 
 const TRIAL_EXPIRING_SOON_DAYS = 3;
 
@@ -13,6 +14,9 @@ export default function SuperAdminHome() {
   const { profile } = useAuth();
   const [stats, setStats] = useState(null);
   const [trialSchools, setTrialSchools] = useState([]);
+  const [refresh, setRefresh] = useState(0);
+
+  useDashboardRealtimeRefresh('superadmin', () => setRefresh((current) => current + 1));
 
   useEffect(() => {
     let cancelled = false;
@@ -42,7 +46,7 @@ export default function SuperAdminHome() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [refresh]);
 
   const now = Date.now();
   const expired = [];

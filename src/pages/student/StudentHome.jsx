@@ -20,6 +20,7 @@ import { cedi, buildStudentName, formatDate, getPerformanceLevel, termLabel } fr
 import { currentAcademicYear } from '../../lib/constants';
 import { totalOutstanding } from '../../lib/feeMath';
 import { useModuleLock } from '../../context/ModuleLockContext';
+import { useDashboardRealtimeRefresh } from '../../hooks/useDashboardRealtimeRefresh';
 
 const fade = {
   hidden: { opacity: 0, y: 18 },
@@ -31,6 +32,9 @@ export default function StudentHome() {
   const { application, loading: appLoading } = useStudentApplication();
   const { isModuleLocked } = useModuleLock();
   const [summary, setSummary] = useState(null);
+  const [refresh, setRefresh] = useState(0);
+
+  useDashboardRealtimeRefresh('student', () => setRefresh((current) => current + 1), Boolean(application));
 
   useEffect(() => {
     if (!application) return;
@@ -80,7 +84,7 @@ export default function StudentHome() {
     return () => {
       cancelled = true;
     };
-  }, [application]);
+  }, [application, refresh]);
 
   if (appLoading || (application && !summary)) return <Spinner label="Loading your dashboard..." />;
 

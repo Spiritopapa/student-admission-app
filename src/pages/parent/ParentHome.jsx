@@ -9,6 +9,7 @@ import { fetchParentLinks, fetchWardApplication, fetchStudentFees, fetchStudentR
 import { buildStudentName, formatDate } from '../../lib/format';
 import { photoUrl } from '../../lib/storage';
 import { useModuleLock } from '../../context/ModuleLockContext';
+import { useDashboardRealtimeRefresh } from '../../hooks/useDashboardRealtimeRefresh';
 
 export default function ParentHome() {
   const { user, profile } = useAuth();
@@ -18,6 +19,8 @@ export default function ParentHome() {
   const [totals, setTotals] = useState({ fees: 0, receipts: 0, announcements: 0 });
   const [connectOpen, setConnectOpen] = useState(false);
   const [refresh, setRefresh] = useState(0);
+
+  useDashboardRealtimeRefresh('parent', () => setRefresh((current) => current + 1), Boolean(user));
 
   useEffect(() => {
     if (!user) return;

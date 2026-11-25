@@ -7,6 +7,7 @@ import { GlassCard } from '../../components/glass-ui';
 import { supabase } from '../../lib/supabase';
 import { fetchTeacherClassSet } from '../../lib/queries';
 import { useModuleLock } from '../../context/ModuleLockContext';
+import { useDashboardRealtimeRefresh } from '../../hooks/useDashboardRealtimeRefresh';
 
 export default function TeacherHome() {
   const { user, profile } = useAuth();
@@ -14,6 +15,9 @@ export default function TeacherHome() {
   const [teacher, setTeacher] = useState(null);
   const [classCount, setClassCount] = useState(null);
   const [todayAtt, setTodayAtt] = useState(null);
+  const [refresh, setRefresh] = useState(0);
+
+  useDashboardRealtimeRefresh('teacher', () => setRefresh((current) => current + 1), Boolean(user));
 
   useEffect(() => {
     if (!user) return;
@@ -23,7 +27,7 @@ export default function TeacherHome() {
       .eq('user_id', user.id)
       .maybeSingle()
       .then(({ data }) => setTeacher(data || null));
-  }, [user]);
+  }, [user, refresh]);
 
   useEffect(() => {
     if (!teacher?.id) return;
@@ -38,7 +42,7 @@ export default function TeacherHome() {
         .in('class_applying', classNames);
       setClassCount((data || []).length);
     })();
-  }, [teacher]);
+  }, [teacher, refresh]);
 
   // Today's attendance summary across all of the teacher's assigned classes.
   useEffect(() => {
@@ -91,7 +95,7 @@ export default function TeacherHome() {
     return () => {
       cancelled = true;
     };
-  }, [teacher, isModuleLocked]);
+  }, [teacher, isModuleLocked, refresh]);
 
   if (!user || !teacher) return <Spinner label="Loading your dashboard..." />;
 

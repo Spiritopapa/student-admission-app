@@ -151,7 +151,7 @@ export default function AdminExams() {
         { data: classRows, error: classesError },
         { data: examSubjectRows, error: examSubjectsError },
         { data: appRows, error: applicationsError },
-        resultCountResults,
+        { data: resultCountRows, error: resultCountsError },
       ] = await Promise.all([
         supabase.from('classes').select('id, name').eq('school_id', schoolId).order('name'),
         examIds.length
@@ -160,24 +160,20 @@ export default function AdminExams() {
         examIds.length
           ? supabase.from('applications').select('class_applying').eq('school_id', schoolId).eq('status', 'admitted')
           : Promise.resolve({ data: [], error: null }),
-        Promise.all(
-          examRows.map((exam) =>
-            supabase
-              .from('exam_results')
-              .select('exam_id', { count: 'exact', head: true })
-              .eq('exam_id', exam.id)
-              .eq('school_id', schoolId)
-          )
-        ),
+        examIds.length
+          ? supabase.rpc('get_exam_result_counts', {
+              p_school_id: schoolId,
+              p_exam_ids: examIds,
+            })
+          : Promise.resolve({ data: [], error: null }),
       ]);
-      const resultCountError = resultCountResults.find((result) => result.error)?.error;
-      const queryError = classesError || examSubjectsError || applicationsError || resultCountError;
+      const queryError = classesError || examSubjectsError || applicationsError || resultCountsError;
       if (queryError) throw new Error(queryError.message);
       setClasses(classRows || []);
 
       const resultCounts = {};
-      examRows.forEach((exam, index) => {
-        resultCounts[exam.id] = resultCountResults[index].count || 0;
+      (resultCountRows || []).forEach((row) => {
+        resultCounts[row.exam_id] = Number(row.result_count) || 0;
       });
 
       // Completion / coverage metrics per exam (read-only workload analysis).
