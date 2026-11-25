@@ -736,11 +736,18 @@ export default function AdminExams() {
 
   const printGeneralScoreSheet = () => {
     if (!workspace || !workspaceClass) return;
-    const classSubjects = visibleSubjectsForWorkspace();
+    const availableSubjects = visibleSubjectsForWorkspace();
+    const subjectFilterIsValid =
+      !displaySubject || availableSubjects.some((subject) => subject.subject === displaySubject);
+    const selectedSubject = subjectFilterIsValid ? displaySubject : '';
+    const classSubjects = selectedSubject
+      ? availableSubjects.filter((subject) => subject.subject === selectedSubject)
+      : availableSubjects;
     if (!classSubjects.length || !marksData.length) {
       toast.error('Score sheet unavailable', 'This class has no students or assigned subjects.');
       return;
     }
+    const isSingleSubjectSheet = Boolean(selectedSubject);
 
     const reportRows = marksData.map((row) => {
       let total = 0;
@@ -773,6 +780,9 @@ export default function AdminExams() {
     const rankByStudentId = new Map(
       rankedRows.map((entry, index) => [entry.row.student.student_id, index + 1])
     );
+    const sheetTitle = isSingleSubjectSheet
+      ? `${selectedSubject} Score Sheet - ${workspaceClass}`
+      : `General Score Sheet - ${workspaceClass}`;
     const subjectHeaders = classSubjects
       .map((subject) => `<th colspan="3">${esc(subject.subject)}</th>`)
       .join('');
@@ -796,7 +806,9 @@ export default function AdminExams() {
           )
           .join('');
         const average = entry.average;
-        const grade = average == null ? '-' : gradeForScale(scale, average, '').grade;
+        const grade = average == null
+          ? '-'
+          : gradeForScale(scale, average, isSingleSubjectSheet ? selectedSubject : '').grade;
         const rank = rankByStudentId.get(student.student_id);
         return `<tr>
           <td class="left">${esc(student.student_id)}</td>
@@ -829,19 +841,19 @@ export default function AdminExams() {
         tr{page-break-inside:avoid}
         @media print{body{margin:0}}
       </style></head><body>
-      <h1>GENERAL SCORE SHEET</h1>
+      <h1>${esc(isSingleSubjectSheet ? `${selectedSubject} SCORE SHEET` : 'GENERAL SCORE SHEET')}</h1>
       <p class="meta">${esc(workspace.name)} · ${esc(workspace.academic_year || '')} · ${esc(termLabel(workspace.term))}</p>
-      <p class="meta">Class: ${esc(workspaceClass)} · Students: ${reportRows.length}${dirty ? ' · Includes unsaved score changes' : ''}</p>
+      <p class="meta">Class: ${esc(workspaceClass)} · ${isSingleSubjectSheet ? `Subject: ${esc(selectedSubject)} · ` : ''}Students: ${reportRows.length}${dirty ? ' · Includes unsaved score changes' : ''}</p>
       <table><thead>
         <tr><th rowspan="2">Student ID</th><th rowspan="2">Photo</th><th rowspan="2">Student Name</th>
           ${subjectHeaders}
-          <th rowspan="2">Average</th><th rowspan="2">Grade</th><th rowspan="2">Rank</th>
+          <th rowspan="2">${isSingleSubjectSheet ? 'Total' : 'Average'}</th><th rowspan="2">Grade</th><th rowspan="2">Rank</th>
         </tr>
         <tr>${scoreHeaders}</tr>
       </thead><tbody>${bodyRows}</tbody></table>
       </body></html>`;
 
-    printHtmlDoc(title, html);
+    printHtmlDoc(sheetTitle, html);
   };
 
   const fetchAdmittedStudents = async () => {
@@ -1162,7 +1174,7 @@ export default function AdminExams() {
               disabled={!marksData.length || !colSubjects.length}
             >
               <Printer className="h-4 w-4" aria-hidden="true" />
-              General score sheet
+              {displayValid && displaySubject ? `${displaySubject} score sheet` : 'All-subject score sheet'}
             </Button>
             {marksQuery ? <Badge tone="blue">Showing {visibleRows.length} of {marksData.length}</Badge> : null}
             <p className="text-xs text-slate-400">
