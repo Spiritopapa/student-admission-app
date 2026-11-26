@@ -1460,7 +1460,7 @@ export default function AdminExams() {
                   onScroll={(e) => {
                     if (headerRef.current) headerRef.current.scrollLeft = e.target.scrollLeft;
                   }}
-                  className="min-w-0 flex-1 overflow-x-auto overflow-y-hidden bg-white"
+                  className="min-w-0 flex-1 self-start overflow-x-auto bg-white h-max"
                 >
                   <div className="w-max min-w-full">
                     {visibleRows.map((row) => {
