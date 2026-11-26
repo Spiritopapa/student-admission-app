@@ -5,12 +5,12 @@ import { supabase } from '../../lib/supabase';
 import { useStudentApplication } from '../../hooks/useSchool';
 import { useSchoolSettings } from '../../hooks/useSchool';
 import { PageHeader, Card, Spinner, EmptyState, Select, Button, Badge } from '../../components/ui';
+import { Alert } from '../../components/ui-extras';
 import {
   fetchExamsForStudent,
   fetchResultsForExam,
   fetchStudentDetailsForExam,
   fetchStudentAttendance,
-  fetchSchoolName,
 } from '../../lib/queries';
 import {
   buildStudentName,
@@ -56,24 +56,72 @@ export default function StudentResults() {
   const [attendance, setAttendance] = useState([]);
   const [busy, setBusy] = useState(false);
   const [schoolName, setSchoolName] = useState('My School');
+  const [schoolAddress, setSchoolAddress] = useState('');
+  const [schoolPhone, setSchoolPhone] = useState('');
   const [scale, setScale] = useState(null); // class-aware grading scale
+  const [reportError, setReportError] = useState('');
+  const [setupError, setSetupError] = useState('');
 
   useEffect(() => {
     if (!application) return;
-    fetchSchoolName(application.school_id).then(setSchoolName).catch(() => {});
-    fetchGradingScale(application.school_id, application.class_applying).then(setScale).catch(() => {});
-    fetchExamsForStudent(application.school_id)
-      .then((list) => {
+    let active = true;
+    setReportError('');
+    setSetupError('');
+    setExams([]);
+    setSelected('');
+    setScale(null);
+    (async () => {
+      try {
+        const [
+          { data: schoolSettings, error: settingsError },
+          { data: school, error: schoolError },
+        ] = await Promise.all([
+          supabase
+            .from('school_settings')
+            .select('school_name, school_address')
+            .eq('school_id', application.school_id)
+            .maybeSingle(),
+          supabase.from('schools').select('name, phone').eq('id', application.school_id).maybeSingle(),
+        ]);
+        if (settingsError) throw new Error(settingsError.message);
+        if (schoolError) throw new Error(schoolError.message);
+        if (!active) return;
+        setSchoolName(schoolSettings?.school_name || school?.name || 'My School');
+        setSchoolAddress(schoolSettings?.school_address || '');
+        setSchoolPhone(school?.phone || '');
+      } catch (err) {
+        if (active) setSetupError(`Could not load school contact details: ${err.message}`);
+      }
+
+      try {
+        const nextScale = await fetchGradingScale(application.school_id, application.class_applying);
+        if (active) setScale(nextScale);
+      } catch (err) {
+        if (active) setSetupError(`Could not load grading scale: ${err.message}`);
+      }
+
+      try {
+        const list = await fetchExamsForStudent(application.school_id);
+        if (!active) return;
         setExams(list);
-        const withResults = list.filter((e) => e.id);
-        if (withResults.length) setSelected(withResults[0].id);
-      })
-      .catch(() => {});
+        setSelected(list[0]?.id || '');
+      } catch (err) {
+        if (active) setSetupError(`Could not load examinations: ${err.message}`);
+      }
+    })();
+    return () => {
+      active = false;
+    };
   }, [application]);
 
   useEffect(() => {
     if (!selected || !application) {
       setBusy(false);
+      setResults([]);
+      setSubjects([]);
+      setPositions([]);
+      setDetails(null);
+      setAttendance([]);
       return undefined;
     }
 
@@ -125,8 +173,10 @@ export default function StudentResults() {
           setDetails(nextDetails);
           setPositions(nextPositions);
         }
+        setReportError('');
       } catch (err) {
         if (!cancelled) {
+          setReportError(`Could not ${initialLoad ? 'load' : 'refresh'} the report card: ${err.message}`);
           console.error(
             initialLoad ? 'Could not load the student report card.' : 'Could not refresh the student report card.',
             err
@@ -177,8 +227,8 @@ export default function StudentResults() {
           exam_score: result?.exam_score != null ? Number(result.exam_score) : null,
           marks,
           rank: positionsBySubject.get(subject.toLowerCase()) || null,
-          grade: gradeForScale(scale?.rows || [], marks ?? 0, subject),
-          level: getPerformanceLevel(marks ?? 0),
+          grade: marks == null ? { grade: '-', cls: '' } : gradeForScale(scale?.rows || [], marks, subject),
+          level: marks == null ? { text: '-' } : getPerformanceLevel(marks),
         };
       });
     const average = entered ? total / entered : 0;
@@ -190,6 +240,7 @@ export default function StudentResults() {
       .join(' · ');
     const interest = details?.interest || application.interest || 'mathematics';
     const attitude = details?.attitude || application.attitude || 'active';
+    const conduct = details?.conduct || '-';
     return {
       rows,
       total,
@@ -200,6 +251,7 @@ export default function StudentResults() {
       gradingKey,
       interest: interest ? interest.charAt(0).toUpperCase() + interest.slice(1) : '-',
       attitude: attitude ? attitude.charAt(0).toUpperCase() + attitude.slice(1) : '-',
+      conduct: conduct === '-' ? conduct : conduct.charAt(0).toUpperCase() + conduct.slice(1),
       teacherRemarks: details?.class_teacher_remarks || getTeacherRemarks(average),
       headRemarks: details?.head_teacher_remarks || getHeadTeacherRemarks(average),
     };
@@ -246,7 +298,7 @@ export default function StudentResults() {
           <p><b>${escapeHtml(name)}</b> (${escapeHtml(application.student_id)})</p>
           <p>Class: ${escapeHtml(application.class_applying || '-')} · ${escapeHtml(exam?.academic_year || '')} ${escapeHtml(termLabel(exam?.term))}</p>
         </div>
-        <p>Gender: ${escapeHtml(application.gender || '-')} · Date of Birth: ${escapeHtml(formatDate(application.date_of_birth))} · Interest: ${escapeHtml(report.interest)} · Attitude: ${escapeHtml(report.attitude)} · Position in Class: ${escapeHtml(report.position)}</p>
+        <p>Gender: ${escapeHtml(application.gender || '-')} · Date of Birth: ${escapeHtml(formatDate(application.date_of_birth))} · Conduct: ${escapeHtml(report.conduct)} · Interest: ${escapeHtml(report.interest)} · Attitude: ${escapeHtml(report.attitude)} · Position in Class: ${escapeHtml(report.position)}</p>
         <p>Closing Date: ${escapeHtml(formatDate(exam?.closing_date))} · Reopening Date: ${escapeHtml(formatDate(exam?.reopening_date))}</p>
         <table>
           <thead>
@@ -296,6 +348,8 @@ export default function StudentResults() {
             <p className="mt-2 text-xs text-slate-400">Report card scores refresh automatically every 5 seconds.</p>
           </>
         ) : null}
+        {setupError ? <Alert tone="error" className="mt-4">{setupError}</Alert> : null}
+        {reportError ? <Alert tone="error" className="mt-4">{reportError}</Alert> : null}
       </div>
 
       <div className="mt-5">
@@ -314,6 +368,11 @@ export default function StudentResults() {
                 <div>
                   <p className="text-lg font-extrabold">{schoolName}</p>
                   <p className="text-xs text-white/75">Academic Report</p>
+                  {schoolAddress || schoolPhone ? (
+                    <p className="mt-1 text-xs text-white/80">
+                      {[schoolAddress, schoolPhone ? `Mobile: ${schoolPhone}` : ''].filter(Boolean).join(' · ')}
+                    </p>
+                  ) : null}
                 </div>
               </div>
 
@@ -343,6 +402,7 @@ export default function StudentResults() {
               <div className="grid gap-x-6 gap-y-2 border-b border-slate-100 px-6 py-4 text-sm sm:grid-cols-2 lg:grid-cols-3">
                 <p><span className="font-semibold text-slate-500">Gender:</span> {application.gender || '-'}</p>
                 <p><span className="font-semibold text-slate-500">Date of Birth:</span> {formatDate(application.date_of_birth)}</p>
+                <p><span className="font-semibold text-slate-500">Conduct:</span> {report.conduct}</p>
                 <p><span className="font-semibold text-slate-500">Interest:</span> {report.interest}</p>
                 <p><span className="font-semibold text-slate-500">Attitude:</span> {report.attitude}</p>
                 <p><span className="font-semibold text-slate-500">Position in Class:</span> {report.position}</p>

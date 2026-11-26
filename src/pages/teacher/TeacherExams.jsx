@@ -8,6 +8,7 @@ import { fetchTeacherClassSet } from '../../lib/queries';
 import { buildStudentName } from '../../lib/format';
 import { fetchGradingScale, gradeForScale, gradeTone } from '../../lib/gradingScale';
 import { openPrintWindow, escapeHtml } from '../../lib/print';
+import { parseExamScore } from '../../lib/examScores';
 
 const esc = escapeHtml;
 const SCORE_AUTOSAVE_DELAY_MS = 900;
@@ -53,7 +54,9 @@ export default function TeacherExams() {
       .then((s) => {
         if (on) setScale(s);
       })
-      .catch(() => {});
+      .catch((err) => {
+        if (on) setNotice(`Could not load grading scale: ${err.message}`);
+      });
     return () => {
       on = false;
     };
@@ -63,15 +66,21 @@ export default function TeacherExams() {
     if (!user) return;
     (async () => {
       try {
-        const { data: t } = await supabase.from('teachers').select('*').eq('user_id', user.id).maybeSingle();
+        const { data: t, error: teacherError } = await supabase.from('teachers').select('*').eq('user_id', user.id).maybeSingle();
+        if (teacherError) throw new Error(teacherError.message);
         setTeacher(t || null);
         if (!t) return;
         const classNames = await fetchTeacherClassSet(t.id, t.class_taught);
         setClasses(classNames);
-        const [{ data: asigns }, { data: examsData }] = await Promise.all([
+        const [
+          { data: asigns, error: assignmentsError },
+          { data: examsData, error: examsError },
+        ] = await Promise.all([
           supabase.from('teacher_classes_subjects').select('class_name, subject_name').eq('teacher_id', t.id),
           supabase.from('exams').select('*').eq('school_id', t.school_id).eq('is_active', true).order('created_at', { ascending: false }),
         ]);
+        if (assignmentsError) throw new Error(assignmentsError.message);
+        if (examsError) throw new Error(examsError.message);
         const sbc = {};
         (asigns || []).forEach((a) => {
           if (!a.class_name || !a.subject_name) return;
@@ -103,23 +112,33 @@ export default function TeacherExams() {
       setSubject('');
       return;
     }
+    let active = true;
     (async () => {
       try {
-        const { data: esRows } = await supabase
+        const { data: esRows, error } = await supabase
           .from('exam_subjects')
-          .select('subject')
-          .eq('exam_id', examId)
-          .eq('class_name', className);
+          .select('subject, class_name')
+          .eq('exam_id', examId);
+        if (error) throw new Error(error.message);
+        if (!active) return;
         const taught = (subjectByClass[className] || []).map((s) => s.toLowerCase());
-        const examSubs = (esRows || []).map((r) => r.subject);
+        const examSubs = (esRows || [])
+          .filter((row) => !row.class_name || row.class_name === className)
+          .map((row) => row.subject);
         const available = [...new Set(examSubs.filter((s) => taught.includes(s.toLowerCase())))];
         setSubjectOptions(available);
         if (!subject || !available.includes(subject)) setSubject(available[0] || '');
       } catch (err) {
-        setSubjectOptions([]);
+        if (active) {
+          setSubjectOptions([]);
+          setNotice(`Could not load exam subjects: ${err.message}`);
+        }
       }
     })();
-  }, [examId, className, subjectByClass]);
+    return () => {
+      active = false;
+    };
+  }, [examId, className, subject, subjectByClass]);
 useEffect(() => {
     if (!examId || !className || !subject || !teacher) {
       rowsRef.current = [];
@@ -131,14 +150,19 @@ useEffect(() => {
     }
     setLoading(true);
     setNotice('');
+    let active = true;
     (async () => {
       try {
-        const [{ data: students }, { data: results }] = await Promise.all([
+        const [
+          { data: students, error: studentsError },
+          { data: results, error: resultsError },
+        ] = await Promise.all([
           supabase
             .from('applications')
             .select('id, student_id, first_name, middle_name, last_name, class_applying, gender')
             .eq('school_id', teacher.school_id)
             .eq('class_applying', className)
+            .eq('status', 'admitted')
             .order('last_name'),
           supabase
             .from('exam_results')
@@ -147,6 +171,9 @@ useEffect(() => {
             .eq('subject', subject)
             .eq('school_id', teacher.school_id),
         ]);
+        if (studentsError) throw new Error(studentsError.message);
+        if (resultsError) throw new Error(resultsError.message);
+        if (!active) return;
         const seen = new Set();
         const uniqueStudents = (students || []).filter((s) => {
           if (seen.has(s.student_id)) return false;
@@ -167,11 +194,14 @@ useEffect(() => {
         setRows(loadedRows);
         setDirty(false);
       } catch (err) {
-        setNotice('Could not load students: ' + err.message);
+        if (active) setNotice('Could not load students: ' + err.message);
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
     })();
+    return () => {
+      active = false;
+    };
   }, [examId, className, subject, teacher]);
 
   const setRow = (index, field, value) => {
@@ -196,8 +226,8 @@ useEffect(() => {
   };
 
   const totalsOf = (r, selectedSubject = subject, selectedScale = scale) => {
-    const cls = r.classScore === '' ? null : Math.min(parseFloat(r.classScore) || 0, 50);
-    const esi = r.examScoreInput === '' ? null : Math.min(parseFloat(r.examScoreInput) || 0, 100);
+    const cls = parseExamScore(r.classScore, 50).value;
+    const esi = parseExamScore(r.examScoreInput, 100).value;
     const total = cls !== null || esi !== null ? Math.min((cls || 0) + (esi || 0) / 2, 100) : null;
     const perf = total != null ? gradeForScale(selectedScale?.rows || [], total, selectedSubject) : null;
     return { cls, esi, total, perf };
@@ -240,6 +270,11 @@ useEffect(() => {
       const { data: { user: u } } = await supabase.auth.getUser();
       const upserts = [];
       for (const row of saveSnapshot.rows) {
+        const classScore = parseExamScore(row.classScore, 50);
+        const examScoreInput = parseExamScore(row.examScoreInput, 100);
+        if (!classScore.valid || !examScoreInput.valid) {
+          throw new Error(`Scores for ${row.student.student_id} must be between 0 and 50 for class work and 0 and 100 for exams.`);
+        }
         const t = totalsOf(row, saveSnapshot.subject, saveSnapshot.scale);
         if (t.cls === null && t.esi === null) continue;
         upserts.push({
@@ -458,7 +493,7 @@ return (
           ) : null}
 
           {notice ? (
-            <Alert tone={notice.startsWith('Could') || notice.startsWith('Enter') ? 'error' : 'success'} className="mb-4">
+            <Alert tone={notice.startsWith('Could') || notice.startsWith('Scores') || notice.startsWith('Enter') ? 'error' : 'success'} className="mb-4">
               {notice}
             </Alert>
           ) : null}

@@ -15,6 +15,11 @@ import {
 import { resolveScale, gradeForScale } from './gradingScale';
 import { photoUrl } from './storage';
 
+function unwrapQuery({ data, error }) {
+  if (error) throw new Error(error.message);
+  return data;
+}
+
 export function esc(value) {
   return String(value ?? '')
     .replace(/&/g, '&amp;')
@@ -45,24 +50,24 @@ async function getSchoolIdentity(schoolId) {
   let academicYear = '';
   let currentTerm = '';
   if (schoolId) {
-    const { data } = await supabase
+    const settings = unwrapQuery(await supabase
       .from('school_settings')
       .select('school_name, school_address, school_motto, logo_url, academic_year, current_term')
       .eq('school_id', schoolId)
-      .maybeSingle();
-    if (data) {
-      if (data.school_name) schoolName = data.school_name;
-      address = data.school_address || '';
-      motto = data.school_motto || '';
-      schoolLogoUrl = photoUrl(data.logo_url) || '';
-      academicYear = data.academic_year || '';
-      currentTerm = data.current_term || '';
+      .maybeSingle());
+    if (settings) {
+      if (settings.school_name) schoolName = settings.school_name;
+      address = settings.school_address || '';
+      motto = settings.school_motto || '';
+      schoolLogoUrl = photoUrl(settings.logo_url) || '';
+      academicYear = settings.academic_year || '';
+      currentTerm = settings.current_term || '';
     }
-    const { data: sch } = await supabase
+    const sch = unwrapQuery(await supabase
       .from('schools')
       .select('name, logo_url, phone')
       .eq('id', schoolId)
-      .maybeSingle();
+      .maybeSingle());
     if ((!schoolName || schoolName === 'My School') && sch?.name) schoolName = sch.name;
     if (!schoolLogoUrl && sch?.logo_url) schoolLogoUrl = photoUrl(sch.logo_url) || '';
     phone = sch?.phone || '';
@@ -74,7 +79,7 @@ async function getGradingScale(schoolId, className = '') {
   if (!schoolId) return null;
   // Fetch every school row once, then resolve the EFFECTIVE scale for the
   // student's class: class override -> school-wide -> system defaults.
-  const { data } = await supabase.from('grading_systems').select('*').eq('school_id', schoolId);
+  const data = unwrapQuery(await supabase.from('grading_systems').select('*').eq('school_id', schoolId));
   return resolveScale(data || [], className).rows || null;
 }
 
@@ -229,15 +234,15 @@ function renderReportCardHTML({
       sorted.forEach(([sid], idx) => {
         if (sid === app.student_id) pos = idx + 1;
       });
-      const g = gradeForScale(gradingScale || [], marks ?? 0, sub);
-      const perf = getPerformanceLevel(marks ?? 0);
+      const g = marks == null ? { grade: '-' } : gradeForScale(gradingScale || [], marks, sub);
+      const perf = marks == null ? { text: '-' } : getPerformanceLevel(marks);
       return `<tr>
         <td>${esc(sub)}</td>
         <td class="num">${r ? classScore.toFixed(1) : '-'}</td>
         <td class="num">${r ? examScore.toFixed(1) : '-'}</td>
         <td class="num tot">${marks != null ? marks.toFixed(1) : '-'}</td>
         <td class="num">${pos ? ordinal(pos) : '-'}</td>
-        <td class="num rc-grade">${g.grade}</td>
+        <td class="num rc-grade">${esc(g.grade)}</td>
         <td class="rc-perf">${esc(perf.text)}</td>
       </tr>`;
     })
@@ -292,7 +297,7 @@ ${reportHeaderHtml(
   <div class="rc-summary">
     <div><span>Total Score</span><b>${total.toFixed(1)}</b></div>
     <div><span>Average</span><b>${average.toFixed(1)}%</b></div>
-    <div><span>Grade</span><b>${avgGrade.grade}</b></div>
+    <div><span>Grade</span><b>${esc(avgGrade.grade)}</b></div>
     <div><span>Position</span><b>${esc(positionDisplay)}</b></div>
   </div>
   ${gradingKey ? `<div class="rc-key"><b>Grading Key:</b> ${gradingKey}</div>` : ''}
@@ -313,15 +318,19 @@ ${reportHeaderHtml(
 }
 
 export async function buildReportCardHTML({ examId, studentId, schoolId }) {
-  const { data: app } = await supabase.from('applications').select('*').eq('student_id', studentId).maybeSingle();
+  let appQuery = supabase.from('applications').select('*').eq('student_id', studentId);
+  if (schoolId) appQuery = appQuery.eq('school_id', schoolId);
+  const app = unwrapQuery(await appQuery.maybeSingle());
   if (!app) return '<p>Student not found.</p>';
-  const { data: exam } = await supabase.from('exams').select('*').eq('id', examId).maybeSingle();
+  let examQuery = supabase.from('exams').select('*').eq('id', examId);
+  if (schoolId) examQuery = examQuery.eq('school_id', schoolId);
+  const exam = unwrapQuery(await examQuery.maybeSingle());
   if (!exam) return '<p>Exam not found.</p>';
 
-  const { data: examSubs } = await supabase
+  const examSubs = unwrapQuery(await supabase
     .from('exam_subjects')
     .select('subject, class_name')
-    .eq('exam_id', examId);
+    .eq('exam_id', examId));
   const subjects = [...new Set(
     (examSubs || [])
       .filter((subject) => !subject.class_name || subject.class_name === app.class_applying)
@@ -331,28 +340,30 @@ export async function buildReportCardHTML({ examId, studentId, schoolId }) {
 
   const school = await getSchoolIdentity(schoolId);
   const gradingScale = await getGradingScale(schoolId, app.class_applying);
-  const [{ data: results }, { data: allResults }, { data: details }] = await Promise.all([
-    supabase.from('exam_results').select('*').eq('exam_id', examId).eq('student_id', studentId),
-    supabase.from('exam_results').select('student_id, subject, marks_obtained').eq('exam_id', examId),
-    supabase.from('exam_student_details').select('*').eq('exam_id', examId).eq('student_id', studentId).maybeSingle(),
+  const [results, allResults, details] = await Promise.all([
+    supabase.from('exam_results').select('*').eq('exam_id', examId).eq('student_id', studentId).then(unwrapQuery),
+    supabase.from('exam_results').select('student_id, subject, marks_obtained').eq('exam_id', examId).eq('school_id', schoolId).then(unwrapQuery),
+    supabase.from('exam_student_details').select('*').eq('exam_id', examId).eq('student_id', studentId).maybeSingle().then(unwrapQuery),
   ]);
-  const { data: classApps } = await supabase
+  const classApps = unwrapQuery(await supabase
     .from('applications')
     .select('student_id')
-    .eq('class_applying', app.class_applying || '');
+    .eq('school_id', schoolId)
+    .eq('status', 'admitted')
+    .eq('class_applying', app.class_applying || ''));
   const classIds = new Set((classApps || []).map((a) => a.student_id));
 
   const yearForAtt = school.academicYear || exam.academic_year || '';
   const termForAtt = school.currentTerm || exam.term || 'First';
   let attendanceRows = [];
   if (yearForAtt) {
-    const { data } = await supabase
+    attendanceRows = unwrapQuery(await supabase
       .from('attendance')
       .select('status')
+      .eq('school_id', schoolId)
       .eq('student_id', studentId)
       .eq('academic_year', yearForAtt)
-      .eq('term', termForAtt);
-    attendanceRows = data || [];
+      .eq('term', termForAtt));
   }
 
   return renderReportCardHTML({
@@ -478,12 +489,19 @@ export async function buildReportCardsHTML({ exam, schoolId, students, className
 const TERM_ORDER = { First: 1, Second: 2, Third: 3 };
 
 export async function buildTranscriptHTML({ studentId, schoolId }) {
-  const { data: app } = await supabase.from('applications').select('*').eq('student_id', studentId).maybeSingle();
+  const app = unwrapQuery(await supabase
+    .from('applications')
+    .select('*')
+    .eq('school_id', schoolId)
+    .eq('student_id', studentId)
+    .maybeSingle());
   if (!app) return '<p>Student not found.</p>';
   const school = await getSchoolIdentity(schoolId);
   const gradingScale = await getGradingScale(schoolId, app.class_applying);
-  const { data: allExams } = await supabase.from('exams').select('id, name, academic_year, term').eq('school_id', schoolId);
-  const { data: allStudentResults } = await supabase.from('exam_results').select('*').eq('student_id', studentId);
+  const [allExams, allStudentResults] = await Promise.all([
+    supabase.from('exams').select('id, name, academic_year, term').eq('school_id', schoolId).then(unwrapQuery),
+    supabase.from('exam_results').select('*').eq('school_id', schoolId).eq('student_id', studentId).then(unwrapQuery),
+  ]);
 
   const exams = (allExams || [])
     .filter((ex) => (allStudentResults || []).some((r) => r.exam_id === ex.id))
@@ -495,9 +513,9 @@ export async function buildTranscriptHTML({ studentId, schoolId }) {
   if (!exams.length) return '<p>No examination history found for this student.</p>';
 
   const examIds = exams.map((ex) => ex.id);
-  const [{ data: rawSubs }, { data: detailsRows }] = await Promise.all([
-    supabase.from('exam_subjects').select('exam_id, subject, class_name').in('exam_id', examIds),
-    supabase.from('exam_student_details').select('*').in('exam_id', examIds).eq('student_id', studentId),
+  const [rawSubs, detailsRows] = await Promise.all([
+    supabase.from('exam_subjects').select('exam_id, subject, class_name').in('exam_id', examIds).then(unwrapQuery),
+    supabase.from('exam_student_details').select('*').in('exam_id', examIds).eq('student_id', studentId).then(unwrapQuery),
   ]);
   const subsByExam = new Map();
   (rawSubs || []).forEach((s) => {
@@ -589,7 +607,7 @@ const key = (gradingScale) => (gradingScale || [])
             <td class="num">${r.cls.toFixed(1)}</td>
             <td class="num">${r.exm.toFixed(1)}</td>
             <td class="num tot">${r.marks.toFixed(1)}</td>
-            <td class="num rc-grade">${r.grade}</td>
+            <td class="num rc-grade">${esc(r.grade)}</td>
             <td>${esc(r.perf)}</td>
           </tr>`
         )
@@ -649,7 +667,7 @@ const key = (gradingScale) => (gradingScale || [])
         <tr><td class="lbl">Date of Birth</td><td>${esc(formatDate(app.date_of_birth))}</td></tr>
         <tr><td class="lbl">Exam Sessions</td><td>${termRecords.length}</td></tr>
         <tr><td class="lbl">Cumulative Average</td><td><b>${overallAvg.toFixed(1)}%</b></td></tr>
-        <tr><td class="lbl">Overall Grade</td><td><b>${overallGrade.grade}</b></td></tr>
+        <tr><td class="lbl">Overall Grade</td><td><b>${esc(overallGrade.grade)}</b></td></tr>
       </table>
     </div>
   </div>
@@ -679,7 +697,7 @@ const key = (gradingScale) => (gradingScale || [])
 export async function computeExamRankings({ examId, schoolId, classVal = '' }) {
   let subsQuery = supabase.from('exam_subjects').select('subject').eq('exam_id', examId);
   if (classVal) subsQuery = subsQuery.eq('class_name', classVal);
-  const { data: examSubs } = await subsQuery;
+  const examSubs = unwrapQuery(await subsQuery);
   const subjects = (examSubs || []).map((s) => s.subject) || [];
   if (!subjects.length) return { overall: [], subjects: [] };
 
@@ -689,13 +707,15 @@ export async function computeExamRankings({ examId, schoolId, classVal = '' }) {
     .eq('status', 'admitted');
   if (schoolId) appsQuery = appsQuery.eq('school_id', schoolId);
   if (classVal) appsQuery = appsQuery.eq('class_applying', classVal);
-  const { data: apps } = await appsQuery;
+  const apps = unwrapQuery(await appsQuery);
   const appMap = new Map((apps || []).map((a) => [a.student_id, a]));
 
-  const { data: results } = await supabase
+  let resultsQuery = supabase
     .from('exam_results')
     .select('student_id, subject, marks_obtained')
     .eq('exam_id', examId);
+  if (schoolId) resultsQuery = resultsQuery.eq('school_id', schoolId);
+  const results = unwrapQuery(await resultsQuery);
 
   const overallByClass = {};
   (results || []).forEach((r) => {

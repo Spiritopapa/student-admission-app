@@ -17,6 +17,7 @@ import { openPrintFullDocument } from '../../lib/print';
 import { isMobileShell } from '../../lib/mobileHost';
 import { photoUrl } from '../../lib/storage';
 import { useDashboardRealtimeRefresh } from '../../hooks/useDashboardRealtimeRefresh';
+import { parseExamScore } from '../../lib/examScores';
 
 const EMPTY_META = { subjectCount: 0, classCoverage: 0, classNames: [], results: 0, recordedSlots: 0, expectedSlots: 0, students: 0 };
 const SCORE_REFRESH_INTERVAL_MS = 5_000;
@@ -360,12 +361,22 @@ export default function AdminExams() {
     setDirty(false);
     setLastSavedAt(null);
     setMarksQuery('');
-    const [{ data: rows }, { data: gradeRows }] = await Promise.all([
-      supabase.from('exam_subjects').select('*').eq('exam_id', exam.id).order('subject'),
-      supabase.from('grading_systems').select('*').eq('school_id', schoolId),
-    ]);
-    setExamSubjects(rows || []);
-    setGrades(gradeRows || []);
+    try {
+      const [
+        { data: rows, error: subjectsError },
+        { data: gradeRows, error: gradesError },
+      ] = await Promise.all([
+        supabase.from('exam_subjects').select('*').eq('exam_id', exam.id).order('subject'),
+        supabase.from('grading_systems').select('*').eq('school_id', schoolId),
+      ]);
+      if (subjectsError) throw new Error(subjectsError.message);
+      if (gradesError) throw new Error(gradesError.message);
+      setExamSubjects(rows || []);
+      setGrades(gradeRows || []);
+    } catch (err) {
+      setWorkspace(null);
+      toast.error('Could not open exam workspace', err.message);
+    }
   };
 
   const syncClassSubjects = async (cls) => {
@@ -537,8 +548,8 @@ export default function AdminExams() {
   const gradeFor = (subject, marks) => gradeForScale(scale, marks, subject).grade;
 
   const scoreTotals = (sc, forSubject = '') => {
-    const cls = sc.classScore === '' ? null : Math.min(parseFloat(sc.classScore) || 0, 50);
-    const esi = sc.examScoreInput === '' ? null : Math.min(parseFloat(sc.examScoreInput) || 0, 100);
+    const cls = parseExamScore(sc.classScore, 50).value;
+    const esi = parseExamScore(sc.examScoreInput, 100).value;
     const tot = cls !== null || esi !== null ? Math.min((cls || 0) + (esi || 0) / 2, 100) : null;
     return { cls, esi, tot, perf: tot != null ? gradeForScale(scale, tot, forSubject) : null };
   };
@@ -668,8 +679,13 @@ export default function AdminExams() {
           blankStudentIdsBySubject.set(subject.subject, studentIds);
           continue;
         }
-        const cls = sc.classScore === '' ? null : Math.min(parseFloat(sc.classScore) || 0, 50);
-        const esi = sc.examScoreInput === '' ? null : Math.min(parseFloat(sc.examScoreInput) || 0, 100);
+        const classScore = parseExamScore(sc.classScore, 50);
+        const examScoreInput = parseExamScore(sc.examScoreInput, 100);
+        if (!classScore.valid || !examScoreInput.valid) {
+          throw new Error(`Scores for ${change.studentId} in ${subject.subject} must be between 0 and 50 for class work and 0 and 100 for exams.`);
+        }
+        const cls = classScore.value;
+        const esi = examScoreInput.value;
         const es = esi !== null ? esi / 2 : null;
         const total = Math.min((cls || 0) + (es || 0), 100);
         upserts.push({
@@ -870,8 +886,20 @@ export default function AdminExams() {
           const clsVal = entry.classIdx >= 0 ? String(match[entry.classIdx] ?? '').trim() : '';
           const esiVal = entry.examIdx >= 0 ? String(match[entry.examIdx] ?? '').trim() : '';
           const cur = { ...(scores[dbSub] || { classScore: '', examScoreInput: '' }) };
-          if (clsVal !== '') cur.classScore = clsVal.replace(/['"]/g, '');
-          if (esiVal !== '') cur.examScoreInput = esiVal.replace(/['"]/g, '');
+          const cleanClassScore = clsVal.replace(/['"]/g, '');
+          const cleanExamScore = esiVal.replace(/['"]/g, '');
+          if (cleanClassScore !== '') {
+            if (!parseExamScore(cleanClassScore, 50).valid) {
+              throw new Error(`Invalid class score for ${row.student.student_id} in ${dbSub}; enter a value from 0 to 50.`);
+            }
+            cur.classScore = cleanClassScore;
+          }
+          if (cleanExamScore !== '') {
+            if (!parseExamScore(cleanExamScore, 100).valid) {
+              throw new Error(`Invalid exam score for ${row.student.student_id} in ${dbSub}; enter a value from 0 to 100.`);
+            }
+            cur.examScoreInput = cleanExamScore;
+          }
           scores[dbSub] = cur;
           if (clsVal !== '' || esiVal !== '') {
             changedCells.push({ studentId: row.student.student_id, subject: dbSub });
