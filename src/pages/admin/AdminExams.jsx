@@ -63,7 +63,7 @@ export default function AdminExams() {
   const [displaySubject, setDisplaySubject] = useState('');
   const [syncing, setSyncing] = useState(false);
   const sheetRef = useRef(null);
-  const namesRef = useRef(null);
+  const bodyRef = useRef(null);
   const headerRef = useRef(null);
   const marksLoadIdRef = useRef(0);
   const autosaveTimerRef = useRef(null);
@@ -82,7 +82,7 @@ export default function AdminExams() {
 
   // Re-measure the scrollbar gutter whenever the sheet's content or size changes.
   useEffect(() => {
-    const el = sheetRef.current;
+    const el = bodyRef.current;
     if (!el) return;
     const measure = () => setSheetGutter(el.offsetWidth - el.clientWidth);
     measure();
@@ -1405,8 +1405,8 @@ export default function AdminExams() {
                 </div>
               </div>
               {/* Scrollable body: names stay frozen on the left, only marks scroll */}
-              <div className="flex max-h-[560px]">
-                <div ref={namesRef} className="w-52 shrink-0 overflow-hidden border-r border-slate-100 bg-white">
+              <div ref={bodyRef} className="flex max-h-[560px] overflow-x-hidden overflow-y-auto">
+                <div className="w-52 shrink-0 overflow-hidden border-r border-slate-100 bg-white">
                   <table className="w-full text-sm table-fixed">
                     <colgroup>
                       <col className="w-52" />
@@ -1463,10 +1463,9 @@ export default function AdminExams() {
                   ref={sheetRef}
                   onKeyDown={handleScoreKeyDown}
                   onScroll={(e) => {
-                    if (namesRef.current) namesRef.current.scrollTop = e.target.scrollTop;
                     if (headerRef.current) headerRef.current.scrollLeft = e.target.scrollLeft;
                   }}
-                  className="flex-1 overflow-auto bg-white"
+                  className="min-w-0 flex-1 overflow-x-auto overflow-y-hidden bg-white"
                 >
                   <table className="w-full text-sm table-fixed">
                     <colgroup>
