@@ -1499,7 +1499,7 @@ export default function AdminExams() {
                           const t = scoreTotals(sc, sbj.subject);
                           return (
                             <Fragment key={sbj.subject}>
-                              <td className="border-l border-slate-100 px-1 py-1">
+                              <td className="h-11 border-l border-slate-100 px-1 align-middle">
                                 <input
                                   type="number" min="0" max="50" data-score="1"
                                   value={sc.classScore}
@@ -1508,7 +1508,7 @@ export default function AdminExams() {
                                   placeholder="0-50"
                                 />
                               </td>
-                              <td className="px-1 py-1">
+                              <td className="h-11 px-1 align-middle">
                                 <input
                                   type="number" min="0" max="100" data-score="1"
                                   value={sc.examScoreInput}
@@ -1517,7 +1517,7 @@ export default function AdminExams() {
                                   placeholder="0-100"
                                 />
                               </td>
-                              <td className="px-1 py-1.5 text-center">
+                              <td className="h-11 px-1 text-center align-middle">
                                 {t.tot != null && t.perf ? (
                                   <span className={`badge ${GRADE_CLASSES[t.perf.cls]}`}>
                                     {t.tot.toFixed(0)}% · {t.perf.grade}
@@ -1530,7 +1530,7 @@ export default function AdminExams() {
                           );
                         })}
                         {singleSubject ? null : (
-                          <td className="border-l border-slate-100 px-2 py-2 text-center">
+                          <td className="h-11 border-l border-slate-100 px-2 text-center align-middle">
                             {avg != null ? (
                               <div className="flex flex-col items-center gap-1">
                                 <span className="text-sm font-bold text-slate-700">{avg.toFixed(1)}%</span>
@@ -1547,7 +1547,7 @@ export default function AdminExams() {
                           </td>
                         )}
                         {singleSubject ? null : (
-                          <td className="px-2 py-2 text-center">
+                          <td className="h-11 px-2 text-center align-middle">
                             {avgPerf ? (
                               <span className={`badge ${GRADE_CLASSES[avgPerf.cls]}`}>{avgPerf.grade}</span>
                             ) : (
@@ -1556,7 +1556,7 @@ export default function AdminExams() {
                           </td>
                         )}
                         {singleSubject ? null : (
-                          <td className="px-1 py-2 text-center text-sm font-semibold text-slate-600">
+                          <td className="h-11 px-1 text-center text-sm font-semibold text-slate-600 align-middle">
                             {ordinal(overallRankByStudentId.get(row.student.student_id))}
                           </td>
                         )}
