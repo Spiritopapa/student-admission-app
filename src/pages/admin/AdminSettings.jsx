@@ -6,7 +6,7 @@ import { PageHeader, Card, Button, Input, Select, Spinner } from '../../componen
 import { Alert } from '../../components/ui-extras';
 import { PhotoUpload } from '../../components/PhotoUpload';
 import { supabase } from '../../lib/supabase';
-import { uploadFile, randomPath, resolveFileUrl } from '../../lib/storage';
+import { uploadFile, fileExtension, resolveFileUrl } from '../../lib/storage';
 import { fetchAdmissionItems } from '../../lib/queries';
 import { formatCurrency, formatDate } from '../../lib/format';
 import { TERMS, TERM_LABELS, currentAcademicYear, academicYearList } from '../../lib/constants';
@@ -99,7 +99,8 @@ export default function AdminSettings() {
       .select('*')
       .eq('school_id', schoolId)
       .maybeSingle()
-      .then(({ data }) => {
+      .then(({ data, error: settingsError }) => {
+        if (settingsError) throw new Error(settingsError.message);
         if (data) {
           setForm({
             school_name: data.school_name || '',
@@ -108,6 +109,10 @@ export default function AdminSettings() {
           });
           setLogoUrl(data.logo_url || '');
         }
+        setLoading(false);
+      })
+      .catch((err) => {
+        setError(`Could not load school settings: ${err.message}`);
         setLoading(false);
       });
   }, [schoolId]);
@@ -124,26 +129,32 @@ export default function AdminSettings() {
     try {
       let logoUrlValue = logoUrl;
       if (logoFile) {
-        const stored = await uploadFile('school-logos', randomPath(`logo_${schoolId}`, logoFile.name), logoFile);
+        const extension = fileExtension(logoFile.name);
+        const token = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+        // The school-logos storage policy extracts the UUID from the filename.
+        const filename = `school_${schoolId}_${token}${extension ? `.${extension}` : ''}`;
+        const stored = await uploadFile('school-logos', filename, logoFile);
         logoUrlValue = stored;
       }
-      await supabase.from('school_settings').upsert({
+      const { error: settingsError } = await supabase.from('school_settings').upsert({
         school_id: schoolId,
         school_name: form.school_name.trim(),
         academic_year: form.academic_year.trim(),
         current_term: form.current_term,
         logo_url: logoUrlValue,
       });
+      if (settingsError) throw new Error(settingsError.message);
       // Keep the `schools` row in sync too — the Super Admin dashboard and the
       // school list read `schools.name` / `schools.logo_url`, so without this
       // they keep showing the previous logo/name. Best-effort: sub-admins may
       // not have UPDATE rights on `schools` (RLS), in which case the DB trigger
       // from sql/079 keeps the row consistent.
       try {
-        await supabase
+        const { error: schoolSyncError } = await supabase
           .from('schools')
           .update({ name: form.school_name.trim(), logo_url: logoUrlValue })
           .eq('id', schoolId);
+        if (schoolSyncError) throw new Error(schoolSyncError.message);
       } catch (schoolSyncErr) {
         console.warn('Could not sync schools row from settings:', schoolSyncErr.message);
       }
