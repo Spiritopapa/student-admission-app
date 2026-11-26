@@ -41,12 +41,21 @@ function sumAmount(rows, key) {
 
 // Builds and opens a printable receipt document for a single fee receipt,
 // mirroring the official receipt layout used in ReceiptModal.
-function printReceipt(receipt, schoolName) {
+function printReceipt(receipt, schoolName, schoolPhone) {
   const data = receipt.receipt_data || {};
   const receiptDate = formatDateTime(receipt.receipt_date);
   const studentName = data.student_name || '';
   const studentClass = data.class || '-';
   const paymentMethod = data.payment_method || receipt.payment_method || 'Cash';
+  const contactPhone = String(schoolPhone || '').replace(/[^\d+]/g, '');
+  const contact = schoolPhone
+    ? `<p style="margin-top:16px;font-size:11px;color:#666;text-align:center">
+        For assistance, contact the school administrator:
+        <strong>${escapeHtml(schoolPhone)}</strong>
+        <a href="tel:${escapeHtml(contactPhone)}" style="margin-left:6px;color:#166534;text-decoration:none">☎ Call</a>
+        <a href="sms:${escapeHtml(contactPhone)}" style="margin-left:6px;color:#166534;text-decoration:none">✉ Text</a>
+      </p>`
+    : '';
   const html = `
 <div style="font-family:Arial, Helvetica, sans-serif; max-width:720px; margin:0 auto; padding:24px; color:#111;">
   <div style="text-align:center; border-bottom:2px solid #1e3a5f; padding-bottom:14px; margin-bottom:18px;">
@@ -88,6 +97,7 @@ function printReceipt(receipt, schoolName) {
       <td style="padding:6px 0">${escapeHtml(paymentMethod)}</td>
     </tr>
   </table>
+  ${contact}
   <p style="margin-top:24px; font-size:11px; color:#666; text-align:center">This receipt was generated from the school's fee records. Keep it as proof of payment.</p>
 </div>
   `;
@@ -375,7 +385,7 @@ export default function AdminHome() {
           .select('module_name')
           .eq('school_id', schoolId)
           .eq('is_locked', true),
-        supabase.from('schools').select('plan_version, trial_ends_at').eq('id', schoolId).maybeSingle(),
+        supabase.from('schools').select('plan_version, trial_ends_at, phone').eq('id', schoolId).maybeSingle(),
       ]);
 
       const studentsArr = students || [];
@@ -524,6 +534,7 @@ export default function AdminHome() {
         lockedModules: locked,
         planVersion: schoolRow?.plan_version || 'full',
         trialEndsAt: schoolRow?.trial_ends_at || null,
+        schoolPhone: schoolRow?.phone || '',
       });
     } catch (err) {
       console.warn('Dashboard load error:', err);
@@ -717,7 +728,7 @@ return (
                             variant="ghost"
                             onClick={(e) => {
                               e.stopPropagation();
-                              printReceipt(r, settings?.school_name || 'School');
+                              printReceipt(r, settings?.school_name || 'School', data.schoolPhone);
                             }}
                             aria-label={`Print receipt ${r.receipt_number}`}
                           >
