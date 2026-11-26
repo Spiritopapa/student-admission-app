@@ -20,6 +20,41 @@ import { useDashboardRealtimeRefresh } from '../../hooks/useDashboardRealtimeRef
 
 const EMPTY_META = { subjectCount: 0, classCoverage: 0, classNames: [], results: 0, recordedSlots: 0, expectedSlots: 0, students: 0 };
 const SCORE_REFRESH_INTERVAL_MS = 5_000;
+const REPORT_CONDUCT_OPTIONS = [
+  ['respectful', 'Respectful'],
+  ['humble', 'Humble'],
+  ['calm', 'Calm'],
+  ['helpful', 'Helpful'],
+  ['stubbornness', 'Stubbornness'],
+  ['truancy', 'Truancy'],
+];
+const REPORT_ATTITUDE_OPTIONS = [
+  ['hard-working', 'Hard-working'],
+  ['enthusiastic', 'Enthusiastic'],
+  ['dependable', 'Dependable'],
+  ['not serious', 'Not serious'],
+  ['lazy', 'Lazy'],
+  ['active', 'Active'],
+  ['respectful', 'Respectful'],
+  ['calm', 'Calm'],
+  ['obedient', 'Obedient'],
+  ['pay attention', 'Pay attention'],
+  ['dull', 'Dull'],
+  ['truant', 'Truant'],
+  ['not active', 'Not active'],
+];
+const REPORT_INTEREST_OPTIONS = [
+  ['sports', 'Sports'],
+  ['music', 'Music'],
+  ['reading', 'Reading'],
+  ['art', 'Art'],
+  ['public speaking', 'Public speaking'],
+  ['mathematics', 'Mathematics'],
+  ['singing', 'Singing'],
+  ['writing', 'Writing'],
+  ['athletics', 'Athletics'],
+  ['science', 'Science'],
+];
 
 function examStatus(exam, meta) {
   const today = new Date().toISOString().slice(0, 10);
@@ -54,6 +89,9 @@ export default function AdminExams() {
   const [classes, setClasses] = useState([]);
   const [workspaceClass, setWorkspaceClass] = useState('');
   const [marksData, setMarksData] = useState([]);
+  const [reportDetailsStudent, setReportDetailsStudent] = useState(null);
+  const [reportDetailsForm, setReportDetailsForm] = useState({ conduct: '', attitude: '', interest: '' });
+  const [savingReportDetails, setSavingReportDetails] = useState(false);
   const [grades, setGrades] = useState([]);
   const [savingMarks, setSavingMarks] = useState(false);
   const [resultsLoaded, setResultsLoaded] = useState(false);
@@ -414,11 +452,27 @@ export default function AdminExams() {
         if (error) throw new Error(error.message);
         results = data || [];
       }
+      let studentDetails = [];
+      if (studentIds.length) {
+        const { data, error } = await supabase
+          .from('exam_student_details')
+          .select('student_id, conduct, attitude, interest')
+          .eq('exam_id', workspace.id)
+          .in('student_id', studentIds);
+        if (error) throw new Error(error.message);
+        studentDetails = data || [];
+      }
 
       if (requestId !== marksLoadIdRef.current) return;
       const resultMap = new Map(results.map((r) => [`${r.student_id}|${r.subject}`, r]));
+      const detailsMap = new Map(studentDetails.map((detail) => [detail.student_id, detail]));
       const data = uniqueStudents.map((student) => ({
         student,
+        reportDetails: {
+          conduct: detailsMap.get(student.student_id)?.conduct || '',
+          attitude: detailsMap.get(student.student_id)?.attitude || '',
+          interest: detailsMap.get(student.student_id)?.interest || '',
+        },
         scores: Object.fromEntries(
           classSubjects.map((sbj) => {
             const existing = resultMap.get(`${student.student_id}|${sbj.subject}`);
@@ -1063,6 +1117,40 @@ export default function AdminExams() {
     }
   };
 
+  const openStudentReportDetails = (row) => {
+    setReportDetailsStudent(row);
+    setReportDetailsForm(row.reportDetails || { conduct: '', attitude: '', interest: '' });
+  };
+
+  const saveStudentReportDetails = async () => {
+    const student = reportDetailsStudent?.student;
+    if (!workspace?.id || !student?.student_id) return;
+    setSavingReportDetails(true);
+    const reportDetails = {
+      conduct: reportDetailsForm.conduct || null,
+      attitude: reportDetailsForm.attitude || null,
+      interest: reportDetailsForm.interest || null,
+    };
+    try {
+      const { error } = await supabase.from('exam_student_details').upsert(
+        { exam_id: workspace.id, student_id: student.student_id, ...reportDetails },
+        { onConflict: 'exam_id,student_id' }
+      );
+      if (error) throw new Error(error.message);
+      const nextMarksData = marksDataRef.current.map((row) =>
+        row.student.student_id === student.student_id ? { ...row, reportDetails } : row
+      );
+      marksDataRef.current = nextMarksData;
+      setMarksData(nextMarksData);
+      toast.success('Report card details saved', `Saved details for ${buildStudentName(student.first_name, student.middle_name, student.last_name)}.`);
+      setReportDetailsStudent(null);
+    } catch (err) {
+      toast.error('Could not save report card details', err.message);
+    } finally {
+      setSavingReportDetails(false);
+    }
+  };
+
   const printReport = () => {
     if (!reportHtml) return;
     printHtmlDoc('Report Card', reportHtml);
@@ -1333,6 +1421,7 @@ export default function AdminExams() {
             {marksQuery ? <Badge tone="blue">Showing {visibleRows.length} of {marksData.length}</Badge> : null}
             <p className="text-xs text-slate-400">
               <span className="font-mono">Enter</span> moves to the next score field · totals and grades update live · scores auto-save after a pause · saved scores refresh every 5 seconds
+              <span className="block">Use the pencil beside a student to edit report-card conduct, attitude, and interest.</span>
             </p>
           </div>
 
@@ -1427,7 +1516,7 @@ export default function AdminExams() {
                     const initials = `${row.student.first_name?.[0] || ''}${row.student.last_name?.[0] || ''}`.toUpperCase();
                     return (
                       <div key={row.student.id} className="flex h-11 shrink-0 items-center overflow-hidden border-b border-slate-100 bg-white px-2">
-                        <div className="flex min-w-0 items-center gap-2">
+                        <div className="flex min-w-0 flex-1 items-center gap-2">
                           {studentPhoto ? (
                             <img
                               src={studentPhoto}
@@ -1450,6 +1539,15 @@ export default function AdminExams() {
                             <p className="truncate font-mono text-xs text-slate-400">{row.student.student_id}</p>
                           </div>
                         </div>
+                        <button
+                          type="button"
+                          onClick={() => openStudentReportDetails(row)}
+                          aria-label={`Edit report card details for ${studentName}`}
+                          title="Edit report card details"
+                          className="ml-1 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-brand-50 hover:text-brand-700"
+                        >
+                          <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+                        </button>
                       </div>
                     );
                   })}
@@ -1565,6 +1663,60 @@ export default function AdminExams() {
         ) : (
           <EmptyState icon={ClipboardEdit} title="Pick a class" message="Select a class to open its scoresheet." />
         )}
+      <Modal
+        open={!!reportDetailsStudent}
+        onClose={() => setReportDetailsStudent(null)}
+        title={
+          reportDetailsStudent
+            ? `Report card details — ${buildStudentName(
+                reportDetailsStudent.student.first_name,
+                reportDetailsStudent.student.middle_name,
+                reportDetailsStudent.student.last_name
+              )}`
+            : 'Report card details'
+        }
+        footer={
+          <div className="flex gap-2">
+            <Button variant="secondary" onClick={() => setReportDetailsStudent(null)} disabled={savingReportDetails}>
+              Cancel
+            </Button>
+            <Button onClick={saveStudentReportDetails} loading={savingReportDetails}>
+              <Save className="h-4 w-4" aria-hidden="true" />
+              Save details
+            </Button>
+          </div>
+        }
+      >
+        <p className="mb-4 text-sm text-slate-500">
+          Select the descriptions to show on this student’s report card for {workspace.name}.
+        </p>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Select
+            label="Conduct"
+            value={reportDetailsForm.conduct}
+            onChange={(e) => setReportDetailsForm((form) => ({ ...form, conduct: e.target.value }))}
+          >
+            <option value="">Not selected</option>
+            {REPORT_CONDUCT_OPTIONS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+          </Select>
+          <Select
+            label="Attitude"
+            value={reportDetailsForm.attitude}
+            onChange={(e) => setReportDetailsForm((form) => ({ ...form, attitude: e.target.value }))}
+          >
+            <option value="">Not selected</option>
+            {REPORT_ATTITUDE_OPTIONS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+          </Select>
+          <Select
+            label="Interest"
+            value={reportDetailsForm.interest}
+            onChange={(e) => setReportDetailsForm((form) => ({ ...form, interest: e.target.value }))}
+          >
+            <option value="">Not selected</option>
+            {REPORT_INTEREST_OPTIONS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+          </Select>
+        </div>
+      </Modal>
       </div>
     );
   }

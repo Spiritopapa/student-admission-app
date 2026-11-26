@@ -207,10 +207,9 @@ CREATE TABLE IF NOT EXISTS public.exam_student_details (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   exam_id       UUID NOT NULL REFERENCES public.exams(id) ON DELETE CASCADE,
   student_id    TEXT NOT NULL REFERENCES public.applications(student_id) ON DELETE CASCADE,
-  interest      TEXT NOT NULL DEFAULT 'mathematics'
-                  CHECK (interest IN ('mathematics', 'singing', 'writing', 'reading', 'athletics', 'science')),
-  attitude      TEXT NOT NULL DEFAULT 'active'
-                  CHECK (attitude IN ('active', 'respectful', 'calm', 'obedient', 'pay attention', 'dull', 'truant', 'not active')),
+  conduct       TEXT CHECK (conduct IN ('respectful', 'humble', 'calm', 'helpful', 'stubbornness', 'truancy')),
+  interest      TEXT CHECK (interest IN ('sports', 'music', 'reading', 'art', 'public speaking', 'mathematics', 'singing', 'writing', 'athletics', 'science')),
+  attitude      TEXT CHECK (attitude IN ('hard-working', 'enthusiastic', 'dependable', 'not serious', 'lazy', 'active', 'respectful', 'calm', 'obedient', 'pay attention', 'dull', 'truant', 'not active')),
   class_teacher_remarks TEXT,
   overall_position INT,
   head_teacher_remarks TEXT,

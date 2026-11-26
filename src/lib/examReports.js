@@ -41,6 +41,7 @@ async function getSchoolIdentity(schoolId) {
   let schoolLogoUrl = '';
   let address = '';
   let motto = '';
+  let phone = '';
   let academicYear = '';
   let currentTerm = '';
   if (schoolId) {
@@ -57,17 +58,16 @@ async function getSchoolIdentity(schoolId) {
       academicYear = data.academic_year || '';
       currentTerm = data.current_term || '';
     }
-    if (!schoolName || schoolName === 'My School') {
-      const { data: sch } = await supabase
-        .from('schools')
-        .select('name, logo_url')
-        .eq('id', schoolId)
-        .maybeSingle();
-      if (sch?.name) schoolName = sch.name;
-      if (!schoolLogoUrl && sch?.logo_url) schoolLogoUrl = photoUrl(sch.logo_url) || '';
-    }
+    const { data: sch } = await supabase
+      .from('schools')
+      .select('name, logo_url, phone')
+      .eq('id', schoolId)
+      .maybeSingle();
+    if ((!schoolName || schoolName === 'My School') && sch?.name) schoolName = sch.name;
+    if (!schoolLogoUrl && sch?.logo_url) schoolLogoUrl = photoUrl(sch.logo_url) || '';
+    phone = sch?.phone || '';
   }
-  return { schoolName, schoolLogoUrl, address, motto, academicYear, currentTerm };
+  return { schoolName, schoolLogoUrl, address, motto, phone, academicYear, currentTerm };
 }
 
 async function getGradingScale(schoolId, className = '') {
@@ -148,6 +148,7 @@ function reportHeaderHtml(school, exam, app, name, positionDisplay) {
       <h1>${esc(school.schoolName)}</h1>
       <p>${esc(school.address || 'Excellence in Education')}</p>
       <p>${esc(school.motto || 'Knowledge, Character, Service')}</p>
+      ${school.phone ? `<p>Mobile: ${esc(school.phone)}</p>` : ''}
     </div>
     <div class="rc-title">ACADEMIC REPORT CARD</div>
   </div>
@@ -172,6 +173,7 @@ function reportHeaderHtml(school, exam, app, name, positionDisplay) {
         <tr><td class="lbl">Date of Birth</td><td>${esc(formatDate(app.date_of_birth))}</td></tr>
         <tr><td class="lbl">Interest</td><td>${esc(app.interest_display || '-')}</td></tr>
         <tr><td class="lbl">Attitude</td><td>${esc(app.attitude_display || '-')}</td></tr>
+        <tr><td class="lbl">Conduct</td><td>${esc(app.conduct_display || '-')}</td></tr>
         <tr><td class="lbl">Position in Class</td><td><span class="rc-pos">${esc(positionDisplay)}</span></td></tr>
       </table>
     </div>
@@ -248,8 +250,9 @@ function renderReportCardHTML({
   const name = buildStudentName(app.first_name, app.middle_name, app.last_name);
   const remarks = details?.class_teacher_remarks || getTeacherRemarks(average);
   const headRemarks = details?.head_teacher_remarks || getHeadTeacherRemarks(average);
-  const interest = details?.interest || app.interest || 'mathematics';
-  const attitude = details?.attitude || app.attitude || 'active';
+  const interest = details ? details.interest : app.interest || '';
+  const attitude = details ? details.attitude : app.attitude || '';
+  const conduct = details?.conduct || '';
   const toTitle = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : '-');
   const gradingKey = (gradingScale || [])
     .filter((g) => !g.subject_name)
@@ -269,7 +272,12 @@ return `<!DOCTYPE html><html><head><meta charset="utf-8" /><title>${esc(name)} -
 ${reportHeaderHtml(
     school,
     exam,
-    { ...app, interest_display: toTitle(interest), attitude_display: toTitle(attitude) },
+    {
+      ...app,
+      interest_display: toTitle(interest),
+      attitude_display: toTitle(attitude),
+      conduct_display: toTitle(conduct),
+    },
     name,
     positionDisplay
   )}
@@ -378,7 +386,7 @@ export async function buildReportCardsHTML({ exam, schoolId, students, className
     supabase.from('exam_results').select('student_id, subject, marks_obtained, class_score, exam_score').eq('exam_id', exam.id),
     supabase
       .from('exam_student_details')
-      .select('student_id, overall_position, class_teacher_remarks, head_teacher_remarks, interest, attitude')
+      .select('student_id, overall_position, class_teacher_remarks, head_teacher_remarks, conduct, interest, attitude')
       .eq('exam_id', exam.id),
     supabase
       .from('applications')
