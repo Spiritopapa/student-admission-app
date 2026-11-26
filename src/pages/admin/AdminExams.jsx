@@ -1159,6 +1159,10 @@ export default function AdminExams() {
     const displayValid = !displaySubject || colSubjects.some((s) => s.subject === displaySubject);
     const columnSubjects = displayValid && displaySubject ? colSubjects.filter((s) => s.subject === displaySubject) : colSubjects;
     const singleSubject = displayValid && !!displaySubject && columnSubjects.length === 1;
+    const scoreGridTemplate = [
+      ...columnSubjects.flatMap(() => ['minmax(4rem, 1fr)', 'minmax(4rem, 1fr)', 'minmax(5rem, 1fr)']),
+      ...(singleSubject ? [] : ['minmax(6rem, 1fr)', 'minmax(5rem, 1fr)', 'minmax(4rem, 1fr)']),
+    ].join(' ');
     const overallScores = marksData
       .map((row) => {
         let total = 0;
@@ -1406,58 +1410,49 @@ export default function AdminExams() {
               </div>
               {/* Scrollable body: names stay frozen on the left, only marks scroll */}
               <div ref={bodyRef} className="flex max-h-[560px] overflow-x-hidden overflow-y-auto">
-                <div className="w-52 shrink-0 overflow-hidden border-r border-slate-100 bg-white">
-                  <table className="w-full text-sm table-fixed">
-                    <colgroup>
-                      <col className="w-52" />
-                    </colgroup>
-                    <tbody>
-                      {visibleRows.map((row) => {
-                        const complete =
-                          examSubjects.length > 0 &&
-                          columnSubjects.every((sbj) => {
-                            const sc = row.scores[sbj.subject];
-                            return sc && (sc.classScore !== '' || sc.examScoreInput !== '');
-                          });
-                        const studentName = buildStudentName(
-                          row.student.first_name,
-                          row.student.middle_name,
-                          row.student.last_name
-                        );
-                        const studentPhoto = photoUrl(row.student.student_photo_url);
-                        const initials = `${row.student.first_name?.[0] || ''}${row.student.last_name?.[0] || ''}`.toUpperCase();
-                        return (
-                          <tr key={row.student.id} className="h-11">
-                            <td className="h-11 border-b border-slate-100 bg-white px-2 align-middle">
-                              <div className="flex items-center gap-2">
-                                {studentPhoto ? (
-                                  <img
-                                    src={studentPhoto}
-                                    alt={`${studentName} photo`}
-                                    className="h-8 w-8 shrink-0 rounded-full object-cover ring-1 ring-slate-200"
-                                  />
-                                ) : (
-                                  <span
-                                    aria-hidden="true"
-                                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[10px] font-bold text-slate-500"
-                                  >
-                                    {initials}
-                                  </span>
-                                )}
-                                <div className="min-w-0 flex-1">
-                                  <p className="flex items-center gap-1.5 truncate text-sm font-semibold text-slate-800">
-                                    <span className="truncate">{studentName}</span>
-                                    {complete ? <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-500" aria-label="Complete" /> : null}
-                                  </p>
-                                  <p className="truncate font-mono text-xs text-slate-400">{row.student.student_id}</p>
-                                </div>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                <div className="flex w-52 shrink-0 flex-col overflow-hidden border-r border-slate-100 bg-white">
+                  {visibleRows.map((row) => {
+                    const complete =
+                      examSubjects.length > 0 &&
+                      columnSubjects.every((sbj) => {
+                        const sc = row.scores[sbj.subject];
+                        return sc && (sc.classScore !== '' || sc.examScoreInput !== '');
+                      });
+                    const studentName = buildStudentName(
+                      row.student.first_name,
+                      row.student.middle_name,
+                      row.student.last_name
+                    );
+                    const studentPhoto = photoUrl(row.student.student_photo_url);
+                    const initials = `${row.student.first_name?.[0] || ''}${row.student.last_name?.[0] || ''}`.toUpperCase();
+                    return (
+                      <div key={row.student.id} className="flex h-11 shrink-0 items-center overflow-hidden border-b border-slate-100 bg-white px-2">
+                        <div className="flex min-w-0 items-center gap-2">
+                          {studentPhoto ? (
+                            <img
+                              src={studentPhoto}
+                              alt={`${studentName} photo`}
+                              className="h-8 w-8 shrink-0 rounded-full object-cover ring-1 ring-slate-200"
+                            />
+                          ) : (
+                            <span
+                              aria-hidden="true"
+                              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[10px] font-bold text-slate-500"
+                            >
+                              {initials}
+                            </span>
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <p className="flex items-center gap-1.5 truncate text-sm font-semibold text-slate-800">
+                              <span className="truncate">{studentName}</span>
+                              {complete ? <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-500" aria-label="Complete" /> : null}
+                            </p>
+                            <p className="truncate font-mono text-xs text-slate-400">{row.student.student_id}</p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
                 <div
                   ref={sheetRef}
@@ -1467,18 +1462,8 @@ export default function AdminExams() {
                   }}
                   className="min-w-0 flex-1 overflow-x-auto overflow-y-hidden bg-white"
                 >
-                  <table className="w-full text-sm table-fixed">
-                    <colgroup>
-                      {columnSubjects.flatMap((s) => [
-                        <col key={`b-${s.id}-c`} className="w-16" />,
-                        <col key={`b-${s.id}-e`} className="w-16" />,
-                        <col key={`b-${s.id}-t`} className="w-20" />,
-                      ])}
-                      {singleSubject ? null : <col className="w-24" />}
-                      {singleSubject ? null : <col className="w-20" />}
-                      {singleSubject ? null : <col className="w-16" />}
-                    </colgroup>
-                    <tbody>{visibleRows.map((row) => {
+                  <div className="w-max min-w-full">
+                    {visibleRows.map((row) => {
                     const rowIndex = rowIndexByStudentId.get(row.student.student_id);
                     let sum = 0;
                     let count = 0;
@@ -1492,13 +1477,17 @@ export default function AdminExams() {
                     const avg = count ? sum / count : null;
                     const avgPerf = avg != null ? gradeForScale(scale, avg, '') : null;
                     return (
-                      <tr key={row.student.id} className="h-11 hover:bg-slate-50/60">
+                      <div
+                        key={row.student.id}
+                        className="grid h-11 min-h-11 max-h-11 min-w-full shrink-0 hover:bg-slate-50/60"
+                        style={{ gridTemplateColumns: scoreGridTemplate }}
+                      >
                         {columnSubjects.map((sbj) => {
                           const sc = row.scores[sbj.subject] || { classScore: '', examScoreInput: '' };
                           const t = scoreTotals(sc, sbj.subject);
                           return (
                             <Fragment key={sbj.subject}>
-                              <td className="h-11 border-b border-l border-slate-100 px-1 align-middle">
+                              <div className="flex h-11 min-h-11 max-h-11 items-center overflow-hidden border-b border-l border-slate-100 px-1">
                                 <input
                                   type="number" min="0" max="50" data-score="1"
                                   value={sc.classScore}
@@ -1506,8 +1495,8 @@ export default function AdminExams() {
                                   className="input h-8 w-full rounded-lg px-1.5 text-center text-xs"
                                   placeholder="0-50"
                                 />
-                              </td>
-                              <td className="h-11 border-b border-slate-100 px-1 align-middle">
+                              </div>
+                              <div className="flex h-11 min-h-11 max-h-11 items-center overflow-hidden border-b border-slate-100 px-1">
                                 <input
                                   type="number" min="0" max="100" data-score="1"
                                   value={sc.examScoreInput}
@@ -1515,8 +1504,8 @@ export default function AdminExams() {
                                   className="input h-8 w-full rounded-lg px-1.5 text-center text-xs"
                                   placeholder="0-100"
                                 />
-                              </td>
-                              <td className="h-11 border-b border-slate-100 px-1 text-center align-middle">
+                              </div>
+                              <div className="flex h-11 min-h-11 max-h-11 items-center justify-center overflow-hidden border-b border-slate-100 px-1">
                                 {t.tot != null && t.perf ? (
                                   <span className={`badge ${GRADE_CLASSES[t.perf.cls]}`}>
                                     {t.tot.toFixed(0)}% · {t.perf.grade}
@@ -1524,14 +1513,14 @@ export default function AdminExams() {
                                 ) : (
                                   <span className="text-slate-300">—</span>
                                 )}
-                              </td>
+                              </div>
                             </Fragment>
                           );
                         })}
                         {singleSubject ? null : (
-                          <td className="h-11 border-b border-l border-slate-100 px-2 text-center align-middle">
+                          <div className="flex h-11 min-h-11 max-h-11 items-center justify-center overflow-hidden border-b border-l border-slate-100 px-2">
                             {avg != null ? (
-                              <div className="flex flex-col items-center gap-1">
+                              <div className="flex flex-col items-center gap-1 leading-none">
                                 <span className="text-sm font-bold text-slate-700">{avg.toFixed(1)}%</span>
                                 <div className="h-1.5 w-14 overflow-hidden rounded-full bg-slate-100">
                                   <div
@@ -1543,27 +1532,26 @@ export default function AdminExams() {
                             ) : (
                               <span className="text-slate-300">—</span>
                             )}
-                          </td>
+                          </div>
                         )}
                         {singleSubject ? null : (
-                          <td className="h-11 border-b border-slate-100 px-2 text-center align-middle">
+                          <div className="flex h-11 min-h-11 max-h-11 items-center justify-center overflow-hidden border-b border-slate-100 px-2">
                             {avgPerf ? (
                               <span className={`badge ${GRADE_CLASSES[avgPerf.cls]}`}>{avgPerf.grade}</span>
                             ) : (
                               <span className="text-slate-300">—</span>
                             )}
-                          </td>
+                          </div>
                         )}
                         {singleSubject ? null : (
-                          <td className="h-11 border-b border-slate-100 px-1 text-center text-sm font-semibold text-slate-600 align-middle">
+                          <div className="flex h-11 min-h-11 max-h-11 items-center justify-center overflow-hidden border-b border-slate-100 px-1 text-sm font-semibold text-slate-600">
                             {ordinal(overallRankByStudentId.get(row.student.student_id))}
-                          </td>
+                          </div>
                         )}
-                      </tr>
+                      </div>
                     );
                   })}
-                </tbody>
-              </table>
+                  </div>
             </div>
             </div>
             </div>
