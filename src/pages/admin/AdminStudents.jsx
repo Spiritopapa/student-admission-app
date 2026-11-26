@@ -1530,7 +1530,7 @@ return (
                 <p className="text-base font-bold text-slate-900">
                   {buildStudentName(viewing.first_name, viewing.middle_name, viewing.last_name)}
                 </p>
-                <p className="font-mono text-xs text-slate-400">{viewing.student_id}</p>
+                <p className="font-mono text-xs text-slate-600">{viewing.student_id}</p>
                 <div className="mt-1.5 flex flex-wrap gap-2">
                   <Badge tone="blue">{viewing.class_applying}</Badge>
                   <Badge tone={viewing.status === 'admitted' ? 'green' : 'amber'}>{viewing.status}</Badge>
@@ -1740,8 +1740,8 @@ return (
 function Detail({ label, value }) {
   return (
     <div>
-      <dt className="text-[11px] uppercase tracking-wide text-slate-400">{label}</dt>
-      <dd className="mt-0.5 font-semibold text-slate-700">{value || '-'}</dd>
+      <dt className="text-[11px] uppercase tracking-wide text-slate-600">{label}</dt>
+      <dd className="mt-0.5 font-semibold text-slate-900">{value || '-'}</dd>
     </div>
   );
 }
