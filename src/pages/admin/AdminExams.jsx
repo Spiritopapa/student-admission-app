@@ -1410,7 +1410,7 @@ export default function AdminExams() {
               </div>
               {/* Scrollable body: names stay frozen on the left, only marks scroll */}
               <div ref={bodyRef} className="flex max-h-[560px] overflow-x-hidden overflow-y-auto">
-                <div className="flex w-52 shrink-0 flex-col overflow-hidden border-r border-slate-100 bg-white">
+                <div className="flex w-52 shrink-0 flex-col border-r border-slate-100 bg-white">
                   {visibleRows.map((row) => {
                     const complete =
                       examSubjects.length > 0 &&
