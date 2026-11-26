@@ -76,9 +76,9 @@ export default function ParentHome() {
       {wards.length ? (
         <>
           <div className={`grid gap-4 ${feesLocked ? 'sm:grid-cols-1' : 'sm:grid-cols-3'}`}>
-            <StatCard icon={Users} tone="blue" label="Wards" value={wards.length} sub="Linked students" index={0} />
-            {!feesLocked ? <StatCard icon={Wallet} tone="amber" label="Total balance" value={totals.fees.toFixed(2)} sub="Across all wards" index={1} /> : null}
-            {!feesLocked ? <StatCard icon={Megaphone} tone="green" label="Receipts" value={totals.receipts} sub="Verified payments" index={2} /> : null}
+            <GlassStatCard icon={Users} tone="brand" label="Wards" value={wards.length} subtext="Linked students" delay={0} />
+            {!feesLocked ? <GlassStatCard icon={Wallet} tone="accent" label="Total balance" value={totals.fees.toFixed(2)} subtext="Across all wards" delay={0.05} /> : null}
+            {!feesLocked ? <GlassStatCard icon={Megaphone} tone="emerald" label="Receipts" value={totals.receipts} subtext="Verified payments" delay={0.1} /> : null}
           </div>
 
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
